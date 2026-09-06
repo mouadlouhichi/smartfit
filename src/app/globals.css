@@ -13,41 +13,47 @@
  */
 
 :root {
-  --radius: 1.4rem;
+  --radius: 1.5rem;
 
-  --background: #f2f0ec;
-  --foreground: #181615;
+  /* Reference dashboard palette — light warm-gray canvas, white cards,
+     charcoal rail, single orange accent. */
+  --background: #efedea;
+  --foreground: #171615;
 
   --card: #ffffff;
-  --card-foreground: #1d1a18;
+  --card-foreground: #1b1a19;
 
   --popover: #ffffff;
-  --popover-foreground: #1d1a18;
+  --popover-foreground: #1b1a19;
 
-  --primary: #d6532f;
-  --primary-foreground: #fdf6f2;
+  --primary: #e05e36;
+  --primary-foreground: #ffffff;
 
-  --secondary: #ece8e2;
-  --secondary-foreground: #3a322d;
+  --secondary: #eceae6;
+  --secondary-foreground: #1b1a19;
 
-  --muted: #ede9e3;
-  --muted-foreground: #857d75;
+  --muted: #e9e7e3;
+  --muted-foreground: #87857f;
 
-  --accent: #e9d8d1;
-  --accent-foreground: #7a2a18;
+  --accent: #f6d9ce;
+  --accent-foreground: #8a3418;
 
   --destructive: #c0392b;
   --destructive-foreground: #fdf6f2;
 
-  --border: #e7e2db;
-  --input: #e7e2db;
-  --ring: #d6532f;
+  --border: #e5e2dd;
+  --input: #e5e2dd;
+  --ring: #e05e36;
 
-  --chart-1: #d6532f;
-  --chart-2: #e8a087;
+  --chart-1: #e05e36;
+  --chart-2: #eda07e;
   --chart-3: #cdaca4;
   --chart-4: #8a6a58;
   --chart-5: #2b2725;
+
+  /* Dark charcoal rail / dark cards */
+  --charcoal: #3f3d3b;
+  --charcoal-2: #4a4846;
 }
 
 .dark {
@@ -113,14 +119,16 @@
   --color-chart-5: var(--chart-5);
 
   /* Ember brand accents (product app). */
-  --color-ember: #d6532f;
-  --color-ember-deep: #b7220f;
-  --color-ember-bright: #e8785a;
+  --color-ember: #e05e36;
+  --color-ember-deep: #c4451f;
+  --color-ember-bright: #ee7d5a;
   --color-terracotta: #e8a087;
   --color-rose: #cdaca4;
-  --color-clay: #4e4c4c;
-  --color-ink-warm: #181615;
-  --color-paper-warm: #f2f0ec;
+  --color-clay: #5c5a57;
+  --color-ink-warm: #171615;
+  --color-paper-warm: #efedea;
+  --color-charcoal: #3f3d3b;
+  --color-charcoal-2: #4a4846;
 
   /* Volt brand constants — retained for the always-dark marketing landing. */
   --color-volt: #c8f135;
