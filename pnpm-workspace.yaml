@@ -5,9 +5,16 @@ packages:
 # Single React type identity across the whole monorepo. The hoisted virtual
 # store would otherwise expose @types/react@18 (mobile) to web's Radix packages,
 # producing duplicate-JSX-namespace errors; pinning one version removes the clash.
-allowBuilds:
-  esbuild: set this to true or false
-
 overrides:
   '@types/react': 19.1.10
   '@types/react-dom': 19.1.7
+
+# Approve install scripts for dependencies that legitimately need a postinstall
+# step (esbuild links its platform binary and is used by tsx). pnpm 12 records
+# this as `allowBuilds`; `onlyBuiltDependencies` is the pnpm ≤11 equivalent kept
+# for cross-version compatibility. This is the committed form of
+# `pnpm approve-builds` and keeps `pnpm install --frozen-lockfile` green in CI.
+allowBuilds:
+  esbuild: true
+onlyBuiltDependencies:
+  - esbuild
