@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Plus } from 'lucide-react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
-import { NAV_ITEMS, RAIL_ITEMS } from './nav-items';
+import { RAIL_ITEMS } from './nav-items';
+import { MobileNav } from './mobile-nav';
 import { DashboardHeader } from './dashboard-header';
 import { DashboardModals } from './dashboard-modals';
-import { ModalProvider, useModals } from './modal-context';
+import { ModalProvider } from './modal-context';
 
 function isActive(pathname: string, href: string) {
   if (href === '/dashboard') return pathname === '/dashboard';
@@ -36,9 +36,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
           <nav className="flex flex-1 flex-col items-center gap-5">
             {RAIL_ITEMS.map((item) => {
-              const active = isActive(pathname, item.href) && !item.label.includes('Settings');
+              const active = isActive(pathname, item.href);
               return (
-                <Link key={item.label} href={item.href} className="group flex flex-col items-center gap-1.5">
+                <Link key={`${item.label}-${item.href}`} href={item.href} className="group flex flex-col items-center gap-1.5">
                   <span
                     className={cn(
                       'flex h-12 w-12 items-center justify-center rounded-full transition-all',
@@ -77,8 +77,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </main>
         </div>
 
-        {/* Floating pill nav (mobile) */}
-        <FloatingPill />
+        {/* Mobile nav — same dark rail, expands on tap */}
+        <MobileNav />
 
         <DashboardModals />
       </div>
@@ -98,73 +98,5 @@ function ThemeToggleDark() {
     >
       {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
     </button>
-  );
-}
-
-function FloatingPill() {
-  const pathname = usePathname();
-  const { openModal } = useModals();
-  const items = NAV_ITEMS.filter((i) =>
-    ['/dashboard', '/dashboard/plan', '/dashboard/progress', '/dashboard/profile'].includes(i.href),
-  );
-
-  return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),14px)] lg:hidden">
-      <nav className="pointer-events-auto flex items-center gap-1 rounded-full bg-charcoal/95 p-1.5 shadow-2xl shadow-black/30 backdrop-blur">
-        {items.slice(0, 2).map((item) => {
-          const active = isActive(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-label={item.label}
-              className={cn(
-                'flex h-11 w-11 items-center justify-center rounded-full transition-colors',
-                active ? 'bg-white text-primary' : 'text-white/60',
-              )}
-            >
-              <item.icon style={{ width: 20, height: 20 }} strokeWidth={active ? 2.6 : 2.2} />
-            </Link>
-          );
-        })}
-
-        <button
-          onClick={() => openModal('workout')}
-          aria-label="Log workout"
-          className="mx-1 flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/40 transition-transform active:scale-90"
-          style={{ width: 52, height: 52 }}
-        >
-          <Plus style={{ width: 24, height: 24 }} strokeWidth={2.8} />
-        </button>
-
-        <Link
-          href="/dashboard/coach"
-          aria-label="AI Coach"
-          className={cn(
-            'flex h-11 w-11 items-center justify-center rounded-full transition-colors',
-            pathname.startsWith('/dashboard/coach') ? 'bg-white text-primary' : 'text-white/60',
-          )}
-        >
-          <span className="text-lg leading-none">✦</span>
-        </Link>
-
-        {items.slice(2).map((item) => {
-          const active = isActive(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-label={item.label}
-              className={cn(
-                'flex h-11 w-11 items-center justify-center rounded-full transition-colors',
-                active ? 'bg-white text-primary' : 'text-white/60',
-              )}
-            >
-              <item.icon style={{ width: 20, height: 20 }} strokeWidth={active ? 2.6 : 2.2} />
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
   );
 }

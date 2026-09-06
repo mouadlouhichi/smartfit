@@ -6,8 +6,6 @@ import {
   Ruler,
   UserRound,
   Sparkles,
-  Settings,
-  BarChart3,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -29,15 +27,15 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 /**
- * Desktop dark rail — matches the reference sidebar (Dashboard, Progress,
- * Insights/AI, Training, Stats, Profile, Settings) with circular icons.
+ * Dark rail — used by both the desktop sidebar and the expandable mobile
+ * menu. One item per app route, circular icons, matching labels.
  */
 export const RAIL_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/dashboard/progress', label: 'Progress', icon: LineChart },
   { href: '/dashboard/coach', label: 'Insights', icon: Sparkles },
   { href: '/dashboard/plan', label: 'Training', icon: CalendarCheck },
-  { href: '/dashboard/goals', label: 'Stats', icon: BarChart3 },
+  { href: '/dashboard/goals', label: 'Goals', icon: Target },
+  { href: '/dashboard/body', label: 'Body', icon: Ruler },
   { href: '/dashboard/profile', label: 'Profile', icon: UserRound },
-  { href: '/dashboard/profile', label: 'Settings', icon: Settings },
 ];
