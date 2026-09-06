@@ -20,7 +20,7 @@ export default function PlanScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <ScrollView className="flex-1" contentContainerClassName="p-4 gap-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-28 gap-4">
         <View>
           <Text className="text-2xl font-bold text-foreground">Training plan</Text>
           <Text className="text-sm text-muted-foreground">
@@ -61,7 +61,7 @@ export default function PlanScreen() {
                       <Switch
                         value={s.active}
                         onValueChange={(v) => updateSchedule(s.id, { active: v })}
-                        trackColor={{ true: '#15803D', false: '#D6DEDA' }}
+                        trackColor={{ true: '#C8F135', false: '#1B2113' }}
                       />
                     </View>
                   );

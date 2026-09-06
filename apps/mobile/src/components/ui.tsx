@@ -65,7 +65,7 @@ export function Button({
       {...rest}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#F3FDF5' : '#15803D'} />
+        <ActivityIndicator color={variant === 'primary' ? '#0B0E09' : '#C8F135'} />
       ) : (
         <Text className={cn('text-sm font-semibold', textColor[variant])}>{label}</Text>
       )}
@@ -77,16 +77,16 @@ export function Badge({ children, color }: { children: React.ReactNode; color?: 
   return (
     <View
       className="rounded-full px-2.5 py-1"
-      style={{ backgroundColor: color ? `${color}1a` : '#EEF2EE' }}
+      style={{ backgroundColor: color ? `${color}1a` : '#1B2113' }}
     >
-      <Text className="text-xs font-semibold" style={{ color: color ?? '#2A332E' }}>
+      <Text className="text-xs font-semibold" style={{ color: color ?? '#EFF3E6' }}>
         {children}
       </Text>
     </View>
   );
 }
 
-export function ProgressBar({ value, color = '#15803D' }: { value: number; color?: string }) {
+export function ProgressBar({ value, color = '#C8F135' }: { value: number; color?: string }) {
   return (
     <View className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
       <View

@@ -35,7 +35,7 @@ const ICONS: Record<string, LucideIcon> = {
 export function CategoryIcon({
   name,
   size = 18,
-  color = '#15803D',
+  color = '#C8F135',
 }: {
   name: string;
   size?: number;

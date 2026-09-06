@@ -30,7 +30,7 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <ScrollView className="flex-1" contentContainerClassName="p-4 gap-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-28 gap-4">
         <View>
           <Text className="text-2xl font-bold text-foreground">Progress</Text>
           <Text className="text-sm text-muted-foreground">Active minutes over the last 8 weeks.</Text>
@@ -38,7 +38,7 @@ export default function ProgressScreen() {
 
         <Card>
           <Text className="mb-3 font-semibold text-foreground">Weekly active minutes</Text>
-          <BarChart data={series} color="#15803D" />
+          <BarChart data={series} color="#C8F135" />
         </Card>
 
         <Card>

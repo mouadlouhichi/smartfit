@@ -9,7 +9,7 @@ export interface BarDatum {
 
 export function BarChart({
   data,
-  color = '#15803D',
+  color = '#C8F135',
   height = 180,
 }: {
   data: BarDatum[];
@@ -26,7 +26,7 @@ export function BarChart({
   return (
     <View>
       <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
-        <Line x1={0} y1={height - padBottom} x2={width} y2={height - padBottom} stroke="#E2E8E3" strokeWidth={1} />
+        <Line x1={0} y1={height - padBottom} x2={width} y2={height - padBottom} stroke="#273019" strokeWidth={1} />
         {data.map((d, i) => {
           const h = (d.value / max) * chartH;
           const x = i * barW + barW * 0.2;
@@ -39,7 +39,7 @@ export function BarChart({
                 x={i * barW + barW / 2}
                 y={height - 6}
                 fontSize={9}
-                fill="#9AA7A0"
+                fill="#9BA886"
                 textAnchor="middle"
               >
                 {d.label}

@@ -24,7 +24,7 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
         <View className="flex-row items-center justify-between py-2">
           <Text className="text-lg font-bold text-foreground">Log measurement</Text>
           <Pressable onPress={onClose} className="rounded-full p-2 active:bg-muted">
-            <X color="#5B675F" size={22} />
+            <X color="#9BA886" size={22} />
           </Pressable>
         </View>
         <ScrollView contentContainerClassName="gap-4 pt-4">
@@ -36,9 +36,9 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                   key={u}
                   onPress={() => setUnit(u)}
                   className="rounded-full border px-3 py-2"
-                  style={{ borderColor: unit === u ? '#15803D' : '#E2E8E3', backgroundColor: unit === u ? '#15803d14' : 'transparent' }}
+                  style={{ borderColor: unit === u ? '#C8F135' : '#273019', backgroundColor: unit === u ? '#C8F13522' : 'transparent' }}
                 >
-                  <Text style={{ color: unit === u ? '#15803D' : '#5B675F' }} className="text-sm font-medium">
+                  <Text style={{ color: unit === u ? '#C8F135' : '#9BA886' }} className="text-sm font-medium">
                     {BODY_UNIT_META[u].label}
                   </Text>
                 </Pressable>
@@ -65,13 +65,13 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <ScrollView className="flex-1" contentContainerClassName="p-4 gap-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-28 gap-4">
         <Text className="text-2xl font-bold text-foreground">Profile</Text>
         <Text className="text-sm text-muted-foreground">Your data stays on this device.</Text>
 
         <Card>
           <View className="mb-3 flex-row items-center gap-2">
-            <UserRound color="#15803D" size={18} />
+            <UserRound color="#C8F135" size={18} />
             <Text className="font-semibold text-foreground">You</Text>
           </View>
           <Label>Name</Label>
@@ -86,7 +86,7 @@ export default function ProfileScreen() {
 
         <Card>
           <View className="mb-2 flex-row items-center gap-2">
-            <Database color="#15803D" size={18} />
+            <Database color="#C8F135" size={18} />
             <Text className="font-semibold text-foreground">Your data</Text>
           </View>
           <Text className="text-sm text-muted-foreground">
@@ -120,7 +120,7 @@ export default function ProfileScreen() {
         </Card>
 
         <View className="flex-row items-center justify-center gap-2 py-4">
-          <RefreshCw color="#9AA7A0" size={14} />
+          <RefreshCw color="#9BA886" size={14} />
           <Text className="text-xs text-muted-foreground">Local-first · no account · no trackers</Text>
           <Trash2 color="#ffffff" size={1} />
         </View>

@@ -3,32 +3,33 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * SmartFit design system — "Motion"
- * An energetic but calm surface: a confident lime/emerald primary on a near-white
- * neutral ground, with a deep charcoal dark theme. Mirrors the token structure of
- * the reference app (Serene) so the component conventions stay identical.
+ * SmartFit design system — "Volt"
+ * A bold, energetic fitness look inspired by dark Dribbble fitness UI: a
+ * near-black ground with an electric-lime accent. The marketing site is always
+ * dark/volt (see --color-* brand constants below); the app ships a matching
+ * dark theme by default with a tuned light theme.
  */
 
 :root {
-  --radius: 0.75rem;
+  --radius: 0.9rem;
 
-  --background: #f7faf7;
-  --foreground: #131a17;
+  --background: #f4f7ec;
+  --foreground: #14190d;
 
   --card: #ffffff;
-  --card-foreground: #131a17;
+  --card-foreground: #14190d;
 
   --popover: #ffffff;
-  --popover-foreground: #131a17;
+  --popover-foreground: #14190d;
 
-  --primary: #15803d;
-  --primary-foreground: #f3fdf5;
+  --primary: #4d7c0f;
+  --primary-foreground: #f7fee7;
 
-  --secondary: #eef2ee;
-  --secondary-foreground: #2a332e;
+  --secondary: #e9eedd;
+  --secondary-foreground: #22300f;
 
-  --muted: #eef2ee;
-  --muted-foreground: #5b675f;
+  --muted: #ecefe2;
+  --muted-foreground: #5c6649;
 
   --accent: #d9f99d;
   --accent-foreground: #1a2e05;
@@ -36,11 +37,11 @@
   --destructive: #dc2626;
   --destructive-foreground: #fff5f5;
 
-  --border: #e2e8e3;
-  --input: #e2e8e3;
-  --ring: #15803d;
+  --border: #dfe4d3;
+  --input: #dfe4d3;
+  --ring: #4d7c0f;
 
-  --chart-1: #16a34a;
+  --chart-1: #65a30d;
   --chart-2: #0ea5e9;
   --chart-3: #f59e0b;
   --chart-4: #8b5cf6;
@@ -48,35 +49,35 @@
 }
 
 .dark {
-  --background: #0e1411;
-  --foreground: #e9f2ec;
+  --background: #0b0e09;
+  --foreground: #eff3e6;
 
-  --card: #161d19;
-  --card-foreground: #e9f2ec;
+  --card: #15190f;
+  --card-foreground: #eff3e6;
 
-  --popover: #161d19;
-  --popover-foreground: #e9f2ec;
+  --popover: #15190f;
+  --popover-foreground: #eff3e6;
 
-  --primary: #4ade80;
-  --primary-foreground: #052e16;
+  --primary: #c8f135;
+  --primary-foreground: #12160c;
 
-  --secondary: #222b26;
-  --secondary-foreground: #e9f2ec;
+  --secondary: #202616;
+  --secondary-foreground: #eff3e6;
 
-  --muted: #222b26;
-  --muted-foreground: #9fb3a7;
+  --muted: #1b2113;
+  --muted-foreground: #9ba886;
 
-  --accent: #365314;
-  --accent-foreground: #ecfccb;
+  --accent: #c8f135;
+  --accent-foreground: #12160c;
 
   --destructive: #f87171;
-  --destructive-foreground: #1a0505;
+  --destructive-foreground: #1b0707;
 
-  --border: #26302a;
-  --input: #26302a;
-  --ring: #4ade80;
+  --border: #273019;
+  --input: #273019;
+  --ring: #c8f135;
 
-  --chart-1: #4ade80;
+  --chart-1: #c8f135;
   --chart-2: #38bdf8;
   --chart-3: #fbbf24;
   --chart-4: #a78bfa;
@@ -109,6 +110,17 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
+  /* Brand constants — used by the always-bold marketing site (theme independent). */
+  --color-volt: #c8f135;
+  --color-volt-soft: #e3f88a;
+  --color-volt-dim: #9dbd1f;
+  --color-ink: #0b0e09;
+  --color-ink-2: #12160c;
+  --color-ink-card: #161b10;
+  --color-paper: #eff3e6;
+  --color-sage: #9ba886;
+  --color-pine: #2b4016;
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -133,7 +145,6 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Hide number input spinners */
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -145,11 +156,10 @@ input[type='number'] {
 }
 
 ::selection {
-  background: var(--accent);
-  color: var(--accent-foreground);
+  background: var(--volt, #c8f135);
+  color: #0b0e09;
 }
 
-/* Slim, theme-aware scrollbars */
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -166,7 +176,7 @@ input[type='number'] {
 @keyframes fade-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -174,5 +184,18 @@ input[type='number'] {
   }
 }
 .animate-fade-in {
-  animation: fade-in 0.35s ease both;
+  animation: fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+.animate-float {
+  animation: float-y 6s ease-in-out infinite;
 }

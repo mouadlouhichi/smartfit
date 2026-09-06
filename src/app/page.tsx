@@ -1,264 +1,353 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import {
-  Activity,
   ArrowRight,
   BarChart3,
   CalendarCheck2,
   CheckCircle2,
-  Dumbbell,
   Flame,
-  HeartPulse,
   LineChart,
   Lock,
-  Smartphone,
+  Play,
+  Sparkles,
   Target,
-  Timer,
   TrendingDown,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { LandingNav } from '@/components/landing/navigation';
-import { FooterSection } from '@/components/landing/footer-section';
+import { LandingNav, LogoMark } from '@/components/landing/navigation';
 import { PLANS } from '@smartfit/core';
 
 export const metadata: Metadata = {
-  title: 'SmartFit — Train with intention',
+  title: 'SmartFit — Train Hard. Train Smart.',
   description:
-    'A private, mobile-first fitness tracker. Plan your week, log every session, chase goals and watch your body trend — without wearables, subscriptions or sold data.',
+    'A private, bold fitness tracker. Plan your week, log every session, chase goals and watch your body trend — no wearables, no subscriptions.',
 };
 
 const FEATURES = [
-  {
-    icon: Dumbbell,
-    title: 'Log every workout',
-    body: 'Strength, cardio, HIIT, mobility, sport — record duration, intensity, distance and exercises in seconds.',
-    color: '#16a34a',
-  },
-  {
-    icon: CalendarCheck2,
-    title: 'Plan your week',
-    body: 'Pick a proven split — Push/Pull/Legs, Upper/Lower, Full Body or cardio-focused — and schedule recurring sessions.',
-    color: '#0ea5e9',
-  },
-  {
-    icon: Target,
-    title: 'Goals that reset',
-    body: 'Weekly and monthly targets for workouts, active minutes, calories and distance, with live progress bars.',
-    color: '#f59e0b',
-  },
-  {
-    icon: Flame,
-    title: 'Streaks & momentum',
-    body: 'A daily training streak keeps you honest, while weekly stats show the work you actually put in.',
-    color: '#ef4444',
-  },
-  {
-    icon: LineChart,
-    title: 'Progress you can see',
-    body: 'Volume trends, activity mix and intensity spread over the last eight weeks — no spreadsheet required.',
-    color: '#8b5cf6',
-  },
-  {
-    icon: TrendingDown,
-    title: 'Body trends',
-    body: 'Track weight and measurements over time. The trend line tells the story the daily number never could.',
-    color: '#ec4899',
-  },
-  {
-    icon: Lock,
-    title: 'Private by design',
-    body: 'Everything lives on your device. No accounts, no wearables, no data brokers — your training is yours.',
-    color: '#14b8a6',
-  },
-  {
-    icon: Smartphone,
-    title: 'Installs like an app',
-    body: 'Mobile-first and responsive, with light and dark themes. Works great in the pocket or at the desk.',
-    color: '#64748b',
-  },
+  { icon: BarChart3, title: 'Log every workout', body: 'Strength, cardio, HIIT, mobility & sport — duration, intensity, calories and distance in seconds.' },
+  { icon: CalendarCheck2, title: 'Plan your week', body: 'PPL, Upper/Lower, Full Body or Cardio splits. Drop recurring sessions on the calendar and just show up.' },
+  { icon: Target, title: 'Goals that reset', body: 'Weekly & monthly targets for workouts, minutes, calories and distance with live progress.' },
+  { icon: Flame, title: 'Streaks & momentum', body: 'A daily training streak keeps you honest and your weekly stats show the real work.' },
+  { icon: LineChart, title: 'Progress you can see', body: '8-week volume trends, activity mix and intensity spread — no spreadsheet required.' },
+  { icon: TrendingDown, title: 'Body trends', body: 'Track weight and measurements. The trend line tells the story the daily number never could.' },
+  { icon: Lock, title: 'Private by design', body: 'Everything lives on your device. No accounts, no wearables, no data brokers. Your training is yours.' },
+  { icon: Sparkles, title: 'Installs like an app', body: 'Mobile-first and responsive with a bold dark theme and light mode. Built for the pocket.' },
 ];
 
 const STEPS = [
-  { icon: Target, title: 'Set your strategy', body: 'Choose a training split that fits your life and tell us your rest days.' },
-  { icon: CalendarCheck2, title: 'Schedule the week', body: 'Drop recurring sessions into the calendar so showing up is the only decision.' },
-  { icon: Activity, title: 'Log as you train', body: 'One tap records each workout — duration, intensity, distance and exercises.' },
-  { icon: BarChart3, title: 'Watch the trend', body: 'Streaks, goal progress and body trends compound into visible results.' },
+  { n: '01', title: 'Set your strategy', body: 'Pick a split that fits your life and tell us your rest days.' },
+  { n: '02', title: 'Schedule the week', body: 'Drop recurring sessions into the calendar so showing up is the only decision.' },
+  { n: '03', title: 'Log as you train', body: 'One tap records each session — duration, intensity, distance, exercises.' },
+  { n: '04', title: 'Watch the trend', body: 'Streaks, goals and body trends compound into visible results.' },
 ];
 
 const FAQS = [
-  {
-    q: 'Do I need a smartwatch or wearable?',
-    a: 'No. SmartFit is built around manual logging, which is the point — you decide what counts as a session, and nothing depends on a device on your wrist.',
-  },
-  {
-    q: 'Where is my data stored?',
-    a: 'Entirely in your browser using local storage. There is no account and no server receiving your workouts. You can export or erase everything with one tap.',
-  },
-  {
-    q: 'What training plans are included?',
-    a: 'Push/Pull/Legs (6-day), Upper/Lower (4-day), Full Body 3× (great for beginners), and a Cardio & Conditioning plan. You can also schedule any custom session.',
-  },
-  {
-    q: 'Is SmartFit free?',
-    a: 'Yes. Every feature is free. There is no premium tier and no subscription — fitness tracking should not have a paywall.',
-  },
+  { q: 'Do I need a smartwatch or wearable?', a: 'No. SmartFit is built around manual logging — you decide what counts as a session, with nothing depending on a device on your wrist.' },
+  { q: 'Where is my data stored?', a: 'Entirely on your device. There is no account and no server receiving your workouts. Export or erase everything with one tap.' },
+  { q: 'What plans are included?', a: 'Push/Pull/Legs, Upper/Lower, Full Body 3× and Cardio & Conditioning — plus any custom session you schedule.' },
+  { q: 'Is SmartFit free?', a: 'Yes. Every feature is free. Fitness tracking should not have a paywall.' },
 ];
 
 export default function HomePage() {
   return (
-    <div className="flex min-h-dvh flex-col">
+    // Always-render bold dark/volt marketing surface regardless of app theme.
+    <div className="dark min-h-dvh bg-ink text-paper">
       <LandingNav />
 
-      {/* Hero */}
+      {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-[42rem] -translate-x-1/2 rounded-full bg-primary/15 blur-3xl" />
-        <div className="mx-auto max-w-6xl px-4 pb-16 pt-16 text-center sm:px-6 sm:pt-24">
-          <Badge variant="accent" className="mb-5 gap-1.5 px-3 py-1">
-            <Flame className="h-3.5 w-3.5" /> Private fitness tracking — free forever
-          </Badge>
-          <h1 className="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
-            Train hard. <span className="text-primary">Train smart.</span>
-          </h1>
-          <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">
-            SmartFit keeps your plan, your workouts and your progress in one calm place — and keeps your data on your
-            device. No wearables, no subscriptions, no noise.
-          </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Button asChild size="lg" className="rounded-full px-7">
-              <Link href="/onboarding">
-                Start training <ArrowRight className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="rounded-full px-7">
-              <Link href="/dashboard">Explore the demo</Link>
-            </Button>
-          </div>
-          <p className="mt-4 text-xs text-muted-foreground">No sign-up · Works offline · Light &amp; dark</p>
+        {/* glow + grid backdrop */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -top-40 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-volt/20 blur-[120px]" />
+          <div
+            className="absolute inset-0 opacity-[0.07]"
+            style={{
+              backgroundImage:
+                'linear-gradient(#c8f135 1px, transparent 1px), linear-gradient(90deg, #c8f135 1px, transparent 1px)',
+              backgroundSize: '44px 44px',
+              maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 40%, transparent 100%)',
+            }}
+          />
+        </div>
 
-          {/* Hero stat strip */}
-          <div className="mx-auto mt-14 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4">
-            {[
-              { icon: Timer, label: 'Active minutes', value: '150+' },
-              { icon: CalendarCheck2, label: 'Weekly sessions', value: '3–6' },
-              { icon: Target, label: 'Plans', value: '4' },
-              { icon: HeartPulse, label: 'Activity types', value: '6+' },
-            ].map((s) => (
-              <Card key={s.label} className="p-4">
-                <s.icon className="mx-auto h-5 w-5 text-primary" />
-                <p className="mt-2 text-2xl font-bold">{s.value}</p>
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-              </Card>
-            ))}
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-32 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:pb-28 lg:pt-40">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-volt/30 bg-volt/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-volt">
+              <Sparkles className="h-3.5 w-3.5" /> Private fitness · free forever
+            </div>
+            <h1 className="mt-6 text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
+              Train <span className="text-volt">Hard.</span>
+              <br />
+              Train <span className="underline decoration-volt/40 decoration-[6px] underline-offset-8">Smart.</span>
+            </h1>
+            <p className="mt-6 max-w-md text-lg text-paper/65">
+              Plan your week, log every session and watch real progress compound — in one bold, private place. No
+              wearables. No subscriptions. No noise.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <Link
+                href="/onboarding"
+                className="group inline-flex items-center gap-2 rounded-full bg-volt px-7 py-4 text-base font-extrabold text-ink transition-transform hover:scale-[1.03] active:scale-95"
+              >
+                Start training free
+                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center gap-2.5 rounded-full border border-white/15 px-6 py-4 text-base font-bold text-paper transition-colors hover:bg-white/5"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-volt text-ink">
+                  <Play className="h-3.5 w-3.5 fill-ink" />
+                </span>
+                Explore demo
+              </Link>
+            </div>
+            <div className="mt-10 flex items-center gap-4">
+              <div className="flex -space-x-2.5">
+                {['#c8f135', '#38bdf8', '#f472b6', '#fbbf24'].map((c, i) => (
+                  <span
+                    key={i}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-ink text-xs font-bold text-ink"
+                    style={{ backgroundColor: c }}
+                  >
+                    {['A', 'M', 'K', 'J'][i]}
+                  </span>
+                ))}
+              </div>
+              <div className="text-sm">
+                <div className="flex text-volt">{'★★★★★'}</div>
+                <p className="text-paper/55">Loved by home-gym &amp; studio athletes</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Phone mockup */}
+          <div className="relative mx-auto w-full max-w-sm">
+            <PhoneMockup />
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section id="features" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-        <h2 className="text-center text-3xl font-bold tracking-tight">Everything you need, nothing you don&apos;t</h2>
-        <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
-          Most fitness apps either over-complicate or under-count. SmartFit sits in the middle — precise enough to
-          trust, simple enough to actually use.
-        </p>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((f) => (
-            <Card key={f.title} className="transition-shadow hover:shadow-md">
-              <CardContent className="p-5">
-                <span
-                  className="flex h-11 w-11 items-center justify-center rounded-xl"
-                  style={{ backgroundColor: `${f.color}1a`, color: f.color }}
-                >
-                  <f.icon className="h-5 w-5" />
-                </span>
-                <h3 className="mt-4 font-semibold">{f.title}</h3>
-                <p className="mt-1.5 text-sm text-muted-foreground">{f.body}</p>
-              </CardContent>
-            </Card>
+      {/* ── Marquee stats ─────────────────────────────────────── */}
+      <section className="border-y border-white/10 bg-ink-2">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 divide-white/10 px-5 sm:grid-cols-4 sm:divide-x">
+          {[
+            ['150+', 'active min / week'],
+            ['3–6', 'sessions per plan'],
+            ['8 weeks', 'of trend history'],
+            ['100%', 'on-device & free'],
+          ].map(([v, l]) => (
+            <div key={l} className="px-4 py-8 text-center">
+              <p className="text-3xl font-extrabold tracking-tight text-volt sm:text-4xl">{v}</p>
+              <p className="mt-1 text-sm text-paper/55">{l}</p>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* How it works */}
-      <section id="how" className="border-y border-border bg-card/40">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-          <h2 className="text-center text-3xl font-bold tracking-tight">From first plan to real progress</h2>
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((s, i) => (
-              <div key={s.title} className="relative rounded-2xl border border-border bg-card p-5">
-                <span className="absolute right-4 top-4 text-3xl font-bold text-secondary">{i + 1}</span>
-                <s.icon className="h-6 w-6 text-primary" />
-                <h3 className="mt-3 font-semibold">{s.title}</h3>
-                <p className="mt-1.5 text-sm text-muted-foreground">{s.body}</p>
+      {/* ── Features ──────────────────────────────────────────── */}
+      <section id="features" className="mx-auto max-w-7xl px-5 py-24 sm:px-6">
+        <p className="text-sm font-bold uppercase tracking-widest text-volt">Everything you need</p>
+        <h2 className="mt-3 max-w-2xl text-4xl font-extrabold tracking-tight sm:text-5xl">
+          Precise enough to trust. Simple enough to <span className="text-volt">actually use.</span>
+        </h2>
+        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map((f) => (
+            <div
+              key={f.title}
+              className="group rounded-3xl border border-white/10 bg-ink-card p-6 transition-colors hover:border-volt/40"
+            >
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-volt/15 text-volt transition-colors group-hover:bg-volt group-hover:text-ink">
+                <f.icon className="h-6 w-6" />
+              </span>
+              <h3 className="mt-5 text-lg font-bold">{f.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-paper/60">{f.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── How it works ──────────────────────────────────────── */}
+      <section id="how" className="border-y border-white/10 bg-ink-2">
+        <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6">
+          <p className="text-sm font-bold uppercase tracking-widest text-volt">From first plan to real progress</p>
+          <h2 className="mt-3 text-4xl font-extrabold tracking-tight sm:text-5xl">Four steps. That&apos;s it.</h2>
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((s) => (
+              <div key={s.n} className="rounded-3xl border border-white/10 bg-ink p-7">
+                <span className="text-5xl font-extrabold text-volt/25">{s.n}</span>
+                <h3 className="mt-4 text-lg font-bold">{s.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-paper/60">{s.body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Plans */}
-      <section id="plans" className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-        <h2 className="text-center text-3xl font-bold tracking-tight">A plan for every schedule</h2>
-        <p className="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
-          Start from a proven structure, then bend it to your week.
-        </p>
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
+      {/* ── Plans ─────────────────────────────────────────────── */}
+      <section id="plans" className="mx-auto max-w-7xl px-5 py-24 sm:px-6">
+        <p className="text-sm font-bold uppercase tracking-widest text-volt">A plan for every schedule</p>
+        <h2 className="mt-3 text-4xl font-extrabold tracking-tight sm:text-5xl">Start from a proven structure.</h2>
+        <div className="mt-12 grid gap-4 md:grid-cols-2">
           {PLANS.map((p) => (
-            <Card key={p.id} className="flex flex-col p-6">
+            <div key={p.id} className="rounded-3xl border border-white/10 bg-ink-card p-7">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">{p.name}</h3>
-                <Badge variant="secondary">{p.sessionsPerWeek}× / week</Badge>
+                <h3 className="text-xl font-extrabold">{p.name}</h3>
+                <span className="rounded-full bg-volt px-3 py-1 text-sm font-bold text-ink">{p.sessionsPerWeek}× / week</span>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">{p.description}</p>
-              <ul className="mt-4 space-y-2">
+              <p className="mt-3 text-sm text-paper/60">{p.description}</p>
+              <ul className="mt-5 grid gap-2.5">
                 {p.split.map((slot, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
-                    <span className="font-medium">{slot.focus}</span>
+                  <li key={i} className="flex items-center gap-2.5 text-sm text-paper/80">
+                    <CheckCircle2 className="h-[18px] w-[18px] shrink-0 text-volt" />
+                    {slot.focus}
                   </li>
                 ))}
               </ul>
-            </Card>
+            </div>
           ))}
         </div>
       </section>
 
-      {/* FAQ */}
-      <section id="faq" className="border-t border-border bg-card/40">
-        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-          <h2 className="text-center text-3xl font-bold tracking-tight">Questions</h2>
-          <div className="mt-8 grid gap-3">
+      {/* ── FAQ ──────────────────────────────────────────────── */}
+      <section id="faq" className="border-t border-white/10 bg-ink-2">
+        <div className="mx-auto max-w-3xl px-5 py-24 sm:px-6">
+          <h2 className="text-center text-4xl font-extrabold tracking-tight sm:text-5xl">Questions</h2>
+          <div className="mt-10 grid gap-3">
             {FAQS.map((f) => (
-              <Card key={f.q}>
-                <CardContent className="p-5">
-                  <p className="font-semibold">{f.q}</p>
-                  <p className="mt-1.5 text-sm text-muted-foreground">{f.a}</p>
-                </CardContent>
-              </Card>
+              <div key={f.q} className="rounded-2xl border border-white/10 bg-ink-card p-6">
+                <p className="font-bold">{f.q}</p>
+                <p className="mt-2 text-sm leading-relaxed text-paper/60">{f.a}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6">
-        <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground">
-          <CardContent className="flex flex-col items-center gap-4 p-10 text-center">
-            <h2 className="text-3xl font-bold tracking-tight">Your next workout is the one that counts</h2>
-            <p className="max-w-md text-primary-foreground/85">
-              Set up your plan in a minute. SmartFit takes care of the rest — streaks, goals and trends included.
-            </p>
-            <Button asChild size="lg" variant="secondary" className="rounded-full bg-white text-emerald-800 hover:bg-white/90">
-              <Link href="/onboarding">
-                Get started free <ArrowRight className="h-5 w-5" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
+      {/* ── CTA ──────────────────────────────────────────────── */}
+      <section className="relative overflow-hidden px-5 py-24 sm:px-6">
+        <div className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-[40rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-volt/15 blur-[110px]" />
+        <div className="relative mx-auto max-w-3xl rounded-[2rem] border border-volt/30 bg-gradient-to-br from-volt to-volt-soft p-10 text-center text-ink sm:p-14">
+          <LogoMark size={48} />
+          <h2 className="mt-5 text-4xl font-extrabold tracking-tight sm:text-5xl">Your next workout is the one that counts.</h2>
+          <p className="mx-auto mt-4 max-w-md text-ink/70">Set up your plan in a minute. SmartFit handles the rest — streaks, goals and trends included.</p>
+          <Link
+            href="/onboarding"
+            className="mt-8 inline-flex items-center gap-2 rounded-full bg-ink px-8 py-4 text-base font-extrabold text-volt transition-transform hover:scale-[1.03] active:scale-95"
+          >
+            Get started free <ArrowRight className="h-5 w-5" />
+          </Link>
+        </div>
       </section>
 
-      <FooterSection />
+      <Footer />
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <footer className="border-t border-white/10 bg-ink-2">
+      <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 sm:px-6 md:grid-cols-4">
+        <div className="md:col-span-2">
+          <div className="flex items-center gap-2.5">
+            <LogoMark size={30} />
+            <span className="text-lg font-extrabold tracking-tight">
+              Smart<span className="text-volt">Fit</span>
+            </span>
+          </div>
+          <p className="mt-4 max-w-xs text-sm text-paper/55">
+            A private, bold fitness companion. Plan, log and understand your training — no wearables, no subscriptions,
+            no data sold.
+          </p>
+        </div>
+        <div>
+          <p className="text-sm font-bold">Product</p>
+          <ul className="mt-4 space-y-2.5 text-sm text-paper/55">
+            <li><a href="/#features" className="hover:text-volt">Features</a></li>
+            <li><a href="/#plans" className="hover:text-volt">Training plans</a></li>
+            <li><Link href="/dashboard" className="hover:text-volt">Dashboard</Link></li>
+          </ul>
+        </div>
+        <div>
+          <p className="text-sm font-bold">Get started</p>
+          <ul className="mt-4 space-y-2.5 text-sm text-paper/55">
+            <li><Link href="/onboarding" className="hover:text-volt">Onboarding</Link></li>
+            <li><Link href="/dashboard" className="hover:text-volt">Open app</Link></li>
+          </ul>
+        </div>
+      </div>
+      <div className="border-t border-white/10 py-6 text-center text-xs text-paper/40">
+        © {new Date().getFullYear()} SmartFit · Train with intention.
+      </div>
+    </footer>
+  );
+}
+
+/** Pure-CSS phone mockup previewing the in-app dashboard. */
+function PhoneMockup() {
+  return (
+    <div className="relative mx-auto w-[300px] animate-float">
+      <div className="pointer-events-none absolute -inset-8 -z-10 rounded-[3rem] bg-volt/20 blur-3xl" />
+      <div className="rounded-[2.6rem] border border-white/15 bg-ink-2 p-2.5 shadow-2xl shadow-black/60">
+        <div className="overflow-hidden rounded-[2.1rem] bg-ink">
+          {/* app header */}
+          <div className="flex items-center justify-between px-5 pt-5">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-widest text-paper/40">Push / Pull / Legs</p>
+              <p className="text-base font-extrabold text-paper">Today&apos;s focus</p>
+            </div>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-volt text-sm font-bold text-ink">A</span>
+          </div>
+
+          {/* today card */}
+          <div className="mx-4 mt-4 rounded-2xl bg-volt p-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-ink/60">Tuesday</p>
+            <p className="text-lg font-extrabold leading-tight text-ink">Push — chest &amp; shoulders</p>
+            <div className="mt-3 flex items-center gap-2">
+              <span className="rounded-full bg-ink px-2.5 py-1 text-[10px] font-bold text-volt">07:00</span>
+              <span className="rounded-full bg-ink/10 px-2.5 py-1 text-[10px] font-bold text-ink">55 min</span>
+            </div>
+          </div>
+
+          {/* stat grid */}
+          <div className="mx-4 mt-3 grid grid-cols-2 gap-2.5">
+            {[
+              ['🔥', '6', 'day streak'],
+              ['✓', '4', 'workouts'],
+              ['⏱', '3h 12m', 'active'],
+              ['🏃', '12.4 km', 'distance'],
+            ].map(([ico, v, l]) => (
+              <div key={l} className="rounded-2xl border border-white/8 bg-ink-card p-3">
+                <p className="text-sm">{ico}</p>
+                <p className="mt-1 text-lg font-extrabold text-paper">{v}</p>
+                <p className="text-[10px] text-paper/45">{l}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* mini chart */}
+          <div className="mx-4 my-3 rounded-2xl border border-white/8 bg-ink-card p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-paper">Last 8 weeks</p>
+              <span className="text-[10px] font-bold text-volt">minutes ↑</span>
+            </div>
+            <div className="mt-3 flex h-20 items-end gap-1.5">
+              {[40, 65, 52, 80, 58, 92, 74, 100].map((h, i) => (
+                <div
+                  key={i}
+                  className="flex-1 rounded-t-md"
+                  style={{ height: `${h}%`, backgroundColor: i === 7 ? '#c8f135' : '#2b4016' }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* floating quick-add FAB */}
+      <div className="absolute -right-3 bottom-16 flex h-14 w-14 items-center justify-center rounded-3xl bg-volt text-2xl font-bold text-ink shadow-xl shadow-volt/30">
+        +
+      </div>
     </div>
   );
 }

@@ -58,7 +58,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={['top']}>
-      <ScrollView className="flex-1" contentContainerClassName="p-4 gap-4">
+      <ScrollView className="flex-1" contentContainerClassName="p-4 pb-28 gap-4">
         <View className="flex-row items-center justify-between">
           <View>
             <Text className="text-sm text-muted-foreground">
@@ -70,7 +70,7 @@ export default function HomeScreen() {
             onPress={() => setLogOpen(true)}
             className="h-12 w-12 items-center justify-center rounded-full bg-primary"
           >
-            <Plus color="#F3FDF5" size={24} />
+            <Plus color="#0B0E09" size={24} />
           </Pressable>
         </View>
 

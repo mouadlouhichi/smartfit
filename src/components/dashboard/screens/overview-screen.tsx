@@ -83,7 +83,7 @@ export function OverviewScreen() {
   return (
     <div className="grid gap-5">
       {/* Today banner */}
-      <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground">
+      <Card className="overflow-hidden border-0 bg-gradient-to-br from-primary to-volt-dim text-primary-foreground">
         <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-medium text-primary-foreground/80">
@@ -99,7 +99,7 @@ export function OverviewScreen() {
           <Button
             variant="secondary"
             size="lg"
-            className="shrink-0 self-start rounded-full bg-white text-emerald-800 hover:bg-white/90 sm:self-center"
+            className="shrink-0 self-start rounded-full bg-ink text-volt hover:bg-ink-2 sm:self-center"
             onClick={() => openModal('workout')}
           >
             <Plus className="h-5 w-5" /> Log workout

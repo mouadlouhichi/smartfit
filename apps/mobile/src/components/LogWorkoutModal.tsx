@@ -42,7 +42,7 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
         <View className="flex-row items-center justify-between border-b border-border px-5 py-4">
           <Text className="text-lg font-bold text-foreground">Log workout</Text>
           <Pressable onPress={onClose} className="rounded-full p-2 active:bg-muted">
-            <X color="#5B675F" size={22} />
+            <X color="#9BA886" size={22} />
           </Pressable>
         </View>
         <ScrollView className="flex-1 p-5" contentContainerClassName="gap-4">
@@ -60,11 +60,11 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
                   onPress={() => setCategoryId(c.id)}
                   className="rounded-full border px-3 py-2"
                   style={{
-                    borderColor: categoryId === c.id ? c.color : '#E2E8E3',
+                    borderColor: categoryId === c.id ? c.color : '#273019',
                     backgroundColor: categoryId === c.id ? `${c.color}14` : 'transparent',
                   }}
                 >
-                  <Text style={{ color: categoryId === c.id ? c.color : '#5B675F' }} className="text-sm font-medium">
+                  <Text style={{ color: categoryId === c.id ? c.color : '#9BA886' }} className="text-sm font-medium">
                     {c.name}
                   </Text>
                 </Pressable>
@@ -94,13 +94,13 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
                   onPress={() => setIntensity(k)}
                   className="flex-1 rounded-full border px-3 py-2"
                   style={{
-                    borderColor: intensity === k ? INTENSITY_META[k].color : '#E2E8E3',
+                    borderColor: intensity === k ? INTENSITY_META[k].color : '#273019',
                     backgroundColor: intensity === k ? `${INTENSITY_META[k].color}14` : 'transparent',
                   }}
                 >
                   <Text
                     className="text-center text-sm font-medium"
-                    style={{ color: intensity === k ? INTENSITY_META[k].color : '#5B675F' }}
+                    style={{ color: intensity === k ? INTENSITY_META[k].color : '#9BA886' }}
                   >
                     {INTENSITY_META[k].label}
                   </Text>
