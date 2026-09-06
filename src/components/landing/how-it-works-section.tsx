@@ -1,87 +1,195 @@
-import { Check } from 'lucide-react';
-import { Eyebrow, Section } from './section';
+'use client';
 
-const STEPS = [
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
+import { useReveal } from './use-reveal';
+
+const STEP_NUMBERS = ['I', 'II', 'III'];
+
+type Step = {
+  number: string;
+  title: string;
+  description: string;
+  snapshotLabel: string;
+  lines: { text: string; value: string }[];
+  link?: { href: string; anchor: string };
+};
+
+const STEPS: Step[] = [
   {
-    n: 'I',
+    number: 'I',
     title: 'Tell us about your training',
-    body: 'Pick a goal, your weekly availability and rest days. It takes about a minute, and you can change everything later.',
+    description:
+      'Pick a goal, your weekly availability and rest days. It takes about a minute, and you can change everything later.',
+    snapshotLabel: 'Your profile',
+    lines: [
+      { text: 'Goal', value: 'Train 5× / week' },
+      { text: 'Rest days', value: '2' },
+      { text: 'Weight unit', value: 'kg' },
+    ],
   },
   {
-    n: 'II',
+    number: 'II',
     title: 'Pick a training style',
-    body: 'SmartFit lays out your weekly split — push/pull/legs, upper/lower, full body or cardio focus. Switch strategies anytime.',
+    description:
+      'SmartFit lays out your weekly split — push/pull/legs, upper/lower, full body or cardio focus. Switch strategies anytime without losing history.',
+    snapshotLabel: 'Chosen split',
+    lines: [
+      { text: 'Strategy', value: 'Full Body 3×' },
+      { text: 'Sessions / week', value: '3' },
+      { text: 'Active rest', value: 'built in' },
+    ],
+    link: { href: '/#plans', anchor: 'Compare the 4 training styles' },
   },
   {
-    n: 'III',
+    number: 'III',
     title: 'Log sessions as they happen',
-    body: 'Add a workout in seconds and tag the activity type. Your plan, streaks, goals and trends update instantly.',
+    description:
+      'Add a workout in seconds and tag the activity type. Your plan, streaks, goals and trends update instantly — all on your device.',
+    snapshotLabel: 'Latest session',
+    lines: [
+      { text: 'Push — chest & shoulders', value: '55 min' },
+      { text: 'Intensity', value: 'High' },
+      { text: 'Calories', value: '~480 kcal' },
+    ],
+    link: { href: '/dashboard', anchor: 'See how fast logging works' },
   },
 ];
 
 export function HowItWorksSection() {
-  return (
-    <Section id="how-it-works">
-      <Eyebrow>Three steps</Eyebrow>
-      <h2 className="mt-3 max-w-3xl font-display-tight text-4xl font-extrabold text-ink-warm sm:text-5xl">
-        Three steps. <span className="italic text-ember">A stronger week ahead.</span>
-      </h2>
+  const { ref, visible } = useReveal<HTMLElement>(0.1);
+  const [activeStep, setActiveStep] = useState(0);
 
-      <div className="mt-14 grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="grid gap-8">
-          {STEPS.map((s) => (
-            <div key={s.n} className="flex gap-5">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-ember font-display text-lg font-extrabold text-ember">
-                {s.n}
-              </span>
-              <div>
-                <h3 className="font-display text-xl font-bold text-ink-warm">{s.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-clay">{s.body}</p>
-              </div>
-            </div>
-          ))}
+  useEffect(() => {
+    const interval = setInterval(() => setActiveStep((prev) => (prev + 1) % STEPS.length), 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <section
+      id="how-it-works"
+      ref={ref}
+      className="relative overflow-hidden bg-[color:var(--foreground)] py-24 text-[color:var(--background)] lg:py-32"
+    >
+      <div className="pointer-events-none absolute inset-0 opacity-[0.04]">
+        <div
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              'repeating-linear-gradient(-45deg, transparent, transparent 40px, currentColor 40px, currentColor 41px)',
+          }}
+        />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-[1400px] px-6 lg:px-12">
+        <div className="mb-16 lg:mb-24">
+          <span
+            className="mb-6 inline-flex items-center gap-3 font-mono text-sm"
+            style={{ color: 'rgba(248,250,247,0.5)' }}
+          >
+            <span className="h-px w-8 bg-white/30" />
+            Three steps
+          </span>
+          <h2
+            className="reveal text-4xl tracking-tight lg:text-6xl"
+            data-state={visible ? 'visible' : 'hidden'}
+          >
+            Three steps.
+            <br />
+            <span style={{ color: 'rgba(248,250,247,0.5)' }}>A stronger week ahead.</span>
+          </h2>
+          <p className="mt-6 max-w-2xl" style={{ color: 'rgba(248,250,247,0.6)' }}>
+            Start with a <span className="underline underline-offset-4">free private training tracker</span> that
+            needs no wearable. See why the session and the plan stay separate, and how your week updates itself.
+          </p>
         </div>
 
-        {/* Week plan mock card */}
-        <div className="rounded-3xl border border-black/10 bg-white p-6 shadow-lg shadow-black/5">
-          <div className="flex items-center justify-between">
-            <p className="font-display text-base font-bold text-ink-warm">This week&apos;s split</p>
-            <span className="rounded-full bg-ember/10 px-3 py-1 text-xs font-bold text-ember">Full Body 3×</span>
-          </div>
-          <div className="mt-5 grid gap-2.5">
-            {[
-              { d: 'Mon', t: 'Full body A', tag: 'Strength', on: true },
-              { d: 'Wed', t: 'Full body B', tag: 'Strength', on: true },
-              { d: 'Fri', t: 'Full body C + mobility', tag: 'Mobility', on: true },
-              { d: 'Tue / Thu', t: 'Cardio / sport', tag: 'Optional', on: false },
-            ].map((r) => (
-              <div
-                key={r.d}
-                className={`flex items-center gap-3 rounded-2xl p-3 ${r.on ? 'bg-paper-warm' : 'bg-paper-warm/50'}`}
+        <div className="grid gap-16 lg:grid-cols-2 lg:gap-24">
+          <div className="space-y-0">
+            {STEPS.map((step, index) => (
+              <button
+                key={step.number}
+                type="button"
+                onClick={() => setActiveStep(index)}
+                className={`group w-full border-b py-8 text-start transition-all duration-500 ${
+                  activeStep === index ? 'opacity-100' : 'border-white/10 opacity-40 hover:opacity-70'
+                }`}
+                style={{ borderColor: 'rgba(248,250,247,0.1)' }}
               >
-                <span
-                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                    r.on ? 'bg-ember text-white' : 'bg-black/5 text-clay'
-                  }`}
-                >
-                  {r.on ? <Check className="h-4 w-4" strokeWidth={3} /> : <span className="h-2 w-2 rounded-full bg-clay/40" />}
-                </span>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-ink-warm">{r.t}</p>
-                  <p className="text-xs text-clay">{r.d}</p>
+                <div className="flex items-start gap-6">
+                  <span className="font-display text-3xl" style={{ color: 'rgba(248,250,247,0.3)' }}>
+                    {STEP_NUMBERS[index]}
+                  </span>
+                  <div className="flex-1">
+                    <h3 className="mb-3 font-display text-2xl transition-transform duration-300 group-hover:translate-x-2 lg:text-3xl">
+                      {step.title}
+                    </h3>
+                    <p className="leading-relaxed" style={{ color: 'rgba(248,250,247,0.6)' }}>
+                      {step.description}
+                    </p>
+                    {step.link && (
+                      <Link
+                        href={step.link.href}
+                        onClick={(e) => e.stopPropagation()}
+                        className="mt-3 inline-flex text-xs font-medium underline underline-offset-4 hover:no-underline"
+                        style={{ color: 'rgba(248,250,247,0.8)' }}
+                      >
+                        {step.link.anchor} →
+                      </Link>
+                    )}
+                    {activeStep === index && (
+                      <div className="mt-4 h-px overflow-hidden" style={{ background: 'rgba(248,250,247,0.2)' }}>
+                        <div className="progress-bar-anim" />
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <span className="text-xs font-semibold text-clay">{r.tag}</span>
-              </div>
+              </button>
             ))}
           </div>
-          <div className="mt-5 flex items-center justify-between border-t border-black/5 pt-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-clay">3 sessions · rest built in</p>
-            <span className="flex items-center gap-1.5 text-xs font-bold text-ember">
-              <span className="h-2 w-2 rounded-full bg-ember animate-pulse-soft" /> Scheduled
-            </span>
+
+          <div className="self-start lg:sticky lg:top-32">
+            <div className="overflow-hidden border" style={{ borderColor: 'rgba(248,250,247,0.1)' }}>
+              <div
+                className="flex items-center justify-between border-b px-6 py-4"
+                style={{ borderColor: 'rgba(248,250,247,0.1)' }}
+              >
+                <div className="flex gap-2">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-3 w-3 rounded-full" style={{ background: 'rgba(248,250,247,0.2)' }} />
+                  ))}
+                </div>
+                <span className="font-mono text-xs" style={{ color: 'rgba(248,250,247,0.4)' }}>
+                  {STEPS[activeStep].snapshotLabel}
+                </span>
+              </div>
+              <div className="flex min-h-[280px] flex-col justify-center gap-6 p-8">
+                {STEPS[activeStep].lines.map((line, lineIndex) => (
+                  <div
+                    key={`${activeStep}-${lineIndex}`}
+                    className="snapshot-line-reveal flex items-baseline justify-between"
+                    style={{ animationDelay: `${lineIndex * 120}ms` }}
+                  >
+                    <span className="text-lg" style={{ color: 'rgba(248,250,247,0.6)' }}>
+                      {line.text}
+                    </span>
+                    <span className="font-display text-2xl lg:text-3xl">{line.value}</span>
+                  </div>
+                ))}
+              </div>
+              <div
+                className="flex items-center gap-3 border-t px-6 py-4"
+                style={{ borderColor: 'rgba(248,250,247,0.1)' }}
+              >
+                <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                <span className="font-mono text-xs" style={{ color: 'rgba(248,250,247,0.4)' }}>
+                  Saved on-device
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </Section>
+    </section>
   );
 }

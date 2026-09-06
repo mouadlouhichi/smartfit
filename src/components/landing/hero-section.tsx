@@ -1,76 +1,123 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
-import { PhoneMockup } from './phone-mockup';
+import { AnimatedSphere } from './animated-sphere';
+
+const WORDS = ['train', 'perform', 'progress', 'recover'];
 
 const STATS = [
-  { big: '4', small: 'training styles', tag: 'PPL · UPPER/LOWER & MORE' },
-  { big: '4', small: 'activity types', tag: 'STRENGTH · CARDIO · HIIT' },
-  { big: '0', small: 'wearables required', tag: 'JUST YOU & THE GYM' },
-  { big: '30s', small: 'to log a session', tag: 'NO FORMS, NO FUSS' },
+  { value: '4', label: 'training styles to pick from', detail: 'PPL · UPPER/LOWER & MORE' },
+  { value: '5', label: 'activity types built in', detail: 'STRENGTH · CARDIO · HIIT' },
+  { value: '0', label: 'wearables required', detail: 'JUST YOU & THE GYM' },
+  { value: '30s', label: 'to log a full session', detail: 'NO FORMS, NO FUSS' },
 ];
 
-function MarqueeRow() {
-  const items = [...STATS, ...STATS];
+export function HeroSection() {
+  const [wordIndex, setWordIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setWordIndex((current) => (current + 1) % WORDS.length);
+    }, 2500);
+    return () => window.clearInterval(interval);
+  }, []);
+
   return (
-    <div className="group relative overflow-hidden border-y border-black/10 bg-white py-5">
-      <div className="flex w-max animate-[marquee_28s_linear_infinite] gap-10 group-hover:[animation-play-state:paused]">
-        {items.map((s, i) => (
-          <div key={i} className="flex shrink-0 items-baseline gap-3 px-2">
-            <span className="font-display text-3xl font-extrabold text-ink-warm sm:text-4xl">{s.big}</span>
-            <span className="max-w-[9rem] text-sm font-semibold leading-tight text-clay">{s.small}</span>
-            <span className="eyebrow hidden text-ember/70 lg:inline">{s.tag}</span>
-          </div>
+    <section className="relative flex min-h-screen flex-col justify-center overflow-hidden">
+      {/* Animated ASCII sphere */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute right-0 top-1/2 h-[600px] w-[600px] -translate-y-1/2 opacity-40 lg:h-[800px] lg:w-[800px]"
+      >
+        <AnimatedSphere />
+      </div>
+
+      {/* Faint blueprint grid */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden opacity-30">
+        {[...Array(8)].map((_, index) => (
+          <div
+            key={`h-${index}`}
+            className="absolute inset-x-0 h-px bg-[color:var(--foreground)]/10"
+            style={{ top: `${12.5 * (index + 1)}%` }}
+          />
+        ))}
+        {[...Array(12)].map((_, index) => (
+          <div
+            key={`v-${index}`}
+            className="absolute bottom-0 top-0 w-px bg-[color:var(--foreground)]/10"
+            style={{ left: `${8.33 * (index + 1)}%` }}
+          />
         ))}
       </div>
-    </div>
-  );
-}
 
-export function HeroSection() {
-  return (
-    <div className="bg-paper-warm">
-      <section className="relative overflow-hidden px-5 pt-32 sm:px-6 sm:pt-40">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <p className="eyebrow text-ember">Free · Private · No wearable</p>
-            <h1 className="mt-4 font-display-tight text-5xl font-extrabold text-ink-warm sm:text-6xl lg:text-7xl">
-              The SmartFit app to <span className="italic text-ember">train</span>
-            </h1>
-            <p className="mt-6 max-w-xl text-lg leading-relaxed text-clay">
-              Track what each session <strong className="text-ink-warm">is</strong> — strength, cardio, HIIT — and the
-              recurring plan it <strong className="text-ink-warm">belongs to</strong>. Two separate views that stay
-              reconciled through every logged workout.
-            </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link
-                href="/onboarding"
-                className="group inline-flex items-center gap-2 rounded-full bg-ember px-7 py-4 text-base font-bold text-white shadow-lg shadow-ember/30 transition-transform hover:scale-[1.03] active:scale-95"
-              >
-                Start training free
-                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
-              <a
-                href="/#how-it-works"
-                className="inline-flex items-center rounded-full border border-black/15 px-7 py-4 text-base font-semibold text-ink-warm transition-colors hover:bg-black/5"
-              >
-                See how it works
-              </a>
-            </div>
-            <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-clay">
-              No account · No card · Data stays on your device
-            </p>
-          </div>
+      <div className="relative z-10 mx-auto max-w-[1400px] px-6 py-32 lg:px-12 lg:py-40">
+        <div className="mb-8">
+          <span className="eyebrow-mono">Free · Private · No wearable required</span>
+        </div>
 
-          <div className="relative flex justify-center">
-            <div className="pointer-events-none absolute -top-10 h-72 w-72 rounded-full bg-ember/15 blur-[100px]" />
-            <PhoneMockup />
+        <div className="mb-12">
+          <h1 className="font-display text-[clamp(3rem,12vw,10rem)] leading-[0.9] tracking-tight">
+            <span className="block">The SmartFit app to</span>
+            <span className="block">
+              <span className="relative inline-block">
+                <span key={wordIndex} className="inline-flex">
+                  {WORDS[wordIndex].split('').map((character, index) => (
+                    <span
+                      key={`${wordIndex}-${index}`}
+                      className="animate-char-in inline-block"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      {character}
+                    </span>
+                  ))}
+                </span>
+                <span aria-hidden="true" className="absolute inset-x-0 -bottom-2 h-3 bg-[color:var(--foreground)]/10" />
+              </span>
+            </span>
+          </h1>
+        </div>
+
+        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-24">
+          <p className="max-w-xl text-xl leading-relaxed text-[color:var(--muted-foreground)] lg:text-2xl">
+            Log each session and the plan it belongs to — two separate views that stay reconciled through every
+            workout. Strength, cardio and HIIT, tracked privately on your device.
+          </p>
+
+          <div className="flex flex-col items-start gap-4 sm:flex-row lg:-translate-y-6">
+            <Link
+              href="/onboarding"
+              className="btn-primary group"
+            >
+              Start training free
+              <ArrowRight className="ms-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+            <Link href="/#how-it-works" className="btn-outline">
+              See how it works
+            </Link>
           </div>
         </div>
-      </section>
-
-      <div className="mt-16">
-        <MarqueeRow />
       </div>
-    </div>
+
+      {/* Stat marquee */}
+      <div className="absolute inset-x-0 bottom-24 hidden overflow-hidden sm:block">
+        <div className="marquee gap-16 whitespace-nowrap">
+          {[...Array(2)].map((_, setIndex) => (
+            <div key={setIndex} className="flex gap-16" aria-hidden={setIndex === 1}>
+              {STATS.map((stat) => (
+                <div key={`${stat.detail}-${setIndex}`} className="flex items-baseline gap-4">
+                  <span className="font-display text-4xl lg:text-5xl">{stat.value}</span>
+                  <span className="text-sm text-[color:var(--muted-foreground)]">
+                    {stat.label}
+                    <span className="mt-1 block font-mono text-xs">{stat.detail}</span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }

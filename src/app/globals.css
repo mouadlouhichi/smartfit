@@ -259,3 +259,189 @@ input[type='number'] {
     transform: translateX(-50%);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LANDING design system — exact match to the reference landing (SmartJib).
+   Scoped to `.landing` so the product app keeps its own Ember/Jakarta theme.
+   Light editorial palette, Instrument Serif display, Instrument Sans body,
+   JetBrains Mono labels, and the reference animation set.
+   ═══════════════════════════════════════════════════════════════════════ */
+.landing {
+  --background: oklch(0.9808 0.0059 170.45);
+  --foreground: oklch(0.3079 0.0072 182.54);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.3079 0.0072 182.54);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.3079 0.0072 182.54);
+  --primary: oklch(0.465 0.0821 184.55);
+  --primary-foreground: oklch(0.985 0.006 170);
+  --secondary: oklch(0.955 0.012 172);
+  --secondary-foreground: oklch(0.3079 0.0072 182.54);
+  --muted: oklch(0.935 0.014 172);
+  --muted-foreground: oklch(0.49 0.022 172);
+  --accent: oklch(0.9 0.026 172);
+  --accent-foreground: oklch(0.3079 0.0072 182.54);
+  --border: oklch(0.875 0.016 172);
+  --input: oklch(0.915 0.016 172);
+  --ring: oklch(0.465 0.0821 184.55);
+}
+
+.landing {
+  font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+}
+.landing .font-mono,
+.landing [class*='font-mono'] {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+.landing h1,
+.landing h2,
+.landing h3,
+.landing .font-display {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+/* Eyebrow label: small mono text with a leading dash */
+.landing .eyebrow-mono {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.landing .eyebrow-mono::before {
+  content: '';
+  width: 2rem;
+  height: 1px;
+  background: color-mix(in oklab, var(--foreground) 30%, transparent);
+}
+
+/* Outlined text (pricing) */
+.landing .text-stroke {
+  -webkit-text-stroke: 1.5px currentColor;
+  -webkit-text-fill-color: transparent;
+  color: var(--muted-foreground);
+}
+
+/* Marquees */
+.landing .marquee {
+  display: flex;
+  width: max-content;
+  animation: landing-marquee 30s linear infinite;
+}
+.landing .marquee-reverse {
+  display: flex;
+  width: max-content;
+  animation: landing-marquee-reverse 25s linear infinite;
+}
+@keyframes landing-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes landing-marquee-reverse {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+/* Per-character hero word reveal */
+.landing .animate-char-in {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(0.6em);
+  animation: landing-char-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes landing-char-in {
+  0% { opacity: 0; filter: blur(10px); transform: translateY(0.6em); }
+  100% { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+
+/* Line reveal (clip) */
+.landing .line-reveal {
+  clip-path: inset(0 100% 0 0);
+  animation: landing-line-reveal 0.8s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+@keyframes landing-line-reveal {
+  to { clip-path: inset(0 0 0 0); }
+}
+
+.landing .hover-lift {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.landing .hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Scroll-reveal helper (toggled via IntersectionObserver) */
+.landing .reveal {
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.landing .reveal[data-state='hidden'] {
+  opacity: 0;
+  transform: translateY(2.5rem);
+}
+.landing .reveal[data-state='hidden-left'] {
+  opacity: 0;
+  transform: translateX(-2rem);
+}
+.landing .reveal[data-state='hidden-right'] {
+  opacity: 0;
+  transform: translateX(2rem);
+}
+
+/* Primary pill button on the light landing */
+.landing .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 3.5rem;
+  padding: 0 2rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: oklch(0.985 0.006 170);
+  font-weight: 500;
+  font-size: 1rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.landing .btn-primary:hover { background: color-mix(in oklab, var(--primary) 88%, black); }
+.landing .btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 3.5rem;
+  padding: 0 2rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, var(--foreground) 20%, transparent);
+  color: var(--foreground);
+  font-weight: 500;
+  font-size: 1rem;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.landing .btn-outline:hover { background: color-mix(in oklab, var(--foreground) 5%, transparent); }
+
+/* Snapshot line reveal for the how-it-works terminal */
+.landing .snapshot-line-reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: landing-snapshot 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes landing-snapshot {
+  to { opacity: 1; transform: translateY(0); }
+}
+.landing .progress-bar-anim {
+  height: 100%;
+  background: var(--background);
+  width: 0;
+  animation: landing-progress 5s linear forwards;
+}
+@keyframes landing-progress {
+  from { width: 0; }
+  to { width: 100%; }
+}

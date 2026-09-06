@@ -1,67 +1,118 @@
-import Link from 'next/link';
-import { Check } from 'lucide-react';
-import { Eyebrow, Section } from './section';
+'use client';
 
-const FREE = [
-  'Choose from 4 training styles',
-  'Log strength, cardio, HIIT & sport',
-  'Schedule your recurring week',
-  'Goals, streaks & body trends',
-  'Private on-device storage',
-  'Export your data anytime',
-  'Installable PWA, works offline',
+import Link from 'next/link';
+import { ArrowRight, Check } from 'lucide-react';
+
+const PLANS = [
+  {
+    name: 'Free',
+    description: 'Everything you need to train for real, with no time limit.',
+    price: '$0',
+    period: '/ forever',
+    cta: 'Start training free',
+    popular: false,
+    features: [
+      'Choose from 4 training styles',
+      'Log strength, cardio, HIIT & sport',
+      'Schedule your recurring week',
+      'Goals, streaks & body trends',
+      'Private on-device storage',
+    ],
+  },
+  {
+    name: 'Also free',
+    description: 'There is no premium tier — every advanced feature is included.',
+    price: '$0',
+    period: '/ forever',
+    cta: 'Open the app',
+    popular: true,
+    features: [
+      'Everything in Free',
+      'AI Coach insights from your data',
+      'Progress charts & activity breakdowns',
+      'Custom activity types',
+      'Export JSON / erase anytime',
+      'Installable PWA, works offline',
+    ],
+  },
 ];
 
 export function PricingSection() {
   return (
-    <Section id="pricing" alt>
-      <div className="text-center">
-        <Eyebrow className="text-center">Pricing</Eyebrow>
-        <h2 className="mx-auto mt-3 max-w-2xl font-display-tight text-4xl font-extrabold text-ink-warm sm:text-5xl">
-          Free to start. <span className="italic text-ember">Free forever.</span>
-        </h2>
-        <p className="mx-auto mt-4 max-w-xl text-lg text-clay">
-          Every feature is free, with no time limit and no card. SmartFit is private and local-first — there is
-          nothing to upsell.
+    <section id="pricing" className="relative overflow-x-clip border-t border-[color:var(--foreground)]/10 py-32 lg:py-40">
+      <div className="mx-auto max-w-7xl px-6 lg:px-12">
+        <div className="mb-20 max-w-3xl">
+          <span className="mb-6 block font-mono text-xs uppercase tracking-widest text-[color:var(--muted-foreground)]">
+            Pricing
+          </span>
+          <h2 className="mb-6 font-display text-5xl tracking-tight md:text-6xl lg:text-7xl">
+            Free to start.
+            <br />
+            <span className="text-stroke">Free forever.</span>
+          </h2>
+          <p className="max-w-xl text-lg text-[color:var(--muted-foreground)]">
+            Every feature is free, with no card and no trial that runs out. SmartFit is private and local-first —
+            there is nothing to upsell.
+          </p>
+        </div>
+
+        <div className="grid max-w-4xl gap-px bg-[color:var(--foreground)]/10 md:grid-cols-2">
+          {PLANS.map((planData, idx) => (
+            <div
+              key={planData.name}
+              className={`relative bg-[color:var(--background)] p-8 lg:p-12 ${
+                planData.popular ? 'border-2 border-[color:var(--primary)] md:-my-4 md:py-12 lg:py-16' : ''
+              }`}
+            >
+              {planData.popular && (
+                <span className="absolute -top-3 start-8 bg-[color:var(--primary)] px-3 py-1 font-mono text-xs uppercase tracking-widest text-white">
+                  Everything included
+                </span>
+              )}
+
+              <div className="mb-8">
+                <span className="font-mono text-xs text-[color:var(--muted-foreground)]">
+                  {new Intl.NumberFormat('en-US', { minimumIntegerDigits: 2, useGrouping: false }).format(idx + 1)}
+                </span>
+                <h3 className="mt-2 font-display text-3xl">{planData.name}</h3>
+                <p className="mt-2 text-sm text-[color:var(--muted-foreground)]">{planData.description}</p>
+              </div>
+
+              <div className="mb-8 border-b border-[color:var(--foreground)]/10 pb-8">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-5xl lg:text-6xl">{planData.price}</span>
+                  <span className="text-[color:var(--muted-foreground)]">{planData.period}</span>
+                </div>
+              </div>
+
+              <ul className="mb-10 space-y-4">
+                {planData.features.map((feature) => (
+                  <li key={feature} className="flex items-start gap-3">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--foreground)]" />
+                    <span className="text-sm text-[color:var(--muted-foreground)]">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link
+                href="/onboarding"
+                className={`group flex w-full items-center justify-center gap-2 py-4 text-sm font-medium transition-all ${
+                  planData.popular
+                    ? 'bg-[color:var(--primary)] text-white hover:bg-[color:var(--primary)]/90'
+                    : 'border border-[color:var(--foreground)]/20 text-[color:var(--foreground)] hover:border-[color:var(--foreground)] hover:bg-[color:var(--foreground)]/5'
+                }`}
+              >
+                {planData.cta}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-12 text-center text-sm text-[color:var(--muted-foreground)]">
+          Your training stays private. No card, no trial, no subscription — ever.
         </p>
       </div>
-
-      <div className="mx-auto mt-12 max-w-md">
-        <div className="overflow-hidden rounded-3xl border-2 border-ember bg-white shadow-xl shadow-ember/10">
-          <div className="flex items-center justify-between bg-ember px-7 py-4 text-white">
-            <span className="font-display text-lg font-extrabold">Free</span>
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wide">
-              No time limit
-            </span>
-          </div>
-          <div className="p-7">
-            <p className="flex items-baseline gap-1">
-              <span className="font-display text-5xl font-extrabold text-ink-warm">$0</span>
-              <span className="text-sm font-semibold text-clay">/ forever</span>
-            </p>
-            <p className="mt-2 text-sm font-medium text-clay">Everything you need to train for real.</p>
-            <ul className="mt-6 grid gap-3">
-              {FREE.map((f) => (
-                <li key={f} className="flex items-start gap-3 text-sm font-medium text-ink-warm">
-                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ember text-white">
-                    <Check className="h-3 w-3" strokeWidth={3.5} />
-                  </span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/onboarding"
-              className="mt-7 block rounded-full bg-ember py-3.5 text-center text-sm font-bold text-white shadow-md shadow-ember/30 transition-transform hover:scale-[1.02]"
-            >
-              Start free
-            </Link>
-            <p className="mt-4 text-center text-xs text-clay">
-              Your training stays private. No card, no trial, no subscription — ever.
-            </p>
-          </div>
-        </div>
-      </div>
-    </Section>
+    </section>
   );
 }

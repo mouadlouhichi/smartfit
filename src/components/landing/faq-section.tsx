@@ -1,4 +1,6 @@
-import { SectionHeading, Section } from './section';
+'use client';
+
+import Link from 'next/link';
 
 const FAQS = [
   {
@@ -37,26 +39,54 @@ const FAQS = [
 
 export function FaqSection() {
   return (
-    <Section id="faq" alt>
-      <SectionHeading eyebrow="SmartFit facts" className="mx-auto text-center">
-        Frequently asked <span className="italic text-ember">questions</span>
-      </SectionHeading>
-      <div className="mx-auto mt-12 grid max-w-3xl gap-3">
-        {FAQS.map((f) => (
-          <details
-            key={f.q}
-            className="group rounded-2xl border border-black/10 bg-paper-warm p-6 open:border-ember/40 open:bg-white"
-          >
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-lg font-bold text-ink-warm marker:hidden [&::-webkit-details-marker]:hidden">
-              {f.q}
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember/10 text-2xl font-light text-ember transition-transform group-open:rotate-45">
-                +
-              </span>
-            </summary>
-            <p className="mt-3 text-sm leading-relaxed text-clay">{f.a}</p>
-          </details>
-        ))}
+    <section
+      id="faq"
+      aria-labelledby="faq-heading"
+      className="relative overflow-x-clip border-t border-[color:var(--foreground)]/10 py-24 lg:py-32"
+    >
+      <div className="mx-auto max-w-5xl px-6 lg:px-12">
+        <div className="mb-12 max-w-3xl lg:mb-16">
+          <span className="mb-6 block font-mono text-xs uppercase tracking-widest text-[color:var(--muted-foreground)]">
+            SmartFit facts
+          </span>
+          <h2 id="faq-heading" className="font-display text-4xl tracking-tight md:text-5xl lg:text-6xl">
+            Frequently asked questions
+          </h2>
+          <p className="mt-6 text-[color:var(--muted-foreground)]">
+            Learn more:{' '}
+            <Link href="/#integrations" className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline">
+              activity types
+            </Link>{' '}
+            ·{' '}
+            <Link href="/#plans" className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline">
+              4 training styles
+            </Link>{' '}
+            ·{' '}
+            <Link href="/#guides" className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline">
+              training guides
+            </Link>
+          </p>
+        </div>
+
+        <div className="divide-y divide-[color:var(--foreground)]/10 border-y border-[color:var(--foreground)]/10">
+          {FAQS.map((faq) => (
+            <details key={faq.q} className="group py-6 lg:py-8">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 text-xl font-medium text-[color:var(--foreground)] marker:content-none lg:text-2xl">
+                {faq.q}
+                <span
+                  aria-hidden="true"
+                  className="font-mono text-2xl font-normal text-[color:var(--muted-foreground)] transition-transform group-open:rotate-45"
+                >
+                  +
+                </span>
+              </summary>
+              <p className="max-w-3xl pt-4 text-base leading-relaxed text-[color:var(--muted-foreground)] lg:text-lg">
+                {faq.a}
+              </p>
+            </details>
+          ))}
+        </div>
       </div>
-    </Section>
+    </section>
   );
 }

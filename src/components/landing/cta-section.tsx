@@ -1,37 +1,76 @@
+'use client';
+
 import Link from 'next/link';
+import { useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
-import { LogoMark } from './navigation';
+import { AnimatedTetrahedron } from './animated-tetrahedron';
+import { useReveal } from './use-reveal';
 
 export function CtaSection() {
+  const { ref, visible } = useReveal<HTMLDivElement>(0.2);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePosition({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    });
+  };
+
   return (
-    <section className="bg-paper-warm px-5 py-24 sm:px-6">
-      <div className="mx-auto max-w-3xl text-center">
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-ember shadow-lg shadow-ember/30">
-          <LogoMark size={38} />
-        </span>
-        <h2 className="mt-8 font-display-tight text-4xl font-extrabold text-ink-warm sm:text-5xl">
-          Ready to know <span className="italic text-ember">how you&apos;re training?</span>
-        </h2>
-        <p className="mx-auto mt-4 max-w-md text-lg text-clay">
-          Start with the free plan — every feature included, no card, no account. Your first logged session takes
-          about thirty seconds.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/onboarding"
-            className="group inline-flex items-center gap-2 rounded-full bg-ember px-8 py-4 text-base font-bold text-white shadow-lg shadow-ember/30 transition-transform hover:scale-[1.03] active:scale-95"
-          >
-            Start training free
-            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-          </Link>
-          <a
-            href="/#pricing"
-            className="inline-flex items-center rounded-full border border-black/15 px-7 py-4 text-base font-semibold text-ink-warm transition-colors hover:bg-black/5"
-          >
-            See features
-          </a>
+    <section className="relative overflow-hidden py-24 lg:py-32">
+      <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
+        <div
+          ref={ref}
+          onMouseMove={handleMouseMove}
+          className={`reveal relative border border-[color:var(--foreground)] transition-all duration-1000 ${
+            visible ? 'opacity-100' : ''
+          }`}
+          data-state={visible ? 'visible' : 'hidden'}
+        >
+          <div
+            className="pointer-events-none absolute inset-0 opacity-10 transition-opacity duration-300"
+            style={{
+              background: `radial-gradient(600px circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(0,0,0,0.15), transparent 40%)`,
+            }}
+          />
+
+          <div className="relative z-10 px-8 py-16 lg:px-16 lg:py-24">
+            <div className="flex flex-col items-center justify-between gap-12 lg:flex-row">
+              <div className="flex-1">
+                <h2 className="mb-8 font-display text-4xl leading-[0.95] tracking-tight lg:text-7xl">
+                  Ready to know
+                  <br />
+                  how you&apos;re training?
+                </h2>
+                <p className="mb-12 max-w-xl text-xl leading-relaxed text-[color:var(--muted-foreground)]">
+                  Start free — every feature included, no card, no account. Your first logged session takes about
+                  thirty seconds.
+                </p>
+                <div className="flex flex-col items-start gap-4 sm:flex-row">
+                  <Link href="/onboarding" className="btn-primary group">
+                    Start training free
+                    <ArrowRight className="ms-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                  <Link href="/#pricing" className="btn-outline">
+                    See features
+                  </Link>
+                </div>
+                <p className="mt-8 font-mono text-sm text-[color:var(--muted-foreground)]">
+                  No credit card required
+                </p>
+              </div>
+
+              <div className="-me-16 hidden h-[500px] w-[500px] items-center justify-center lg:flex">
+                <AnimatedTetrahedron />
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute right-0 top-0 h-32 w-32 border-b border-l border-[color:var(--foreground)]/10" />
+          <div className="absolute bottom-0 left-0 h-32 w-32 border-r border-t border-[color:var(--foreground)]/10" />
         </div>
-        <p className="mt-5 text-xs font-semibold uppercase tracking-widest text-clay">No credit card required</p>
       </div>
     </section>
   );

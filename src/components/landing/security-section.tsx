@@ -1,62 +1,93 @@
-import { Lock, Smartphone, EyeOff, Download } from 'lucide-react';
-import { Eyebrow, Section } from './section';
+'use client';
 
-const CHIPS = ['On-device storage', 'No account needed', 'No wearable pairing', 'JSON & CSV export', 'No ad profiles'];
+import { Shield, Lock, Eye, FileCheck } from 'lucide-react';
+import { useReveal } from './use-reveal';
 
-const POINTS = [
+const FEATURES = [
   {
-    icon: Smartphone,
+    icon: Shield,
     title: 'Private by default',
-    body: 'Your workouts live in local storage on your device. There is no cloud account to breach and no sync unless you ask for it.',
-  },
-  {
-    icon: EyeOff,
-    title: 'No sensors, no surveillance',
-    body: 'SmartFit never pairs with a watch, ring or phone sensors. You decide what counts as a session — nothing is inferred behind your back.',
+    description: 'Your workouts live in local storage on your device. There is no cloud account to breach.',
   },
   {
     icon: Lock,
-    title: 'No advertising profiles',
-    body: 'We never use your training data to build advertising profiles or sell it to third parties. There are no trackers in the app.',
+    title: 'No sensors, no surveillance',
+    description: 'SmartFit never pairs with a watch, ring or phone sensor. You decide what counts as a session.',
   },
   {
-    icon: Download,
+    icon: Eye,
+    title: 'No advertising profiles',
+    description: 'We never use your training data to build ad profiles or sell it to third parties. No trackers.',
+  },
+  {
+    icon: FileCheck,
     title: 'Export or delete anytime',
-    body: 'Export a complete JSON backup or erase every byte from Profile in one tap. Your data is yours to move or remove.',
+    description: 'Export a complete JSON backup or erase every byte from Profile in one tap.',
   },
 ];
 
+const BADGES = ['On-device storage', 'No account needed', 'No wearable pairing', 'JSON export', 'No ad profiles'];
+
 export function SecuritySection() {
+  const { ref, visible } = useReveal<HTMLElement>(0.1);
+
   return (
-    <Section id="privacy">
-      <Eyebrow>Privacy</Eyebrow>
-      <h2 className="mt-3 max-w-3xl font-display-tight text-4xl font-extrabold text-ink-warm sm:text-5xl">
-        Your training, <span className="italic text-ember">your business.</span>
-      </h2>
-      <p className="mt-5 max-w-2xl text-lg leading-relaxed text-clay">
-        Everything stays on your device. Export and deletion controls live in Profile, and there is no account that
-        could ever leak.
-      </p>
-
-      <div className="mt-8 flex flex-wrap gap-2">
-        {CHIPS.map((c) => (
-          <span key={c} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink-warm">
-            {c}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-black/10 bg-black/10 sm:grid-cols-2">
-        {POINTS.map((p) => (
-          <div key={p.title} className="bg-white p-8">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-ember/10 text-ember">
-              <p.icon className="h-5 w-5" />
-            </span>
-            <h3 className="mt-5 font-display text-lg font-bold text-ink-warm">{p.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-clay">{p.body}</p>
+    <section
+      id="security"
+      ref={ref}
+      className="relative overflow-hidden bg-[color:var(--foreground)]/[0.02] py-24 lg:py-32"
+    >
+      <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
+        <div className="grid gap-16 lg:grid-cols-2 lg:gap-24">
+          <div className="reveal" data-state={visible ? 'visible' : 'hidden'}>
+            <span className="eyebrow-mono mb-6">Privacy</span>
+            <h2 className="mb-8 text-4xl tracking-tight lg:text-6xl">
+              Your training,
+              <br />
+              your business.
+            </h2>
+            <p className="mb-12 text-xl leading-relaxed text-[color:var(--muted-foreground)]">
+              Everything stays on your device. Export and deletion controls live in Profile, and there is no account
+              that could ever leak.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              {BADGES.map((cert, index) => (
+                <span
+                  key={cert}
+                  className="reveal border border-[color:var(--foreground)]/10 px-4 py-2 font-mono text-sm transition-all duration-500"
+                  data-state={visible ? 'visible' : 'hidden'}
+                  style={{ transitionDelay: `${index * 50 + 200}ms` }}
+                >
+                  {cert}
+                </span>
+              ))}
+            </div>
           </div>
-        ))}
+
+          <div className="grid gap-6">
+            {FEATURES.map((feature, index) => (
+              <div
+                key={feature.title}
+                className="reveal group border border-[color:var(--foreground)]/10 p-6 transition-all duration-500 hover:border-[color:var(--foreground)]/20"
+                data-state={visible ? 'visible' : 'hidden-right'}
+                style={{ transitionDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-[color:var(--foreground)]/10 transition-colors duration-300 group-hover:bg-[color:var(--foreground)] group-hover:text-[color:var(--background)]">
+                    <feature.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="mb-1 text-lg font-medium transition-transform duration-300 group-hover:translate-x-1">
+                      {feature.title}
+                    </h3>
+                    <p className="text-[color:var(--muted-foreground)]">{feature.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-    </Section>
+    </section>
   );
 }

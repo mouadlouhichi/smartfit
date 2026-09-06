@@ -1,154 +1,169 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { ArrowRight, Menu, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
+import { Menu, X } from 'lucide-react';
 
-const LINKS = [
-  { href: '/#features', label: 'Features' },
-  { href: '/#how-it-works', label: 'How it works' },
-  { href: '/#metrics', label: 'Activity' },
-  { href: '/#faq', label: 'FAQ' },
+const navLinks = [
+  { name: 'Features', href: '/#features' },
+  { name: 'How it works', href: '/#how-it-works' },
+  { name: 'Activity', href: '/#integrations' },
+  { name: 'Pricing', href: '/#pricing' },
+  { name: 'Guides', href: '/#guides' },
 ];
 
-export function LandingNav() {
-  const [scrolled, setScrolled] = useState(false);
-  const [open, setOpen] = useState(false);
+export function Navigation() {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   useEffect(() => {
-    if (!open) return;
-    const original = document.body.style.overflow;
+    if (!isMobileMenuOpen) return;
+    const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    window.addEventListener('keydown', onKey);
+    const onKeyDown = (e: KeyboardEvent) => e.key === 'Escape' && setIsMobileMenuOpen(false);
+    window.addEventListener('keydown', onKeyDown);
     return () => {
-      document.body.style.overflow = original;
-      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', onKeyDown);
     };
-  }, [open]);
+  }, [isMobileMenuOpen]);
 
   return (
-    <header className={cn('fixed inset-x-0 z-50 transition-all duration-500', scrolled || open ? 'top-4' : 'top-0')}>
+    <header
+      className={`fixed z-50 transition-all duration-500 ${isScrolled ? 'start-4 end-4 top-4' : 'start-0 end-0 top-0'}`}
+    >
       <nav
-        className={cn(
-          'relative z-50 mx-auto transition-all duration-500',
-          scrolled || open ? 'max-w-5xl px-4' : 'max-w-7xl px-4 sm:px-6',
-        )}
+        className={`relative z-50 mx-auto transition-all duration-500 ${
+          isScrolled || isMobileMenuOpen
+            ? 'max-w-[1200px] rounded-2xl border border-[color:var(--foreground)]/10 bg-[color:var(--background)]/80 shadow-lg backdrop-blur-xl'
+            : 'max-w-[1400px] bg-transparent'
+        }`}
       >
         <div
-          className={cn(
-            'flex items-center justify-between transition-all duration-500',
-            scrolled || open
-              ? 'h-14 rounded-full border border-black/10 bg-white/90 px-5 shadow-lg shadow-black/5 backdrop-blur-xl'
-              : 'h-20 px-2',
-          )}
+          className={`flex items-center justify-between px-6 transition-all duration-500 lg:px-8 ${
+            isScrolled ? 'h-14' : 'h-20'
+          }`}
         >
-          <Link href="/" aria-label="SmartFit home" className="flex items-center gap-2.5">
-            <LogoMark />
-            <span className="font-display text-lg font-extrabold tracking-tight text-ink-warm">
-              Smart<span className="italic text-ember">Fit</span>
+          <Link href="/" className="group flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color:var(--foreground)] text-[color:var(--background)]">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                <path d="M6.5 8.5v7M17.5 8.5v7M3.5 10.5v3M20.5 10.5v3M6.5 12h11" />
+              </svg>
+            </span>
+            <span
+              className={`font-display tracking-tight transition-all duration-500 ${
+                isScrolled ? 'text-xl' : 'text-2xl'
+              }`}
+            >
+              SmartFit
             </span>
           </Link>
 
-          <div className="hidden items-center gap-8 md:flex">
-            {LINKS.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                className="group relative text-sm font-semibold text-clay transition-colors hover:text-ink-warm"
+          <div className="hidden items-center gap-12 md:flex">
+            {navLinks.map((link) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                className="group relative text-sm font-semibold text-[color:var(--foreground)]/70 transition-colors duration-300 hover:text-[color:var(--foreground)] md:text-base"
               >
-                {l.label}
-                <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-ember transition-all duration-300 group-hover:w-full" />
-              </a>
+                {link.name}
+                <span className="absolute -bottom-1 start-0 h-px w-0 bg-[color:var(--foreground)] transition-all duration-300 group-hover:w-full" />
+              </Link>
             ))}
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Link href="/dashboard" className="text-sm font-semibold text-clay transition-colors hover:text-ink-warm">
+            <Link
+              href="/dashboard"
+              className={`font-bold text-[color:var(--foreground)]/70 transition-all duration-500 hover:text-[color:var(--foreground)] ${
+                isScrolled ? 'text-sm' : 'text-base'
+              }`}
+            >
               Sign in
             </Link>
             <Link
               href="/onboarding"
-              className="group inline-flex h-10 items-center gap-1.5 rounded-full bg-ember px-5 text-sm font-bold text-white shadow-md shadow-ember/30 transition-transform hover:scale-[1.03] active:scale-95"
+              className={`inline-flex items-center rounded-full bg-[color:var(--primary)] text-white transition-all duration-500 hover:bg-[color:var(--primary)]/90 ${
+                isScrolled ? 'h-8 px-4 text-sm' : 'px-6 py-2.5'
+              }`}
             >
-              Start free
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              Start training
             </Link>
           </div>
 
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-warm md:hidden"
-            onClick={() => setOpen((o) => !o)}
-            aria-label="Toggle menu"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="relative z-50 -me-2 flex h-10 w-10 items-center justify-center rounded-full text-[color:var(--foreground)] transition-colors hover:bg-[color:var(--foreground)]/10 md:hidden"
+            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={isMobileMenuOpen}
           >
-            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
       </nav>
 
-      {/* Full-screen mobile menu */}
+      {/* Mobile full-screen menu */}
       <div
-        className={cn(
-          'fixed inset-0 -z-0 flex flex-col bg-paper-warm px-6 pt-28 transition-opacity duration-300 md:hidden',
-          open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
-        )}
+        id="mobile-menu"
+        aria-hidden={!isMobileMenuOpen}
+        className={`fixed inset-0 z-40 bg-[color:var(--background)] transition-all duration-500 md:hidden ${
+          isMobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        }`}
       >
-        <div className="flex flex-col gap-1">
-          {LINKS.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className="rounded-2xl px-4 py-4 font-display text-3xl font-extrabold tracking-tight text-ink-warm/80 transition-colors hover:bg-black/5 hover:text-ember"
+        <div className="flex h-full flex-col px-8 pb-8 pt-28">
+          <div className="flex flex-1 flex-col justify-center gap-8">
+            {navLinks.map((link, i) => (
+              <Link
+                key={link.name}
+                href={link.href}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`font-display text-5xl text-[color:var(--foreground)] transition-all duration-500 hover:text-[color:var(--muted-foreground)] ${
+                  isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+                }`}
+                style={{ transitionDelay: isMobileMenuOpen ? `${i * 75}ms` : '0ms' }}
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
+          <div
+            className={`flex gap-4 border-t border-[color:var(--foreground)]/10 pt-8 transition-all duration-500 ${
+              isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+            }`}
+            style={{ transitionDelay: isMobileMenuOpen ? '300ms' : '0ms' }}
+          >
+            <Link
+              href="/dashboard"
+              className="flex h-14 flex-1 items-center justify-center rounded-full border border-[color:var(--foreground)]/20 text-base"
             >
-              {l.label}
-            </a>
-          ))}
-        </div>
-        <div className="mt-auto flex flex-col gap-3 pb-10">
-          <Link
-            href="/onboarding"
-            onClick={() => setOpen(false)}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-ember py-4 text-base font-bold text-white"
-          >
-            Start training free <ArrowRight className="h-5 w-5" />
-          </Link>
-          <Link
-            href="/dashboard"
-            onClick={() => setOpen(false)}
-            className="inline-flex items-center justify-center rounded-full border border-black/10 py-4 text-base font-semibold text-ink-warm"
-          >
-            I already have an account
-          </Link>
+              Sign in
+            </Link>
+            <Link
+              href="/onboarding"
+              className="flex h-14 flex-1 items-center justify-center rounded-full bg-[color:var(--primary)] text-base text-white"
+            >
+              Start training
+            </Link>
+          </div>
         </div>
       </div>
     </header>
   );
 }
 
-export function LogoMark({ size = 32 }: { size?: number }) {
+export function LogoMark({ size = 34 }: { size?: number }) {
   return (
     <span
-      className="flex items-center justify-center rounded-xl bg-ember shadow-md shadow-ember/30"
+      className="flex items-center justify-center rounded-xl bg-[color:var(--primary)] shadow-md"
       style={{ width: size, height: size }}
     >
-      <svg
-        viewBox="0 0 24 24"
-        width={size * 0.58}
-        height={size * 0.58}
-        fill="none"
-        stroke="#FDF6F2"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      >
+      <svg viewBox="0 0 24 24" width={size * 0.58} height={size * 0.58} fill="none" stroke="#FDF6F2" strokeWidth="2.6" strokeLinecap="round">
         <path d="M6.5 8.5v7M17.5 8.5v7M3.5 10.5v3M20.5 10.5v3M6.5 12h11" />
       </svg>
     </span>
