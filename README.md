@@ -207,6 +207,24 @@ pnpm --filter @smartfit/mobile exec eas build --profile preview --platform andro
 `nativewind` is pinned to `~4.1.23` (4.2.x pulls reanimated-4 worklets that break
 the SDK-52 / reanimated-3 babel pipeline), mirroring the reference app's setup.
 
+## 🚢 Deployment (Vercel)
+
+The Next.js app lives in `apps/web`, so the root **`vercel.json`** tells Vercel to
+build only that workspace and where the output is:
+
+```json
+{
+  "installCommand": "pnpm install",
+  "buildCommand": "pnpm --filter @smartfit/web build",
+  "outputDirectory": "apps/web/.next",
+  "framework": "nextjs"
+}
+```
+
+No special project settings are needed beyond pointing the project at the repo —
+the mobile package intentionally has no web `build` task (native builds go through
+EAS), so it isn't built on Vercel.
+
 ## 🛣 Roadmap
 
 - Exercise library with per-set weight/reps history and progressive-overload hints.
