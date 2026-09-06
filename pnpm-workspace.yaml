@@ -1,0 +1,13 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Single React type identity across the whole monorepo. The hoisted virtual
+# store would otherwise expose @types/react@18 (mobile) to web's Radix packages,
+# producing duplicate-JSX-namespace errors; pinning one version removes the clash.
+allowBuilds:
+  esbuild: set this to true or false
+
+overrides:
+  '@types/react': 19.1.10
+  '@types/react-dom': 19.1.7
