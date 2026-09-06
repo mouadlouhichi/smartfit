@@ -4,8 +4,7 @@ packages:
 
 # Use the hoisted (flat) node_modules layout. The Expo/Metro toolchain expects a
 # flat node_modules, and Vercel's Next.js detection needs `next` to resolve from
-# the monorepo root. pnpm 12 reads workspace settings from this file rather than
-# .npmrc.
+# the monorepo root.
 nodeLinker: hoisted
 
 # Single React type identity across the whole monorepo. The hoisted virtual
@@ -16,11 +15,8 @@ overrides:
   '@types/react-dom': 19.1.7
 
 # Approve install scripts for dependencies that legitimately need a postinstall
-# step (esbuild links its platform binary and is used by tsx). pnpm 12 records
-# this as `allowBuilds`; `onlyBuiltDependencies` is the pnpm ≤11 equivalent kept
-# for cross-version compatibility. This is the committed form of
-# `pnpm approve-builds` and keeps `pnpm install --frozen-lockfile` green in CI.
-allowBuilds:
-  esbuild: true
+# step (esbuild links its platform binary and is used by tsx). This is the
+# committed form of `pnpm approve-builds` and keeps
+# `pnpm install --frozen-lockfile` green in CI/Vercel.
 onlyBuiltDependencies:
   - esbuild
