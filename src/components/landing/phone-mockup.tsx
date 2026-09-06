@@ -1,68 +1,81 @@
-/** Pure-CSS phone mockup previewing the in-app dashboard (no image asset needed). */
+import { Flame, Plus } from 'lucide-react';
+
+/**
+ * Lightweight CSS phone mockup previewing the Ember app home screen
+ * (hero, daily-goal ring, quick actions) — no screenshot asset needed.
+ */
 export function PhoneMockup() {
   return (
-    <div className="relative mx-auto w-[300px] animate-float">
-      <div className="pointer-events-none absolute -inset-8 -z-10 rounded-[3rem] bg-volt/20 blur-3xl" />
-      <div className="rounded-[2.6rem] border border-white/15 bg-ink-2 p-2.5 shadow-2xl shadow-black/60">
-        <div className="overflow-hidden rounded-[2.1rem] bg-ink">
-          {/* app header */}
-          <div className="flex items-center justify-between px-5 pt-5">
-            <div>
-              <p className="text-[10px] font-medium uppercase tracking-widest text-paper/40">Push / Pull / Legs</p>
-              <p className="text-base font-extrabold text-paper">Today&apos;s focus</p>
+    <div className="relative w-[280px] animate-float">
+      <div className="rounded-[2.8rem] border-[10px] border-ink-warm bg-paper-warm shadow-2xl shadow-black/30">
+        {/* notch */}
+        <div className="mx-auto mt-2 h-5 w-24 rounded-full bg-ink-warm/90" />
+        <div className="px-5 pb-6 pt-5">
+          <p className="eyebrow text-clay">Monday · Full Body</p>
+          <h3 className="mt-1 font-display text-2xl font-extrabold leading-tight text-ink-warm">
+            Let&apos;s start strong!
+          </h3>
+
+          {/* goal card */}
+          <div className="mt-4 flex items-center gap-3 rounded-3xl bg-white p-3.5 shadow-sm">
+            <Ring pct={45} />
+            <div className="flex-1">
+              <p className="text-[11px] font-bold leading-tight text-ink-warm">You&apos;re 45% to your weekly goal</p>
+              <p className="mt-0.5 text-[10px] text-clay">2/5 workouts</p>
             </div>
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-volt text-sm font-bold text-ink">A</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ember text-white">
+              <Plus className="h-4 w-4" strokeWidth={3} />
+            </span>
           </div>
 
-          {/* today card */}
-          <div className="mx-4 mt-4 rounded-2xl bg-volt p-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-ink/60">Tuesday</p>
-            <p className="text-lg font-extrabold leading-tight text-ink">Push — chest &amp; shoulders</p>
-            <div className="mt-3 flex items-center gap-2">
-              <span className="rounded-full bg-ink px-2.5 py-1 text-[10px] font-bold text-volt">07:00</span>
-              <span className="rounded-full bg-ink/10 px-2.5 py-1 text-[10px] font-bold text-ink">55 min</span>
-            </div>
-          </div>
-
-          {/* stat grid */}
-          <div className="mx-4 mt-3 grid grid-cols-2 gap-2.5">
-            {[
-              ['🔥', '6', 'day streak'],
-              ['✓', '4', 'workouts'],
-              ['⏱', '3h 12m', 'active'],
-              ['🏃', '12.4 km', 'distance'],
-            ].map(([ico, v, l]) => (
-              <div key={l} className="rounded-2xl border border-white/10 bg-ink-card p-3">
-                <p className="text-sm">{ico}</p>
-                <p className="mt-1 text-lg font-extrabold text-paper">{v}</p>
-                <p className="text-[10px] text-paper/45">{l}</p>
+          {/* quick actions */}
+          <div className="mt-4 grid grid-cols-4 gap-2">
+            {['Workout', 'Goals', 'Plan', 'Stats'].map((q) => (
+              <div key={q} className="flex flex-col items-center gap-1.5">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm">
+                  <span className="h-2 w-2 rounded-full bg-ember" />
+                </span>
+                <span className="text-[9px] font-semibold text-clay">{q}</span>
               </div>
             ))}
           </div>
 
-          {/* mini chart */}
-          <div className="mx-4 my-3 rounded-2xl border border-white/10 bg-ink-card p-4">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-paper">Last 8 weeks</p>
-              <span className="text-[10px] font-bold text-volt">minutes ↑</span>
+          {/* summary cards */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="rounded-2xl bg-white p-3 shadow-sm">
+              <p className="text-[9px] font-semibold text-clay">Streak</p>
+              <p className="flex items-center gap-1 font-display text-lg font-extrabold text-ink-warm">
+                <Flame className="h-3.5 w-3.5 text-ember" /> 12
+              </p>
             </div>
-            <div className="mt-3 flex h-20 items-end gap-1.5">
-              {[40, 65, 52, 80, 58, 92, 74, 100].map((h, i) => (
-                <div
-                  key={i}
-                  className="flex-1 rounded-t-md"
-                  style={{ height: `${h}%`, backgroundColor: i === 7 ? '#c8f135' : '#2b4016' }}
-                />
-              ))}
+            <div className="rounded-2xl bg-white p-3 shadow-sm">
+              <p className="text-[9px] font-semibold text-clay">Active</p>
+              <p className="font-display text-lg font-extrabold text-ink-warm">240m</p>
             </div>
           </div>
         </div>
       </div>
-
-      {/* floating quick-add FAB */}
-      <div className="absolute -right-3 bottom-16 flex h-14 w-14 items-center justify-center rounded-3xl bg-volt text-2xl font-bold text-ink shadow-xl shadow-volt/30">
-        +
-      </div>
     </div>
+  );
+}
+
+function Ring({ pct }: { pct: number }) {
+  const r = 15;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg width="44" height="44" viewBox="0 0 44 44" className="-rotate-90">
+      <circle cx="22" cy="22" r={r} fill="none" stroke="#ECE8E2" strokeWidth="5" />
+      <circle
+        cx="22"
+        cy="22"
+        r={r}
+        fill="none"
+        stroke="#D6532F"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeDasharray={c}
+        strokeDashoffset={c - (c * pct) / 100}
+      />
+    </svg>
   );
 }

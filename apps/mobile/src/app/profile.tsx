@@ -24,7 +24,7 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
         <View className="flex-row items-center justify-between py-2">
           <Text className="text-lg font-bold text-foreground">Log measurement</Text>
           <Pressable onPress={onClose} className="rounded-full p-2 active:bg-muted">
-            <X color="#9BA886" size={22} />
+            <X color="#857D75" size={22} />
           </Pressable>
         </View>
         <ScrollView contentContainerClassName="gap-4 pt-4">
@@ -36,9 +36,9 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                   key={u}
                   onPress={() => setUnit(u)}
                   className="rounded-full border px-3 py-2"
-                  style={{ borderColor: unit === u ? '#C8F135' : '#273019', backgroundColor: unit === u ? '#C8F13522' : 'transparent' }}
+                  style={{ borderColor: unit === u ? '#D6532F' : '#E7E2DB', backgroundColor: unit === u ? '#D6532F22' : 'transparent' }}
                 >
-                  <Text style={{ color: unit === u ? '#C8F135' : '#9BA886' }} className="text-sm font-medium">
+                  <Text style={{ color: unit === u ? '#D6532F' : '#857D75' }} className="text-sm font-medium">
                     {BODY_UNIT_META[u].label}
                   </Text>
                 </Pressable>
@@ -57,7 +57,7 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 export default function ProfileScreen() {
-  const { state, updateProfile, resetAll, clearData } = useStore();
+  const { state, updateProfile, clearData } = useStore();
   const [bodyOpen, setBodyOpen] = useState(false);
   const [name, setName] = useState(state.profile.name);
 
@@ -71,7 +71,7 @@ export default function ProfileScreen() {
 
         <Card>
           <View className="mb-3 flex-row items-center gap-2">
-            <UserRound color="#C8F135" size={18} />
+            <UserRound color="#D6532F" size={18} />
             <Text className="font-semibold text-foreground">You</Text>
           </View>
           <Label>Name</Label>
@@ -86,7 +86,7 @@ export default function ProfileScreen() {
 
         <Card>
           <View className="mb-2 flex-row items-center gap-2">
-            <Database color="#C8F135" size={18} />
+            <Database color="#D6532F" size={18} />
             <Text className="font-semibold text-foreground">Your data</Text>
           </View>
           <Text className="text-sm text-muted-foreground">
@@ -96,16 +96,6 @@ export default function ProfileScreen() {
           {weight != null && <Text className="mt-1 text-sm text-muted-foreground">Latest weight: {weight} kg</Text>}
           <View className="mt-4 gap-2">
             <Button label="Log measurement" variant="secondary" onPress={() => setBodyOpen(true)} />
-            <Button
-              label="Load demo data"
-              variant="secondary"
-              onPress={() =>
-                Alert.alert('Load demo', 'Replace your current data with the demo set?', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Load', onPress: resetAll },
-                ])
-              }
-            />
             <Button
               label="Erase everything"
               variant="destructive"
@@ -120,7 +110,7 @@ export default function ProfileScreen() {
         </Card>
 
         <View className="flex-row items-center justify-center gap-2 py-4">
-          <RefreshCw color="#9BA886" size={14} />
+          <RefreshCw color="#857D75" size={14} />
           <Text className="text-xs text-muted-foreground">Local-first · no account · no trackers</Text>
           <Trash2 color="#ffffff" size={1} />
         </View>

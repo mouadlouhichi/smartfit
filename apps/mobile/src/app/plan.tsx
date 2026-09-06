@@ -61,7 +61,7 @@ export default function PlanScreen() {
                       <Switch
                         value={s.active}
                         onValueChange={(v) => updateSchedule(s.id, { active: v })}
-                        trackColor={{ true: '#C8F135', false: '#1B2113' }}
+                        trackColor={{ true: '#D6532F', false: '#E7E2DB' }}
                       />
                     </View>
                   );

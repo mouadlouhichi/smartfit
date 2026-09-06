@@ -3,85 +3,87 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * SmartFit design system — "Volt"
- * A bold, energetic fitness look inspired by dark Dribbble fitness UI: a
- * near-black ground with an electric-lime accent. The marketing site is always
- * dark/volt (see --color-* brand constants below); the app ships a matching
- * dark theme by default with a tuned light theme.
+ * SmartFit design system — "Ember"
+ * A calm, editorial, warm-light fitness interface inspired by Paperpillar's
+ * AI-Driven Fitness App: near-black ink (#161313) on warm paper, a single
+ * vermilion accent (#B7220F) with terracotta/rose supporting tones. The
+ * product app defaults to light; a tuned warm-dark ships for dark mode.
+ * The marketing site keeps its own bold "Volt" constants (--color-volt/ink/…),
+ * which are retained below for the landing page.
  */
 
 :root {
-  --radius: 0.9rem;
+  --radius: 1.4rem;
 
-  --background: #f4f7ec;
-  --foreground: #14190d;
+  --background: #f2f0ec;
+  --foreground: #181615;
 
   --card: #ffffff;
-  --card-foreground: #14190d;
+  --card-foreground: #1d1a18;
 
   --popover: #ffffff;
-  --popover-foreground: #14190d;
+  --popover-foreground: #1d1a18;
 
-  --primary: #4d7c0f;
-  --primary-foreground: #f7fee7;
+  --primary: #d6532f;
+  --primary-foreground: #fdf6f2;
 
-  --secondary: #e9eedd;
-  --secondary-foreground: #22300f;
+  --secondary: #ece8e2;
+  --secondary-foreground: #3a322d;
 
-  --muted: #ecefe2;
-  --muted-foreground: #5c6649;
+  --muted: #ede9e3;
+  --muted-foreground: #857d75;
 
-  --accent: #d9f99d;
-  --accent-foreground: #1a2e05;
+  --accent: #e9d8d1;
+  --accent-foreground: #7a2a18;
 
-  --destructive: #dc2626;
-  --destructive-foreground: #fff5f5;
+  --destructive: #c0392b;
+  --destructive-foreground: #fdf6f2;
 
-  --border: #dfe4d3;
-  --input: #dfe4d3;
-  --ring: #4d7c0f;
+  --border: #e7e2db;
+  --input: #e7e2db;
+  --ring: #d6532f;
 
-  --chart-1: #65a30d;
-  --chart-2: #0ea5e9;
-  --chart-3: #f59e0b;
-  --chart-4: #8b5cf6;
-  --chart-5: #ec4899;
+  --chart-1: #d6532f;
+  --chart-2: #e8a087;
+  --chart-3: #cdaca4;
+  --chart-4: #8a6a58;
+  --chart-5: #2b2725;
 }
 
 .dark {
-  --background: #0b0e09;
-  --foreground: #eff3e6;
+  --background: #161313;
+  --foreground: #f3ece4;
 
-  --card: #15190f;
-  --card-foreground: #eff3e6;
+  --card: #201b1a;
+  --card-foreground: #f3ece4;
 
-  --popover: #15190f;
-  --popover-foreground: #eff3e6;
+  --popover: #221c1b;
+  --popover-foreground: #f3ece4;
 
-  --primary: #c8f135;
-  --primary-foreground: #12160c;
+  --primary: #e0603f;
+  --primary-foreground: #1c0e0a;
 
-  --secondary: #202616;
-  --secondary-foreground: #eff3e6;
+  --secondary: #2c2523;
+  --secondary-foreground: #f3ece4;
 
-  --muted: #1b2113;
-  --muted-foreground: #9ba886;
+  --muted: #27211f;
+  --muted-foreground: #b5a89d;
 
-  --accent: #c8f135;
-  --accent-foreground: #12160c;
+  --accent: #d38977;
+  --accent-foreground: #f6e7e0;
 
-  --destructive: #f87171;
-  --destructive-foreground: #1b0707;
+  --destructive: #f0817a;
+  --destructive-foreground: #2a0d0a;
 
-  --border: #273019;
-  --input: #273019;
-  --ring: #c8f135;
+  --border: #39312d;
+  --input: #39312d;
+  --ring: #e0603f;
 
-  --chart-1: #c8f135;
-  --chart-2: #38bdf8;
-  --chart-3: #fbbf24;
-  --chart-4: #a78bfa;
-  --chart-5: #f472b6;
+  --chart-1: #e0603f;
+  --chart-2: #d38977;
+  --chart-3: #cdaca4;
+  --chart-4: #a98778;
+  --chart-5: #8e857e;
 }
 
 @theme inline {
@@ -110,7 +112,17 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  /* Brand constants — used by the always-bold marketing site (theme independent). */
+  /* Ember brand accents (product app). */
+  --color-ember: #d6532f;
+  --color-ember-deep: #b7220f;
+  --color-ember-bright: #e8785a;
+  --color-terracotta: #e8a087;
+  --color-rose: #cdaca4;
+  --color-clay: #4e4c4c;
+  --color-ink-warm: #181615;
+  --color-paper-warm: #f2f0ec;
+
+  /* Volt brand constants — retained for the always-dark marketing landing. */
   --color-volt: #c8f135;
   --color-volt-soft: #e3f88a;
   --color-volt-dim: #9dbd1f;
@@ -121,12 +133,15 @@
   --color-sage: #9ba886;
   --color-pine: #2b4016;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 14px);
 
-  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
@@ -140,9 +155,32 @@ html {
 body {
   background-color: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans);
   font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Display type — heavy grotesque for headings and big figures. */
+h1,
+h2,
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+}
+.font-display-tight {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+}
+.eyebrow {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.68rem;
+  font-weight: 600;
 }
 
 input[type='number']::-webkit-outer-spin-button,
@@ -156,8 +194,8 @@ input[type='number'] {
 }
 
 ::selection {
-  background: var(--volt, #c8f135);
-  color: #0b0e09;
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 ::-webkit-scrollbar {
@@ -198,4 +236,26 @@ input[type='number'] {
 }
 .animate-float {
   animation: float-y 6s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }

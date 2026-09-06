@@ -1,47 +1,62 @@
-import { SectionHeading } from './section';
+import { SectionHeading, Section } from './section';
 
 const FAQS = [
   {
+    q: 'Is SmartFit free?',
+    a: 'Yes — every feature is free with no time limit. There is no premium tier, no trial that runs out, and no card required. SmartFit is private and local-first, so there is nothing to upsell.',
+  },
+  {
     q: 'Do I need a smartwatch or wearable?',
-    a: 'No. SmartFit is built around manual logging — you decide what counts as a session, with nothing depending on a device on your wrist.',
+    a: 'No. SmartFit never pairs with a watch, ring or phone sensor. You log sessions manually, so nothing is misattributed — you decide exactly what counts as a workout.',
   },
   {
-    q: 'Where is my data stored?',
-    a: 'Entirely on your device. There is no account and no server receiving your workouts. The web app uses localStorage and the mobile app uses AsyncStorage. Export or erase everything with one tap.',
+    q: 'What training styles does SmartFit support?',
+    a: 'Four proven strategies: Push/Pull/Legs (6-day), Upper/Lower (4-day), Full Body 3× for beginners and busy schedules, and Cardio & Conditioning. You can switch plans anytime without losing history.',
   },
   {
-    q: 'What training styles are included?',
-    a: 'Push/Pull/Legs (6-day), Upper/Lower (4-day), Full Body 3× for beginners, and a Cardio & Conditioning plan. You can also schedule any custom session.',
+    q: 'What activities can I log?',
+    a: 'Strength, cardio, HIIT, mobility and sport are built in — running, cycling, swimming, rowing, boxing, yoga and more all map to a type. You can also add custom activity types.',
   },
   {
-    q: 'How is this different from a normal fitness app?',
-    a: 'SmartFit keeps what a session is (its activity type) strictly separate from your recurring plan, your goals and your body trends — so the numbers always reconcile and progress is honest.',
+    q: 'Is my data private?',
+    a: 'Completely. Everything is stored locally on your device with no account and no server. We never build advertising profiles or sell your data.',
   },
   {
-    q: 'Is SmartFit really free?',
-    a: 'Yes. Every feature is free. There is no subscription, no trial to remember and no premium tier.',
+    q: 'Can I export my data?',
+    a: 'Yes. From Profile you can export a complete, restorable JSON backup any time.',
+  },
+  {
+    q: 'How do I delete my data?',
+    a: 'You can permanently erase every workout, goal and measurement from Profile in one tap — no account to close, no emails to send.',
+  },
+  {
+    q: 'How is this different from other fitness apps?',
+    a: 'SmartFit keeps what a session is (its activity type) strictly separate from the recurring plan it belongs to — so your numbers always reconcile and progress stays honest.',
   },
 ];
 
 export function FaqSection() {
   return (
-    <section id="faq" className="border-t border-white/10 bg-ink-2">
-      <div className="mx-auto max-w-3xl px-5 py-24 sm:px-6">
-        <SectionHeading eyebrow="FAQ" className="mx-auto text-center">
-          Questions, <span className="text-volt">answered.</span>
-        </SectionHeading>
-        <div className="mt-12 grid gap-3">
-          {FAQS.map((f) => (
-            <details key={f.q} className="group rounded-2xl border border-white/10 bg-ink-card p-6 open:border-volt/40">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-bold marker:hidden [&::-webkit-details-marker]:hidden">
-                {f.q}
-                <span className="text-2xl font-light text-volt transition-transform group-open:rotate-45">+</span>
-              </summary>
-              <p className="mt-3 text-sm leading-relaxed text-paper/60">{f.a}</p>
-            </details>
-          ))}
-        </div>
+    <Section id="faq" alt>
+      <SectionHeading eyebrow="SmartFit facts" className="mx-auto text-center">
+        Frequently asked <span className="italic text-ember">questions</span>
+      </SectionHeading>
+      <div className="mx-auto mt-12 grid max-w-3xl gap-3">
+        {FAQS.map((f) => (
+          <details
+            key={f.q}
+            className="group rounded-2xl border border-black/10 bg-paper-warm p-6 open:border-ember/40 open:bg-white"
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-lg font-bold text-ink-warm marker:hidden [&::-webkit-details-marker]:hidden">
+              {f.q}
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ember/10 text-2xl font-light text-ember transition-transform group-open:rotate-45">
+                +
+              </span>
+            </summary>
+            <p className="mt-3 text-sm leading-relaxed text-clay">{f.a}</p>
+          </details>
+        ))}
       </div>
-    </section>
+    </Section>
   );
 }

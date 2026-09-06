@@ -4,10 +4,12 @@ import { HeroSection } from '@/components/landing/hero-section';
 import { WhatIsSection } from '@/components/landing/what-is-section';
 import { FeaturesSection } from '@/components/landing/features-section';
 import { HowItWorksSection } from '@/components/landing/how-it-works-section';
+import { FeaturesListSection } from '@/components/landing/features-list-section';
 import { MetricsSection } from '@/components/landing/metrics-section';
 import { PlansSection } from '@/components/landing/plans-section';
 import { SecuritySection } from '@/components/landing/security-section';
 import { PricingSection } from '@/components/landing/pricing-section';
+import { GuidesSection } from '@/components/landing/guides-section';
 import { FaqSection } from '@/components/landing/faq-section';
 import { CtaSection } from '@/components/landing/cta-section';
 import { FooterSection } from '@/components/landing/footer-section';
@@ -34,16 +36,18 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <main className="dark relative min-h-screen overflow-x-hidden bg-ink text-paper">
+    <main id="main-content" className="relative min-h-screen overflow-x-hidden bg-paper-warm font-sans text-ink-warm">
       <LandingNav />
       <HeroSection />
       <WhatIsSection />
       <FeaturesSection />
       <HowItWorksSection />
+      <FeaturesListSection />
       <MetricsSection />
       <PlansSection />
       <SecuritySection />
       <PricingSection />
+      <GuidesSection />
       <FaqSection />
       <CtaSection />
       <FooterSection />

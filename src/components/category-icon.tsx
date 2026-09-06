@@ -59,12 +59,12 @@ export const CATEGORY_ICON_OPTIONS = [
 ] as const;
 
 export const CATEGORY_COLOR_OPTIONS = [
-  '#16a34a',
-  '#0ea5e9',
-  '#f59e0b',
-  '#8b5cf6',
-  '#ec4899',
-  '#ef4444',
-  '#14b8a6',
-  '#64748b',
+  '#d6532f',
+  '#b7220f',
+  '#e8a087',
+  '#cdaca4',
+  '#b9804f',
+  '#857d75',
+  '#2b2725',
+  '#c77b52',
 ];

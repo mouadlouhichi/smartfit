@@ -1,43 +1,62 @@
-import { Download, ShieldCheck, Smartphone, WifiOff } from 'lucide-react';
-import { SectionHeading } from './section';
+import { Lock, Smartphone, EyeOff, Download } from 'lucide-react';
+import { Eyebrow, Section } from './section';
+
+const CHIPS = ['On-device storage', 'No account needed', 'No wearable pairing', 'JSON & CSV export', 'No ad profiles'];
 
 const POINTS = [
-  { icon: WifiOff, title: 'No account, no wearable', body: 'Nothing is sent to a server or matched to a device on your wrist. You decide what counts as a session.' },
-  { icon: ShieldCheck, title: 'Local-first storage', body: 'Your workouts live in your browser or phone. There is no ad network, no data broker, no analytics on your habits.' },
-  { icon: Download, title: 'Export or erase anytime', body: 'Download a complete JSON backup, or wipe everything on-device in one tap. Your training is always yours.' },
+  {
+    icon: Smartphone,
+    title: 'Private by default',
+    body: 'Your workouts live in local storage on your device. There is no cloud account to breach and no sync unless you ask for it.',
+  },
+  {
+    icon: EyeOff,
+    title: 'No sensors, no surveillance',
+    body: 'SmartFit never pairs with a watch, ring or phone sensors. You decide what counts as a session — nothing is inferred behind your back.',
+  },
+  {
+    icon: Lock,
+    title: 'No advertising profiles',
+    body: 'We never use your training data to build advertising profiles or sell it to third parties. There are no trackers in the app.',
+  },
+  {
+    icon: Download,
+    title: 'Export or delete anytime',
+    body: 'Export a complete JSON backup or erase every byte from Profile in one tap. Your data is yours to move or remove.',
+  },
 ];
 
 export function SecuritySection() {
   return (
-    <section className="border-y border-white/10 bg-ink-2">
-      <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6">
-        <div className="flex items-start gap-3">
-          <Smartphone className="mt-2 h-7 w-7 shrink-0 text-volt" />
-          <SectionHeading eyebrow="Privacy">
-            Your training, <span className="text-volt">your business.</span>
-          </SectionHeading>
-        </div>
+    <Section id="privacy">
+      <Eyebrow>Privacy</Eyebrow>
+      <h2 className="mt-3 max-w-3xl font-display-tight text-4xl font-extrabold text-ink-warm sm:text-5xl">
+        Your training, <span className="italic text-ember">your business.</span>
+      </h2>
+      <p className="mt-5 max-w-2xl text-lg leading-relaxed text-clay">
+        Everything stays on your device. Export and deletion controls live in Profile, and there is no account that
+        could ever leak.
+      </p>
 
-        <div className="mt-12 grid gap-4 md:grid-cols-3">
-          {POINTS.map((p) => (
-            <div key={p.title} className="rounded-3xl border border-white/10 bg-ink p-7">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-volt/15 text-volt">
-                <p.icon className="h-6 w-6" />
-              </span>
-              <h3 className="mt-5 text-lg font-bold">{p.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-paper/60">{p.body}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-2">
-          {['On-device data', 'No trackers', 'No bank/health sync', 'Offline-friendly', 'Open format export'].map((t) => (
-            <span key={t} className="rounded-full border border-white/12 px-4 py-1.5 text-xs font-semibold text-paper/70">
-              {t}
-            </span>
-          ))}
-        </div>
+      <div className="mt-8 flex flex-wrap gap-2">
+        {CHIPS.map((c) => (
+          <span key={c} className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-ink-warm">
+            {c}
+          </span>
+        ))}
       </div>
-    </section>
+
+      <div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-black/10 bg-black/10 sm:grid-cols-2">
+        {POINTS.map((p) => (
+          <div key={p.title} className="bg-white p-8">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-ember/10 text-ember">
+              <p.icon className="h-5 w-5" />
+            </span>
+            <h3 className="mt-5 font-display text-lg font-bold text-ink-warm">{p.title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-clay">{p.body}</p>
+          </div>
+        ))}
+      </div>
+    </Section>
   );
 }

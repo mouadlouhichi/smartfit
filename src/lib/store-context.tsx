@@ -3,7 +3,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   STORAGE_KEY,
-  buildSeedState,
   emptyState,
   uid,
   type BodyLog,
@@ -17,16 +16,13 @@ import {
 import { env } from './env';
 
 /**
- * First-run state when nothing is saved: seed demo data (unless
- * NEXT_PUBLIC_SEED_DEMO=false) and honour the configured default plan.
+ * First-run state for a brand-new user: a clean account that lands on
+ * guided onboarding. No demo data is seeded in production.
  */
 function freshState(): FitnessState {
-  if (!env.seedDemo) {
-    const empty = emptyState();
-    empty.profile.planId = env.defaultPlan;
-    return empty;
-  }
-  return buildSeedState();
+  const empty = emptyState();
+  empty.profile.planId = env.defaultPlan;
+  return empty;
 }
 
 interface StoreContextValue {
@@ -53,8 +49,6 @@ interface StoreContextValue {
   // profile / lifecycle
   updateProfile: (patch: Partial<UserProfile>) => void;
   completeOnboarding: (patch: Partial<UserProfile>) => void;
-  resetAll: () => void;
-  loadDemo: () => void;
   clearData: () => void;
 }
 
@@ -71,7 +65,7 @@ function persist(state: FitnessState) {
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   // Deterministic empty state for SSR + first client render (avoids hydration
-  // mismatch). The effect below hydrates from localStorage or the demo seed.
+  // mismatch). The effect below hydrates from localStorage or fresh onboarding.
   const [state, setState] = useState<FitnessState>(() => emptyState());
   const [ready, setReady] = useState(false);
   const loaded = useRef(false);
@@ -159,8 +153,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       completeOnboarding: (patch) =>
         mutate((prev) => ({ ...prev, profile: { ...prev.profile, ...patch, onboardingDone: true } })),
 
-      resetAll: () => setState(buildSeedState()),
-      loadDemo: () => setState(buildSeedState()),
       clearData: () => setState(emptyState()),
     }),
     [state, ready, mutate],

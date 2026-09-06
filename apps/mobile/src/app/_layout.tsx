@@ -8,7 +8,7 @@ import '../global.css';
 export default function RootLayout() {
   return (
     <StoreProvider>
-      <StatusBar style="light" />
+      <StatusBar style="dark" />
       <Tabs
         screenOptions={{
           headerShown: false,

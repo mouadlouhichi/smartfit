@@ -70,7 +70,7 @@ export default function HomeScreen() {
             onPress={() => setLogOpen(true)}
             className="h-12 w-12 items-center justify-center rounded-full bg-primary"
           >
-            <Plus color="#0B0E09" size={24} />
+            <Plus color="#FDF6F2" size={24} />
           </Pressable>
         </View>
 

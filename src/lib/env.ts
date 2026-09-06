@@ -19,8 +19,11 @@ function plan(value: string | undefined, fallback: PlanId): PlanId {
 
 export const env = {
   appName: process.env.NEXT_PUBLIC_APP_NAME?.trim() || 'SmartFit',
-  /** Seed demo training history on first run for users with no saved data. */
-  seedDemo: flag(process.env.NEXT_PUBLIC_SEED_DEMO, true),
+  /**
+   * Seed demo training history on first run. Off in production — new users
+   * start from guided onboarding with their own data. Set true only for demos.
+   */
+  seedDemo: flag(process.env.NEXT_PUBLIC_SEED_DEMO, false),
   /** Default training strategy for brand-new accounts. */
   defaultPlan: plan(process.env.NEXT_PUBLIC_DEFAULT_PLAN, 'full-body'),
 } as const;

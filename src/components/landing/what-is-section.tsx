@@ -2,29 +2,28 @@ import { Eyebrow } from './section';
 
 export function WhatIsSection() {
   return (
-    <section className="mx-auto max-w-7xl px-5 py-24 sm:px-6">
-      <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+    <section className="bg-paper-warm">
+      <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:py-28">
         <div>
           <Eyebrow>What is SmartFit?</Eyebrow>
-          <h2 className="mt-4 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">
-            The free training tracker that separates <span className="text-volt">what you do</span> from{' '}
-            <span className="text-volt">how it&apos;s going</span>.
+          <h2 className="mt-3 font-display-tight text-3xl font-extrabold text-ink-warm sm:text-4xl">
+            The free workout tracker that keeps your training honest.
           </h2>
         </div>
-        <div className="space-y-5 text-base leading-relaxed text-paper/65 lg:pt-10">
+        <div className="space-y-5 text-lg leading-relaxed text-clay">
           <p>
-            SmartFit is a private fitness tracker that keeps your <strong className="text-paper">activity type</strong> —
-            strength, cardio, HIIT, mobility — separate from your <strong className="text-paper">logged sessions</strong>,
-            your <strong className="text-paper">recurring plan</strong> and the <strong className="text-paper">goals</strong>{' '}
-            you&apos;re chasing.
+            SmartFit is a private fitness tracker that separates what a session{' '}
+            <strong className="text-ink-warm">is</strong> — strength, cardio, HIIT, mobility — from the recurring plan
+            it <strong className="text-ink-warm">belongs to</strong>. It supports 4 proven training strategies:
+            Push/Pull/Legs, Upper/Lower, Full Body 3× and Cardio &amp; Conditioning.
           </p>
           <p>
-            It never needs a wearable or a bank-style account. You log each workout yourself in seconds; everything is
-            cached on your device and adds up into 8-week trends, streaks and body metrics. Choose from four proven
-            training styles — Push/Pull/Legs, Upper/Lower, Full Body and Cardio — with the split calculated for you.
+            SmartFit does not pair with a watch or ring; you log sessions manually so nothing is misattributed. Your
+            data lives entirely on your device — there&apos;s no account and no cloud watching you. Set your split,
+            schedule your week, and watch streaks, goals and body trends build themselves.
           </p>
-          <p className="text-sm text-paper/45">
-            Built for everyone who trains without over-sharing. No subscriptions, no data sold, no trackers.
+          <p className="text-base">
+            Pick a plan → schedule your week → log as you go. That&apos;s the whole method.
           </p>
         </div>
       </div>

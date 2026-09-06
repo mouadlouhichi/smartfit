@@ -8,9 +8,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { CalendarCheck2, Home, LineChart, Target, UserRound, type LucideIcon } from 'lucide-react-native';
 
-const VOLT = '#C8F135';
-const INK = '#0B0E09';
-const INACTIVE = '#8A957A';
+const EMBER = '#D6532F';
+const INK = '#181615';
+const INACTIVE = 'rgba(255,255,255,0.55)';
 
 const ICONS: Record<string, LucideIcon> = {
   index: Home,
@@ -30,7 +30,7 @@ type FloatingTabBarProps = {
   };
 };
 
-/** Floating pill tab bar with a sliding volt indicator (mirrors flousy's FloatingTabBar). */
+/** Floating dark-pill tab bar with a sliding ember indicator. */
 export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -59,8 +59,8 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
           alignItems: 'center',
           borderRadius: 999,
           borderWidth: 1,
-          borderColor: 'rgba(200,241,53,0.18)',
-          backgroundColor: 'rgba(18,22,12,0.92)',
+          borderColor: 'rgba(0,0,0,0.08)',
+          backgroundColor: 'rgba(24,22,21,0.96)',
           paddingVertical: 4,
           paddingHorizontal: 6,
           shadowColor: '#000',
@@ -70,7 +70,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
           elevation: 16,
         }}
       >
-        {/* sliding volt pill */}
+        {/* sliding ember pill */}
         <Animated.View
           pointerEvents="none"
           style={[
@@ -80,7 +80,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
               bottom: 4,
               left: 6,
               borderRadius: 999,
-              backgroundColor: VOLT,
+              backgroundColor: EMBER,
             },
             pillStyle,
           ]}

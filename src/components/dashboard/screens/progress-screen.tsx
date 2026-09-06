@@ -1,60 +1,120 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { BarChart3, PieChart } from 'lucide-react';
+import { BarChart3, Footprints, Timer, TrendingUp, Flame } from 'lucide-react';
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
-  Legend,
-  Pie,
-  PieChart as RPieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 import { useStore } from '@/lib/store-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Ring } from '../ring';
+import { EmptyState } from '../empty-state';
+import { cn } from '@/lib/utils';
 import { INTENSITY_META } from '@smartfit/core';
-import { categoryBreakdown, weeklySeries } from '@smartfit/core';
-import { formatMinutes } from '@smartfit/core';
+import { sessionsInRange, toISODate, categoryBreakdown, aggregate, weeklySeries } from '@smartfit/core';
+import { formatCalories, formatDistance, formatMinutes } from '@smartfit/core';
+
+type Range = 'daily' | 'weekly' | 'monthly';
+const RANGES: { key: Range; label: string; days: number }[] = [
+  { key: 'daily', label: 'Daily', days: 1 },
+  { key: 'weekly', label: 'Weekly', days: 7 },
+  { key: 'monthly', label: 'Monthly', days: 30 },
+];
 
 export function ProgressScreen() {
   const { state } = useStore();
-  const series = useMemo(() => weeklySeries(state, 8), [state]);
-  const breakdown = useMemo(() => categoryBreakdown(state), [state]);
+  const [range, setRange] = useState<Range>('weekly');
+  const days = RANGES.find((r) => r.key === range)!.days;
 
+  const rangeAgg = useMemo(() => {
+    const from = new Date();
+    from.setHours(0, 0, 0, 0);
+    from.setDate(from.getDate() - (days - 1));
+    return aggregate(sessionsInRange(state, toISODate(from), toISODate(new Date())));
+  }, [state, days]);
+
+  const breakdown = useMemo(
+    () => categoryBreakdown(state, rangeDaysSessions(state, days)),
+    [state, days],
+  );
+  const totalMin = breakdown.reduce((a, x) => a + x.minutes, 0);
+
+  const series = useMemo(() => weeklySeries(state, 8), [state]);
   const intensityData = useMemo(() => {
     const order: (keyof typeof INTENSITY_META)[] = ['low', 'moderate', 'high'];
     return order
       .map((k) => ({
         name: INTENSITY_META[k].label,
-        value: state.sessions.filter((s) => s.intensity === k).length,
+        value: rangeDaysSessions(state, days).filter((s) => s.intensity === k).length,
         color: INTENSITY_META[k].color,
       }))
       .filter((x) => x.value > 0);
-  }, [state]);
+  }, [state, days]);
 
-  const totalMin = breakdown.reduce((a, x) => a + x.minutes, 0);
+  const goalMin = range === 'daily' ? 60 : range === 'weekly' ? 300 : 1200;
+  const minPct = Math.min(100, Math.round((rangeAgg.minutes / goalMin) * 100));
+  const goalCal = range === 'daily' ? 500 : range === 'weekly' ? 2500 : 10000;
+  const calPct = Math.min(100, Math.round((rangeAgg.calories / goalCal) * 100));
 
   return (
     <div className="grid gap-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Progress</h1>
-        <p className="text-sm text-muted-foreground">Volume and distribution across your training history.</p>
+      <h1 className="font-display-tight text-3xl font-extrabold">Your Stats</h1>
+
+      {/* Segmented control */}
+      <div className="mx-auto flex w-full max-w-sm rounded-full bg-secondary p-1">
+        {RANGES.map((r) => (
+          <button
+            key={r.key}
+            onClick={() => setRange(r.key)}
+            className={cn(
+              'flex-1 rounded-full py-2.5 text-sm font-bold transition-all',
+              range === r.key ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
+            )}
+          >
+            {r.label}
+          </button>
+        ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <BarChart3 className="h-4 w-4 text-primary" /> Weekly active minutes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-64 w-full">
+      {/* Goal rings */}
+      <Card className="p-5">
+        <div className="flex items-center justify-around">
+          <RingStat pct={minPct} label="Exercise" value={`${rangeAgg.minutes}/${goalMin}min`} icon={Timer} />
+          <RingStat pct={calPct} label="Burned" value={formatCalories(rangeAgg.calories)} icon={Flame} big />
+          <RingStat
+            pct={Math.min(100, Math.round(((rangeAgg.distance ?? 0) / (range === 'daily' ? 5 : range === 'weekly' ? 25 : 100)) * 100))}
+            label="Distance"
+            value={formatDistance(rangeAgg.distance ?? 0)}
+            icon={Footprints}
+          />
+        </div>
+      </Card>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <StatCard icon={BarChart3} label="Sessions" value={`${rangeAgg.workouts}`} sub={`last ${days} day${days === 1 ? '' : 's'}`} />
+        <StatCard icon={Timer} label="Active time" value={formatMinutes(rangeAgg.minutes)} sub={`last ${days} day${days === 1 ? '' : 's'}`} />
+        <StatCard icon={Flame} label="Calories" value={formatCalories(rangeAgg.calories)} sub="burned" />
+        <StatCard icon={Footprints} label="Distance" value={formatDistance(rangeAgg.distance ?? 0)} sub="covered" />
+      </div>
+
+      {/* Weekly bar chart */}
+      <Card className="p-5">
+        <p className="mb-4 flex items-center gap-2 font-display text-base font-extrabold">
+          <TrendingUp className="h-4 w-4 text-primary" /> Active minutes · last 8 weeks
+        </p>
+        {state.sessions.length === 0 ? (
+          <EmptyState icon={BarChart3} title="No data yet" body="Log workouts to see your weekly volume trend." />
+        ) : (
+          <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={series} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
@@ -62,91 +122,160 @@ export function ProgressScreen() {
                 <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
                 <Tooltip
                   cursor={{ fill: 'var(--secondary)', opacity: 0.5 }}
-                  contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }}
+                  contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 14, fontSize: 12 }}
                 />
-                <Bar dataKey="minutes" fill="var(--chart-1)" radius={[6, 6, 0, 0]} name="Minutes" />
+                <Bar dataKey="minutes" fill="var(--chart-1)" radius={[7, 7, 0, 0]} name="Minutes" />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </CardContent>
+        )}
       </Card>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <PieChart className="h-4 w-4 text-primary" /> Time by activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {breakdown.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Log workouts to see your mix.</p>
-            ) : (
-              <div className="h-56">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RPieChart>
-                    <Pie
-                      data={breakdown.map((b) => ({ name: b.category.name, value: b.minutes, color: b.category.color }))}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={55}
-                      outerRadius={80}
-                      paddingAngle={2}
-                    >
-                      {breakdown.map((b) => (
-                        <Cell key={b.category.id} fill={b.category.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 12, fontSize: 12 }}
-                      formatter={(v: number, name: string) => [formatMinutes(v), name]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                  </RPieChart>
-                </ResponsiveContainer>
+        {/* Activity mix */}
+        <Card className="p-5">
+          <p className="mb-4 font-display text-base font-extrabold">Time by activity</p>
+          {breakdown.length === 0 ? (
+            <EmptyState icon={BarChart3} title="Nothing logged" body="Your activity mix will appear here." />
+          ) : (
+            <div className="flex items-center gap-5">
+              <div className="relative h-36 w-36 shrink-0">
+                <Donut data={breakdown.map((b) => ({ value: b.minutes, color: b.category.color }))} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="font-display text-xl font-extrabold">{formatMinutes(totalMin)}</span>
+                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">total</span>
+                </div>
               </div>
-            )}
-          </CardContent>
+              <div className="grid flex-1 gap-2">
+                {breakdown.map((b) => (
+                  <div key={b.category.id} className="flex items-center gap-2 text-sm">
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: b.category.color }} />
+                    <span className="flex-1 font-semibold">{b.category.name}</span>
+                    <span className="text-muted-foreground">{formatMinutes(b.minutes)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="h-4 w-4 text-primary" /> Intensity spread
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {intensityData.length === 0 && <p className="text-sm text-muted-foreground">No data yet.</p>}
-            {intensityData.map((d) => {
-              const total = intensityData.reduce((a, x) => a + x.value, 0);
-              return (
-                <div key={d.name}>
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{d.name} intensity</span>
-                    <span className="text-muted-foreground">
-                      {d.value} sessions · {Math.round((d.value / total) * 100)}%
-                    </span>
+        {/* Intensity */}
+        <Card className="p-5">
+          <p className="mb-4 font-display text-base font-extrabold">Intensity spread</p>
+          {intensityData.length === 0 ? (
+            <EmptyState icon={Flame} title="No sessions" body="Intensity distribution shows up after logging." />
+          ) : (
+            <div className="space-y-4">
+              {intensityData.map((d) => {
+                const total = intensityData.reduce((a, x) => a + x.value, 0);
+                return (
+                  <div key={d.name}>
+                    <div className="flex justify-between text-sm">
+                      <span className="font-semibold">{d.name}</span>
+                      <span className="text-muted-foreground">
+                        {d.value} · {Math.round((d.value / total) * 100)}%
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full rounded-full" style={{ width: `${(d.value / total) * 100}%`, backgroundColor: d.color }} />
+                    </div>
                   </div>
-                  <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-secondary">
-                    <div
-                      className="h-full rounded-full"
-                      style={{ width: `${(d.value / total) * 100}%`, backgroundColor: d.color }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-            {totalMin > 0 && (
-              <p className="pt-2 text-xs text-muted-foreground">
-                {formatMinutes(totalMin)} of training tracked in total.{' '}
+                );
+              })}
+              <p className="pt-1 text-xs text-muted-foreground">
                 <Link href="/dashboard/body" className="text-primary hover:underline">
                   See body trends →
                 </Link>
               </p>
-            )}
-          </CardContent>
+            </div>
+          )}
         </Card>
       </div>
     </div>
+  );
+}
+
+function rangeDaysSessions(state: ReturnType<typeof useStore>['state'], days: number) {
+  const from = new Date();
+  from.setHours(0, 0, 0, 0);
+  from.setDate(from.getDate() - (days - 1));
+  return sessionsInRange(state, toISODate(from), toISODate(new Date()));
+}
+
+function RingStat({
+  pct,
+  label,
+  value,
+  icon: Icon,
+  big,
+}: {
+  pct: number;
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  big?: boolean;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <Ring pct={pct} size={big ? 92 : 72} stroke={big ? 9 : 7}>
+        <Icon className={big ? 'h-6 w-6 text-primary' : 'h-5 w-5 text-terracotta'} />
+      </Ring>
+      <p className="text-xs font-bold">{label}</p>
+      <p className="text-xs text-muted-foreground">{value}</p>
+    </div>
+  );
+}
+
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
+  sub: string;
+}) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+        <Icon className="h-4 w-4 text-terracotta" />
+      </div>
+      <p className="mt-2 font-display text-2xl font-extrabold tracking-tight">{value}</p>
+      <p className="text-xs text-muted-foreground">{sub}</p>
+    </Card>
+  );
+}
+
+function Donut({ data }: { data: { value: number; color: string }[] }) {
+  const total = data.reduce((a, x) => a + x.value, 0) || 1;
+  const r = 54;
+  const c = 2 * Math.PI * r;
+  let offset = 0;
+  return (
+    <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
+      <circle cx="70" cy="70" r={r} fill="none" stroke="var(--secondary)" strokeWidth="16" />
+      {data.map((d, i) => {
+        const len = (d.value / total) * c;
+        const seg = (
+          <circle
+            key={i}
+            cx="70"
+            cy="70"
+            r={r}
+            fill="none"
+            stroke={d.color}
+            strokeWidth="16"
+            strokeDasharray={`${len - 3} ${c - len + 3}`}
+            strokeDashoffset={-offset}
+            strokeLinecap="round"
+          />
+        );
+        offset += len;
+        return seg;
+      })}
+    </svg>
   );
 }

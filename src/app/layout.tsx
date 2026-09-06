@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import '@fontsource-variable/plus-jakarta-sans';
 import './globals.css';
 import { AppProviders } from '@/components/app-providers';
 import { env } from '@/lib/env';
@@ -24,8 +25,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f7faf7' },
-    { media: '(prefers-color-scheme: dark)', color: '#0e1411' },
+    { media: '(prefers-color-scheme: light)', color: '#F2F0EC' },
+    { media: '(prefers-color-scheme: dark)', color: '#161313' },
   ],
   width: 'device-width',
   initialScale: 1,

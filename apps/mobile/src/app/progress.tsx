@@ -38,7 +38,7 @@ export default function ProgressScreen() {
 
         <Card>
           <Text className="mb-3 font-semibold text-foreground">Weekly active minutes</Text>
-          <BarChart data={series} color="#C8F135" />
+          <BarChart data={series} color="#D6532F" />
         </Card>
 
         <Card>

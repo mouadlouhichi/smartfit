@@ -18,7 +18,7 @@ const VALID_PLANS = new Set<PlanId>(PLANS.map((p) => p.id));
 
 export const env = {
   appName: envObj.EXPO_PUBLIC_APP_NAME || 'SmartFit',
-  seedDemo: flag(envObj.EXPO_PUBLIC_SEED_DEMO, true),
+  seedDemo: flag(envObj.EXPO_PUBLIC_SEED_DEMO, false),
   defaultPlan: (VALID_PLANS.has(envObj.EXPO_PUBLIC_DEFAULT_PLAN as PlanId)
     ? envObj.EXPO_PUBLIC_DEFAULT_PLAN
     : 'full-body') as PlanId,

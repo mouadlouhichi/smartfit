@@ -3,13 +3,12 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Menu, X } from 'lucide-react';
-import { Wordmark } from '@/components/brand';
 import { cn } from '@/lib/utils';
 
 const LINKS = [
   { href: '/#features', label: 'Features' },
-  { href: '/#how', label: 'How it works' },
-  { href: '/#plans', label: 'Plans' },
+  { href: '/#how-it-works', label: 'How it works' },
+  { href: '/#metrics', label: 'Activity' },
   { href: '/#faq', label: 'FAQ' },
 ];
 
@@ -24,7 +23,6 @@ export function LandingNav() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Lock body scroll + Escape to close while the full-screen menu is open.
   useEffect(() => {
     if (!open) return;
     const original = document.body.style.overflow;
@@ -49,14 +47,14 @@ export function LandingNav() {
           className={cn(
             'flex items-center justify-between transition-all duration-500',
             scrolled || open
-              ? 'h-14 rounded-2xl border border-white/10 bg-ink-2/80 px-4 shadow-2xl shadow-black/40 backdrop-blur-xl sm:px-5'
+              ? 'h-14 rounded-full border border-black/10 bg-white/90 px-5 shadow-lg shadow-black/5 backdrop-blur-xl'
               : 'h-20 px-2',
           )}
         >
           <Link href="/" aria-label="SmartFit home" className="flex items-center gap-2.5">
             <LogoMark />
-            <span className="text-lg font-extrabold tracking-tight text-paper">
-              Smart<span className="text-volt">Fit</span>
+            <span className="font-display text-lg font-extrabold tracking-tight text-ink-warm">
+              Smart<span className="italic text-ember">Fit</span>
             </span>
           </Link>
 
@@ -65,24 +63,21 @@ export function LandingNav() {
               <a
                 key={l.href}
                 href={l.href}
-                className="group relative text-sm font-medium text-paper/65 transition-colors hover:text-paper"
+                className="group relative text-sm font-semibold text-clay transition-colors hover:text-ink-warm"
               >
                 {l.label}
-                <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-volt transition-all duration-300 group-hover:w-full" />
+                <span className="absolute -bottom-1 left-0 h-0.5 w-0 bg-ember transition-all duration-300 group-hover:w-full" />
               </a>
             ))}
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Link
-              href="/dashboard"
-              className="text-sm font-semibold text-paper/70 transition-colors hover:text-paper"
-            >
+            <Link href="/dashboard" className="text-sm font-semibold text-clay transition-colors hover:text-ink-warm">
               Sign in
             </Link>
             <Link
               href="/onboarding"
-              className="group inline-flex h-10 items-center gap-1.5 rounded-full bg-volt px-5 text-sm font-bold text-ink transition-transform hover:scale-[1.03] active:scale-95"
+              className="group inline-flex h-10 items-center gap-1.5 rounded-full bg-ember px-5 text-sm font-bold text-white shadow-md shadow-ember/30 transition-transform hover:scale-[1.03] active:scale-95"
             >
               Start free
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -90,7 +85,7 @@ export function LandingNav() {
           </div>
 
           <button
-            className="flex h-10 w-10 items-center justify-center rounded-full text-paper md:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-warm md:hidden"
             onClick={() => setOpen((o) => !o)}
             aria-label="Toggle menu"
           >
@@ -102,17 +97,17 @@ export function LandingNav() {
       {/* Full-screen mobile menu */}
       <div
         className={cn(
-          'fixed inset-0 -z-0 flex flex-col bg-ink/98 px-6 pt-28 backdrop-blur-xl transition-opacity duration-300 md:hidden',
+          'fixed inset-0 -z-0 flex flex-col bg-paper-warm px-6 pt-28 transition-opacity duration-300 md:hidden',
           open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
         )}
       >
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-1">
           {LINKS.map((l) => (
             <a
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="rounded-2xl px-4 py-4 text-2xl font-extrabold tracking-tight text-paper/80 transition-colors hover:bg-white/5 hover:text-volt"
+              className="rounded-2xl px-4 py-4 font-display text-3xl font-extrabold tracking-tight text-ink-warm/80 transition-colors hover:bg-black/5 hover:text-ember"
             >
               {l.label}
             </a>
@@ -122,14 +117,14 @@ export function LandingNav() {
           <Link
             href="/onboarding"
             onClick={() => setOpen(false)}
-            className="inline-flex h-13 items-center justify-center gap-2 rounded-full bg-volt py-4 text-base font-bold text-ink"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-ember py-4 text-base font-bold text-white"
           >
-            Start training <ArrowRight className="h-5 w-5" />
+            Start training free <ArrowRight className="h-5 w-5" />
           </Link>
           <Link
             href="/dashboard"
             onClick={() => setOpen(false)}
-            className="inline-flex items-center justify-center rounded-full border border-white/15 py-4 text-base font-semibold text-paper"
+            className="inline-flex items-center justify-center rounded-full border border-black/10 py-4 text-base font-semibold text-ink-warm"
           >
             I already have an account
           </Link>
@@ -139,13 +134,21 @@ export function LandingNav() {
   );
 }
 
-export function LogoMark({ size = 34 }: { size?: number }) {
+export function LogoMark({ size = 32 }: { size?: number }) {
   return (
     <span
-      className="flex items-center justify-center rounded-xl bg-volt shadow-[0_0_24px_-4px_rgba(200,241,53,0.6)]"
+      className="flex items-center justify-center rounded-xl bg-ember shadow-md shadow-ember/30"
       style={{ width: size, height: size }}
     >
-      <svg viewBox="0 0 24 24" width={size * 0.58} height={size * 0.58} fill="none" stroke="#0b0e09" strokeWidth="2.6" strokeLinecap="round">
+      <svg
+        viewBox="0 0 24 24"
+        width={size * 0.58}
+        height={size * 0.58}
+        fill="none"
+        stroke="#FDF6F2"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      >
         <path d="M6.5 8.5v7M17.5 8.5v7M3.5 10.5v3M20.5 10.5v3M6.5 12h11" />
       </svg>
     </span>

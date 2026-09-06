@@ -8,11 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Database, Download, RefreshCw, Tag, Trash2, UserRound } from 'lucide-react';
+import { Database, Download, Tag, Trash2, UserRound } from 'lucide-react';
 import { PLANS } from '@smartfit/core';
 
 export function ProfileScreen() {
-  const { state, updateProfile, resetAll, clearData } = useStore();
+  const { state, updateProfile, clearData } = useStore();
   const { openModal } = useModals();
 
   const counts = {
@@ -108,9 +108,6 @@ export function ProfileScreen() {
             </Button>
             <Button variant="outline" size="sm" onClick={exportData}>
               <Download className="h-4 w-4" /> Export JSON
-            </Button>
-            <Button variant="outline" size="sm" onClick={resetAll}>
-              <RefreshCw className="h-4 w-4" /> Load demo data
             </Button>
             <Button
               variant="outline"

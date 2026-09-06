@@ -3,18 +3,18 @@ import type { Category, Intensity, Plan } from './types';
 export const STORAGE_KEY = 'smartfit.state.v1';
 
 export const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'cat-strength', name: 'Strength', icon: 'dumbbell', color: '#16a34a', builtin: true },
-  { id: 'cat-cardio', name: 'Cardio', icon: 'heart-pulse', color: '#0ea5e9', builtin: true },
-  { id: 'cat-hiit', name: 'HIIT', icon: 'flame', color: '#f59e0b', builtin: true },
-  { id: 'cat-mobility', name: 'Mobility', icon: 'stretch-horizontal', color: '#8b5cf6', builtin: true },
-  { id: 'cat-sports', name: 'Sports', icon: 'volleyball', color: '#ec4899', builtin: true },
-  { id: 'cat-rest', name: 'Active Rest', icon: 'moon', color: '#64748b', builtin: true },
+  { id: 'cat-strength', name: 'Strength', icon: 'dumbbell', color: '#d6532f', builtin: true },
+  { id: 'cat-cardio', name: 'Cardio', icon: 'heart-pulse', color: '#e8a087', builtin: true },
+  { id: 'cat-hiit', name: 'HIIT', icon: 'flame', color: '#b7220f', builtin: true },
+  { id: 'cat-mobility', name: 'Mobility', icon: 'stretch-horizontal', color: '#cdaca4', builtin: true },
+  { id: 'cat-sports', name: 'Sports', icon: 'volleyball', color: '#b9804f', builtin: true },
+  { id: 'cat-rest', name: 'Active Rest', icon: 'moon', color: '#857d75', builtin: true },
 ];
 
 export const INTENSITY_META: Record<Intensity, { label: string; multiplier: number; color: string }> = {
-  low: { label: 'Low', multiplier: 4, color: '#0ea5e9' },
-  moderate: { label: 'Moderate', multiplier: 7, color: '#f59e0b' },
-  high: { label: 'High', multiplier: 11, color: '#ef4444' },
+  low: { label: 'Low', multiplier: 4, color: '#e8a087' },
+  moderate: { label: 'Moderate', multiplier: 7, color: '#d6532f' },
+  high: { label: 'High', multiplier: 11, color: '#9e1f0e' },
 };
 
 export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;

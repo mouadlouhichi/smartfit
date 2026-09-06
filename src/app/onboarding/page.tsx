@@ -211,8 +211,8 @@ export default function OnboardingPage() {
               </CardContent>
             </Card>
             <p className="mt-4 text-sm text-muted-foreground">
-              We&apos;ve loaded a few sample sessions so the charts aren&apos;t empty. Log your own any time — erase the
-              demo from Profile whenever you like.
+              That&apos;s everything — your plan and first goal are ready. Log sessions as you go and your streaks,
+              trends and goals will build themselves. Everything stays on this device.
             </p>
           </div>
         )}

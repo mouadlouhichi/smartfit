@@ -1,35 +1,54 @@
-import { SectionHeading } from './section';
+'use client';
+
+import { useEffect, useState } from 'react';
+import { Eyebrow, Section } from './section';
 
 const METRICS = [
-  { value: '4', label: 'Training styles', sub: 'PPL · Upper/Lower · Full Body · Cardio' },
-  { value: '6+', label: 'Activity types', sub: 'Strength, cardio, HIIT, mobility…' },
-  { value: '8', label: 'Weeks of trends', sub: 'Volume, activity mix & intensity' },
-  { value: '0', label: 'Accounts or wearables', sub: 'Runs fully on your device' },
+  { value: 4, suffix: '', label: 'Training styles to choose from' },
+  { value: 5, suffix: '', label: 'Built-in activity types' },
+  { value: 6, suffix: '', label: 'Days you can schedule per week' },
+  { value: 30, suffix: 's', label: 'To log a full session' },
 ];
 
+function useClock() {
+  const [now, setNow] = useState<string>('');
+  useEffect(() => {
+    const tick = () => setNow(new Date().toLocaleTimeString());
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
 export function MetricsSection() {
+  const clock = useClock();
   return (
-    <section className="border-y border-white/10 bg-ink-2">
-      <div className="mx-auto max-w-7xl px-5 py-24 sm:px-6">
-        <SectionHeading eyebrow="At a glance">
-          Free training, <span className="text-volt">made simple.</span>
-        </SectionHeading>
-
-        <div className="mt-6 flex items-center gap-2 text-xs text-paper/45">
-          <span className="flex h-2 w-2 animate-pulse rounded-full bg-volt" />
-          Live · runs in your pocket, no account
+    <Section id="metrics">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Eyebrow>At a glance</Eyebrow>
+          <h2 className="mt-3 max-w-2xl font-display-tight text-4xl font-extrabold text-ink-warm sm:text-5xl">
+            Training made <span className="italic text-ember">simple</span> with SmartFit.
+          </h2>
         </div>
-
-        <div className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-white/10 bg-white/10 lg:grid-cols-4">
-          {METRICS.map((m) => (
-            <div key={m.label} className="bg-ink-card p-7">
-              <p className="text-4xl font-extrabold tracking-tight text-volt sm:text-5xl">{m.value}</p>
-              <p className="mt-3 text-sm font-bold text-paper">{m.label}</p>
-              <p className="mt-1 text-xs leading-relaxed text-paper/50">{m.sub}</p>
-            </div>
-          ))}
-        </div>
+        <p className="flex items-center gap-2 text-sm font-semibold text-clay">
+          <span className="h-2.5 w-2.5 rounded-full bg-ember animate-pulse-soft" />
+          Live <span className="text-ink-warm">|</span> {clock}
+        </p>
       </div>
-    </section>
+
+      <div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-black/10 bg-black/10 sm:grid-cols-2 lg:grid-cols-4">
+        {METRICS.map((m) => (
+          <div key={m.label} className="bg-white p-8">
+            <p className="font-display text-5xl font-extrabold text-ink-warm">
+              {m.value}
+              <span className="text-ember">{m.suffix}</span>
+            </p>
+            <p className="mt-3 text-sm font-medium leading-snug text-clay">{m.label}</p>
+          </div>
+        ))}
+      </div>
+    </Section>
   );
 }

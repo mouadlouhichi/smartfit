@@ -7,7 +7,6 @@ import React, {
 } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  buildSeedState,
   emptyState,
   uid,
   type BodyLog,
@@ -22,12 +21,9 @@ import { env } from './env';
 const STORAGE_KEY = 'smartfit.state.v1';
 
 function freshState(): FitnessState {
-  if (!env.seedDemo) {
-    const empty = emptyState();
-    empty.profile.planId = env.defaultPlan;
-    return empty;
-  }
-  return buildSeedState();
+  const empty = emptyState();
+  empty.profile.planId = env.defaultPlan;
+  return empty;
 }
 
 interface StoreValue {
@@ -40,7 +36,6 @@ interface StoreValue {
   updateSchedule: (id: string, patch: Partial<ScheduledWorkout>) => void;
   addBodyLog: (b: Omit<BodyLog, 'id' | 'createdAt'>) => void;
   updateProfile: (patch: Partial<UserProfile>) => void;
-  resetAll: () => void;
   clearData: () => void;
 }
 
@@ -89,7 +84,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         })),
       updateProfile: (patch) =>
         setState((p) => ({ ...p, profile: { ...p.profile, ...patch } })),
-      resetAll: () => setState(buildSeedState()),
       clearData: () => setState(emptyState()),
     }),
     [state, ready],
