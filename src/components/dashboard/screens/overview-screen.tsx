@@ -78,7 +78,7 @@ export function OverviewScreen() {
       {/* ── Center / left column ─────────────────────────────── */}
       <div className="rounded-[2rem] bg-card p-6 shadow-sm sm:p-8 lg:p-10">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="font-display text-5xl font-extrabold leading-[0.95] tracking-tight sm:text-6xl">
+          <h1 className="font-display text-[2rem] font-extrabold leading-[1.05] tracking-tight sm:text-4xl lg:text-[2.75rem]">
             Let&apos;s start
             <br />
             strong!
@@ -90,7 +90,7 @@ export function OverviewScreen() {
         <div className="mt-8 rounded-3xl bg-secondary/70 p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="max-w-[16rem] text-lg font-bold leading-snug sm:text-xl">
+              <p className="max-w-[16rem] text-base font-bold leading-snug sm:text-[17px]">
                 You&apos;re {goalPct}% to your weekly goal
               </p>
               <p className="mt-1 text-sm text-muted-foreground">{focus ?? 'Rest & recover day'}</p>
@@ -143,7 +143,7 @@ export function OverviewScreen() {
         {/* Summary */}
         <div className="mt-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">Summary</h2>
+            <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-[1.35rem]">Summary</h2>
             <RangeToggle value={range} onChange={setRange} />
           </div>
 
@@ -168,8 +168,8 @@ export function OverviewScreen() {
 
               {/* Bar chart card */}
               <div className="flex flex-col rounded-3xl bg-card p-5 shadow-sm ring-1 ring-border">
-                <p className="text-sm text-muted-foreground">Sessions</p>
-                <p className="font-display text-3xl font-extrabold tracking-tight">{rangeAgg.workouts}</p>
+                <p className="text-xs text-muted-foreground">Sessions</p>
+                <p className="font-display text-2xl font-extrabold tracking-tight">{rangeAgg.workouts}</p>
                 <div className="mt-auto flex h-24 items-end justify-between gap-1 pt-4">
                   {series.slice(-8).map((s, i) => {
                     const max = Math.max(1, ...series.map((x) => x.minutes));
@@ -190,8 +190,8 @@ export function OverviewScreen() {
               {/* Dark distance card */}
               <div className="flex flex-col rounded-3xl bg-charcoal p-5 text-white shadow-sm">
                 <RouteGraphic />
-                <p className="mt-auto text-sm text-white/70">Distance</p>
-                <p className="font-display text-3xl font-extrabold tracking-tight">{formatDistance(rangeAgg.distance)}</p>
+                <p className="mt-auto text-xs text-white/70">Distance</p>
+                <p className="font-display text-2xl font-extrabold tracking-tight">{formatDistance(rangeAgg.distance)}</p>
                 <p className="mt-1 text-xs text-white/50">{streak}-day streak</p>
               </div>
             </div>
@@ -230,11 +230,11 @@ function RangeToggle({ value, onChange }: { value: Range; onChange: (r: Range) =
 function StatDot({ color, label, value }: { color: string; label: string; value: string }) {
   return (
     <div>
-      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+      <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
         {label}
       </p>
-      <p className="mt-1 text-lg font-bold tracking-tight">{value}</p>
+      <p className="mt-1 text-sm font-bold tracking-tight">{value}</p>
     </div>
   );
 }

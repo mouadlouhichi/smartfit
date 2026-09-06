@@ -66,7 +66,7 @@ export function ProgressScreen() {
 
   return (
     <div className="grid gap-5">
-      <h1 className="font-display-tight text-3xl font-extrabold">Your Stats</h1>
+      <h1 className="font-display-tight text-xl font-extrabold tracking-tight sm:text-2xl">Your Stats</h1>
 
       {/* Segmented control */}
       <div className="mx-auto flex w-full max-w-sm rounded-full bg-secondary p-1">
@@ -108,7 +108,7 @@ export function ProgressScreen() {
 
       {/* Weekly bar chart */}
       <Card className="p-5">
-        <p className="mb-4 flex items-center gap-2 font-display text-base font-extrabold">
+        <p className="mb-4 flex items-center gap-2 font-display text-sm font-bold">
           <TrendingUp className="h-4 w-4 text-primary" /> Active minutes · last 8 weeks
         </p>
         {state.sessions.length === 0 ? (
@@ -134,7 +134,7 @@ export function ProgressScreen() {
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Activity mix */}
         <Card className="p-5">
-          <p className="mb-4 font-display text-base font-extrabold">Time by activity</p>
+          <p className="mb-4 font-display text-sm font-bold">Time by activity</p>
           {breakdown.length === 0 ? (
             <EmptyState icon={BarChart3} title="Nothing logged" body="Your activity mix will appear here." />
           ) : (
@@ -142,7 +142,7 @@ export function ProgressScreen() {
               <div className="relative h-36 w-36 shrink-0">
                 <Donut data={breakdown.map((b) => ({ value: b.minutes, color: b.category.color }))} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="font-display text-xl font-extrabold">{formatMinutes(totalMin)}</span>
+                  <span className="font-display text-lg font-extrabold">{formatMinutes(totalMin)}</span>
                   <span className="text-[10px] uppercase tracking-wide text-muted-foreground">total</span>
                 </div>
               </div>
@@ -161,7 +161,7 @@ export function ProgressScreen() {
 
         {/* Intensity */}
         <Card className="p-5">
-          <p className="mb-4 font-display text-base font-extrabold">Intensity spread</p>
+          <p className="mb-4 font-display text-sm font-bold">Intensity spread</p>
           {intensityData.length === 0 ? (
             <EmptyState icon={Flame} title="No sessions" body="Intensity distribution shows up after logging." />
           ) : (
@@ -243,7 +243,7 @@ function StatCard({
         <p className="text-xs font-semibold text-muted-foreground">{label}</p>
         <Icon className="h-4 w-4 text-terracotta" />
       </div>
-      <p className="mt-2 font-display text-2xl font-extrabold tracking-tight">{value}</p>
+      <p className="mt-2 font-display text-lg font-extrabold tracking-tight sm:text-xl">{value}</p>
       <p className="text-xs text-muted-foreground">{sub}</p>
     </Card>
   );

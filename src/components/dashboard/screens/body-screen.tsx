@@ -43,7 +43,7 @@ export function BodyScreen() {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Body</h1>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Body</h1>
           <p className="text-sm text-muted-foreground">Track weight and measurements to see real change.</p>
         </div>
         <Button onClick={() => openModal('body')}>

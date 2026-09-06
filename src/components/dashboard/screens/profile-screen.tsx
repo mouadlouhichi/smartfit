@@ -35,7 +35,7 @@ export function ProfileScreen() {
   return (
     <div className="grid gap-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Profile &amp; settings</h1>
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Profile &amp; settings</h1>
         <p className="text-sm text-muted-foreground">Your data stays on this device — no account needed.</p>
       </div>
 

@@ -44,7 +44,7 @@ export function PlanScreen() {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Training plan</h1>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Training plan</h1>
           <p className="text-sm text-muted-foreground">Your weekly structure and complete workout log.</p>
         </div>
         <Button onClick={() => openModal('schedule')}>

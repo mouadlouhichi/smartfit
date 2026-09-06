@@ -26,7 +26,7 @@ export function GoalsScreen() {
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Goals</h1>
+          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Goals</h1>
           <p className="text-sm text-muted-foreground">
             {done}/{goals.length} hit this period · goals reset weekly or monthly.
           </p>
