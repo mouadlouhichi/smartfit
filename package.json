@@ -13,6 +13,7 @@
     "lint": "turbo run lint"
   },
   "devDependencies": {
+    "next": "^15.5.4",
     "tsx": "^4.20.5",
     "turbo": "^2.4.0",
     "typescript": "^5.8.3"

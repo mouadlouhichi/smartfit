@@ -14,6 +14,20 @@ import {
   type UserProfile,
   type WorkoutSession,
 } from '@smartfit/core';
+import { env } from './env';
+
+/**
+ * First-run state when nothing is saved: seed demo data (unless
+ * NEXT_PUBLIC_SEED_DEMO=false) and honour the configured default plan.
+ */
+function freshState(): FitnessState {
+  if (!env.seedDemo) {
+    const empty = emptyState();
+    empty.profile.planId = env.defaultPlan;
+    return empty;
+  }
+  return buildSeedState();
+}
 
 interface StoreContextValue {
   state: FitnessState;
@@ -68,9 +82,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     let initial: FitnessState;
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      initial = raw ? (JSON.parse(raw) as FitnessState) : buildSeedState();
+      initial = raw ? (JSON.parse(raw) as FitnessState) : freshState();
     } catch {
-      initial = buildSeedState();
+      initial = freshState();
     }
     setState(initial);
     setReady(true);

@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store-context';
 import { GOAL_METRIC_META, PLANS } from '@smartfit/core';
 import { toISODate } from '@smartfit/core';
+import { env } from '@/lib/env';
 
 const STEPS = ['Welcome', 'About you', 'Strategy', 'First goal', 'Ready'] as const;
 
@@ -23,7 +24,7 @@ export default function OnboardingPage() {
   const [name, setName] = useState(state.profile.name ?? '');
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>(state.profile.weightUnit ?? 'kg');
   const [restDays, setRestDays] = useState(state.profile.weeklyRestDays ?? 2);
-  const [planId, setPlanId] = useState(state.profile.planId ?? 'full-body');
+  const [planId, setPlanId] = useState(state.profile.planId ?? env.defaultPlan);
   const [goalMetric, setGoalMetric] = useState<'workouts' | 'minutes'>('workouts');
   const [goalTarget, setGoalTarget] = useState('4');
 

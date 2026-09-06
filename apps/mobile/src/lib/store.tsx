@@ -17,8 +17,18 @@ import {
   type UserProfile,
   type WorkoutSession,
 } from '@smartfit/core';
+import { env } from './env';
 
 const STORAGE_KEY = 'smartfit.state.v1';
+
+function freshState(): FitnessState {
+  if (!env.seedDemo) {
+    const empty = emptyState();
+    empty.profile.planId = env.defaultPlan;
+    return empty;
+  }
+  return buildSeedState();
+}
 
 interface StoreValue {
   state: FitnessState;
@@ -42,8 +52,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => setState(raw ? (JSON.parse(raw) as FitnessState) : buildSeedState()))
-      .catch(() => setState(buildSeedState()))
+      .then((raw) => setState(raw ? (JSON.parse(raw) as FitnessState) : freshState()))
+      .catch(() => setState(freshState()))
       .finally(() => setReady(true));
   }, []);
 

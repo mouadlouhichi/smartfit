@@ -1,15 +1,18 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppProviders } from '@/components/app-providers';
+import { env } from '@/lib/env';
+
+const appName = env.appName;
 
 export const metadata: Metadata = {
   title: {
-    default: 'SmartFit — Train with intention',
-    template: '%s · SmartFit',
+    default: `${appName} — Train with intention`,
+    template: `%s · ${appName}`,
   },
   description:
     'A private, mobile-first fitness tracker that knows the difference between training hard and training smart. Log workouts, plan your week, and hit every goal.',
-  applicationName: 'SmartFit',
+  applicationName: appName,
   keywords: ['fitness tracker', 'workout log', 'training plan', 'gym', 'running', 'health'],
   authors: [{ name: 'SmartFit' }],
   openGraph: {

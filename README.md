@@ -107,6 +107,21 @@ pnpm lint        # lint checks
 
 Filter to a single package, e.g. `pnpm --filter @smartfit/web build`.
 
+## ⚙️ Environment variables
+
+SmartFit is **local-first — every variable is optional** and has a default. Copy
+the relevant `.env.example` to `.env.local` (web) / `.env` (mobile) to override.
+
+| Variable | App | Default | Effect |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_SEED_DEMO` / `EXPO_PUBLIC_SEED_DEMO` | web / mobile | `true` | Seed a demo training history on first run; `false` sends fresh installs to onboarding |
+| `NEXT_PUBLIC_DEFAULT_PLAN` / `EXPO_PUBLIC_DEFAULT_PLAN` | web / mobile | `full-body` | Default strategy for new accounts (`ppl` · `upper-lower` · `full-body` · `cardio-focus`) |
+| `NEXT_PUBLIC_APP_NAME` / `EXPO_PUBLIC_APP_NAME` | web / mobile | `SmartFit` | Display name (web metadata / document title) |
+
+Env access is centralised and validated in `apps/web/src/lib/env.ts` and
+`apps/mobile/src/lib/env.ts` (invalid plan values fall back to the default). See
+`.env.example`, `apps/web/.env.example` and `apps/mobile/.env.example`.
+
 ## 🗂 Project structure
 
 ```
