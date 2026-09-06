@@ -1,0 +1,178 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * SmartFit design system — "Motion"
+ * An energetic but calm surface: a confident lime/emerald primary on a near-white
+ * neutral ground, with a deep charcoal dark theme. Mirrors the token structure of
+ * the reference app (Serene) so the component conventions stay identical.
+ */
+
+:root {
+  --radius: 0.75rem;
+
+  --background: #f7faf7;
+  --foreground: #131a17;
+
+  --card: #ffffff;
+  --card-foreground: #131a17;
+
+  --popover: #ffffff;
+  --popover-foreground: #131a17;
+
+  --primary: #15803d;
+  --primary-foreground: #f3fdf5;
+
+  --secondary: #eef2ee;
+  --secondary-foreground: #2a332e;
+
+  --muted: #eef2ee;
+  --muted-foreground: #5b675f;
+
+  --accent: #d9f99d;
+  --accent-foreground: #1a2e05;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #fff5f5;
+
+  --border: #e2e8e3;
+  --input: #e2e8e3;
+  --ring: #15803d;
+
+  --chart-1: #16a34a;
+  --chart-2: #0ea5e9;
+  --chart-3: #f59e0b;
+  --chart-4: #8b5cf6;
+  --chart-5: #ec4899;
+}
+
+.dark {
+  --background: #0e1411;
+  --foreground: #e9f2ec;
+
+  --card: #161d19;
+  --card-foreground: #e9f2ec;
+
+  --popover: #161d19;
+  --popover-foreground: #e9f2ec;
+
+  --primary: #4ade80;
+  --primary-foreground: #052e16;
+
+  --secondary: #222b26;
+  --secondary-foreground: #e9f2ec;
+
+  --muted: #222b26;
+  --muted-foreground: #9fb3a7;
+
+  --accent: #365314;
+  --accent-foreground: #ecfccb;
+
+  --destructive: #f87171;
+  --destructive-foreground: #1a0505;
+
+  --border: #26302a;
+  --input: #26302a;
+  --ring: #4ade80;
+
+  --chart-1: #4ade80;
+  --chart-2: #38bdf8;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #f472b6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Hide number input spinners */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* Slim, theme-aware scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+  border: 3px solid var(--background);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.35s ease both;
+}
