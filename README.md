@@ -63,7 +63,7 @@ shared domain package — but applies them to **training** instead of money.
 
 ## 🧱 Tech stack
 
-| Layer            | Web (`apps/web`)                         | Mobile (`apps/mobile`)                    |
+| Layer            | Web (root `src/`)                        | Mobile (`apps/mobile`)                    |
 | ---------------- | ---------------------------------------- | ----------------------------------------- |
 | Framework        | Next.js 15 (App Router, RSC)             | Expo SDK 52 + Expo Router                 |
 | UI runtime       | React 19                                 | React Native 0.76 / React 18              |
@@ -81,8 +81,8 @@ The monorepo is orchestrated with **Turborepo** and **pnpm workspaces**.
 ```bash
 pnpm install
 
-# Web — http://localhost:3000
-pnpm web            # or: pnpm --filter @smartfit/web dev
+# Web — http://localhost:3000 (the Next.js app lives at the repo root)
+pnpm dev
 
 # Mobile (Expo dev server — scan the QR with Expo Go / a dev client)
 pnpm mobile         # expo start
@@ -95,17 +95,15 @@ everything**, or run the guided **onboarding** to start fresh.
 
 ## 🧰 Scripts
 
-Run from the repo root (Turbo fans these out across the workspace):
+The web app runs from the repo root; mobile and the shared package are workspace packages:
 
 ```bash
-pnpm dev         # start all dev servers
-pnpm build       # production build of every app
-pnpm typecheck   # tsc --noEmit in core + web + mobile
-pnpm test        # core domain tests
-pnpm lint        # lint checks
+pnpm dev         # start the Next.js web app (root)
+pnpm build       # production build of the web app
+pnpm typecheck   # tsc --noEmit for the web app
+pnpm --filter @smartfit/core test    # core domain tests
+pnpm --filter @smartfit/mobile typecheck   # mobile types
 ```
-
-Filter to a single package, e.g. `pnpm --filter @smartfit/web build`.
 
 ## ⚙️ Environment variables
 
@@ -118,27 +116,25 @@ the relevant `.env.example` to `.env.local` (web) / `.env` (mobile) to override.
 | `NEXT_PUBLIC_DEFAULT_PLAN` / `EXPO_PUBLIC_DEFAULT_PLAN` | web / mobile | `full-body` | Default strategy for new accounts (`ppl` · `upper-lower` · `full-body` · `cardio-focus`) |
 | `NEXT_PUBLIC_APP_NAME` / `EXPO_PUBLIC_APP_NAME` | web / mobile | `SmartFit` | Display name (web metadata / document title) |
 
-Env access is centralised and validated in `apps/web/src/lib/env.ts` and
+Env access is centralised and validated in `src/lib/env.ts` (web) and
 `apps/mobile/src/lib/env.ts` (invalid plan values fall back to the default). See
-`.env.example`, `apps/web/.env.example` and `apps/mobile/.env.example`.
+`.env.example` and `apps/mobile/.env.example`.
 
 ## 🗂 Project structure
 
 ```
 smartfit/
+├─ src/                             # Next.js 15 web + marketing app (repo root = web root)
+│  ├─ app/                          # App Router routes
+│  │  ├─ page.tsx                   #   marketing landing
+│  │  ├─ onboarding/ · login/       #   entry flows
+│  │  └─ dashboard/                 #   overview · plan · goals · progress · body · profile
+│  ├─ components/
+│  │  ├─ ui/                        #   shadcn-style primitives (button, card, dialog…)
+│  │  ├─ dashboard/                 #   shell, screens, modals, nav
+│  │  └─ landing/                   #   marketing sections
+│  └─ lib/                          #   web store (localStorage), env, cn helper
 ├─ apps/
-│  ├─ web/                          # Next.js 15 web + marketing app
-│  │  ├─ src/
-│  │  │  ├─ app/                    # App Router routes
-│  │  │  │  ├─ page.tsx             #   marketing landing
-│  │  │  │  ├─ onboarding/ login/   #   entry flows
-│  │  │  │  └─ dashboard/            #   overview · plan · goals · progress · body · profile
-│  │  │  ├─ components/
-│  │  │  │  ├─ ui/                  #   shadcn-style primitives (button, card, dialog…)
-│  │  │  │  ├─ dashboard/           #   shell, screens, modals, nav
-│  │  │  │  └─ landing/             #   marketing sections
-│  │  │  └─ lib/                    #   web store (localStorage) + cn helper
-│  │  └─ tests/                     # (domain tests live in core)
 │  └─ mobile/                       # Expo Router + NativeWind app
 │     ├─ app.config.js · eas.json
 │     ├─ babel.config.js · metro.config.js · tailwind.config.js
@@ -158,8 +154,10 @@ smartfit/
 │     │  ├─ utils.ts                #   uid / clamp / round
 │     │  └─ index.ts                #   barrel export
 │     └─ tests/fitness.test.ts      # domain unit tests
+├─ next.config.mjs · tsconfig.json · postcss.config.mjs
 ├─ turbo.json
-├─ pnpm-workspace.yaml              # workspaces + single-React-types override
+├─ pnpm-workspace.yaml              # workspaces, hoisted linker, React-types override
+├─ vercel.json                      # framework=nextjs · pnpm install · next build
 └─ .github/workflows/ci.yml         # web build · core tests · mobile typecheck
 ```
 
@@ -208,7 +206,7 @@ Domain logic is pure and lives in `@smartfit/core`; it's covered by
 - goal progress (clamp + done flag)
 - streaks and plan lookup
 
-Run everything with `pnpm test` (or `pnpm --filter @smartfit/core test`).
+Run them with `pnpm --filter @smartfit/core test`.
 
 ## 📦 Mobile builds (EAS)
 
@@ -224,21 +222,27 @@ the SDK-52 / reanimated-3 babel pipeline), mirroring the reference app's setup.
 
 ## 🚢 Deployment (Vercel)
 
-The Next.js app lives in `apps/web`, so the root **`vercel.json`** tells Vercel to
-build only that workspace and where the output is:
+The Next.js **web app lives at the repo root** (so Vercel's framework detection
+finds `next` and the App Router with zero Root Directory configuration), while
+the mobile app and shared package live in `apps/` and `packages/`. The root
+**`vercel.json`** pins pnpm and the standard Next build:
 
 ```json
 {
+  "framework": "nextjs",
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm --filter @smartfit/web build",
-  "outputDirectory": "apps/web/.next",
-  "framework": "nextjs"
+  "buildCommand": "next build"
 }
 ```
 
-No special project settings are needed beyond pointing the project at the repo —
-the mobile package intentionally has no web `build` task (native builds go through
-EAS), so it isn't built on Vercel.
+Notes for the monorepo:
+
+- `pnpm-workspace.yaml` sets **`nodeLinker: hoisted`** so `next` resolves from a
+  flat root `node_modules` (required for Vercel detection and the Expo/Metro
+  toolchain). pnpm 12 reads this from the workspace YAML, not `.npmrc`.
+- The root `tsconfig.json` scopes the web typecheck to `src/` and excludes
+  `apps/` and `packages/`, so React-Native sources aren't type-checked by Next.
+- Native builds are not part of the Vercel build — they go through EAS.
 
 ## 🛣 Roadmap
 

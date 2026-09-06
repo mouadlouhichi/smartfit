@@ -22,8 +22,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @smartfit/web typecheck
-      - run: pnpm --filter @smartfit/web build
+      - run: pnpm typecheck
+      - run: pnpm build
 
   core-tests:
     name: Core package tests

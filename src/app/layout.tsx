@@ -1,23 +1,42 @@
-// Root-level Next.js marker.
-//
-// Vercel's framework detection runs against the monorepo root (the project's
-// Root Directory is the repo root). The deployed application lives in
-// `apps/web` and is built/served via the root `vercel.json`
-// (`pnpm --filter @smartfit/web build` → output `apps/web/.next`). This minimal
-// root app exists solely so the Next.js framework/version is detected at the
-// root — mirroring the flousy-app layout, which also ships `src/app` +
-// `next.config.mjs` at the monorepo root. It is not separately built.
-import type { ReactNode } from 'react';
+import type { Metadata, Viewport } from 'next';
+import './globals.css';
+import { AppProviders } from '@/components/app-providers';
+import { env } from '@/lib/env';
 
-export const metadata = {
-  title: 'SmartFit',
-  description: 'Train hard. Train smart.',
+const appName = env.appName;
+
+export const metadata: Metadata = {
+  title: {
+    default: `${appName} — Train with intention`,
+    template: `%s · ${appName}`,
+  },
+  description:
+    'A private, mobile-first fitness tracker that knows the difference between training hard and training smart. Log workouts, plan your week, and hit every goal.',
+  applicationName: appName,
+  keywords: ['fitness tracker', 'workout log', 'training plan', 'gym', 'running', 'health'],
+  authors: [{ name: 'SmartFit' }],
+  openGraph: {
+    title: 'SmartFit — Train with intention',
+    description: 'Plan, log and understand your training. A calm, private fitness companion.',
+    type: 'website',
+  },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f7faf7' },
+    { media: '(prefers-color-scheme: dark)', color: '#0e1411' },
+  ],
+  width: 'device-width',
+  initialScale: 1,
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="min-h-dvh antialiased">
+        <AppProviders>{children}</AppProviders>
+      </body>
     </html>
   );
 }
