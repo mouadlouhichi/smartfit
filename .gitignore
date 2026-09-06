@@ -49,3 +49,6 @@ next-env.d.ts
 .turbo/
 apps/*/.turbo/
 packages/*/.turbo/
+
+# local image-search working files
+/image-search/
