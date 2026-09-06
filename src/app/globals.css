@@ -263,7 +263,7 @@ input[type='number'] {
 /* ═══════════════════════════════════════════════════════════════════════
    LANDING design system — exact match to the reference landing (SmartJib).
    Scoped to `.landing` so the product app keeps its own Ember/Jakarta theme.
-   Light editorial palette, Instrument Serif display, Instrument Sans body,
+   Light editorial palette, Instrument Sans (body + display),
    JetBrains Mono labels, and the reference animation set.
    ═══════════════════════════════════════════════════════════════════════ */
 .landing {
@@ -287,21 +287,21 @@ input[type='number'] {
 }
 
 .landing {
-  font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Instrument Sans Variable', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
   color: var(--foreground);
   background: var(--background);
 }
 .landing .font-mono,
 .landing [class*='font-mono'] {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, monospace;
 }
 .landing h1,
 .landing h2,
 .landing h3,
 .landing .font-display {
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.01em;
+  font-family: 'Instrument Sans Variable', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
   text-transform: none;
 }
 
