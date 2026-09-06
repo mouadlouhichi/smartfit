@@ -2,6 +2,12 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
+# Use the hoisted (flat) node_modules layout. The Expo/Metro toolchain expects a
+# flat node_modules, and Vercel's Next.js detection needs `next` to resolve from
+# the monorepo root. pnpm 12 reads workspace settings from this file rather than
+# .npmrc.
+nodeLinker: hoisted
+
 # Single React type identity across the whole monorepo. The hoisted virtual
 # store would otherwise expose @types/react@18 (mobile) to web's Radix packages,
 # producing duplicate-JSX-namespace errors; pinning one version removes the clash.
