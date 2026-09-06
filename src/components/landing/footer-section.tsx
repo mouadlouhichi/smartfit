@@ -1,35 +1,71 @@
 import Link from 'next/link';
-import { Wordmark } from '@/components/brand';
+import { LogoMark } from './navigation';
+
+const COLS = [
+  {
+    title: 'Product',
+    links: [
+      { label: 'Features', href: '/#features' },
+      { label: 'How it works', href: '/#how' },
+      { label: 'Training styles', href: '/#plans' },
+      { label: 'Open app', href: '/dashboard' },
+    ],
+  },
+  {
+    title: 'Get started',
+    links: [
+      { label: 'Onboarding', href: '/onboarding' },
+      { label: 'Sign in', href: '/dashboard' },
+      { label: 'Demo', href: '/dashboard' },
+    ],
+  },
+];
 
 export function FooterSection() {
   return (
-    <footer className="border-t border-border bg-card/40">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-4">
+    <footer className="border-t border-white/10 bg-ink-2">
+      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-6 md:grid-cols-4">
         <div className="md:col-span-2">
-          <Wordmark />
-          <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-            A private, calm fitness companion. Plan your training, log your sessions, and watch real progress — no
-            wearables, no subscriptions, no data sold.
+          <div className="flex items-center gap-2.5">
+            <LogoMark size={30} />
+            <span className="text-lg font-extrabold tracking-tight text-paper">
+              Smart<span className="text-volt">Fit</span>
+            </span>
+          </div>
+          <p className="mt-4 max-w-xs text-sm leading-relaxed text-paper/55">
+            The platform to train with intention. Plan, log and understand your training — no wearables, no
+            subscriptions, no data sold.
+          </p>
+          <p className="mt-4 text-xs uppercase tracking-widest text-paper/35">
+            Private · Free · On-device
           </p>
         </div>
-        <div>
-          <p className="text-sm font-semibold">Product</p>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li><a href="/#features" className="hover:text-foreground">Features</a></li>
-            <li><a href="/#plans" className="hover:text-foreground">Training plans</a></li>
-            <li><Link href="/dashboard" className="hover:text-foreground">Dashboard</Link></li>
-          </ul>
-        </div>
-        <div>
-          <p className="text-sm font-semibold">Get started</p>
-          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-            <li><Link href="/onboarding" className="hover:text-foreground">Onboarding</Link></li>
-            <li><Link href="/dashboard" className="hover:text-foreground">Sign in</Link></li>
-          </ul>
-        </div>
+
+        {COLS.map((c) => (
+          <div key={c.title}>
+            <p className="text-sm font-bold uppercase tracking-wider text-paper/70">{c.title}</p>
+            <ul className="mt-4 space-y-3">
+              {c.links.map((l) =>
+                l.href.startsWith('/#') ? (
+                  <li key={l.label}>
+                    <a href={l.href} className="text-sm text-paper/55 transition-colors hover:text-volt">
+                      {l.label}
+                    </a>
+                  </li>
+                ) : (
+                  <li key={l.label}>
+                    <Link href={l.href} className="text-sm text-paper/55 transition-colors hover:text-volt">
+                      {l.label}
+                    </Link>
+                  </li>
+                ),
+              )}
+            </ul>
+          </div>
+        ))}
       </div>
-      <div className="border-t border-border py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} SmartFit · Train with intention.
+      <div className="border-t border-white/10 py-6 text-center text-xs text-paper/40">
+        © {new Date().getFullYear()} SmartFit · Train hard. Train smart.
       </div>
     </footer>
   );
