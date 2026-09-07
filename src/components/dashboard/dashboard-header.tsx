@@ -32,13 +32,18 @@ export function DashboardHeader() {
         <div className="hidden lg:block" />
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/dashboard/coach"
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-primary/30 transition-transform hover:scale-[1.02] lg:hidden"
+          <Button
+            asChild
+            className="h-9 rounded-full px-4 text-xs font-bold shadow-md shadow-primary/30 lg:hidden sm:h-10 sm:px-5 sm:text-sm"
           >
-            <Sparkles className="h-4 w-4" /> Coach
-          </Link>
-          <Button onClick={() => openModal('workout')} size="sm" className="rounded-full px-5">
+            <Link href="/dashboard/coach">
+              <Sparkles className="h-4 w-4" /> Coach
+            </Link>
+          </Button>
+          <Button
+            onClick={() => openModal('workout')}
+            className="h-9 rounded-full px-4 text-xs font-bold sm:h-10 sm:px-5 sm:text-sm"
+          >
             <Plus className="h-4 w-4" strokeWidth={2.8} />
             <span className="hidden sm:inline">Log workout</span>
             <span className="sm:hidden">Log</span>
