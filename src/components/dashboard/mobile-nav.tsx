@@ -97,12 +97,25 @@ export function MobileNav() {
     window.addEventListener('resize', measure);
     if (document.fonts?.ready) document.fonts.ready.then(measure).catch(() => {});
     const t = setTimeout(() => setAnimate(true), 80);
+
+    // The active tab is sized to its own content, so the pill must follow any
+    // geometry change — late webfont swap, container resize, label change —
+    // rather than trusting a single measurement taken on mount.
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure);
+      if (navRef.current) ro.observe(navRef.current);
+      const activeEl = activeId ? tabRefs.current[activeId] : null;
+      if (activeEl) ro.observe(activeEl);
+    }
+
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(t);
       window.removeEventListener('resize', measure);
+      ro?.disconnect();
     };
-  }, [measure]);
+  }, [measure, activeId]);
 
   if (onCoach) return null;
 
@@ -136,7 +149,10 @@ export function MobileNav() {
             className={cn(
               // `truncate` (not a bare max-width clip) so a narrow phone
               // ellipsizes the label instead of slicing it mid-word.
-              'text-charcoal min-w-0 truncate text-xs font-bold transition-all duration-300 ease-out',
+              // Only opacity is transitioned: the tab is sized to its content,
+              // so animating max-width would animate the tab's own geometry and
+              // the pill would measure a half-open label.
+              'text-charcoal min-w-0 truncate text-xs font-bold transition-opacity duration-300 ease-out',
               isActive ? 'max-w-[84px] opacity-100' : 'max-w-0 opacity-0',
             )}
           >

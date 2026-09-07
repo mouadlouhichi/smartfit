@@ -62,8 +62,8 @@ export function FreeListSection() {
                 <span className="font-mono text-sm text-[color:var(--muted-foreground)]">
                   What you get
                 </span>
-                <span className="flex items-center gap-2 font-mono text-xs text-green-600">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                <span className="flex items-center gap-2 font-mono text-xs text-[color:var(--primary)]">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--primary)]" />
                   Free to start
                 </span>
               </div>

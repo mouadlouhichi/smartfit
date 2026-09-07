@@ -198,7 +198,7 @@ export function HowItWorksSection() {
                 className="flex items-center gap-3 border-t px-6 py-4"
                 style={{ borderColor: 'rgba(248,250,247,0.1)' }}
               >
-                <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--primary)]" />
                 <span className="font-mono text-xs" style={{ color: 'rgba(248,250,247,0.4)' }}>
                   Saved on-device
                 </span>

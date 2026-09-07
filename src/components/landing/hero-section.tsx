@@ -61,9 +61,10 @@ export function HeroSection() {
         </div>
 
         <div className="mb-12">
-          <h1 className="font-display text-[clamp(3rem,12vw,10rem)] leading-[0.9] tracking-tight">
-            <span className="block">The SmartFit app to</span>
-            <span className="block">
+          <h1 className="font-display text-[clamp(2.25rem,12vw,10rem)] leading-[0.9] tracking-tight">
+            <span className="block">The SmartFit app</span>
+            <span className="block whitespace-nowrap">
+              to{' '}
               <span className="relative inline-block">
                 <span key={wordIndex} className="inline-flex">
                   {WORDS[wordIndex].split('').map((character, index) => (
