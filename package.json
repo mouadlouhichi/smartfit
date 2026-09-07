@@ -15,7 +15,8 @@
     "mobile:ios": "pnpm --filter @smartfit/mobile ios",
     "turbo:build": "turbo run build",
     "turbo:test": "turbo run test",
-    "turbo:typecheck": "turbo run typecheck"
+    "turbo:typecheck": "turbo run typecheck",
+    "seed": "node scripts/seed-firestore.mjs"
   },
   "dependencies": {
     "@fontsource-variable/instrument-sans": "^5.3.0",
@@ -33,6 +34,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
+    "firebase": "^12.18.0",
     "lucide-react": "^0.468.0",
     "next": "^15.5.4",
     "next-themes": "^0.4.4",
@@ -47,6 +49,7 @@
     "@types/node": "^22.14.0",
     "@types/react": "19.1.10",
     "@types/react-dom": "19.1.7",
+    "firebase-admin": "^14.3.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.20.5",
     "turbo": "^2.4.0",

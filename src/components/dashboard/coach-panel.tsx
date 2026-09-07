@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Sparkles, Mic } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useStore } from '@/lib/store-context';
 import {
   currentStreak,
@@ -108,15 +109,14 @@ export function CoachPanel({ className }: { className?: string }) {
 
   useEffect(() => {
     const now = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const name = state.profile.name;
+    const h = new Date().getHours();
+    const part = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
     setMessages([
       {
         id: idRef.current++,
         role: 'coach',
-        text: 'You burned 420 kcal across 3 activities this week. Ask me anything about your training.',
-        chips: [
-          { label: 'Running', kcal: '120kcal' },
-          { label: 'Push up', kcal: '200kcal' },
-        ],
+        text: `Good ${part}${name ? `, ${name}` : ''}! I'm your coach. Ask me about your week, calories, today's session or your goals.`,
         time: now,
       },
     ]);
@@ -185,7 +185,7 @@ export function CoachPanel({ className }: { className?: string }) {
               </div>
             )}
             <span className="mt-1 px-1 text-[11px] text-muted-foreground">
-              {m.role === 'user' ? '' : '2 hours ago'}
+              {m.role === 'coach' ? m.time : ''}
             </span>
           </div>
         ))}
@@ -194,29 +194,34 @@ export function CoachPanel({ className }: { className?: string }) {
       {/* Quick chips */}
       <div className="flex gap-2 overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {QUICK.map((q) => (
-          <button
+          <Button
             key={q}
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={() => send(q)}
-            className="whitespace-nowrap rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-clay transition-colors hover:border-primary hover:text-primary"
+            className="whitespace-nowrap rounded-full text-xs font-semibold text-clay hover:border-primary hover:text-primary"
           >
             {q}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Input */}
       <div className="flex items-center gap-2 p-4 pt-1">
-        <div className="flex flex-1 items-center gap-2 rounded-full border border-border bg-card px-5 py-3 shadow-sm">
+        <div className="flex flex-1 items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && send(input)}
-            placeholder="Type something.."
+            placeholder="Type something…"
+            aria-label="Message your coach"
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           <button
+            type="button"
             aria-label="Voice"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors hover:text-foreground"
           >
             <Mic className="h-4 w-4" />
           </button>

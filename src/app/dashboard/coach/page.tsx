@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Send, Sparkles, Mic } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useStore } from '@/lib/store-context';
 import {
   currentStreak,
@@ -121,38 +123,46 @@ export default function CoachPage() {
       {/* Quick replies */}
       <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {QUICK.map((q) => (
-          <button
+          <Button
             key={q}
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={() => send(q)}
-            className="whitespace-nowrap rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-clay transition-colors hover:border-primary hover:text-primary"
+            className="whitespace-nowrap rounded-full text-xs font-semibold text-clay hover:border-primary hover:text-primary"
           >
             {q}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Input */}
-      <div className="mt-2 flex items-center gap-2 rounded-full border border-border bg-card p-1.5 pl-5 shadow-sm">
-        <input
+      <div className="mt-2 flex items-center gap-2">
+        <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && send(input)}
           placeholder={hasData ? 'Ask your coach anything…' : 'Type a message…'}
-          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          className="h-12 flex-1 rounded-full border-border bg-card pl-5 shadow-sm"
         />
-        <button
+        <Button
+          type="button"
           onClick={() => send(input)}
           aria-label="Send"
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md shadow-primary/30 transition-transform active:scale-90"
+          size="icon"
+          className="h-12 w-12 shrink-0 rounded-full shadow-md shadow-primary/30"
         >
           <Send className="h-5 w-5" />
-        </button>
-        <button
+        </Button>
+        <Button
+          type="button"
           aria-label="Voice"
-          className="hidden h-11 w-11 items-center justify-center rounded-full bg-accent text-accent-foreground sm:flex"
+          variant="secondary"
+          size="icon"
+          className="hidden h-12 w-12 shrink-0 rounded-full sm:flex"
         >
           <Mic className="h-5 w-5" />
-        </button>
+        </Button>
       </div>
     </div>
   );

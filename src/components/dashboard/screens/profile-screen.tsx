@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Database, Download, Tag, Trash2, UserRound } from 'lucide-react';
+import { Cloud, Database, Download, LogOut, Tag, Trash2, UserRound } from 'lucide-react';
 import { PLANS } from '@smartfit/core';
+import { useAuth } from '@/lib/firebase/auth-context';
 
 export function ProfileScreen() {
-  const { state, updateProfile, clearData } = useStore();
+  const { state, updateProfile, clearData, cloud } = useStore();
+  const { user, signOut, mode } = useAuth();
   const { openModal } = useModals();
 
   const counts = {
@@ -36,8 +38,38 @@ export function ProfileScreen() {
     <div className="grid gap-5">
       <div>
         <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Profile &amp; settings</h1>
-        <p className="text-sm text-muted-foreground">Your data stays on this device — no account needed.</p>
+        <p className="text-sm text-muted-foreground">
+          {cloud
+            ? `Signed in${user?.email ? ` as ${user.email}` : ''} — your training syncs to the cloud.`
+            : 'Your data stays on this device — no account needed.'}
+        </p>
       </div>
+
+      {cloud && user && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Cloud className="h-4 w-4 text-primary" /> Account
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold">{user.displayName || state.profile.name || 'Athlete'}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                await signOut();
+                window.location.href = '/login';
+              }}
+            >
+              <LogOut className="h-4 w-4" /> Sign out
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -121,8 +153,11 @@ export function ProfileScreen() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            SmartFit stores everything locally in your browser (localStorage). Nothing is sent to a server, and there
-            are no trackers. Export any time for a backup.
+            {cloud
+              ? 'Your training is stored securely in Cloud Firestore under your account and synced across devices. Export a JSON backup any time.'
+              : mode === 'cloud'
+                ? 'You are signed out — data is stored locally in this browser until you sign in, then it syncs to the cloud.'
+                : 'SmartFit stores everything locally in your browser (localStorage). Nothing is sent to a server, and there are no trackers. Export any time for a backup.'}
           </p>
         </CardContent>
       </Card>

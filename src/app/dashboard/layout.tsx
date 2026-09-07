@@ -2,9 +2,18 @@
 
 import { useStore } from '@/lib/store-context';
 import { DashboardShell } from '@/components/dashboard/dashboard-shell';
+import { AuthGate } from '@/components/auth/auth-gate';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AuthGate>
+      <DashboardReady>{children}</DashboardReady>
+    </AuthGate>
+  );
+}
+
+function DashboardReady({ children }: { children: React.ReactNode }) {
   const { ready } = useStore();
   if (!ready) {
     return (
