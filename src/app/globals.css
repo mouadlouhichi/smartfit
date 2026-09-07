@@ -246,6 +246,36 @@ input[type='number'] {
   animation: fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Page transition between dashboard screens: travels horizontally, so moving
+   between rail items reads as sideways movement rather than the vertical rise
+   used for content appearing in place (tabs, onboarding steps).
+   `--page-in-from` is a variable so an RTL layout can flip it in one rule. */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--page-in-from, 1.5rem), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.animate-page-in {
+  animation: page-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+[dir='rtl'] .animate-page-in {
+  --page-in-from: -1.5rem;
+}
+
+/* Sliding a whole screen is a larger vestibular trigger than the small rise it
+   replaces, so honour the OS setting: keep the fade, drop the travel. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-in {
+    animation-duration: 0.01ms;
+    --page-in-from: 0rem;
+  }
+}
+
 @keyframes float-y {
   0%,
   100% {

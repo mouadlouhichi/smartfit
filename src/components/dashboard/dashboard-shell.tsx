@@ -76,8 +76,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <DashboardHeader />
           <MigrationPrompt />
           <SyncBanner />
-          <main className="flex-1 px-4 pt-1 pb-6 sm:px-6 lg:px-8 lg:pt-2 lg:pb-8">
-            <div key={pathname} className="animate-fade-in mx-auto w-full max-w-[1300px]">
+          <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-8 lg:pt-2 lg:pb-8">
+            <div key={pathname} className="animate-page-in mx-auto w-full max-w-[1300px]">
               {children}
             </div>
           </main>
