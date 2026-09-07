@@ -12,7 +12,6 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useStore } from '@/lib/store-context';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
-
 function GoogleMark() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -38,9 +37,9 @@ function GoogleMark() {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { mode, signIn, signUp, signInWithGoogle, signOut, loading, authError, clearError, user } =
+  const { mode, signIn, signUp, signInWithGoogle, signOut, loading, initializing, authError, clearError, user } =
     useAuth();
-  const { updateProfile } = useStore();
+  const { state, ready, updateProfile } = useStore();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState('');
@@ -59,7 +58,7 @@ export default function LoginPage() {
       } else {
         await signIn(email.trim(), password);
       }
-      router.replace('/dashboard');
+      // Redirect handled by the gateway effect once auth state updates.
     } catch {
       /* error surfaced via authError */
     }
@@ -69,7 +68,7 @@ export default function LoginPage() {
     clearError();
     try {
       await signInWithGoogle();
-      router.replace('/dashboard');
+      // Redirect handled by the gateway effect.
     } catch {
       /* authError */
     }
@@ -77,14 +76,36 @@ export default function LoginPage() {
 
   function continueLocal(e: React.FormEvent) {
     e.preventDefault();
-    updateProfile({ name: localName.trim() || 'Athlete', onboardingDone: true });
-    router.replace('/dashboard');
+    // Stash the name; onboarding picks it up.
+    updateProfile({ name: localName.trim() || 'Athlete' });
+    // Route to onboarding (or dashboard if already onboarded).
+    router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
   }
 
-  // Already signed in → bounce to the app.
+  // ── Gateway (flousy-style) ──────────────────────────────────────────────
+  // Cloud: once signed in and data is ready, route to onboarding first time,
+  // otherwise dashboard. Local: only auto-route an already-onboarded visitor
+  // (brand-new local users use the name form below).
   useEffect(() => {
-    if (cloud && user) router.replace('/dashboard');
-  }, [cloud, user, router]);
+    if (cloud) {
+      if (initializing || !user || !ready) return;
+      router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
+    } else {
+      if (!ready) return;
+      // Local mode: if this device has already finished onboarding, jump
+      // straight to the app; otherwise stay on the login / entry screen.
+      if (state.profile.onboardingDone) router.replace('/dashboard');
+    }
+  }, [cloud, initializing, user, ready, state.profile.onboardingDone, router]);
+
+  // Show a spinner while cloud auth resolves on an already-signed-in visit.
+  if (cloud && initializing) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
@@ -219,12 +240,14 @@ export default function LoginPage() {
         </CardContent>
       </Card>
 
-      <p className="mt-6 text-sm text-muted-foreground">
-        New here?{' '}
-        <Link href="/onboarding" className="font-medium text-primary hover:underline">
-          Set up your plan
-        </Link>
-      </p>
+      {!cloud && (
+        <p className="mt-6 text-sm text-muted-foreground">
+          New here?{' '}
+          <Link href="/onboarding" className="font-medium text-primary hover:underline">
+            Set up your plan
+          </Link>
+        </p>
+      )}
 
       {cloud && user && (
         <button

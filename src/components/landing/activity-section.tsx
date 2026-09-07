@@ -47,7 +47,7 @@ export function ActivitySection() {
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Link
-              href="/onboarding"
+              href="/login"
               className="inline-flex items-center rounded-full border border-[color:var(--foreground)]/10 px-4 py-2 text-xs font-medium transition-colors hover:border-[color:var(--foreground)]/30"
             >
               Start with a plan →

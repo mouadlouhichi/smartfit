@@ -87,7 +87,7 @@ export function HeroSection() {
 
           <div className="flex flex-col items-start gap-4 sm:flex-row lg:-translate-y-6">
             <Link
-              href="/onboarding"
+              href="/login"
               className="btn-primary group"
             >
               Start training free

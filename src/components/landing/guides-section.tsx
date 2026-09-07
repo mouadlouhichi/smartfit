@@ -75,7 +75,7 @@ export function GuidesSection() {
 
         <div className="mt-12 flex flex-wrap gap-3">
           <Link
-            href="/onboarding"
+            href="/login"
             className="inline-flex items-center gap-2 rounded-full bg-[color:var(--foreground)] px-6 py-3 text-sm font-medium text-[color:var(--background)] hover:bg-[color:var(--foreground)]/90"
           >
             Start training free <ArrowRight className="h-4 w-4" />

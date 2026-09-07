@@ -49,7 +49,7 @@ export function CtaSection() {
                   thirty seconds.
                 </p>
                 <div className="flex flex-col items-start gap-4 sm:flex-row">
-                  <Link href="/onboarding" className="btn-primary group">
+                  <Link href="/login" className="btn-primary group">
                     Start training free
                     <ArrowRight className="ms-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Link>

@@ -95,7 +95,7 @@ export function PricingSection() {
               </ul>
 
               <Link
-                href="/onboarding"
+                href="/login"
                 className={`group flex w-full items-center justify-center gap-2 py-4 text-sm font-medium transition-all ${
                   planData.popular
                     ? 'bg-[color:var(--primary)] text-white hover:bg-[color:var(--primary)]/90'
