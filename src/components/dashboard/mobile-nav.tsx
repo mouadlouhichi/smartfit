@@ -120,16 +120,24 @@ export function MobileNav() {
         aria-label={tab.label}
         aria-current={isActive ? 'page' : undefined}
         className={cn(
-          'relative z-10 flex min-w-0 flex-1 items-center justify-center rounded-full py-2 transition-colors duration-300 active:scale-95',
+          'relative z-10 flex items-center justify-center rounded-full py-2 transition-colors duration-300 active:scale-95',
+          // Only the active tab renders a label, so size it to its content and
+          // let the icon-only tabs absorb the remaining space. Equal `flex-1`
+          // widths sized every tab for a bare icon and then overflowed the
+          // active one, pushing its icon outside the measured pill.
+          isActive ? 'flex-initial px-2' : 'flex-1',
+          'min-w-0',
           isActive ? 'text-primary' : 'text-white/55 hover:text-white/85',
         )}
       >
-        <span className="flex items-center gap-1.5">
+        <span className={cn('flex min-w-0 items-center', isActive ? 'gap-1.5' : 'gap-0')}>
           <Icon className="h-5 w-5 shrink-0" strokeWidth={2.3} />
           <span
             className={cn(
-              'text-charcoal overflow-hidden text-xs font-bold whitespace-nowrap transition-all duration-300 ease-out',
-              isActive ? 'max-w-[72px] opacity-100' : 'max-w-0 opacity-0',
+              // `truncate` (not a bare max-width clip) so a narrow phone
+              // ellipsizes the label instead of slicing it mid-word.
+              'text-charcoal min-w-0 truncate text-xs font-bold transition-all duration-300 ease-out',
+              isActive ? 'max-w-[84px] opacity-100' : 'max-w-0 opacity-0',
             )}
           >
             {tab.label}
