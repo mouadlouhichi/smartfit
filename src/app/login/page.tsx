@@ -95,24 +95,17 @@ export default function LoginPage() {
   /**
    * Gateway.
    *
-   * Cloud: once signed in and hydrated, a profile that hasn't finished setup
-   * goes to onboarding; everyone else goes to the dashboard.
-   *
-   * Local (no Firebase configured): there is no account to sign in to, so this
-   * page has nothing to offer — send visitors straight on rather than asking
-   * them to "log in" with a name, which authenticated nothing.
+   * Only an already-authenticated visitor is redirected: a signed-out one
+   * came here to sign in, so they must always get the form. A profile that
+   * hasn't finished setup goes to onboarding; everyone else to the dashboard.
    */
   useEffect(() => {
-    if (cloud) {
-      if (initializing || !user || !ready) return;
-    } else if (!ready) {
-      return;
-    }
+    if (!cloud || initializing || !user || !ready) return;
     router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
   }, [cloud, initializing, user, ready, state.profile.onboardingDone, router]);
 
-  // Resolving auth, or bouncing a local-mode visitor onward.
-  if (!cloud || initializing) {
+  // Only while auth is resolving, or while bouncing an already-signed-in user.
+  if (cloud && (initializing || user)) {
     return (
       <div
         className="flex min-h-dvh items-center justify-center"
@@ -142,6 +135,26 @@ export default function LoginPage() {
                 ? 'Sign up to sync your training across every device.'
                 : 'Sign in to pick up right where you left off.'}
           </p>
+
+          {!cloud && (
+            <div className="border-border bg-muted/50 mt-4 rounded-lg border px-3 py-2.5">
+              <p className="text-xs font-medium">Accounts aren&apos;t set up on this deployment.</p>
+              <p className="text-muted-foreground mt-1 text-xs">
+                Sign-in needs Firebase credentials. You can still use SmartFit on this device — your
+                training stays in this browser.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  router.push(state.profile.onboardingDone ? '/dashboard' : '/onboarding')
+                }
+                className="mt-2.5 h-8 w-full text-xs"
+              >
+                Continue without an account <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
 
           <form onSubmit={handleEmail} className="mt-5 grid gap-4">
             {isSignUp && (
@@ -222,7 +235,7 @@ export default function LoginPage() {
               </p>
             )}
 
-            <Button type="submit" disabled={loading} className="w-full">
+            <Button type="submit" disabled={loading || !cloud} className="w-full">
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : isReset ? (
@@ -260,7 +273,7 @@ export default function LoginPage() {
               <Button
                 type="button"
                 variant="outline"
-                disabled={loading}
+                disabled={loading || !cloud}
                 onClick={handleGoogle}
                 className="w-full"
               >
@@ -268,18 +281,19 @@ export default function LoginPage() {
               </Button>
 
               <p className="text-muted-foreground mt-5 text-center text-sm">
-                {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    clearError();
-                    setView(isSignUp ? 'signin' : 'signup');
-                  }}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  {isSignUp ? 'Sign in' : 'Create one'}
-                </button>
+                {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}
               </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  clearError();
+                  setView(isSignUp ? 'signin' : 'signup');
+                }}
+                className="mt-2 w-full"
+              >
+                {isSignUp ? 'Sign in instead' : 'Create an account'}
+              </Button>
             </>
           )}
         </CardContent>
