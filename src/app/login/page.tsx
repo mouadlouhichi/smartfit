@@ -214,7 +214,10 @@ export default function LoginPage() {
               </p>
             )}
             {authInfo && (
-              <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <p
+                role="status"
+                className="bg-accent text-accent-foreground rounded-lg px-3 py-2 text-xs font-medium"
+              >
                 {authInfo}
               </p>
             )}

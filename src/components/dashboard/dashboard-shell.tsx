@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { Logo } from '@/components/brand';
 import { RAIL_ITEMS } from './nav-items';
 import { MobileNav } from './mobile-nav';
 import { DashboardHeader } from './dashboard-header';
@@ -28,11 +29,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <Link
             href="/"
             aria-label="SmartFit home"
-            className="mb-8 flex h-11 w-11 items-center justify-center rounded-full bg-white/10"
+            className="mb-8 rounded-2xl transition-transform hover:scale-105"
           >
-            <span className="border-primary flex h-7 w-7 items-center justify-center rounded-full border-2">
-              <span className="bg-primary h-2.5 w-2.5 rounded-full" />
-            </span>
+            <Logo size={44} />
           </Link>
 
           <nav className="flex flex-1 flex-col items-center gap-5">
@@ -77,7 +76,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           <DashboardHeader />
           <MigrationPrompt />
           <SyncBanner />
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <main className="flex-1 px-4 pt-1 pb-6 sm:px-6 lg:px-8 lg:pt-2 lg:pb-8">
             <div key={pathname} className="animate-fade-in mx-auto w-full max-w-[1300px]">
               {children}
             </div>

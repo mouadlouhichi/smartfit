@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { getFirebaseServices, isFirebaseConfigured } from './config';
+import { friendlyAuthError, isSilentResetMiss } from './auth-errors';
 
 export type AuthMode = 'cloud' | 'local';
 
@@ -30,38 +31,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
-/** Turn a Firebase auth error code into a short human message. */
-function friendlyError(err: unknown): string {
-  const code = (err as { code?: string })?.code ?? '';
-  switch (code) {
-    case 'auth/invalid-credential':
-    case 'auth/wrong-password':
-    case 'auth/user-not-found':
-      return 'Incorrect email or password.';
-    case 'auth/email-already-in-use':
-      return 'An account already exists with that email. Try signing in.';
-    case 'auth/weak-password':
-      return 'Password should be at least 6 characters.';
-    case 'auth/invalid-email':
-      return 'Please enter a valid email address.';
-    case 'auth/popup-closed-by-user':
-    case 'auth/cancelled-popup-request':
-      return 'Sign-in cancelled.';
-    case 'auth/popup-blocked':
-      return 'Pop-up was blocked — allow pop-ups for this site and try again.';
-    case 'auth/network-request-failed':
-      return 'Network error — check your connection and try again.';
-    case 'auth/operation-not-allowed':
-      return 'That sign-in method is not enabled in this Firebase project.';
-    case 'auth/too-many-requests':
-      return 'Too many attempts — please wait a moment and try again.';
-    case 'auth/requires-recent-login':
-      return 'For your security, please sign in again before deleting your account.';
-    default:
-      return 'Something went wrong. Please try again.';
-  }
-}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -110,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await fn();
     } catch (err) {
-      setAuthError(friendlyError(err));
+      setAuthError(friendlyAuthError(err));
       throw err;
     } finally {
       setLoading(false);
@@ -159,8 +128,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!svc) throw new Error('auth-unavailable');
       const fb = await import('firebase/auth');
       await run(async () => {
-        await fb.sendPasswordResetEmail(svc.auth, email);
-        setAuthInfo(`Password reset link sent to ${email}. Check your inbox.`);
+        // Treat "no such account" as success. Reporting it would (a) confirm
+        // to an attacker which emails are registered, and (b) surface through
+        // friendlyError as "Incorrect email or password.", which is nonsense
+        // on a form that has no password field. Firebase's own email
+        // enumeration protection behaves the same way.
+        try {
+          await fb.sendPasswordResetEmail(svc.auth, email);
+        } catch (err) {
+          if (!isSilentResetMiss(err)) throw err;
+        }
+        setAuthInfo(`If an account exists for ${email}, a reset link is on its way.`);
       });
     },
     [run],
