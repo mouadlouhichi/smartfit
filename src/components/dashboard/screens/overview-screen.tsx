@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Zap,
@@ -85,6 +85,18 @@ export function OverviewScreen() {
     { label: 'Stats', icon: BarChart3, href: '/dashboard/progress' },
     { label: 'Coach', icon: Sparkles, href: '/dashboard/coach' },
   ];
+
+  // The PWA manifest exposes a "Log a workout" shortcut to /dashboard?log=1.
+  // Read it from location rather than useSearchParams so this page can stay
+  // statically prerendered without a Suspense boundary.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('log')) return;
+    openModal('workout');
+    params.delete('log');
+    const qs = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
+  }, [openModal]);
 
   const hasData = state.sessions.length > 0;
   const recent = useMemo(() => state.sessions.slice(0, 4), [state.sessions]);
