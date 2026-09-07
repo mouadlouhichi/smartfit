@@ -11,11 +11,12 @@ export function WhatIsSection() {
           The free workout tracker.
         </h2>
         <p className="max-w-4xl text-lg leading-relaxed text-[color:var(--muted-foreground)] lg:text-xl">
-          SmartFit is a private fitness tracker that separates what a session is — strength, cardio, HIIT or
-          mobility — from the recurring plan it belongs to. It supports 4 proven training strategies:
-          Push/Pull/Legs, Upper/Lower, Full Body 3× and Cardio &amp; Conditioning. SmartFit never pairs with a watch
-          or ring; you log sessions manually so nothing is misattributed. Your data lives entirely on your device —
-          there is no account and no cloud watching you.
+          SmartFit is a private fitness tracker that separates what a session is — strength, cardio,
+          HIIT or mobility — from the recurring plan it belongs to. It supports 4 proven training
+          strategies: Push/Pull/Legs, Upper/Lower, Full Body 3× and Cardio &amp; Conditioning.
+          SmartFit never pairs with a watch or ring; you log sessions manually so nothing is
+          misattributed. Your data lives entirely on your device — there is no account and no cloud
+          watching you.
         </p>
       </div>
     </section>

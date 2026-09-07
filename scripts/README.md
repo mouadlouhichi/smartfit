@@ -4,7 +4,7 @@
 
 The production app never ships demo data; this script is the supported way to
 fill a demo/staging account with a realistic ~6-week training history (matching
-`seed.sql`).
+`scripts/seed.sql`).
 
 ### Credentials
 Create a service-account key: **Firebase console → Project settings → Service
@@ -32,5 +32,5 @@ SEED_UID=some-firebase-auth-uid SEED_EMAIL=demo@example.com pnpm seed
 Set `SEED_UID` to an existing signed-in user's UID to make the data appear in
 that account; otherwise create a Firebase Auth user with the matching uid/email.
 
-`seed.sql` at the repo root contains the same demo data as a relational schema
+`scripts/seed.sql` contains the same demo data as a relational schema
 for SQL/analytics use.

@@ -147,9 +147,11 @@
   --radius-xl: calc(var(--radius) + 6px);
   --radius-2xl: calc(var(--radius) + 14px);
 
-  --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system,
+  --font-sans:
+    'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
@@ -314,8 +316,10 @@ input[type='number'] {
      display, JetBrains Mono for mono. Overriding the theme variables here makes
      every Tailwind font-sans/font-display/font-mono utility resolve to these. */
   --font-sans: 'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, sans-serif;
-  --font-display: 'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  --font-display:
+    'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:
+    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 .landing .font-display {
   font-family: var(--font-display);
@@ -356,12 +360,20 @@ input[type='number'] {
   animation: landing-marquee-reverse 25s linear infinite;
 }
 @keyframes landing-marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 @keyframes landing-marquee-reverse {
-  0% { transform: translateX(-50%); }
-  100% { transform: translateX(0); }
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
 }
 
 /* Per-character hero word reveal */
@@ -373,8 +385,16 @@ input[type='number'] {
   animation: landing-char-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 @keyframes landing-char-in {
-  0% { opacity: 0; filter: blur(10px); transform: translateY(0.6em); }
-  100% { opacity: 1; filter: blur(0); transform: translateY(0); }
+  0% {
+    opacity: 0;
+    filter: blur(10px);
+    transform: translateY(0.6em);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
 }
 
 /* Line reveal (clip) */
@@ -383,7 +403,9 @@ input[type='number'] {
   animation: landing-line-reveal 0.8s cubic-bezier(0.77, 0, 0.175, 1) forwards;
 }
 @keyframes landing-line-reveal {
-  to { clip-path: inset(0 0 0 0); }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
 }
 
 .landing .hover-lift {
@@ -395,7 +417,9 @@ input[type='number'] {
 
 /* Scroll-reveal helper (toggled via IntersectionObserver) */
 .landing .reveal {
-  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .landing .reveal[data-state='hidden'] {
   opacity: 0;
@@ -423,9 +447,13 @@ input[type='number'] {
   color: oklch(0.985 0.006 170);
   font-weight: 500;
   font-size: 1rem;
-  transition: background 0.2s ease, transform 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
 }
-.landing .btn-primary:hover { background: color-mix(in oklab, var(--primary) 88%, black); }
+.landing .btn-primary:hover {
+  background: color-mix(in oklab, var(--primary) 88%, black);
+}
 .landing .btn-outline {
   display: inline-flex;
   align-items: center;
@@ -438,9 +466,13 @@ input[type='number'] {
   color: var(--foreground);
   font-weight: 500;
   font-size: 1rem;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
-.landing .btn-outline:hover { background: color-mix(in oklab, var(--foreground) 5%, transparent); }
+.landing .btn-outline:hover {
+  background: color-mix(in oklab, var(--foreground) 5%, transparent);
+}
 
 /* Snapshot line reveal for the how-it-works terminal */
 .landing .snapshot-line-reveal {
@@ -449,7 +481,10 @@ input[type='number'] {
   animation: landing-snapshot 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 @keyframes landing-snapshot {
-  to { opacity: 1; transform: translateY(0); }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .landing .progress-bar-anim {
   height: 100%;
@@ -458,6 +493,10 @@ input[type='number'] {
   animation: landing-progress 5s linear forwards;
 }
 @keyframes landing-progress {
-  from { width: 0; }
-  to { width: 100%; }
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
 }

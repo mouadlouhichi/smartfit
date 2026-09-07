@@ -1,0 +1,26 @@
+#!/bin/sh
+#
+# SmartFit pre-commit hook (dependency-free — no husky).
+# Enabled automatically by `pnpm install` via the `prepare` script, which sets
+# `core.hooksPath` to this directory. Skip a run with `git commit --no-verify`.
+
+set -e
+
+echo "▸ prettier"
+pnpm exec prettier --check . || {
+  echo
+  echo "✗ Formatting issues. Run: pnpm format"
+  exit 1
+}
+
+echo "▸ eslint"
+pnpm exec eslint . || {
+  echo
+  echo "✗ Lint errors. Fix them or run: pnpm exec eslint . --fix"
+  exit 1
+}
+
+echo "▸ typecheck"
+pnpm exec tsc --noEmit
+
+echo "✓ pre-commit checks passed"

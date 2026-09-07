@@ -128,7 +128,7 @@ export function MobileNav() {
           <Icon className="h-5 w-5 shrink-0" strokeWidth={2.3} />
           <span
             className={cn(
-              'overflow-hidden whitespace-nowrap text-xs font-bold text-charcoal transition-all duration-300 ease-out',
+              'text-charcoal overflow-hidden text-xs font-bold whitespace-nowrap transition-all duration-300 ease-out',
               isActive ? 'max-w-[72px] opacity-100' : 'max-w-0 opacity-0',
             )}
           >
@@ -143,7 +143,7 @@ export function MobileNav() {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),14px)] lg:hidden">
       <nav
         ref={navRef}
-        className="pointer-events-auto relative flex w-full max-w-md items-center gap-1 rounded-full px-2 py-2 shadow-2xl shadow-black/30 ring-1 ring-white/10"
+        className="pointer-events-auto relative flex w-full max-w-md items-center gap-1 rounded-full px-2 py-2 shadow-2xl ring-1 shadow-black/30 ring-white/10"
         style={{
           background: 'linear-gradient(180deg, #4d4a47 0%, #3d3b39 48%, #353331 100%)',
         }}
@@ -152,7 +152,7 @@ export function MobileNav() {
         {pill && (
           <span
             aria-hidden
-            className="pointer-events-none absolute left-0 top-0 rounded-full bg-white shadow-sm"
+            className="pointer-events-none absolute top-0 left-0 rounded-full bg-white shadow-sm"
             style={{
               transform: `translate(${pill.x}px, ${pill.y}px)`,
               width: pill.width,
@@ -173,7 +173,7 @@ export function MobileNav() {
           aria-label="Log workout"
           className="relative z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-black/5 transition-transform active:scale-90"
         >
-          <Zap className="h-5 w-5 fill-charcoal text-charcoal" strokeWidth={1.6} />
+          <Zap className="fill-charcoal text-charcoal h-5 w-5" strokeWidth={1.6} />
         </button>
 
         {RIGHT_TABS.map(renderTab)}

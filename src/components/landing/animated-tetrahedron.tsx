@@ -1,22 +1,26 @@
-"use client";
+'use client';
 
-import { useRef } from "react";
-import { useAnimatedCanvas } from "./use-animated-canvas";
+import { useRef } from 'react';
+import { useAnimatedCanvas } from './use-animated-canvas';
 
-const chars = "░▒▓█▀▄▌▐│─┤├┴┬╭╮╰╯";
+const chars = '░▒▓█▀▄▌▐│─┤├┴┬╭╮╰╯';
 
 // Tetrahedron vertices
 const vertices = [
-  { x: 0, y: 1, z: 0 },           // Top
+  { x: 0, y: 1, z: 0 }, // Top
   { x: -0.943, y: -0.333, z: -0.5 }, // Bottom left back
-  { x: 0.943, y: -0.333, z: -0.5 },  // Bottom right back
-  { x: 0, y: -0.333, z: 1 },         // Bottom front
+  { x: 0.943, y: -0.333, z: -0.5 }, // Bottom right back
+  { x: 0, y: -0.333, z: 1 }, // Bottom front
 ];
 
 // Edges connecting vertices
 const edges = [
-  [0, 1], [0, 2], [0, 3], // Top to bottom vertices
-  [1, 2], [2, 3], [3, 1], // Bottom triangle
+  [0, 1],
+  [0, 2],
+  [0, 3], // Top to bottom vertices
+  [1, 2],
+  [2, 3],
+  [3, 1], // Bottom triangle
 ];
 
 // Faces for filling with points
@@ -45,11 +49,7 @@ const rotateZ = (point: { x: number; y: number; z: number }, angle: number) => (
   z: point.z,
 });
 
-function drawTetrahedron(
-  ctx: CanvasRenderingContext2D,
-  canvas: HTMLCanvasElement,
-  time: number,
-) {
+function drawTetrahedron(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, time: number) {
   const rect = canvas.getBoundingClientRect();
   ctx.clearRect(0, 0, rect.width, rect.height);
 
@@ -57,9 +57,9 @@ function drawTetrahedron(
   const centerY = rect.height / 2;
   const scale = Math.min(rect.width, rect.height) * 0.7;
 
-  ctx.font = "18px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  ctx.font = '18px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
 
   const points: { x: number; y: number; z: number; char: string }[] = [];
 
@@ -141,11 +141,5 @@ export function AnimatedTetrahedron() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useAnimatedCanvas(canvasRef, drawTetrahedron);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-full"
-      style={{ display: "block" }}
-    />
-  );
+  return <canvas ref={canvasRef} className="h-full w-full" style={{ display: 'block' }} />;
 }

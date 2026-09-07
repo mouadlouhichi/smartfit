@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,14 +14,28 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { useStore } from '@/lib/store-context';
-import { useModals } from '../modal-context';
-import { INTENSITY_META } from '@smartfit/core';
-import { estimateCalories, toISODate } from '@smartfit/core';
+import { useModals, usePayload } from '../modal-context';
+import { INTENSITY_META, toISODate, fromKm, toKm } from '@smartfit/core';
 import type { Intensity, WorkoutExercise } from '@smartfit/core';
+import { Trash2 } from 'lucide-react';
 
+const BLANK_EXERCISE: WorkoutExercise = { name: '', sets: [{}] };
+
+/**
+ * Log or edit a session.
+ *
+ * Handles three entry points: a blank log, a prefill from a scheduled slot
+ * ("mark today's session done"), and editing an existing record.
+ */
 export function WorkoutModal() {
-  const { state, addSession } = useStore();
-  const { open, closeModal } = useModals();
+  const { state, addSession, updateSession, deleteSession, estimateSessionCalories } = useStore();
+  const { closeModal } = useModals();
+  const payload = usePayload('workout');
+  const open = payload !== null;
+
+  const editing = payload?.session ?? null;
+  const prefill = payload?.prefill ?? null;
+  const distanceUnit = state.profile.distanceUnit;
 
   const [date, setDate] = useState(toISODate(new Date()));
   const [categoryId, setCategoryId] = useState('cat-strength');
@@ -30,50 +44,79 @@ export function WorkoutModal() {
   const [intensity, setIntensity] = useState<Intensity>('moderate');
   const [distance, setDistance] = useState('');
   const [notes, setNotes] = useState('');
-  const [exercises, setExercises] = useState<WorkoutExercise[]>([{ name: '', sets: [{}] }]);
+  const [exercises, setExercises] = useState<WorkoutExercise[]>([{ ...BLANK_EXERCISE }]);
+
+  // Load the record (or the prefill) whenever the dialog opens.
+  useEffect(() => {
+    if (!open) return;
+    const src = editing ?? prefill ?? null;
+    setDate(src?.date ?? toISODate(new Date()));
+    setCategoryId(src?.categoryId ?? 'cat-strength');
+    setTitle(src?.title ?? '');
+    setDuration(String(src?.durationMin ?? 45));
+    setIntensity(src?.intensity ?? 'moderate');
+    setDistance(
+      src?.distanceKm !== undefined
+        ? String(Math.round(fromKm(src.distanceKm, distanceUnit) * 100) / 100)
+        : '',
+    );
+    setNotes(src?.notes ?? '');
+    setExercises(
+      src?.exercises && src.exercises.length
+        ? src.exercises.map((e) => ({ ...e }))
+        : [{ ...BLANK_EXERCISE }],
+    );
+  }, [open, editing, prefill, distanceUnit]);
 
   const cal = useMemo(
-    () => estimateCalories(Number(duration) || 0, intensity),
-    [duration, intensity],
+    () => estimateSessionCalories(Number(duration) || 0, intensity),
+    [duration, intensity, estimateSessionCalories],
   );
 
   const category = state.categories.find((c) => c.id === categoryId);
   const isCardio = categoryId === 'cat-cardio' || categoryId === 'cat-sports';
 
-  function reset() {
-    setTitle('');
-    setDuration('45');
-    setIntensity('moderate');
-    setDistance('');
-    setNotes('');
-    setExercises([{ name: '', sets: [{}] }]);
-  }
-
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    addSession({
+    const cleaned = exercises
+      .filter((x) => x.name.trim())
+      .map((x) => ({ ...x, name: x.name.trim() }));
+
+    const record = {
       date,
       categoryId,
       title: title.trim() || category?.name || 'Workout',
       durationMin: Math.max(1, Number(duration) || 0),
       intensity,
       calories: cal,
-      distanceKm: isCardio && distance ? Number(distance) : undefined,
-      exercises: exercises.filter((x) => x.name.trim()),
+      distanceKm: isCardio && distance ? toKm(Number(distance), distanceUnit) : undefined,
+      exercises: cleaned,
       notes: notes.trim() || undefined,
-    });
-    reset();
+      scheduleId: editing?.scheduleId ?? prefill?.scheduleId,
+    };
+
+    if (editing) updateSession(editing.id, record);
+    else addSession(record);
+    closeModal();
+  }
+
+  function removeSession() {
+    if (!editing) return;
+    if (!confirm('Delete this workout? This cannot be undone.')) return;
+    deleteSession(editing.id);
     closeModal();
   }
 
   return (
-    <Dialog open={open === 'workout'} onOpenChange={(o) => !o && closeModal()}>
+    <Dialog open={open} onOpenChange={(o) => !o && closeModal()}>
       <DialogContent>
         <form onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>Log workout</DialogTitle>
+            <DialogTitle>{editing ? 'Edit workout' : 'Log workout'}</DialogTitle>
             <DialogDescription>
-              Every session you log feeds your weekly stats and streaks.
+              {editing
+                ? 'Fix anything that went in wrong — totals, streaks and charts update instantly.'
+                : 'Every session you log feeds your weekly stats and streaks.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -81,11 +124,21 @@ export function WorkoutModal() {
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="w-date">Date</Label>
-                <Input id="w-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+                <Input
+                  id="w-date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="w-cat">Type</Label>
-                <Select id="w-cat" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                <Select
+                  id="w-cat"
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                >
                   {state.categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -108,7 +161,14 @@ export function WorkoutModal() {
             <div className="grid grid-cols-3 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="w-dur">Minutes</Label>
-                <Input id="w-dur" type="number" min={1} value={duration} onChange={(e) => setDuration(e.target.value)} required />
+                <Input
+                  id="w-dur"
+                  type="number"
+                  min={1}
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  required
+                />
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor="w-int">Intensity</Label>
@@ -126,82 +186,134 @@ export function WorkoutModal() {
               </div>
               {isCardio ? (
                 <div className="grid gap-1.5">
-                  <Label htmlFor="w-dist">km</Label>
-                  <Input id="w-dist" type="number" step="0.1" min={0} value={distance} onChange={(e) => setDistance(e.target.value)} />
+                  <Label htmlFor="w-dist">Distance ({distanceUnit})</Label>
+                  <Input
+                    id="w-dist"
+                    type="number"
+                    step="0.1"
+                    min={0}
+                    value={distance}
+                    onChange={(e) => setDistance(e.target.value)}
+                  />
                 </div>
               ) : (
                 <div className="grid gap-1.5">
-                  <Label>Est. kcal</Label>
-                  <div className="flex h-10 items-center rounded-xl border border-input bg-secondary px-3 text-sm font-semibold">
+                  <Label htmlFor="w-cal">Est. kcal</Label>
+                  <div
+                    id="w-cal"
+                    className="border-input bg-secondary flex h-10 items-center rounded-xl border px-3 text-sm font-semibold"
+                  >
                     {cal}
                   </div>
                 </div>
               )}
             </div>
 
-            {isCardio ? (
+            {isCardio && (
               <div className="grid gap-1.5">
-                <Label>Estimated burn</Label>
-                <div className="flex h-10 items-center rounded-xl border border-input bg-secondary px-3 text-sm font-semibold">
+                <Label htmlFor="w-cal-cardio">Estimated burn</Label>
+                <div
+                  id="w-cal-cardio"
+                  className="border-input bg-secondary flex h-10 items-center rounded-xl border px-3 text-sm font-semibold"
+                >
                   {cal} kcal
-                </div>
-              </div>
-            ) : (
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <Label>Exercises</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setExercises((p) => [...p, { name: '', sets: [{}, {}] }])}
-                  >
-                    + Add
-                  </Button>
-                </div>
-                <div className="grid gap-2">
-                  {exercises.map((ex, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <Input
-                        placeholder={`Exercise ${i + 1} (e.g. Squat)`}
-                        value={ex.name}
-                        onChange={(e) =>
-                          setExercises((p) => p.map((x, xi) => (xi === i ? { ...x, name: e.target.value } : x)))
-                        }
-                      />
-                      <Input
-                        className="w-20"
-                        type="number"
-                        placeholder="sets"
-                        value={ex.sets.length}
-                        min={1}
-                        onChange={(e) =>
-                          setExercises((p) =>
-                            p.map((x, xi) =>
-                              xi === i
-                                ? { ...x, sets: Array.from({ length: Math.max(1, Number(e.target.value) || 1) }, () => ({})) }
-                                : x,
-                            ),
-                          )
-                        }
-                      />
-                    </div>
-                  ))}
                 </div>
               </div>
             )}
 
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <Label>Exercises</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setExercises((p) => [...p, { name: '', sets: [{}, {}] }])}
+                >
+                  + Add
+                </Button>
+              </div>
+              <div className="grid gap-2">
+                {exercises.map((ex, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      aria-label={`Exercise ${i + 1} name`}
+                      placeholder={`Exercise ${i + 1} (e.g. Squat)`}
+                      value={ex.name}
+                      onChange={(e) =>
+                        setExercises((p) =>
+                          p.map((x, xi) => (xi === i ? { ...x, name: e.target.value } : x)),
+                        )
+                      }
+                    />
+                    <Input
+                      aria-label={`Exercise ${i + 1} sets`}
+                      className="w-20"
+                      type="number"
+                      placeholder="sets"
+                      value={ex.sets.length}
+                      min={1}
+                      onChange={(e) =>
+                        setExercises((p) =>
+                          p.map((x, xi) =>
+                            xi === i
+                              ? {
+                                  ...x,
+                                  sets: Array.from(
+                                    { length: Math.max(1, Number(e.target.value) || 1) },
+                                    (_, si) => x.sets[si] ?? {},
+                                  ),
+                                }
+                              : x,
+                          ),
+                        )
+                      }
+                    />
+                    {exercises.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setExercises((p) => p.filter((_, xi) => xi !== i))}
+                        aria-label={`Remove exercise ${i + 1}`}
+                        className="text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="grid gap-1.5">
               <Label htmlFor="w-notes">Notes</Label>
-              <Input id="w-notes" placeholder="How did it feel? (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
+              <Input
+                id="w-notes"
+                placeholder="How did it feel? (optional)"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
             </div>
           </div>
 
-          <DialogFooter className="mt-6">
-            <Button type="button" variant="ghost" onClick={closeModal}>
-              Cancel
-            </Button>
-            <Button type="submit">Save workout</Button>
+          <DialogFooter className="mt-6 sm:justify-between">
+            {editing ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={removeSession}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" /> Delete
+              </Button>
+            ) : (
+              <span />
+            )}
+            <span className="flex gap-2">
+              <Button type="button" variant="ghost" onClick={closeModal}>
+                Cancel
+              </Button>
+              <Button type="submit">{editing ? 'Save changes' : 'Save workout'}</Button>
+            </span>
           </DialogFooter>
         </form>
       </DialogContent>

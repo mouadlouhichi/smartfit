@@ -39,14 +39,14 @@ export function CtaSection() {
           <div className="relative z-10 px-8 py-16 lg:px-16 lg:py-24">
             <div className="flex flex-col items-center justify-between gap-12 lg:flex-row">
               <div className="flex-1">
-                <h2 className="mb-8 font-display text-4xl leading-[0.95] tracking-tight lg:text-7xl">
+                <h2 className="font-display mb-8 text-4xl leading-[0.95] tracking-tight lg:text-7xl">
                   Ready to know
                   <br />
                   how you&apos;re training?
                 </h2>
                 <p className="mb-12 max-w-xl text-xl leading-relaxed text-[color:var(--muted-foreground)]">
-                  Start free — every feature included, no card, no account. Your first logged session takes about
-                  thirty seconds.
+                  Start free — every feature included, no card, no account. Your first logged
+                  session takes about thirty seconds.
                 </p>
                 <div className="flex flex-col items-start gap-4 sm:flex-row">
                   <Link href="/login" className="btn-primary group">
@@ -68,8 +68,8 @@ export function CtaSection() {
             </div>
           </div>
 
-          <div className="absolute right-0 top-0 h-32 w-32 border-b border-l border-[color:var(--foreground)]/10" />
-          <div className="absolute bottom-0 left-0 h-32 w-32 border-r border-t border-[color:var(--foreground)]/10" />
+          <div className="absolute top-0 right-0 h-32 w-32 border-b border-l border-[color:var(--foreground)]/10" />
+          <div className="absolute bottom-0 left-0 h-32 w-32 border-t border-r border-[color:var(--foreground)]/10" />
         </div>
       </div>
     </section>

@@ -32,7 +32,10 @@ const GUIDES = [
 
 export function GuidesSection() {
   return (
-    <section id="guides" className="relative border-t border-[color:var(--foreground)]/10 py-24 lg:py-32">
+    <section
+      id="guides"
+      className="relative border-t border-[color:var(--foreground)]/10 py-24 lg:py-32"
+    >
       <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
         <div className="mb-16 max-w-3xl lg:mb-20">
           <span className="eyebrow-mono mb-6">Training guides</span>
@@ -42,8 +45,8 @@ export function GuidesSection() {
             <span className="text-[color:var(--muted-foreground)]">with consistency in mind.</span>
           </h2>
           <p className="text-lg leading-relaxed text-[color:var(--muted-foreground)]">
-            Short, practical guides from the SmartFit team — built around the one idea that matters: keep your
-            sessions honest and your plan clear.
+            Short, practical guides from the SmartFit team — built around the one idea that matters:
+            keep your sessions honest and your plan clear.
           </p>
         </div>
 
@@ -57,9 +60,11 @@ export function GuidesSection() {
                 <span className="rounded-full bg-[color:var(--foreground)]/5 px-2.5 py-1 font-mono text-xs text-[color:var(--muted-foreground)]">
                   {guide.category}
                 </span>
-                <span className="font-mono text-xs text-[color:var(--muted-foreground)]">{guide.readTime}</span>
+                <span className="font-mono text-xs text-[color:var(--muted-foreground)]">
+                  {guide.readTime}
+                </span>
               </div>
-              <h3 className="mb-3 font-display text-xl transition-colors group-hover:text-[color:var(--primary)] lg:text-2xl">
+              <h3 className="font-display mb-3 text-xl transition-colors group-hover:text-[color:var(--primary)] lg:text-2xl">
                 {guide.title}
               </h3>
               <p className="mb-6 flex-1 text-sm leading-relaxed text-[color:var(--muted-foreground)]">

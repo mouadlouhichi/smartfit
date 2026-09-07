@@ -23,6 +23,12 @@ export type GoalCadence = 'weekly' | 'monthly';
 
 export type BodyUnit = 'weight' | 'bodyfat' | 'waist' | 'chest' | 'arms' | 'custom';
 
+export type WeightUnit = 'kg' | 'lb';
+export type DistanceUnit = 'km' | 'mi';
+
+/** First day of the training week. 0 = Sunday, 1 = Monday. */
+export type WeekStart = 0 | 1;
+
 export interface Category {
   id: string;
   name: string;
@@ -33,7 +39,7 @@ export interface Category {
 
 export interface WorkoutSet {
   reps?: number;
-  weight?: number; // kg
+  weight?: number; // canonical kg
   distance?: number; // km
   duration?: number; // minutes
 }
@@ -51,9 +57,11 @@ export interface WorkoutSession {
   durationMin: number;
   intensity: Intensity;
   calories: number; // estimated kcal
-  distanceKm?: number;
+  distanceKm?: number; // canonical km
   exercises: WorkoutExercise[];
   notes?: string;
+  /** Set when this session was logged from a scheduled slot. */
+  scheduleId?: string;
   createdAt: number;
 }
 
@@ -86,6 +94,7 @@ export interface BodyLog {
   date: string; // ISO yyyy-mm-dd
   unit: BodyUnit;
   label?: string; // for custom
+  /** Canonical value: kg for weight, cm for circumferences, % for bodyfat. */
   value: number;
   createdAt: number;
 }
@@ -102,9 +111,12 @@ export interface Plan {
 
 export interface UserProfile {
   name: string;
-  weightUnit: 'kg' | 'lb';
-  distanceUnit: 'km' | 'mi';
+  weightUnit: WeightUnit;
+  distanceUnit: DistanceUnit;
+  /** Planned rest days per week — used by the rest-day-aware streak. */
   weeklyRestDays: number;
+  /** First day of the training week (0 = Sunday, 1 = Monday). */
+  weekStartsOn: WeekStart;
   planId: PlanId;
   onboardingDone: boolean;
 }

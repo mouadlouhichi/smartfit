@@ -54,14 +54,30 @@ export function getFirebaseServices(): Promise<FirebaseServices | null> {
 
   _services = (async () => {
     try {
-      const [{ initializeApp, getApps }, { getAuth }, { getFirestore }] = await Promise.all([
+      const [{ initializeApp, getApps }, { getAuth }, firestore] = await Promise.all([
         import('firebase/app'),
         import('firebase/auth'),
         import('firebase/firestore'),
       ]);
       const app = getApps().length ? getApps()[0] : initializeApp(envConfig);
       const auth = getAuth(app);
-      const db = getFirestore(app);
+
+      // Persistent IndexedDB cache: reads are served locally when the network
+      // is unavailable and writes are replayed on reconnect. Multi-tab manager
+      // keeps several open tabs consistent instead of one silently losing the
+      // lease. Falls back to the default in-memory cache if the browser
+      // refuses IndexedDB (private mode, storage disabled, unsupported).
+      let db: import('firebase/firestore').Firestore;
+      try {
+        db = firestore.initializeFirestore(app, {
+          localCache: firestore.persistentLocalCache({
+            tabManager: firestore.persistentMultipleTabManager(),
+          }),
+        });
+      } catch {
+        db = firestore.getFirestore(app);
+      }
+
       return { auth, db };
     } catch (err) {
       console.error('[smartfit] Firebase init failed:', err);

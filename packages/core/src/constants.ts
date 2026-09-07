@@ -1,20 +1,38 @@
-import type { Category, Intensity, Plan } from './types';
+import type { Category, Intensity, Plan, WeekStart } from './types';
 
 export const STORAGE_KEY = 'smartfit.state.v1';
+
+/**
+ * First day of the training week, app-wide. Monday matches how training
+ * splits are written and how every other fitness product counts a week.
+ * Users can override it in Profile -> settings.
+ */
+export const DEFAULT_WEEK_START: WeekStart = 1;
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { id: 'cat-strength', name: 'Strength', icon: 'dumbbell', color: '#d6532f', builtin: true },
   { id: 'cat-cardio', name: 'Cardio', icon: 'heart-pulse', color: '#e8a087', builtin: true },
   { id: 'cat-hiit', name: 'HIIT', icon: 'flame', color: '#b7220f', builtin: true },
-  { id: 'cat-mobility', name: 'Mobility', icon: 'stretch-horizontal', color: '#cdaca4', builtin: true },
+  {
+    id: 'cat-mobility',
+    name: 'Mobility',
+    icon: 'stretch-horizontal',
+    color: '#cdaca4',
+    builtin: true,
+  },
   { id: 'cat-sports', name: 'Sports', icon: 'volleyball', color: '#b9804f', builtin: true },
   { id: 'cat-rest', name: 'Active Rest', icon: 'moon', color: '#857d75', builtin: true },
 ];
 
-export const INTENSITY_META: Record<Intensity, { label: string; multiplier: number; color: string }> = {
-  low: { label: 'Low', multiplier: 4, color: '#e8a087' },
-  moderate: { label: 'Moderate', multiplier: 7, color: '#d6532f' },
-  high: { label: 'High', multiplier: 11, color: '#9e1f0e' },
+/**
+ * `met` is the Metabolic Equivalent of Task used by `estimateCalories`:
+ * roughly light conditioning (3.5), sustained moderate work (6) and hard
+ * intervals / heavy strength (9).
+ */
+export const INTENSITY_META: Record<Intensity, { label: string; met: number; color: string }> = {
+  low: { label: 'Low', met: 3.5, color: '#e8a087' },
+  moderate: { label: 'Moderate', met: 6, color: '#d6532f' },
+  high: { label: 'High', met: 9, color: '#9e1f0e' },
 };
 
 export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
@@ -91,6 +109,11 @@ export const GOAL_METRIC_META: Record<
   distance: { label: 'Distance', unit: 'km', icon: 'route', step: 5 },
 };
 
+/**
+ * `unit` is the *canonical stored* unit. What the user sees depends on their
+ * preferences - use `bodyDisplayUnit()` / `bodyValueToDisplay()` from
+ * `units.ts` at the render boundary, never this value directly.
+ */
 export const BODY_UNIT_META: Record<string, { label: string; unit: string; icon: string }> = {
   weight: { label: 'Body weight', unit: 'kg', icon: 'scale' },
   bodyfat: { label: 'Body fat', unit: '%', icon: 'percent' },

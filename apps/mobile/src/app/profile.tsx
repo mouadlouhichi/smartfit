@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Database, RefreshCw, Trash2, UserRound, X } from 'lucide-react-native';
+import { Database, RefreshCw, UserRound, X } from 'lucide-react-native';
 import { BODY_UNIT_META, latestBodyValue, toISODate, PLANS } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 import { Button, Card, Input, Label } from '@/components/ui';
@@ -20,10 +20,10 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   return (
     <Modal visible={open} animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 bg-background p-5">
+      <View className="bg-background flex-1 p-5">
         <View className="flex-row items-center justify-between py-2">
-          <Text className="text-lg font-bold text-foreground">Log measurement</Text>
-          <Pressable onPress={onClose} className="rounded-full p-2 active:bg-muted">
+          <Text className="text-foreground text-lg font-bold">Log measurement</Text>
+          <Pressable onPress={onClose} className="active:bg-muted rounded-full p-2">
             <X color="#857D75" size={22} />
           </Pressable>
         </View>
@@ -36,9 +36,15 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                   key={u}
                   onPress={() => setUnit(u)}
                   className="rounded-full border px-3 py-2"
-                  style={{ borderColor: unit === u ? '#D6532F' : '#E7E2DB', backgroundColor: unit === u ? '#D6532F22' : 'transparent' }}
+                  style={{
+                    borderColor: unit === u ? '#D6532F' : '#E7E2DB',
+                    backgroundColor: unit === u ? '#D6532F22' : 'transparent',
+                  }}
                 >
-                  <Text style={{ color: unit === u ? '#D6532F' : '#857D75' }} className="text-sm font-medium">
+                  <Text
+                    style={{ color: unit === u ? '#D6532F' : '#857D75' }}
+                    className="text-sm font-medium"
+                  >
                     {BODY_UNIT_META[u].label}
                   </Text>
                 </Pressable>
@@ -64,21 +70,26 @@ export default function ProfileScreen() {
   const weight = latestBodyValue(state, 'weight');
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView className="bg-background flex-1" edges={['top']}>
       <ScrollView className="flex-1" contentContainerClassName="p-4 pb-28 gap-4">
-        <Text className="text-2xl font-bold text-foreground">Profile</Text>
-        <Text className="text-sm text-muted-foreground">Your data stays on this device.</Text>
+        <Text className="text-foreground text-2xl font-bold">Profile</Text>
+        <Text className="text-muted-foreground text-sm">Your data stays on this device.</Text>
 
         <Card>
           <View className="mb-3 flex-row items-center gap-2">
             <UserRound color="#D6532F" size={18} />
-            <Text className="font-semibold text-foreground">You</Text>
+            <Text className="text-foreground font-semibold">You</Text>
           </View>
           <Label>Name</Label>
-          <Input value={name} onChangeText={setName} onBlur={() => updateProfile({ name })} placeholder="Your name" />
+          <Input
+            value={name}
+            onChangeText={setName}
+            onBlur={() => updateProfile({ name })}
+            placeholder="Your name"
+          />
           <View className="mt-3">
             <Label>Strategy</Label>
-            <Text className="rounded-xl border border-border bg-background p-3 text-sm text-foreground">
+            <Text className="border-border bg-background text-foreground rounded-xl border p-3 text-sm">
               {PLANS.find((p) => p.id === state.profile.planId)?.name}
             </Text>
           </View>
@@ -87,23 +98,29 @@ export default function ProfileScreen() {
         <Card>
           <View className="mb-2 flex-row items-center gap-2">
             <Database color="#D6532F" size={18} />
-            <Text className="font-semibold text-foreground">Your data</Text>
+            <Text className="text-foreground font-semibold">Your data</Text>
           </View>
-          <Text className="text-sm text-muted-foreground">
-            {state.sessions.length} workouts · {state.schedule.length} scheduled · {state.goals.length} goals ·{' '}
-            {state.bodyLogs.length} measurements
+          <Text className="text-muted-foreground text-sm">
+            {state.sessions.length} workouts · {state.schedule.length} scheduled ·{' '}
+            {state.goals.length} goals · {state.bodyLogs.length} measurements
           </Text>
-          {weight != null && <Text className="mt-1 text-sm text-muted-foreground">Latest weight: {weight} kg</Text>}
+          {weight != null && (
+            <Text className="text-muted-foreground mt-1 text-sm">Latest weight: {weight} kg</Text>
+          )}
           <View className="mt-4 gap-2">
             <Button label="Log measurement" variant="secondary" onPress={() => setBodyOpen(true)} />
             <Button
               label="Erase everything"
               variant="destructive"
               onPress={() =>
-                Alert.alert('Erase data', 'Delete all SmartFit data on this device? This cannot be undone.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Erase', style: 'destructive', onPress: clearData },
-                ])
+                Alert.alert(
+                  'Erase data',
+                  'Delete all SmartFit data on this device? This cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Erase', style: 'destructive', onPress: clearData },
+                  ],
+                )
               }
             />
           </View>
@@ -111,8 +128,9 @@ export default function ProfileScreen() {
 
         <View className="flex-row items-center justify-center gap-2 py-4">
           <RefreshCw color="#857D75" size={14} />
-          <Text className="text-xs text-muted-foreground">Local-first · no account · no trackers</Text>
-          <Trash2 color="#ffffff" size={1} />
+          <Text className="text-muted-foreground text-xs">
+            Local-first · no account · no trackers
+          </Text>
         </View>
       </ScrollView>
 

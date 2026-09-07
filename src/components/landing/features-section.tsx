@@ -15,12 +15,42 @@ function LogsVisual() {
           <rect x="30" y="20" width="140" height="120" rx="4" />
         </clipPath>
       </defs>
-      <rect x="30" y="20" width="140" height="120" rx="4" fill="none" stroke="currentColor" strokeWidth="2" />
+      <rect
+        x="30"
+        y="20"
+        width="140"
+        height="120"
+        rx="4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
       <g clipPath="url(#logsClip)">
         {[0, 1, 2, 3, 4, 5].map((i) => (
-          <rect key={i} x="40" y={35 + i * 16} width="120" height="10" rx="2" fill="currentColor" opacity="0.15">
-            <animate attributeName="opacity" values="0.15;0.8;0.15" dur="2s" begin={`${i * 0.15}s`} repeatCount="indefinite" />
-            <animate attributeName="width" values="20;120;20" dur="2s" begin={`${i * 0.15}s`} repeatCount="indefinite" />
+          <rect
+            key={i}
+            x="40"
+            y={35 + i * 16}
+            width="120"
+            height="10"
+            rx="2"
+            fill="currentColor"
+            opacity="0.15"
+          >
+            <animate
+              attributeName="opacity"
+              values="0.15;0.8;0.15"
+              dur="2s"
+              begin={`${i * 0.15}s`}
+              repeatCount="indefinite"
+            />
+            <animate
+              attributeName="width"
+              values="20;120;20"
+              dur="2s"
+              begin={`${i * 0.15}s`}
+              repeatCount="indefinite"
+            />
           </rect>
         ))}
       </g>
@@ -44,11 +74,31 @@ function PlanVisual() {
         const nodeY = (80 + Math.sin(angle) * radius).toFixed(3);
         return (
           <g key={i}>
-            <line x1="100" y1="80" x2={nodeX} y2={nodeY} stroke="currentColor" strokeWidth="1" opacity="0.3">
-              <animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" begin={`${i * 0.3}s`} repeatCount="indefinite" />
+            <line
+              x1="100"
+              y1="80"
+              x2={nodeX}
+              y2={nodeY}
+              stroke="currentColor"
+              strokeWidth="1"
+              opacity="0.3"
+            >
+              <animate
+                attributeName="opacity"
+                values="0.3;0.8;0.3"
+                dur="2s"
+                begin={`${i * 0.3}s`}
+                repeatCount="indefinite"
+              />
             </line>
             <circle cx={nodeX} cy={nodeY} r="6" fill="none" stroke="currentColor" strokeWidth="2">
-              <animate attributeName="r" values="6;8;6" dur="2s" begin={`${i * 0.3}s`} repeatCount="indefinite" />
+              <animate
+                attributeName="r"
+                values="6;8;6"
+                dur="2s"
+                begin={`${i * 0.3}s`}
+                repeatCount="indefinite"
+              />
             </circle>
           </g>
         );
@@ -65,17 +115,66 @@ function ReconcileVisual() {
   return (
     <svg viewBox="0 0 200 160" className="h-full w-full">
       <g>
-        <rect x="30" y="50" width="50" height="60" rx="4" fill="none" stroke="currentColor" strokeWidth="2" />
-        <text x="55" y="85" textAnchor="middle" fontSize="16" fontFamily="monospace" fill="currentColor">LOG</text>
+        <rect
+          x="30"
+          y="50"
+          width="50"
+          height="60"
+          rx="4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <text
+          x="55"
+          y="85"
+          textAnchor="middle"
+          fontSize="16"
+          fontFamily="monospace"
+          fill="currentColor"
+        >
+          LOG
+        </text>
         <circle cx="55" cy="35" r="12" fill="none" stroke="currentColor" strokeWidth="2" />
       </g>
       <g>
-        <rect x="120" y="50" width="50" height="60" rx="4" fill="none" stroke="currentColor" strokeWidth="2" />
-        <text x="145" y="85" textAnchor="middle" fontSize="14" fontFamily="monospace" fill="currentColor">PLAN</text>
+        <rect
+          x="120"
+          y="50"
+          width="50"
+          height="60"
+          rx="4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        />
+        <text
+          x="145"
+          y="85"
+          textAnchor="middle"
+          fontSize="14"
+          fontFamily="monospace"
+          fill="currentColor"
+        >
+          PLAN
+        </text>
         <circle cx="145" cy="35" r="12" fill="none" stroke="currentColor" strokeWidth="2" />
       </g>
-      <line x1="80" y1="80" x2="120" y2="80" stroke="currentColor" strokeWidth="2" strokeDasharray="4 4">
-        <animate attributeName="stroke-dashoffset" values="0;-8" dur="0.5s" repeatCount="indefinite" />
+      <line
+        x1="80"
+        y1="80"
+        x2="120"
+        y2="80"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeDasharray="4 4"
+      >
+        <animate
+          attributeName="stroke-dashoffset"
+          values="0;-8"
+          dur="0.5s"
+          repeatCount="indefinite"
+        />
       </line>
       <circle r="4" fill="currentColor">
         <animateMotion dur="1.5s" repeatCount="indefinite">
@@ -90,12 +189,27 @@ function ReconcileVisual() {
 function ShieldVisual() {
   return (
     <svg viewBox="0 0 200 160" className="h-full w-full">
-      <path d="M 100 20 L 150 40 L 150 90 Q 150 130 100 145 Q 50 130 50 90 L 50 40 Z" fill="none" stroke="currentColor" strokeWidth="2" />
-      <path d="M 100 35 L 135 50 L 135 85 Q 135 115 100 128 Q 65 115 65 85 L 65 50 Z" fill="currentColor" opacity="0.1">
+      <path
+        d="M 100 20 L 150 40 L 150 90 Q 150 130 100 145 Q 50 130 50 90 L 50 40 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M 100 35 L 135 50 L 135 85 Q 135 115 100 128 Q 65 115 65 85 L 65 50 Z"
+        fill="currentColor"
+        opacity="0.1"
+      >
         <animate attributeName="opacity" values="0.1;0.2;0.1" dur="2s" repeatCount="indefinite" />
       </path>
       <rect x="85" y="70" width="30" height="25" rx="3" fill="currentColor" />
-      <path d="M 90 70 L 90 60 Q 90 50 100 50 Q 110 50 110 60 L 110 70" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+      <path
+        d="M 90 70 L 90 60 Q 90 50 100 50 Q 110 50 110 60 L 110 70"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
       <circle cx="100" cy="80" r="4" fill="white" />
       <rect x="98" y="82" width="4" height="8" fill="white" />
     </svg>
@@ -171,14 +285,18 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
     >
       <div className="flex flex-col gap-8 border-b border-[color:var(--foreground)]/10 py-12 lg:flex-row lg:gap-16 lg:py-20">
         <div className="shrink-0">
-          <span className="font-mono text-sm text-[color:var(--muted-foreground)]">{feature.number}</span>
+          <span className="font-mono text-sm text-[color:var(--muted-foreground)]">
+            {feature.number}
+          </span>
         </div>
         <div className="grid flex-1 items-center gap-8 lg:grid-cols-2">
           <div>
             <h3 className="mb-4 text-3xl transition-transform duration-500 group-hover:translate-x-2 lg:text-4xl">
               {feature.title}
             </h3>
-            <p className="text-lg leading-relaxed text-[color:var(--muted-foreground)]">{feature.description}</p>
+            <p className="text-lg leading-relaxed text-[color:var(--muted-foreground)]">
+              {feature.description}
+            </p>
             {feature.link && (
               <Link
                 href={feature.link.href}
@@ -212,15 +330,20 @@ export function FeaturesSection() {
           >
             Log your training.
             <br />
-            <span className="text-[color:var(--muted-foreground)]">Track it by plan or session.</span>
+            <span className="text-[color:var(--muted-foreground)]">
+              Track it by plan or session.
+            </span>
           </h2>
           <p className="mt-6 max-w-2xl text-[color:var(--muted-foreground)]">
             SmartFit is a{' '}
-            <Link href="/" className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline">
+            <Link
+              href="/"
+              className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline"
+            >
               free private fitness tracker
             </Link>{' '}
-            built for consistency — it keeps your activity types separate from your recurring plan and reconciles
-            them automatically.
+            built for consistency — it keeps your activity types separate from your recurring plan
+            and reconciles them automatically.
           </p>
         </div>
 

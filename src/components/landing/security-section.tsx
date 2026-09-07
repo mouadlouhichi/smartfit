@@ -7,17 +7,20 @@ const FEATURES = [
   {
     icon: Shield,
     title: 'Private by default',
-    description: 'Your workouts live in local storage on your device. There is no cloud account to breach.',
+    description:
+      'Your workouts live in local storage on your device. There is no cloud account to breach.',
   },
   {
     icon: Lock,
     title: 'No sensors, no surveillance',
-    description: 'SmartFit never pairs with a watch, ring or phone sensor. You decide what counts as a session.',
+    description:
+      'SmartFit never pairs with a watch, ring or phone sensor. You decide what counts as a session.',
   },
   {
     icon: Eye,
     title: 'No advertising profiles',
-    description: 'We never use your training data to build ad profiles or sell it to third parties. No trackers.',
+    description:
+      'We never use your training data to build ad profiles or sell it to third parties. No trackers.',
   },
   {
     icon: FileCheck,
@@ -26,7 +29,13 @@ const FEATURES = [
   },
 ];
 
-const BADGES = ['On-device storage', 'No account needed', 'No wearable pairing', 'JSON export', 'No ad profiles'];
+const BADGES = [
+  'On-device storage',
+  'No account needed',
+  'No wearable pairing',
+  'JSON export',
+  'No ad profiles',
+];
 
 export function SecuritySection() {
   const { ref, visible } = useReveal<HTMLElement>(0.1);
@@ -47,8 +56,8 @@ export function SecuritySection() {
               your business.
             </h2>
             <p className="mb-12 text-xl leading-relaxed text-[color:var(--muted-foreground)]">
-              Everything stays on your device. Export and deletion controls live in Profile, and there is no account
-              that could ever leak.
+              Everything stays on your device. Export and deletion controls live in Profile, and
+              there is no account that could ever leak.
             </p>
             <div className="flex flex-wrap gap-3">
               {BADGES.map((cert, index) => (

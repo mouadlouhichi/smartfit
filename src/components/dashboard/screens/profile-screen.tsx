@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,14 +9,40 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Cloud, Database, Download, LogOut, Tag, Trash2, UserRound } from 'lucide-react';
-import { PLANS } from '@smartfit/core';
+import {
+  Cloud,
+  CloudOff,
+  Database,
+  Download,
+  Loader2,
+  LogOut,
+  RefreshCw,
+  Tag,
+  Trash2,
+  Upload,
+  UserRound,
+} from 'lucide-react';
+import { PLANS, parseStateJSON } from '@smartfit/core';
+import type { WeekStart } from '@smartfit/core';
 import { useAuth } from '@/lib/firebase/auth-context';
 
 export function ProfileScreen() {
-  const { state, updateProfile, clearData, cloud } = useStore();
-  const { user, signOut, mode } = useAuth();
+  const {
+    state,
+    updateProfile,
+    clearData,
+    replaceState,
+    cloud,
+    syncStatus,
+    syncError,
+    retrySync,
+    signOutAndForget,
+  } = useStore();
+  const { user, mode, deleteAccount, authError } = useAuth();
   const { openModal } = useModals();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState<null | 'delete' | 'import'>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const counts = {
     workouts: state.sessions.length,
@@ -34,11 +61,57 @@ export function ProfileScreen() {
     URL.revokeObjectURL(url);
   }
 
+  /** Import validates through the shared parser — never a raw JSON cast. */
+  async function importData(file: File) {
+    setImportError(null);
+    setBusy('import');
+    try {
+      const parsed = parseStateJSON(await file.text());
+      if (!parsed) {
+        setImportError('That file isn’t a SmartFit export we can read.');
+        return;
+      }
+      const total =
+        parsed.sessions.length +
+        parsed.goals.length +
+        parsed.schedule.length +
+        parsed.bodyLogs.length;
+      if (
+        !confirm(
+          `Replace everything in SmartFit with this backup (${total} records)? Your current data will be overwritten.`,
+        )
+      )
+        return;
+      await replaceState(parsed);
+    } catch {
+      setImportError('We couldn’t read that file.');
+    } finally {
+      setBusy(null);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  async function removeAccount() {
+    if (
+      !confirm('Permanently delete your account and all your training data? This cannot be undone.')
+    )
+      return;
+    setBusy('delete');
+    try {
+      // Data first — the security rules require an authenticated user.
+      await clearData();
+      await deleteAccount();
+      window.location.href = '/';
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div className="grid gap-5">
       <div>
         <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Profile &amp; settings</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {cloud
             ? `Signed in${user?.email ? ` as ${user.email}` : ''} — your training syncs to the cloud.`
             : 'Your data stays on this device — no account needed.'}
@@ -49,24 +122,69 @@ export function ProfileScreen() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Cloud className="h-4 w-4 text-primary" /> Account
+              <Cloud className="text-primary h-4 w-4" /> Account
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{user.displayName || state.profile.name || 'Athlete'}</p>
-              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+          <CardContent className="grid gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold">
+                  {user.displayName || state.profile.name || 'Athlete'}
+                </p>
+                <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => void signOutAndForget()}>
+                  <LogOut className="h-4 w-4" /> Sign out
+                </Button>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                await signOut();
-                window.location.href = '/login';
-              }}
-            >
-              <LogOut className="h-4 w-4" /> Sign out
-            </Button>
+
+            {/* Sync health */}
+            <div className="bg-secondary/60 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5 text-xs">
+              {syncStatus === 'error' ? (
+                <>
+                  <CloudOff className="text-destructive h-4 w-4" />
+                  <span className="text-muted-foreground min-w-0 flex-1">
+                    {syncError ?? 'Some changes haven’t reached the cloud.'}
+                  </span>
+                  <Button size="sm" variant="outline" onClick={retrySync}>
+                    <RefreshCw className="h-3.5 w-3.5" /> Retry
+                  </Button>
+                </>
+              ) : syncStatus === 'saving' ? (
+                <>
+                  <Loader2 className="text-primary h-4 w-4 animate-spin" />
+                  <span className="text-muted-foreground">Saving…</span>
+                </>
+              ) : (
+                <>
+                  <Cloud className="text-primary h-4 w-4" />
+                  <span className="text-muted-foreground">All changes saved.</span>
+                </>
+              )}
+            </div>
+
+            <div className="border-border border-t pt-3">
+              <p className="text-muted-foreground text-xs">
+                Deleting your account erases your training data and sign-in credentials for good.
+              </p>
+              {authError && <p className="text-destructive mt-1 text-xs">{authError}</p>}
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={busy !== null}
+                onClick={removeAccount}
+                className="text-destructive hover:text-destructive mt-2"
+              >
+                {busy === 'delete' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete account
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -74,17 +192,28 @@ export function ProfileScreen() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <UserRound className="h-4 w-4 text-primary" /> You
+            <UserRound className="text-primary h-4 w-4" /> You
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
             <Label htmlFor="p-name">Name</Label>
-            <Input id="p-name" value={state.profile.name} onChange={(e) => updateProfile({ name: e.target.value })} placeholder="Your name" />
+            <Input
+              id="p-name"
+              value={state.profile.name}
+              onChange={(e) => updateProfile({ name: e.target.value })}
+              placeholder="Your name"
+            />
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="p-plan">Default strategy</Label>
-            <Select value={state.profile.planId} onChange={(e) => updateProfile({ planId: e.target.value as typeof state.profile.planId })}>
+            <Select
+              id="p-plan"
+              value={state.profile.planId}
+              onChange={(e) =>
+                updateProfile({ planId: e.target.value as typeof state.profile.planId })
+              }
+            >
               {PLANS.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -102,6 +231,34 @@ export function ProfileScreen() {
               <option value="kg">Kilograms (kg)</option>
               <option value="lb">Pounds (lb)</option>
             </Select>
+            <p className="text-muted-foreground text-xs">
+              Body measurements follow this: {state.profile.weightUnit === 'kg' ? 'cm' : 'inches'}.
+            </p>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="p-distance">Distance unit</Label>
+            <Select
+              id="p-distance"
+              value={state.profile.distanceUnit}
+              onChange={(e) => updateProfile({ distanceUnit: e.target.value as 'km' | 'mi' })}
+            >
+              <option value="km">Kilometres (km)</option>
+              <option value="mi">Miles (mi)</option>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="p-weekstart">Week starts on</Label>
+            <Select
+              id="p-weekstart"
+              value={state.profile.weekStartsOn ?? 1}
+              onChange={(e) => updateProfile({ weekStartsOn: Number(e.target.value) as WeekStart })}
+            >
+              <option value={1}>Monday</option>
+              <option value={0}>Sunday</option>
+            </Select>
+            <p className="text-muted-foreground text-xs">
+              Used for weekly goals, streaks and every &quot;this week&quot; total.
+            </p>
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="p-rest">Rest days / week</Label>
@@ -116,6 +273,9 @@ export function ProfileScreen() {
                 </option>
               ))}
             </Select>
+            <p className="text-muted-foreground text-xs">
+              Your streak survives this many untrained days a week.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -123,7 +283,7 @@ export function ProfileScreen() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Database className="h-4 w-4 text-primary" /> Your data
+            <Database className="text-primary h-4 w-4" /> Your data
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
@@ -144,17 +304,42 @@ export function ProfileScreen() {
             <Button
               variant="outline"
               size="sm"
+              disabled={busy === 'import'}
+              onClick={() => fileRef.current?.click()}
+            >
+              {busy === 'import' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
+              Import backup
+            </Button>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void importData(f);
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
               className="text-destructive hover:text-destructive"
               onClick={() => {
-                if (confirm('Erase all your SmartFit data on this device? This cannot be undone.')) clearData();
+                if (confirm('Erase all your SmartFit data? This cannot be undone.'))
+                  void clearData();
               }}
             >
               <Trash2 className="h-4 w-4" /> Erase everything
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
+          {importError && <p className="text-destructive text-xs">{importError}</p>}
+          <p className="text-muted-foreground text-xs">
             {cloud
-              ? 'Your training is stored securely in Cloud Firestore under your account and synced across devices. Export a JSON backup any time.'
+              ? 'Your training is stored in Cloud Firestore under your account and synced across devices, with an offline copy on this device. Export a JSON backup any time.'
               : mode === 'cloud'
                 ? 'You are signed out — data is stored locally in this browser until you sign in, then it syncs to the cloud.'
                 : 'SmartFit stores everything locally in your browser (localStorage). Nothing is sent to a server, and there are no trackers. Export any time for a backup.'}

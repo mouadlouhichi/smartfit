@@ -29,13 +29,16 @@ export function HeroSection() {
       {/* Animated ASCII sphere */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute right-0 top-1/2 h-[600px] w-[600px] -translate-y-1/2 opacity-40 lg:h-[800px] lg:w-[800px]"
+        className="pointer-events-none absolute top-1/2 right-0 h-[600px] w-[600px] -translate-y-1/2 opacity-40 lg:h-[800px] lg:w-[800px]"
       >
         <AnimatedSphere />
       </div>
 
       {/* Faint blueprint grid */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden opacity-30">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 overflow-hidden opacity-30"
+      >
         {[...Array(8)].map((_, index) => (
           <div
             key={`h-${index}`}
@@ -46,7 +49,7 @@ export function HeroSection() {
         {[...Array(12)].map((_, index) => (
           <div
             key={`v-${index}`}
-            className="absolute bottom-0 top-0 w-px bg-[color:var(--foreground)]/10"
+            className="absolute top-0 bottom-0 w-px bg-[color:var(--foreground)]/10"
             style={{ left: `${8.33 * (index + 1)}%` }}
           />
         ))}
@@ -73,7 +76,10 @@ export function HeroSection() {
                     </span>
                   ))}
                 </span>
-                <span aria-hidden="true" className="absolute inset-x-0 -bottom-2 h-3 bg-[color:var(--foreground)]/10" />
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-x-0 -bottom-2 h-3 bg-[color:var(--foreground)]/10"
+                />
               </span>
             </span>
           </h1>
@@ -81,15 +87,12 @@ export function HeroSection() {
 
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-24">
           <p className="max-w-xl text-xl leading-relaxed text-[color:var(--muted-foreground)] lg:text-2xl">
-            Log each session and the plan it belongs to — two separate views that stay reconciled through every
-            workout. Strength, cardio and HIIT, tracked privately on your device.
+            Log each session and the plan it belongs to — two separate views that stay reconciled
+            through every workout. Strength, cardio and HIIT, tracked privately on your device.
           </p>
 
           <div className="flex flex-col items-start gap-4 sm:flex-row lg:-translate-y-6">
-            <Link
-              href="/login"
-              className="btn-primary group"
-            >
+            <Link href="/login" className="btn-primary group">
               Start training free
               <ArrowRight className="ms-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>

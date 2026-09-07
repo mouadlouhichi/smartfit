@@ -4,6 +4,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 const nextConfig = {
   transpilePackages: ['@smartfit/core'],
   typescript: { ignoreBuildErrors: false },
+  // Linting runs as its own CI step (`pnpm lint`); keeping it out of the
+  // build keeps `next build` fast and its failures unambiguous.
   eslint: { ignoreDuringBuilds: true },
   // Allow development assets and hot reload through the browser preview proxy.
   allowedDevOrigins: ['*.e2b.app'],

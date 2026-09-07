@@ -105,7 +105,9 @@ export function MetricsSection() {
               style={{ transitionDelay: `${index * 100}ms` }}
             >
               <AnimatedCounter end={metric.value} suffix={metric.suffix} />
-              <div className="mt-4 text-lg text-[color:var(--muted-foreground)]">{metric.label}</div>
+              <div className="mt-4 text-lg text-[color:var(--muted-foreground)]">
+                {metric.label}
+              </div>
             </div>
           ))}
         </div>

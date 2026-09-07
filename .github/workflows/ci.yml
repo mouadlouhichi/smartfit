@@ -11,6 +11,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint:
+    name: Lint & format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
+
   web-build:
     name: Web build & typecheck
     runs-on: ubuntu-latest
@@ -26,7 +40,7 @@ jobs:
       - run: pnpm build
 
   core-tests:
-    name: Core package tests
+    name: Unit tests (core + web lib)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,6 +51,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @smartfit/core test
+      - run: pnpm test
 
   mobile-typecheck:
     name: Mobile typecheck

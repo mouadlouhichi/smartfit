@@ -2,14 +2,35 @@ import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { Button, Card, Input, Label } from './ui';
-import { estimateCalories, toISODate, INTENSITY_META } from '@smartfit/core';
+import {
+  estimateCalories,
+  fromKm,
+  latestBodyWeightKg,
+  relativeDay,
+  toISODate,
+  toKm,
+  INTENSITY_META,
+} from '@smartfit/core';
 import type { Intensity } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 
 const INTENSITIES: Intensity[] = ['low', 'moderate', 'high'];
 
+/** The last week of dates, most recent first — enough to catch up a missed log. */
+function recentDates(count = 7): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - i);
+    out.push(toISODate(d));
+  }
+  return out;
+}
+
 export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { state, addSession } = useStore();
+  const [date, setDate] = useState(toISODate(new Date()));
   const [categoryId, setCategoryId] = useState('cat-strength');
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState('45');
@@ -18,34 +39,73 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
 
   const category = state.categories.find((c) => c.id === categoryId);
   const isCardio = categoryId === 'cat-cardio' || categoryId === 'cat-sports';
-  const calories = estimateCalories(Number(duration) || 0, intensity);
+  // Personalised by the most recent body weight, exactly like the web app.
+  const calories = estimateCalories(
+    Number(duration) || 0,
+    intensity,
+    latestBodyWeightKg(state) ?? undefined,
+  );
+  const distanceUnit = state.profile.distanceUnit ?? 'km';
+  const dates = recentDates();
 
   function save() {
     addSession({
-      date: toISODate(new Date()),
+      date,
       categoryId,
       title: title.trim() || category?.name || 'Workout',
       durationMin: Math.max(1, Number(duration) || 0),
       intensity,
       calories,
-      distanceKm: isCardio && distance ? Number(distance) : undefined,
+      distanceKm: isCardio && distance ? toKm(Number(distance), distanceUnit) : undefined,
       exercises: [],
     });
     setTitle('');
     setDistance('');
+    setDate(toISODate(new Date()));
     onClose();
   }
 
   return (
     <Modal visible={open} animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 bg-background">
-        <View className="flex-row items-center justify-between border-b border-border px-5 py-4">
-          <Text className="text-lg font-bold text-foreground">Log workout</Text>
-          <Pressable onPress={onClose} className="rounded-full p-2 active:bg-muted">
+      <View className="bg-background flex-1">
+        <View className="border-border flex-row items-center justify-between border-b px-5 py-4">
+          <Text className="text-foreground text-lg font-bold">Log workout</Text>
+          <Pressable onPress={onClose} className="active:bg-muted rounded-full p-2">
             <X color="#857D75" size={22} />
           </Pressable>
         </View>
         <ScrollView className="flex-1 p-5" contentContainerClassName="gap-4">
+          <View>
+            <Label>When</Label>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerClassName="gap-2"
+            >
+              {dates.map((d) => {
+                const selected = d === date;
+                return (
+                  <Pressable
+                    key={d}
+                    onPress={() => setDate(d)}
+                    className="rounded-full border px-3 py-2"
+                    style={{
+                      borderColor: selected ? '#D6532F' : '#E7E2DB',
+                      backgroundColor: selected ? '#D6532F14' : 'transparent',
+                    }}
+                  >
+                    <Text
+                      className="text-sm font-medium"
+                      style={{ color: selected ? '#D6532F' : '#857D75' }}
+                    >
+                      {relativeDay(d)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           <View>
             <Label>Title</Label>
             <Input placeholder="e.g. Push day" value={title} onChangeText={setTitle} />
@@ -64,7 +124,10 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
                     backgroundColor: categoryId === c.id ? `${c.color}14` : 'transparent',
                   }}
                 >
-                  <Text style={{ color: categoryId === c.id ? c.color : '#857D75' }} className="text-sm font-medium">
+                  <Text
+                    style={{ color: categoryId === c.id ? c.color : '#857D75' }}
+                    className="text-sm font-medium"
+                  >
                     {c.name}
                   </Text>
                 </Pressable>
@@ -79,8 +142,13 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
             </View>
             {isCardio ? (
               <View className="flex-1">
-                <Label>Distance (km)</Label>
-                <Input keyboardType="numeric" value={distance} onChangeText={setDistance} placeholder="0.0" />
+                <Label>Distance ({distanceUnit})</Label>
+                <Input
+                  keyboardType="numeric"
+                  value={distance}
+                  onChangeText={setDistance}
+                  placeholder="0.0"
+                />
               </View>
             ) : null}
           </View>
@@ -95,7 +163,8 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
                   className="flex-1 rounded-full border px-3 py-2"
                   style={{
                     borderColor: intensity === k ? INTENSITY_META[k].color : '#E7E2DB',
-                    backgroundColor: intensity === k ? `${INTENSITY_META[k].color}14` : 'transparent',
+                    backgroundColor:
+                      intensity === k ? `${INTENSITY_META[k].color}14` : 'transparent',
                   }}
                 >
                   <Text
@@ -110,8 +179,8 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
           </View>
 
           <Card className="flex-row items-center justify-between">
-            <Text className="text-sm text-muted-foreground">Estimated burn</Text>
-            <Text className="text-base font-bold text-primary">{calories} kcal</Text>
+            <Text className="text-muted-foreground text-sm">Estimated burn</Text>
+            <Text className="text-primary text-base font-bold">{calories} kcal</Text>
           </Card>
 
           <Button label="Save workout" onPress={save} />

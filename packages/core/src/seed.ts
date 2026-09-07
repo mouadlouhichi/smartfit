@@ -1,4 +1,4 @@
-import { DEFAULT_CATEGORIES, PLANS } from './constants';
+import { DEFAULT_CATEGORIES, DEFAULT_WEEK_START, PLANS } from './constants';
 import { estimateCalories, toISODate } from './fitness';
 import type { FitnessState, Intensity, ScheduledWorkout, WorkoutExercise } from './types';
 
@@ -51,12 +51,43 @@ export function buildSeedState(): FitnessState {
     intensity: Intensity;
     distanceKm?: number;
   }[] = [
-    { dow: 1, categoryId: 'cat-strength', title: 'Push — chest & shoulders', durationMin: 55, intensity: 'high' },
-    { dow: 2, categoryId: 'cat-strength', title: 'Pull — back & biceps', durationMin: 50, intensity: 'high' },
-    { dow: 3, categoryId: 'cat-cardio', title: 'Morning run', durationMin: 35, intensity: 'moderate', distanceKm: 5.2 },
+    {
+      dow: 1,
+      categoryId: 'cat-strength',
+      title: 'Push — chest & shoulders',
+      durationMin: 55,
+      intensity: 'high',
+    },
+    {
+      dow: 2,
+      categoryId: 'cat-strength',
+      title: 'Pull — back & biceps',
+      durationMin: 50,
+      intensity: 'high',
+    },
+    {
+      dow: 3,
+      categoryId: 'cat-cardio',
+      title: 'Morning run',
+      durationMin: 35,
+      intensity: 'moderate',
+      distanceKm: 5.2,
+    },
     { dow: 4, categoryId: 'cat-hiit', title: 'HIIT circuits', durationMin: 28, intensity: 'high' },
-    { dow: 5, categoryId: 'cat-strength', title: 'Legs — squats & hinges', durationMin: 60, intensity: 'high' },
-    { dow: 6, categoryId: 'cat-sports', title: 'Football with friends', durationMin: 70, intensity: 'moderate' },
+    {
+      dow: 5,
+      categoryId: 'cat-strength',
+      title: 'Legs — squats & hinges',
+      durationMin: 60,
+      intensity: 'high',
+    },
+    {
+      dow: 6,
+      categoryId: 'cat-sports',
+      title: 'Football with friends',
+      durationMin: 70,
+      intensity: 'moderate',
+    },
   ];
 
   // Fill the last 6 weeks (skip today so the streak logic feels live).
@@ -78,7 +109,14 @@ export function buildSeedState(): FitnessState {
             t.categoryId === 'cat-strength'
               ? [
                   { name: 'Warm-up', sets: [{ reps: 10 }] },
-                  { name: 'Main lifts', sets: [{ reps: 8, weight: 40 + week }, { reps: 8, weight: 40 + week }, { reps: 6, weight: 45 + week }] },
+                  {
+                    name: 'Main lifts',
+                    sets: [
+                      { reps: 8, weight: 40 + week },
+                      { reps: 8, weight: 40 + week },
+                      { reps: 6, weight: 45 + week },
+                    ],
+                  },
                 ]
               : undefined,
         }),
@@ -87,18 +125,102 @@ export function buildSeedState(): FitnessState {
   }
 
   const schedule: ScheduledWorkout[] = [
-    { id: sid(), title: 'Push day', categoryId: 'cat-strength', weekday: 1, timeOfDay: '07:00', durationMin: 55, intensity: 'high', active: true, createdAt: Date.now() },
-    { id: sid(), title: 'Pull day', categoryId: 'cat-strength', weekday: 2, timeOfDay: '07:00', durationMin: 50, intensity: 'high', active: true, createdAt: Date.now() },
-    { id: sid(), title: 'Run', categoryId: 'cat-cardio', weekday: 3, timeOfDay: '06:30', durationMin: 35, intensity: 'moderate', active: true, createdAt: Date.now() },
-    { id: sid(), title: 'HIIT', categoryId: 'cat-hiit', weekday: 4, timeOfDay: '18:00', durationMin: 28, intensity: 'high', active: true, createdAt: Date.now() },
-    { id: sid(), title: 'Legs', categoryId: 'cat-strength', weekday: 5, timeOfDay: '07:00', durationMin: 60, intensity: 'high', active: true, createdAt: Date.now() },
-    { id: sid(), title: 'Football', categoryId: 'cat-sports', weekday: 6, timeOfDay: '10:00', durationMin: 70, intensity: 'moderate', active: true, createdAt: Date.now() },
+    {
+      id: sid(),
+      title: 'Push day',
+      categoryId: 'cat-strength',
+      weekday: 1,
+      timeOfDay: '07:00',
+      durationMin: 55,
+      intensity: 'high',
+      active: true,
+      createdAt: Date.now(),
+    },
+    {
+      id: sid(),
+      title: 'Pull day',
+      categoryId: 'cat-strength',
+      weekday: 2,
+      timeOfDay: '07:00',
+      durationMin: 50,
+      intensity: 'high',
+      active: true,
+      createdAt: Date.now(),
+    },
+    {
+      id: sid(),
+      title: 'Run',
+      categoryId: 'cat-cardio',
+      weekday: 3,
+      timeOfDay: '06:30',
+      durationMin: 35,
+      intensity: 'moderate',
+      active: true,
+      createdAt: Date.now(),
+    },
+    {
+      id: sid(),
+      title: 'HIIT',
+      categoryId: 'cat-hiit',
+      weekday: 4,
+      timeOfDay: '18:00',
+      durationMin: 28,
+      intensity: 'high',
+      active: true,
+      createdAt: Date.now(),
+    },
+    {
+      id: sid(),
+      title: 'Legs',
+      categoryId: 'cat-strength',
+      weekday: 5,
+      timeOfDay: '07:00',
+      durationMin: 60,
+      intensity: 'high',
+      active: true,
+      createdAt: Date.now(),
+    },
+    {
+      id: sid(),
+      title: 'Football',
+      categoryId: 'cat-sports',
+      weekday: 6,
+      timeOfDay: '10:00',
+      durationMin: 70,
+      intensity: 'moderate',
+      active: true,
+      createdAt: Date.now(),
+    },
   ];
 
   const goals: FitnessState['goals'] = [
-    { id: sid(), name: 'Train 5 days', metric: 'workouts', cadence: 'weekly', target: 5, startDate: daysAgo(30), createdAt: Date.now() },
-    { id: sid(), name: '150 active minutes', metric: 'minutes', cadence: 'weekly', target: 150, startDate: daysAgo(30), createdAt: Date.now() },
-    { id: sid(), name: 'Run 20 km', metric: 'distance', cadence: 'monthly', target: 20, startDate: daysAgo(30), createdAt: Date.now() },
+    {
+      id: sid(),
+      name: 'Train 5 days',
+      metric: 'workouts',
+      cadence: 'weekly',
+      target: 5,
+      startDate: daysAgo(30),
+      createdAt: Date.now(),
+    },
+    {
+      id: sid(),
+      name: '150 active minutes',
+      metric: 'minutes',
+      cadence: 'weekly',
+      target: 150,
+      startDate: daysAgo(30),
+      createdAt: Date.now(),
+    },
+    {
+      id: sid(),
+      name: 'Run 20 km',
+      metric: 'distance',
+      cadence: 'monthly',
+      target: 20,
+      startDate: daysAgo(30),
+      createdAt: Date.now(),
+    },
   ];
 
   // Weight trending down from 82 -> 78.6 over 6 weeks.
@@ -119,6 +241,7 @@ export function buildSeedState(): FitnessState {
       weightUnit: 'kg',
       distanceUnit: 'km',
       weeklyRestDays: 1,
+      weekStartsOn: DEFAULT_WEEK_START,
       planId: PLANS[0].id,
       onboardingDone: true,
     },
@@ -127,23 +250,5 @@ export function buildSeedState(): FitnessState {
     schedule,
     goals,
     bodyLogs,
-  };
-}
-
-export function emptyState(): FitnessState {
-  return {
-    profile: {
-      name: '',
-      weightUnit: 'kg',
-      distanceUnit: 'km',
-      weeklyRestDays: 2,
-      planId: 'full-body',
-      onboardingDone: false,
-    },
-    categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
-    sessions: [],
-    schedule: [],
-    goals: [],
-    bodyLogs: [],
   };
 }

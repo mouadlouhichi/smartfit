@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { getFirebaseServices, isFirebaseConfigured } from './config';
 
@@ -28,6 +21,11 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /**
+   * Permanently delete the Firebase Auth account. Firestore data must be
+   * wiped first — see `useStore().clearData()`.
+   */
+  deleteAccount: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -58,6 +56,8 @@ function friendlyError(err: unknown): string {
       return 'That sign-in method is not enabled in this Firebase project.';
     case 'auth/too-many-requests':
       return 'Too many attempts — please wait a moment and try again.';
+    case 'auth/requires-recent-login':
+      return 'For your security, please sign in again before deleting your account.';
     default:
       return 'Something went wrong. Please try again.';
   }
@@ -173,6 +173,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await fb.signOut(svc.auth);
   }, []);
 
+  const deleteAccount = useCallback(async () => {
+    const svc = await getFirebaseServices();
+    if (!svc) throw new Error('auth-unavailable');
+    const current = svc.auth.currentUser;
+    if (!current) throw new Error('not-signed-in');
+    const fb = await import('firebase/auth');
+
+    await run(async () => {
+      try {
+        await fb.deleteUser(current);
+      } catch (err) {
+        // Deleting an account is a sensitive operation: Firebase requires a
+        // recent sign-in. Re-authenticate in place rather than dead-ending.
+        if ((err as { code?: string })?.code !== 'auth/requires-recent-login') throw err;
+        const google = current.providerData.some((p) => p.providerId === 'google.com');
+        if (!google) throw err; // password users are asked to sign in again
+        const provider = new fb.GoogleAuthProvider();
+        await fb.reauthenticateWithPopup(current, provider);
+        await fb.deleteUser(current);
+      }
+    });
+  }, [run]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       mode,
@@ -186,6 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       resetPassword,
       signOut,
+      deleteAccount,
       clearError: () => {
         setAuthError(null);
         setAuthInfo(null);
@@ -203,6 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       resetPassword,
       signOut,
+      deleteAccount,
     ],
   );
 

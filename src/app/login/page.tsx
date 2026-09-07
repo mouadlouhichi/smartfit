@@ -118,7 +118,7 @@ export default function LoginPage() {
   if (cloud && initializing) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -134,7 +134,7 @@ export default function LoginPage() {
           <h1 className="font-display text-2xl font-bold tracking-tight">
             {isReset ? 'Reset your password' : isSignUp ? 'Create your account' : 'Welcome back'}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-sm">
             {cloud
               ? isReset
                 ? "Enter your email and we'll send you a reset link."
@@ -162,7 +162,7 @@ export default function LoginPage() {
                 <div className="grid gap-1.5">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       id="email"
                       type="email"
@@ -185,7 +185,7 @@ export default function LoginPage() {
                           clearError();
                           setView('reset');
                         }}
-                        className="text-xs font-medium text-primary hover:underline"
+                        className="text-primary text-xs font-medium hover:underline"
                       >
                         Forgot password?
                       </button>
@@ -204,7 +204,7 @@ export default function LoginPage() {
                 )}
 
                 {authError && (
-                  <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
+                  <p className="bg-destructive/10 text-destructive rounded-lg px-3 py-2 text-xs font-medium">
                     {authError}
                   </p>
                 )}
@@ -230,22 +230,23 @@ export default function LoginPage() {
               </form>
 
               {isReset ? (
-                <p className="mt-5 text-center text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-5 text-center text-sm">
                   <button
                     type="button"
                     onClick={() => {
                       clearError();
                       setView('signin');
                     }}
-                    className="font-semibold text-primary hover:underline"
+                    className="text-primary font-semibold hover:underline"
                   >
                     Back to sign in
                   </button>
                 </p>
               ) : (
                 <>
-                  <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+                  <div className="text-muted-foreground my-4 flex items-center gap-3 text-xs">
+                    <span className="bg-border h-px flex-1" /> or{' '}
+                    <span className="bg-border h-px flex-1" />
                   </div>
 
                   <Button
@@ -258,7 +259,7 @@ export default function LoginPage() {
                     <GoogleMark /> Continue with Google
                   </Button>
 
-                  <p className="mt-5 text-center text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-5 text-center text-sm">
                     {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}{' '}
                     <button
                       type="button"
@@ -266,7 +267,7 @@ export default function LoginPage() {
                         clearError();
                         setView(isSignUp ? 'signin' : 'signup');
                       }}
-                      className="font-semibold text-primary hover:underline"
+                      className="text-primary font-semibold hover:underline"
                     >
                       {isSignUp ? 'Sign in' : 'Create one'}
                     </button>
@@ -290,7 +291,7 @@ export default function LoginPage() {
                   Continue <ArrowRight className="h-4 w-4" />
                 </Button>
               </form>
-              <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-4 flex items-center justify-center gap-1.5 text-xs">
                 <Lock className="h-3.5 w-3.5" /> No password, no server, no tracking.
               </p>
             </>
@@ -299,9 +300,9 @@ export default function LoginPage() {
       </Card>
 
       {!cloud && (
-        <p className="mt-6 text-sm text-muted-foreground">
+        <p className="text-muted-foreground mt-6 text-sm">
           New here?{' '}
-          <Link href="/onboarding" className="font-medium text-primary hover:underline">
+          <Link href="/onboarding" className="text-primary font-medium hover:underline">
             Set up your plan
           </Link>
         </p>
@@ -310,7 +311,7 @@ export default function LoginPage() {
       {cloud && user && (
         <button
           onClick={() => signOut()}
-          className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline"
+          className="text-muted-foreground mt-3 text-xs underline-offset-2 hover:underline"
         >
           Sign out
         </button>

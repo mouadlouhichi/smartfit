@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   emptyState,
@@ -70,7 +64,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       deleteSession: (id) =>
         setState((p) => ({ ...p, sessions: p.sessions.filter((s) => s.id !== id) })),
       addGoal: (g) =>
-        setState((p) => ({ ...p, goals: [...p.goals, { ...g, id: uid('goal'), createdAt: Date.now() }] })),
+        setState((p) => ({
+          ...p,
+          goals: [...p.goals, { ...g, id: uid('goal'), createdAt: Date.now() }],
+        })),
       deleteGoal: (id) => setState((p) => ({ ...p, goals: p.goals.filter((g) => g.id !== id) })),
       updateSchedule: (id, patch) =>
         setState((p) => ({
@@ -82,8 +79,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ...p,
           bodyLogs: [...p.bodyLogs, { ...b, id: uid('body'), createdAt: Date.now() }],
         })),
-      updateProfile: (patch) =>
-        setState((p) => ({ ...p, profile: { ...p.profile, ...patch } })),
+      updateProfile: (patch) => setState((p) => ({ ...p, profile: { ...p.profile, ...patch } })),
       clearData: () => setState(emptyState()),
     }),
     [state, ready],
