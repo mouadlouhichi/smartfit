@@ -45,7 +45,9 @@ export function CategoryIcon({
   style?: React.CSSProperties;
 }) {
   const Icon = ICONS[name] ?? Activity;
-  return <Icon className={className} style={{ width: size, height: size, ...style }} strokeWidth={2.2} />;
+  return (
+    <Icon className={className} style={{ width: size, height: size, ...style }} strokeWidth={2.2} />
+  );
 }
 
 export const CATEGORY_ICON_OPTIONS = [

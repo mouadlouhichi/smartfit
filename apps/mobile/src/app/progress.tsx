@@ -1,12 +1,7 @@
 import React, { useMemo } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  categoryBreakdown,
-  formatMinutes,
-  INTENSITY_META,
-  weeklySeries,
-} from '@smartfit/core';
+import { categoryBreakdown, formatMinutes, INTENSITY_META, weeklySeries } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 import { Card, ProgressBar } from '@/components/ui';
 import { BarChart } from '@/components/BarChart';
@@ -14,7 +9,10 @@ import { CategoryIcon } from '@/components/CategoryIcon';
 
 export default function ProgressScreen() {
   const { state } = useStore();
-  const series = useMemo(() => weeklySeries(state, 8).map((w) => ({ label: w.label.slice(0, 3), value: w.minutes })), [state]);
+  const series = useMemo(
+    () => weeklySeries(state, 8).map((w) => ({ label: w.label.slice(0, 3), value: w.minutes })),
+    [state],
+  );
   const breakdown = useMemo(() => categoryBreakdown(state), [state]);
   const totalMin = breakdown.reduce((a, x) => a + x.minutes, 0);
 
@@ -29,20 +27,22 @@ export default function ProgressScreen() {
   const totalIntensity = intensity.reduce((a, x) => a + x.count, 0);
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView className="bg-background flex-1" edges={['top']}>
       <ScrollView className="flex-1" contentContainerClassName="p-4 pb-28 gap-4">
         <View>
-          <Text className="text-2xl font-bold text-foreground">Progress</Text>
-          <Text className="text-sm text-muted-foreground">Active minutes over the last 8 weeks.</Text>
+          <Text className="text-foreground text-2xl font-bold">Progress</Text>
+          <Text className="text-muted-foreground text-sm">
+            Active minutes over the last 8 weeks.
+          </Text>
         </View>
 
         <Card>
-          <Text className="mb-3 font-semibold text-foreground">Weekly active minutes</Text>
+          <Text className="text-foreground mb-3 font-semibold">Weekly active minutes</Text>
           <BarChart data={series} color="#D6532F" />
         </Card>
 
         <Card>
-          <Text className="mb-3 font-semibold text-foreground">Time by activity</Text>
+          <Text className="text-foreground mb-3 font-semibold">Time by activity</Text>
           <View className="gap-3">
             {breakdown.map(({ category, minutes }) => (
               <View key={category.id} className="flex-row items-center gap-3">
@@ -54,8 +54,8 @@ export default function ProgressScreen() {
                 </View>
                 <View className="flex-1">
                   <View className="flex-row justify-between">
-                    <Text className="text-sm font-medium text-foreground">{category.name}</Text>
-                    <Text className="text-xs text-muted-foreground">{formatMinutes(minutes)}</Text>
+                    <Text className="text-foreground text-sm font-medium">{category.name}</Text>
+                    <Text className="text-muted-foreground text-xs">{formatMinutes(minutes)}</Text>
                   </View>
                   <View className="mt-1.5">
                     <ProgressBar value={(minutes / (totalMin || 1)) * 100} color={category.color} />
@@ -63,18 +63,20 @@ export default function ProgressScreen() {
                 </View>
               </View>
             ))}
-            {breakdown.length === 0 && <Text className="text-sm text-muted-foreground">No data yet.</Text>}
+            {breakdown.length === 0 && (
+              <Text className="text-muted-foreground text-sm">No data yet.</Text>
+            )}
           </View>
         </Card>
 
         <Card>
-          <Text className="mb-3 font-semibold text-foreground">Intensity spread</Text>
+          <Text className="text-foreground mb-3 font-semibold">Intensity spread</Text>
           <View className="gap-3">
             {intensity.map((d) => (
               <View key={d.key}>
                 <View className="flex-row justify-between">
-                  <Text className="text-sm font-medium text-foreground">{d.label}</Text>
-                  <Text className="text-xs text-muted-foreground">
+                  <Text className="text-foreground text-sm font-medium">{d.label}</Text>
+                  <Text className="text-muted-foreground text-xs">
                     {d.count} · {Math.round((d.count / (totalIntensity || 1)) * 100)}%
                   </Text>
                 </View>
@@ -83,7 +85,9 @@ export default function ProgressScreen() {
                 </View>
               </View>
             ))}
-            {intensity.length === 0 && <Text className="text-sm text-muted-foreground">No data yet.</Text>}
+            {intensity.length === 0 && (
+              <Text className="text-muted-foreground text-sm">No data yet.</Text>
+            )}
           </View>
         </Card>
       </ScrollView>

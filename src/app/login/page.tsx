@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ArrowRight, Loader2, Lock, Mail } from 'lucide-react';
+import { ArrowRight, Loader2, Mail, ShieldCheck } from 'lucide-react';
 import { Wordmark } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useStore } from '@/lib/store-context';
-import { isFirebaseConfigured } from '@/lib/firebase/config';
+
 function GoogleMark() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
@@ -35,6 +35,8 @@ function GoogleMark() {
   );
 }
 
+type View = 'signin' | 'signup' | 'reset';
+
 export default function LoginPage() {
   const router = useRouter();
   const {
@@ -43,7 +45,6 @@ export default function LoginPage() {
     signUp,
     signInWithGoogle,
     resetPassword,
-    signOut,
     loading,
     initializing,
     authError,
@@ -51,18 +52,16 @@ export default function LoginPage() {
     clearError,
     user,
   } = useAuth();
-  const { state, ready, updateProfile } = useStore();
+  const { state, ready } = useStore();
 
-  type View = 'signin' | 'signup' | 'reset';
   const [view, setView] = useState<View>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [localName, setLocalName] = useState('');
 
   const isSignUp = view === 'signup';
   const isReset = view === 'reset';
-  const cloud = isFirebaseConfigured && mode === 'cloud';
+  const cloud = mode === 'cloud';
 
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -78,9 +77,9 @@ export default function LoginPage() {
       } else {
         await signIn(email.trim(), password);
       }
-      // Redirect handled by the gateway effect once auth state updates.
+      // The gateway effect below routes once auth state settles.
     } catch {
-      /* error surfaced via authError */
+      /* surfaced via authError */
     }
   }
 
@@ -88,37 +87,32 @@ export default function LoginPage() {
     clearError();
     try {
       await signInWithGoogle();
-      // Redirect handled by the gateway effect.
     } catch {
-      /* authError */
+      /* surfaced via authError */
     }
   }
 
-  function continueLocal(e: React.FormEvent) {
-    e.preventDefault();
-    updateProfile({ name: localName.trim() || 'Athlete' });
-    router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
-  }
-
-  // ── Gateway (flousy-style) ──────────────────────────────────────────────
-  // Cloud: once signed in and data is ready, route to onboarding first time,
-  // otherwise dashboard. Local: only auto-route an already-onboarded visitor
-  // (brand-new local users use the entry form below).
+  /**
+   * Gateway.
+   *
+   * Only an already-authenticated visitor is redirected: a signed-out one
+   * came here to sign in, so they must always get the form. A profile that
+   * hasn't finished setup goes to onboarding; everyone else to the dashboard.
+   */
   useEffect(() => {
-    if (cloud) {
-      if (initializing || !user || !ready) return;
-      router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
-    } else {
-      if (!ready) return;
-      if (state.profile.onboardingDone) router.replace('/dashboard');
-    }
+    if (!cloud || initializing || !user || !ready) return;
+    router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
   }, [cloud, initializing, user, ready, state.profile.onboardingDone, router]);
 
-  // Show a spinner while cloud auth resolves on an already-signed-in visit.
-  if (cloud && initializing) {
+  // Only while auth is resolving, or while bouncing an already-signed-in user.
+  if (cloud && (initializing || user)) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div
+        className="flex min-h-dvh items-center justify-center"
+        role="status"
+        aria-label="Loading"
+      >
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -134,187 +128,165 @@ export default function LoginPage() {
           <h1 className="font-display text-2xl font-bold tracking-tight">
             {isReset ? 'Reset your password' : isSignUp ? 'Create your account' : 'Welcome back'}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {cloud
-              ? isReset
-                ? "Enter your email and we'll send you a reset link."
-                : isSignUp
-                  ? 'Sign up to sync your training across every device.'
-                  : 'Sign in to pick up right where you left off.'
-              : 'SmartFit runs on this device — no account needed.'}
+          <p className="text-muted-foreground mt-1 text-sm">
+            {isReset
+              ? "Enter your email and we'll send you a reset link."
+              : isSignUp
+                ? 'Sign up to sync your training across every device.'
+                : 'Sign in to pick up right where you left off.'}
           </p>
 
-          {cloud ? (
-            <>
-              <form onSubmit={handleEmail} className="mt-5 grid gap-4">
-                {isSignUp && (
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      id="name"
-                      placeholder="Alex"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      autoComplete="name"
-                    />
-                  </div>
-                )}
-                <div className="grid gap-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      required
-                      placeholder="you@example.com"
-                      className="pl-9"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      autoComplete="email"
-                    />
-                  </div>
-                </div>
-                {!isReset && (
-                  <div className="grid gap-1.5">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="password">Password</Label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          clearError();
-                          setView('reset');
-                        }}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
-                    <Input
-                      id="password"
-                      type="password"
-                      required
-                      minLength={6}
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                    />
-                  </div>
-                )}
+          <form onSubmit={handleEmail} className="mt-5 grid gap-4">
+            {isSignUp && (
+              <div className="grid gap-1.5">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  placeholder="What should we call you?"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                />
+              </div>
+            )}
 
-                {authError && (
-                  <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
-                    {authError}
-                  </p>
-                )}
-                {authInfo && (
-                  <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                    {authInfo}
-                  </p>
-                )}
+            <div className="grid gap-1.5">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  className="pl-9"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+            </div>
 
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : isReset ? (
-                    <>
-                      Send reset link <ArrowRight className="h-4 w-4" />
-                    </>
-                  ) : (
-                    <>
-                      {isSignUp ? 'Create account' : 'Sign in'} <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              </form>
-
-              {isReset ? (
-                <p className="mt-5 text-center text-sm text-muted-foreground">
+            {!isReset && (
+              <div className="grid gap-1.5">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
                   <button
                     type="button"
                     onClick={() => {
                       clearError();
-                      setView('signin');
+                      setView('reset');
                     }}
-                    className="font-semibold text-primary hover:underline"
+                    className="text-primary text-xs font-medium hover:underline"
                   >
-                    Back to sign in
+                    Forgot password?
                   </button>
-                </p>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                />
+                {isSignUp && (
+                  <p className="text-muted-foreground text-xs">At least 6 characters.</p>
+                )}
+              </div>
+            )}
+
+            {authError && (
+              <p
+                role="alert"
+                className="bg-destructive/10 text-destructive rounded-lg px-3 py-2 text-xs font-medium"
+              >
+                {authError}
+              </p>
+            )}
+            {authInfo && (
+              <p
+                role="status"
+                className="bg-accent text-accent-foreground rounded-lg px-3 py-2 text-xs font-medium"
+              >
+                {authInfo}
+              </p>
+            )}
+
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isReset ? (
+                <>
+                  Send reset link <ArrowRight className="h-4 w-4" />
+                </>
               ) : (
                 <>
-                  <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
-                  </div>
-
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={loading}
-                    onClick={handleGoogle}
-                    className="w-full"
-                  >
-                    <GoogleMark /> Continue with Google
-                  </Button>
-
-                  <p className="mt-5 text-center text-sm text-muted-foreground">
-                    {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        clearError();
-                        setView(isSignUp ? 'signin' : 'signup');
-                      }}
-                      className="font-semibold text-primary hover:underline"
-                    >
-                      {isSignUp ? 'Sign in' : 'Create one'}
-                    </button>
-                  </p>
+                  {isSignUp ? 'Create account' : 'Sign in'} <ArrowRight className="h-4 w-4" />
                 </>
               )}
-            </>
+            </Button>
+          </form>
+
+          {isReset ? (
+            <p className="text-muted-foreground mt-5 text-center text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  clearError();
+                  setView('signin');
+                }}
+                className="text-primary font-semibold hover:underline"
+              >
+                Back to sign in
+              </button>
+            </p>
           ) : (
             <>
-              <form onSubmit={continueLocal} className="mt-5 grid gap-4">
-                <div className="grid gap-1.5">
-                  <Label htmlFor="l-name">Your name</Label>
-                  <Input
-                    id="l-name"
-                    placeholder="Alex"
-                    value={localName}
-                    onChange={(e) => setLocalName(e.target.value)}
-                  />
-                </div>
-                <Button type="submit" className="w-full">
-                  Continue <ArrowRight className="h-4 w-4" />
-                </Button>
-              </form>
-              <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-                <Lock className="h-3.5 w-3.5" /> No password, no server, no tracking.
+              <div className="text-muted-foreground my-4 flex items-center gap-3 text-xs">
+                <span className="bg-border h-px flex-1" /> or{' '}
+                <span className="bg-border h-px flex-1" />
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+                onClick={handleGoogle}
+                className="w-full"
+              >
+                <GoogleMark /> Continue with Google
+              </Button>
+
+              <p className="text-muted-foreground mt-5 text-center text-sm">
+                {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}
               </p>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  clearError();
+                  setView(isSignUp ? 'signin' : 'signup');
+                }}
+                className="mt-2 w-full"
+              >
+                {isSignUp ? 'Sign in instead' : 'Create an account'}
+              </Button>
             </>
           )}
         </CardContent>
       </Card>
 
-      {!cloud && (
-        <p className="mt-6 text-sm text-muted-foreground">
-          New here?{' '}
-          <Link href="/onboarding" className="font-medium text-primary hover:underline">
-            Set up your plan
-          </Link>
-        </p>
-      )}
-
-      {cloud && user && (
-        <button
-          onClick={() => signOut()}
-          className="mt-3 text-xs text-muted-foreground underline-offset-2 hover:underline"
-        >
-          Sign out
-        </button>
-      )}
+      <p className="text-muted-foreground mt-6 flex max-w-sm items-center justify-center gap-1.5 text-center text-xs">
+        <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+        Your training data is private to your account. See our{' '}
+        <Link href="/privacy" className="hover:text-foreground underline underline-offset-2">
+          privacy policy
+        </Link>
+        .
+      </p>
     </div>
   );
 }

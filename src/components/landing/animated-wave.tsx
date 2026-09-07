@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useRef } from "react";
-import { useAnimatedCanvas } from "./use-animated-canvas";
+import { useRef } from 'react';
+import { useAnimatedCanvas } from './use-animated-canvas';
 
-const chars = "·∘○◯◌●◉";
+const chars = '·∘○◯◌●◉';
 
 function drawWave(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, time: number) {
   const rect = canvas.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return;
   ctx.clearRect(0, 0, rect.width, rect.height);
 
-  ctx.font = "14px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  ctx.font = '14px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
 
   const cols = Math.floor(rect.width / 20);
   const rows = Math.floor(rect.height / 20);
@@ -44,11 +44,5 @@ export function AnimatedWave() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useAnimatedCanvas(canvasRef, drawWave);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="w-full h-full"
-      style={{ display: "block" }}
-    />
-  );
+  return <canvas ref={canvasRef} className="h-full w-full" style={{ display: 'block' }} />;
 }

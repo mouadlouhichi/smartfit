@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#efedea"/>
+  <circle cx="1040" cy="120" r="260" fill="#e05e36" opacity="0.10"/>
+  <circle cx="120" cy="580" r="200" fill="#e05e36" opacity="0.08"/>
+  <g transform="translate(88,150)">
+    <rect width="96" height="96" rx="24" fill="#e05e36"/>
+    <g stroke="#ffffff" stroke-width="6" stroke-linecap="round" fill="none" transform="translate(48,48) scale(0.1875) translate(-256,-256)">
+      <path d="M170 186v140"/><path d="M342 186v140"/>
+      <path d="M118 226v60"/><path d="M394 226v60"/>
+      <path d="M170 256h172"/>
+    </g>
+  </g>
+  <text x="88" y="330" font-family="Helvetica,Arial,sans-serif" font-size="96" font-weight="700" fill="#171615">SmartFit</text>
+  <text x="88" y="404" font-family="Helvetica,Arial,sans-serif" font-size="40" fill="#57534e">Train hard. Train smart.</text>
+  <text x="88" y="486" font-family="Helvetica,Arial,sans-serif" font-size="30" fill="#87857f">Private workout tracking — plan your week, log every</text>
+  <text x="88" y="528" font-family="Helvetica,Arial,sans-serif" font-size="30" fill="#87857f">session, and watch the trends build.</text>
+  <rect x="88" y="566" width="132" height="8" rx="4" fill="#e05e36"/>
+</svg>

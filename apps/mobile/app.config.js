@@ -8,10 +8,14 @@ const config = {
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
 
+  // Brand: terracotta on warm paper, matching the web app and the shared mark.
+  icon: './assets/icon.png',
+  primaryColor: '#E05E36',
+
   splash: {
     image: './assets/splash.png',
     resizeMode: 'contain',
-    backgroundColor: '#F7FAF7',
+    backgroundColor: '#EFEDEA',
   },
 
   ios: {
@@ -24,7 +28,7 @@ const config = {
     versionCode: 1,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#15803D',
+      backgroundColor: '#E05E36',
     },
   },
 

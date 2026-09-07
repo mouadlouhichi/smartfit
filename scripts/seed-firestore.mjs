@@ -47,9 +47,8 @@ if (!projectId) {
 }
 
 const app = initializeApp({
-  credential: privateKey && clientEmail
-    ? cert({ projectId, clientEmail, privateKey })
-    : applicationDefault(),
+  credential:
+    privateKey && clientEmail ? cert({ projectId, clientEmail, privateKey }) : applicationDefault(),
 });
 
 const db = getFirestore(app);
@@ -69,7 +68,13 @@ const categories = [
   { id: 'cat-strength', name: 'Strength', icon: 'dumbbell', color: '#e05e36', builtin: true },
   { id: 'cat-cardio', name: 'Cardio', icon: 'heart-pulse', color: '#cdaca4', builtin: true },
   { id: 'cat-hiit', name: 'HIIT', icon: 'flame', color: '#8a6a58', builtin: true },
-  { id: 'cat-mobility', name: 'Mobility', icon: 'stretch-horizontal', color: '#eda07e', builtin: true },
+  {
+    id: 'cat-mobility',
+    name: 'Mobility',
+    icon: 'stretch-horizontal',
+    color: '#eda07e',
+    builtin: true,
+  },
   { id: 'cat-sports', name: 'Sports', icon: 'volleyball', color: '#2b2725', builtin: true },
 ];
 
@@ -109,17 +114,91 @@ for (let week = 0; week < 6; week++) {
 }
 
 const schedule = [
-  { id: 'seed_sch_1', title: 'Push', categoryId: 'cat-strength', weekday: 1, timeOfDay: '07:30', durationMin: 55, intensity: 'high', active: true, createdAt: now },
-  { id: 'seed_sch_2', title: 'Pull', categoryId: 'cat-strength', weekday: 2, timeOfDay: '07:30', durationMin: 50, intensity: 'high', active: true, createdAt: now },
-  { id: 'seed_sch_3', title: 'Run', categoryId: 'cat-cardio', weekday: 3, timeOfDay: '06:45', durationMin: 35, intensity: 'moderate', active: true, createdAt: now },
-  { id: 'seed_sch_4', title: 'HIIT', categoryId: 'cat-hiit', weekday: 4, timeOfDay: '18:00', durationMin: 28, intensity: 'high', active: true, createdAt: now },
-  { id: 'seed_sch_5', title: 'Legs', categoryId: 'cat-strength', weekday: 5, timeOfDay: '07:30', durationMin: 60, intensity: 'high', active: true, createdAt: now },
+  {
+    id: 'seed_sch_1',
+    title: 'Push',
+    categoryId: 'cat-strength',
+    weekday: 1,
+    timeOfDay: '07:30',
+    durationMin: 55,
+    intensity: 'high',
+    active: true,
+    createdAt: now,
+  },
+  {
+    id: 'seed_sch_2',
+    title: 'Pull',
+    categoryId: 'cat-strength',
+    weekday: 2,
+    timeOfDay: '07:30',
+    durationMin: 50,
+    intensity: 'high',
+    active: true,
+    createdAt: now,
+  },
+  {
+    id: 'seed_sch_3',
+    title: 'Run',
+    categoryId: 'cat-cardio',
+    weekday: 3,
+    timeOfDay: '06:45',
+    durationMin: 35,
+    intensity: 'moderate',
+    active: true,
+    createdAt: now,
+  },
+  {
+    id: 'seed_sch_4',
+    title: 'HIIT',
+    categoryId: 'cat-hiit',
+    weekday: 4,
+    timeOfDay: '18:00',
+    durationMin: 28,
+    intensity: 'high',
+    active: true,
+    createdAt: now,
+  },
+  {
+    id: 'seed_sch_5',
+    title: 'Legs',
+    categoryId: 'cat-strength',
+    weekday: 5,
+    timeOfDay: '07:30',
+    durationMin: 60,
+    intensity: 'high',
+    active: true,
+    createdAt: now,
+  },
 ];
 
 const goals = [
-  { id: 'seed_goal_workouts', name: 'Train this week', metric: 'workouts', cadence: 'weekly', target: 5, startDate: daysAgo(6), createdAt: now },
-  { id: 'seed_goal_minutes', name: 'Active minutes', metric: 'minutes', cadence: 'weekly', target: 260, startDate: daysAgo(6), createdAt: now },
-  { id: 'seed_goal_distance', name: 'Monthly distance', metric: 'distance', cadence: 'monthly', target: 60, startDate: daysAgo(29), createdAt: now },
+  {
+    id: 'seed_goal_workouts',
+    name: 'Train this week',
+    metric: 'workouts',
+    cadence: 'weekly',
+    target: 5,
+    startDate: daysAgo(6),
+    createdAt: now,
+  },
+  {
+    id: 'seed_goal_minutes',
+    name: 'Active minutes',
+    metric: 'minutes',
+    cadence: 'weekly',
+    target: 260,
+    startDate: daysAgo(6),
+    createdAt: now,
+  },
+  {
+    id: 'seed_goal_distance',
+    name: 'Monthly distance',
+    metric: 'distance',
+    cadence: 'monthly',
+    target: 60,
+    startDate: daysAgo(29),
+    createdAt: now,
+  },
 ];
 
 const bodyLogs = [

@@ -46,23 +46,35 @@ export function FaqSection() {
     >
       <div className="mx-auto max-w-5xl px-6 lg:px-12">
         <div className="mb-12 max-w-3xl lg:mb-16">
-          <span className="mb-6 block font-mono text-xs uppercase tracking-widest text-[color:var(--muted-foreground)]">
+          <span className="mb-6 block font-mono text-xs tracking-widest text-[color:var(--muted-foreground)] uppercase">
             SmartFit facts
           </span>
-          <h2 id="faq-heading" className="font-display text-4xl tracking-tight md:text-5xl lg:text-6xl">
+          <h2
+            id="faq-heading"
+            className="font-display text-4xl tracking-tight md:text-5xl lg:text-6xl"
+          >
             Frequently asked questions
           </h2>
           <p className="mt-6 text-[color:var(--muted-foreground)]">
             Learn more:{' '}
-            <Link href="/#integrations" className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline">
+            <Link
+              href="/#integrations"
+              className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline"
+            >
               activity types
             </Link>{' '}
             ·{' '}
-            <Link href="/#plans" className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline">
+            <Link
+              href="/#plans"
+              className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline"
+            >
               4 training styles
             </Link>{' '}
             ·{' '}
-            <Link href="/#guides" className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline">
+            <Link
+              href="/#guides"
+              className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline"
+            >
               training guides
             </Link>
           </p>

@@ -27,11 +27,13 @@ export function StatCard({
           <Icon className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <p className="truncate text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+          <p className="text-muted-foreground truncate text-xs font-medium tracking-wide uppercase">
+            {label}
+          </p>
           <p className="text-xl font-bold tracking-tight sm:text-2xl">{value}</p>
         </div>
       </div>
-      {sub && <p className="mt-2 text-xs text-muted-foreground">{sub}</p>}
+      {sub && <p className="text-muted-foreground mt-2 text-xs">{sub}</p>}
     </Card>
   );
 }

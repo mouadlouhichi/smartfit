@@ -38,16 +38,19 @@ export default function GoalsScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView className="bg-background flex-1" edges={['top']}>
       <ScrollView className="flex-1" contentContainerClassName="p-4 pb-28 gap-4">
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="text-2xl font-bold text-foreground">Goals</Text>
-            <Text className="text-sm text-muted-foreground">
+            <Text className="text-foreground text-2xl font-bold">Goals</Text>
+            <Text className="text-muted-foreground text-sm">
               {done}/{goals.length} hit this period
             </Text>
           </View>
-          <Pressable onPress={() => setOpen(true)} className="h-12 w-12 items-center justify-center rounded-full bg-primary">
+          <Pressable
+            onPress={() => setOpen(true)}
+            className="bg-primary h-12 w-12 items-center justify-center rounded-full"
+          >
             <Plus color="#FDF6F2" size={24} />
           </Pressable>
         </View>
@@ -56,7 +59,7 @@ export default function GoalsScreen() {
           <Card>
             <View className="items-center gap-2 py-6">
               <Target color="#D6532F" size={32} />
-              <Text className="text-center text-sm text-muted-foreground">
+              <Text className="text-muted-foreground text-center text-sm">
                 Set a weekly or monthly target to stay accountable.
               </Text>
             </View>
@@ -69,12 +72,12 @@ export default function GoalsScreen() {
             <Card key={g.id} className={p.done ? 'border-primary' : ''}>
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-row items-center gap-3">
-                  <View className="h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
+                  <View className="bg-primary/10 h-11 w-11 items-center justify-center rounded-xl">
                     <CategoryIcon name={meta.icon} color="#D6532F" size={20} />
                   </View>
                   <View>
-                    <Text className="font-semibold text-foreground">{g.name}</Text>
-                    <Text className="text-xs text-muted-foreground">
+                    <Text className="text-foreground font-semibold">{g.name}</Text>
+                    <Text className="text-muted-foreground text-xs">
                       {meta.label} · resets {g.cadence}
                     </Text>
                   </View>
@@ -85,16 +88,19 @@ export default function GoalsScreen() {
               </View>
               <View className="mt-4">
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-sm font-semibold text-foreground">
-                    {p.current} <Text className="font-normal text-muted-foreground">/ {p.target} {meta.unit}</Text>
+                  <Text className="text-foreground text-sm font-semibold">
+                    {p.current}{' '}
+                    <Text className="text-muted-foreground font-normal">
+                      / {p.target} {meta.unit}
+                    </Text>
                   </Text>
                   {p.done ? (
                     <View className="flex-row items-center gap-1">
                       <CheckCircle2 color="#D6532F" size={16} />
-                      <Text className="text-xs font-semibold text-primary">Done</Text>
+                      <Text className="text-primary text-xs font-semibold">Done</Text>
                     </View>
                   ) : (
-                    <Text className="text-xs text-muted-foreground">{Math.round(p.pct)}%</Text>
+                    <Text className="text-muted-foreground text-xs">{Math.round(p.pct)}%</Text>
                   )}
                 </View>
                 <View className="mt-2">
@@ -107,25 +113,31 @@ export default function GoalsScreen() {
       </ScrollView>
 
       <Modal visible={open} animationType="slide" onRequestClose={() => setOpen(false)}>
-        <View className="flex-1 bg-background p-5">
+        <View className="bg-background flex-1 p-5">
           <View className="flex-row items-center justify-between py-2">
-            <Text className="text-lg font-bold text-foreground">New goal</Text>
-            <Pressable onPress={() => setOpen(false)} className="rounded-full p-2 active:bg-muted">
+            <Text className="text-foreground text-lg font-bold">New goal</Text>
+            <Pressable onPress={() => setOpen(false)} className="active:bg-muted rounded-full p-2">
               <X color="#857D75" size={22} />
             </Pressable>
           </View>
           <ScrollView contentContainerClassName="gap-4 pt-4">
             <View>
-              <Text className="mb-1.5 text-sm font-medium text-foreground/80">Metric</Text>
+              <Text className="text-foreground/80 mb-1.5 text-sm font-medium">Metric</Text>
               <View className="flex-row flex-wrap gap-2">
                 {METRICS.map((m) => (
                   <Pressable
                     key={m}
                     onPress={() => setMetric(m)}
                     className="rounded-full border px-3 py-2"
-                    style={{ borderColor: metric === m ? '#D6532F' : '#E7E2DB', backgroundColor: metric === m ? '#D6532F22' : 'transparent' }}
+                    style={{
+                      borderColor: metric === m ? '#D6532F' : '#E7E2DB',
+                      backgroundColor: metric === m ? '#D6532F22' : 'transparent',
+                    }}
                   >
-                    <Text style={{ color: metric === m ? '#D6532F' : '#857D75' }} className="text-sm font-medium">
+                    <Text
+                      style={{ color: metric === m ? '#D6532F' : '#857D75' }}
+                      className="text-sm font-medium"
+                    >
                       {GOAL_METRIC_META[m].label}
                     </Text>
                   </Pressable>
@@ -133,16 +145,22 @@ export default function GoalsScreen() {
               </View>
             </View>
             <View>
-              <Text className="mb-1.5 text-sm font-medium text-foreground/80">Reset</Text>
+              <Text className="text-foreground/80 mb-1.5 text-sm font-medium">Reset</Text>
               <View className="flex-row gap-2">
                 {(['weekly', 'monthly'] as GoalCadence[]).map((c) => (
                   <Pressable
                     key={c}
                     onPress={() => setCadence(c)}
                     className="flex-1 rounded-full border py-2"
-                    style={{ borderColor: cadence === c ? '#D6532F' : '#E7E2DB', backgroundColor: cadence === c ? '#D6532F22' : 'transparent' }}
+                    style={{
+                      borderColor: cadence === c ? '#D6532F' : '#E7E2DB',
+                      backgroundColor: cadence === c ? '#D6532F22' : 'transparent',
+                    }}
                   >
-                    <Text className="text-center text-sm font-medium capitalize" style={{ color: cadence === c ? '#D6532F' : '#857D75' }}>
+                    <Text
+                      className="text-center text-sm font-medium capitalize"
+                      style={{ color: cadence === c ? '#D6532F' : '#857D75' }}
+                    >
                       {c}
                     </Text>
                   </Pressable>
@@ -150,7 +168,7 @@ export default function GoalsScreen() {
               </View>
             </View>
             <View>
-              <Text className="mb-1.5 text-sm font-medium text-foreground/80">
+              <Text className="text-foreground/80 mb-1.5 text-sm font-medium">
                 Target ({GOAL_METRIC_META[metric].unit})
               </Text>
               <Input keyboardType="numeric" value={target} onChangeText={setTarget} />

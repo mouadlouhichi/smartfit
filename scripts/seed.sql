@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────────────────
--- SmartFit · seed.sql
+-- SmartFit · scripts/seed.sql
 --
 -- Relational schema + demo data for SQL tooling, warehouses, analytics and
 -- local Postgres/SQLite exploration. The production app itself uses Cloud

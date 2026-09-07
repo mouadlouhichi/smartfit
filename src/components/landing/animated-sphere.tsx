@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useRef } from "react";
-import { useAnimatedCanvas } from "./use-animated-canvas";
+import { useRef } from 'react';
+import { useAnimatedCanvas } from './use-animated-canvas';
 
-const chars = "░▒▓█▀▄▌▐│─┤├┴┬╭╮╰╯";
+const chars = '░▒▓█▀▄▌▐│─┤├┴┬╭╮╰╯';
 
 function drawSphere(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, time: number) {
   const rect = canvas.getBoundingClientRect();
@@ -14,9 +14,9 @@ function drawSphere(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, ti
   const centerY = rect.height / 2;
   const radius = Math.min(rect.width, rect.height) * 0.525;
 
-  ctx.font = "12px monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
 
   const step = 0.18;
   const points: { x: number; y: number; z: number; char: string }[] = [];
@@ -67,5 +67,5 @@ export function AnimatedSphere() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   useAnimatedCanvas(canvasRef, drawSphere);
 
-  return <canvas ref={canvasRef} className="w-full h-full" style={{ display: "block" }} />;
+  return <canvas ref={canvasRef} className="h-full w-full" style={{ display: 'block' }} />;
 }

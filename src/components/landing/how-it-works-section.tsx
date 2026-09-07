@@ -99,8 +99,10 @@ export function HowItWorksSection() {
             <span style={{ color: 'rgba(248,250,247,0.5)' }}>A stronger week ahead.</span>
           </h2>
           <p className="mt-6 max-w-2xl" style={{ color: 'rgba(248,250,247,0.6)' }}>
-            Start with a <span className="underline underline-offset-4">free private training tracker</span> that
-            needs no wearable. See why the session and the plan stay separate, and how your week updates itself.
+            Start with a{' '}
+            <span className="underline underline-offset-4">free private training tracker</span> that
+            needs no wearable. See why the session and the plan stay separate, and how your week
+            updates itself.
           </p>
         </div>
 
@@ -112,16 +114,21 @@ export function HowItWorksSection() {
                 type="button"
                 onClick={() => setActiveStep(index)}
                 className={`group w-full border-b py-8 text-start transition-all duration-500 ${
-                  activeStep === index ? 'opacity-100' : 'border-white/10 opacity-40 hover:opacity-70'
+                  activeStep === index
+                    ? 'opacity-100'
+                    : 'border-white/10 opacity-40 hover:opacity-70'
                 }`}
                 style={{ borderColor: 'rgba(248,250,247,0.1)' }}
               >
                 <div className="flex items-start gap-6">
-                  <span className="font-display text-3xl" style={{ color: 'rgba(248,250,247,0.3)' }}>
+                  <span
+                    className="font-display text-3xl"
+                    style={{ color: 'rgba(248,250,247,0.3)' }}
+                  >
                     {STEP_NUMBERS[index]}
                   </span>
                   <div className="flex-1">
-                    <h3 className="mb-3 font-display text-2xl transition-transform duration-300 group-hover:translate-x-2 lg:text-3xl">
+                    <h3 className="font-display mb-3 text-2xl transition-transform duration-300 group-hover:translate-x-2 lg:text-3xl">
                       {step.title}
                     </h3>
                     <p className="leading-relaxed" style={{ color: 'rgba(248,250,247,0.6)' }}>
@@ -138,7 +145,10 @@ export function HowItWorksSection() {
                       </Link>
                     )}
                     {activeStep === index && (
-                      <div className="mt-4 h-px overflow-hidden" style={{ background: 'rgba(248,250,247,0.2)' }}>
+                      <div
+                        className="mt-4 h-px overflow-hidden"
+                        style={{ background: 'rgba(248,250,247,0.2)' }}
+                      >
                         <div className="progress-bar-anim" />
                       </div>
                     )}
@@ -149,14 +159,21 @@ export function HowItWorksSection() {
           </div>
 
           <div className="self-start lg:sticky lg:top-32">
-            <div className="overflow-hidden border" style={{ borderColor: 'rgba(248,250,247,0.1)' }}>
+            <div
+              className="overflow-hidden border"
+              style={{ borderColor: 'rgba(248,250,247,0.1)' }}
+            >
               <div
                 className="flex items-center justify-between border-b px-6 py-4"
                 style={{ borderColor: 'rgba(248,250,247,0.1)' }}
               >
                 <div className="flex gap-2">
                   {[0, 1, 2].map((i) => (
-                    <div key={i} className="h-3 w-3 rounded-full" style={{ background: 'rgba(248,250,247,0.2)' }} />
+                    <div
+                      key={i}
+                      className="h-3 w-3 rounded-full"
+                      style={{ background: 'rgba(248,250,247,0.2)' }}
+                    />
                   ))}
                 </div>
                 <span className="font-mono text-xs" style={{ color: 'rgba(248,250,247,0.4)' }}>
@@ -181,7 +198,7 @@ export function HowItWorksSection() {
                 className="flex items-center gap-3 border-t px-6 py-4"
                 style={{ borderColor: 'rgba(248,250,247,0.1)' }}
               >
-                <span className="h-2 w-2 animate-pulse rounded-full bg-green-400" />
+                <span className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--primary)]" />
                 <span className="font-mono text-xs" style={{ color: 'rgba(248,250,247,0.4)' }}>
                   Saved on-device
                 </span>

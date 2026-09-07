@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  CalendarCheck2,
-  Clock,
-  Flame,
-  Footprints,
-  Plus,
-  Trash2,
-} from 'lucide-react-native';
+import { CalendarCheck2, Clock, Flame, Footprints, Plus, Trash2 } from 'lucide-react-native';
 import { Pressable } from 'react-native';
 import {
   currentStreak,
@@ -33,7 +26,7 @@ export default function HomeScreen() {
 
   if (!ready) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
+      <SafeAreaView className="bg-background flex-1">
         <View className="flex-1 items-center justify-center">
           <Text className="text-muted-foreground">Loading your training…</Text>
         </View>
@@ -51,24 +44,40 @@ export default function HomeScreen() {
 
   const stats = [
     { icon: Flame, label: 'Streak', value: `${streak}`, sub: 'days', color: '#F59E0B' },
-    { icon: CalendarCheck2, label: 'Workouts', value: `${week.workouts}`, sub: 'this week', color: '#16A34A' },
-    { icon: Clock, label: 'Active', value: formatMinutes(week.minutes), sub: 'this week', color: '#0EA5E9' },
-    { icon: Footprints, label: 'Distance', value: formatDistance(week.distance), sub: formatCalories(week.calories), color: '#8B5CF6' },
+    {
+      icon: CalendarCheck2,
+      label: 'Workouts',
+      value: `${week.workouts}`,
+      sub: 'this week',
+      color: '#16A34A',
+    },
+    {
+      icon: Clock,
+      label: 'Active',
+      value: formatMinutes(week.minutes),
+      sub: 'this week',
+      color: '#0EA5E9',
+    },
+    {
+      icon: Footprints,
+      label: 'Distance',
+      value: formatDistance(week.distance),
+      sub: formatCalories(week.calories),
+      color: '#8B5CF6',
+    },
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView className="bg-background flex-1" edges={['top']}>
       <ScrollView className="flex-1" contentContainerClassName="p-4 pb-28 gap-4">
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="text-sm text-muted-foreground">
-              {plan.name}
-            </Text>
-            <Text className="text-2xl font-bold text-foreground">SmartFit</Text>
+            <Text className="text-muted-foreground text-sm">{plan.name}</Text>
+            <Text className="text-foreground text-2xl font-bold">SmartFit</Text>
           </View>
           <Pressable
             onPress={() => setLogOpen(true)}
-            className="h-12 w-12 items-center justify-center rounded-full bg-primary"
+            className="bg-primary h-12 w-12 items-center justify-center rounded-full"
           >
             <Plus color="#FDF6F2" size={24} />
           </Pressable>
@@ -76,12 +85,14 @@ export default function HomeScreen() {
 
         {/* Today */}
         <Card className="bg-primary">
-          <Text className="text-sm font-medium text-primary-foreground/80">Today</Text>
-          <Text className="mt-1 text-lg font-bold text-primary-foreground">
+          <Text className="text-primary-foreground/80 text-sm font-medium">Today</Text>
+          <Text className="text-primary-foreground mt-1 text-lg font-bold">
             {focus ?? 'Rest & recover'}
           </Text>
-          <Text className="mt-1 text-sm text-primary-foreground/80">
-            {week.workouts > 0 ? `${week.workouts} session${week.workouts === 1 ? '' : 's'} logged this week` : 'No sessions logged yet this week'}
+          <Text className="text-primary-foreground/80 mt-1 text-sm">
+            {week.workouts > 0
+              ? `${week.workouts} session${week.workouts === 1 ? '' : 's'} logged this week`
+              : 'No sessions logged yet this week'}
           </Text>
         </Card>
 
@@ -98,13 +109,13 @@ export default function HomeScreen() {
                     <s.icon color={s.color} size={20} />
                   </View>
                   <View>
-                    <Text className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <Text className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
                       {s.label}
                     </Text>
-                    <Text className="text-xl font-bold text-foreground">{s.value}</Text>
+                    <Text className="text-foreground text-xl font-bold">{s.value}</Text>
                   </View>
                 </View>
-                <Text className="mt-2 text-xs text-muted-foreground">{s.sub}</Text>
+                <Text className="text-muted-foreground mt-2 text-xs">{s.sub}</Text>
               </Card>
             </View>
           ))}
@@ -113,8 +124,8 @@ export default function HomeScreen() {
         {topGoal && gp && (
           <Card>
             <View className="flex-row items-center justify-between">
-              <Text className="font-semibold text-foreground">{topGoal.name}</Text>
-              <Text className="text-sm text-muted-foreground">
+              <Text className="text-foreground font-semibold">{topGoal.name}</Text>
+              <Text className="text-muted-foreground text-sm">
                 {gp.current}/{gp.target}
               </Text>
             </View>
@@ -125,13 +136,15 @@ export default function HomeScreen() {
         )}
 
         <View>
-          <Text className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          <Text className="text-muted-foreground mb-2 text-sm font-semibold tracking-wide uppercase">
             Recent workouts
           </Text>
           <View className="gap-2">
             {recent.length === 0 && (
               <Card>
-                <Text className="text-sm text-muted-foreground">Nothing logged yet — tap + to start.</Text>
+                <Text className="text-muted-foreground text-sm">
+                  Nothing logged yet — tap + to start.
+                </Text>
               </Card>
             )}
             {recent.map((s) => {
@@ -144,11 +157,15 @@ export default function HomeScreen() {
                       className="h-10 w-10 items-center justify-center rounded-xl"
                       style={{ backgroundColor: `${cat?.color ?? '#64748b'}1a` }}
                     >
-                      <CategoryIcon name={cat?.icon ?? 'activity'} color={cat?.color ?? '#64748b'} size={18} />
+                      <CategoryIcon
+                        name={cat?.icon ?? 'activity'}
+                        color={cat?.color ?? '#64748b'}
+                        size={18}
+                      />
                     </View>
                     <View className="flex-1">
-                      <Text className="text-sm font-semibold text-foreground">{s.title}</Text>
-                      <Text className="text-xs text-muted-foreground">
+                      <Text className="text-foreground text-sm font-semibold">{s.title}</Text>
+                      <Text className="text-muted-foreground text-xs">
                         {relativeDay(s.date)} · {formatMinutes(s.durationMin)} ·{' '}
                         <Text style={{ color: meta.color }}>{meta.label}</Text>
                         {s.distanceKm ? ` · ${formatDistance(s.distanceKm)}` : ''}

@@ -2,8 +2,11 @@
 
 import { AuthGate } from '@/components/auth/auth-gate';
 
-// In cloud mode onboarding requires sign-in (the login page is the gateway and
-// routes first-time users here). In local mode the gate passes straight through.
+/**
+ * In cloud mode onboarding still requires sign-in (the login page routes
+ * first-time users here); in local mode the gate passes through. The
+ * onboarding check itself is disabled — this *is* the onboarding.
+ */
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
-  return <AuthGate>{children}</AuthGate>;
+  return <AuthGate requireOnboarding={false}>{children}</AuthGate>;
 }

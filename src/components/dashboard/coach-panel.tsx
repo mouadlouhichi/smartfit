@@ -1,253 +1,213 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { Sparkles, Mic } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useStore } from '@/lib/store-context';
-import {
-  currentStreak,
-  thisWeek,
-  goalProgress,
-  formatCalories,
-  formatMinutes,
-  formatDistance,
-  relativeDay,
-  getPlan,
-  todaysFocus,
-  type FitnessState,
-} from '@smartfit/core';
+import { answerCoach, coachGreeting, COACH_QUICK_REPLIES, type CoachChip } from '@smartfit/core';
+import { Ring } from './ring';
 import { cn } from '@/lib/utils';
 
-interface Chip {
-  label: string;
-  kcal: string;
-}
-interface Reply {
+export interface CoachMessage {
+  id: number;
+  role: 'user' | 'coach';
   text: string;
-  chips?: Chip[];
+  chips?: CoachChip[];
+  time: string;
 }
 
-const QUICK = ['Start workout', 'Log water', 'How did I sleep?', 'Calories today'];
+const now = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
-function weekRangeStart(): string {
-  const d = new Date();
-  const day = (d.getDay() + 6) % 7;
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - day);
-  return d.toISOString().slice(0, 10);
-}
-
-function coachReply(q: string, state: FitnessState): Reply {
-  const text = q.toLowerCase();
-  const week = thisWeek(state);
-  const streak = currentStreak(state);
-  const plan = getPlan(state.profile.planId);
-  const focus = todaysFocus(state);
-
-  if (state.sessions.length === 0) {
-    return {
-      text: `Welcome! Your plan is "${plan.name}". Tap the bolt to log your first workout and I'll track calories, streaks and trends for you.`,
-    };
-  }
-
-  if (text.includes('calor') || text.includes('burn') || text.includes('kcal')) {
-    const weekSessions = state.sessions.filter((s) => s.date >= weekRangeStart());
-    const byCat = new Map<string, number>();
-    for (const s of weekSessions) byCat.set(s.categoryId, (byCat.get(s.categoryId) ?? 0) + s.calories);
-    const chips: Chip[] = [...byCat.entries()]
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([catId, kcal]) => ({
-        label: state.categories.find((c) => c.id === catId)?.name ?? 'Activity',
-        kcal: formatCalories(kcal),
-      }));
-    return {
-      text: `You burned ${formatCalories(week.calories)} across ${week.workouts} activities this week.`,
-      chips: chips.length ? chips : undefined,
-    };
-  }
-
-  if (text.includes('start') || text.includes('workout') || text.includes('today') || text.includes('train')) {
-    return {
-      text: focus
-        ? `Today's focus is ${focus}. Ready when you are — tap the bolt to log it and keep your ${streak}-day streak going.`
-        : `Nothing scheduled today on ${plan.name}. A light session still counts toward your ${streak}-day streak.`,
-    };
-  }
-
-  if (text.includes('goal') || text.includes('track') || text.includes('on track')) {
-    const goals = state.goals.map((g) => ({ g, p: goalProgress(state, g) }));
-    if (!goals.length) return { text: "You haven't set a goal yet. Add one from Goals and I'll keep you honest." };
-    return {
-      text: goals
-        .map((x) => `${x.g.name}: ${x.p.current}/${x.p.target} (${Math.round(x.p.pct)}%)`)
-        .join('. ') + '.',
-    };
-  }
-
-  if (text.includes('water')) return { text: 'Hydration logging is on the roadmap — for now, aim for 30–35ml per kg of body weight.' };
-  if (text.includes('sleep') || text.includes('recover')) {
-    return { text: 'Aim for 7–9 hours after hard sessions. Stretching post-workout helps sleep quality — set an evening routine.' };
-  }
-
-  const latest = state.sessions[0];
-  return {
-    text: `${week.workouts} workout${week.workouts === 1 ? '' : 's'} · ${formatMinutes(week.minutes)} active${
-      week.distance ? ` · ${formatDistance(week.distance)}` : ''
-    } this week${latest ? ` — last was ${relativeDay(latest.date)} (${formatCalories(latest.calories)})` : ''}. Consistency is everything.`,
-  };
-}
-
-export function CoachPanel({ className }: { className?: string }) {
+/**
+ * Shared conversation state for every coach surface.
+ *
+ * The answers themselves come from `answerCoach` in @smartfit/core — one
+ * deterministic, unit-tested engine rather than a copy per screen.
+ */
+export function useCoachConversation() {
   const { state } = useStore();
-  const [messages, setMessages] = useState<{ id: number; role: 'user' | 'coach'; text: string; chips?: Chip[]; time: string }[]>(
-    [],
-  );
-  const [input, setInput] = useState('');
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<CoachMessage[]>([]);
   const idRef = useRef(0);
 
   useEffect(() => {
-    const now = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    const name = state.profile.name;
-    const h = new Date().getHours();
-    const part = h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening';
     setMessages([
-      {
-        id: idRef.current++,
-        role: 'coach',
-        text: `Good ${part}${name ? `, ${name}` : ''}! I'm your coach. Ask me about your week, calories, today's session or your goals.`,
-        time: now,
-      },
+      { id: idRef.current++, role: 'coach', text: coachGreeting(state.profile.name), time: now() },
     ]);
+    // Greet once per mount, not on every state change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function send(text: string) {
+    const question = text.trim();
+    if (!question) return;
+    const stamp = now();
+    const answer = answerCoach(question, state);
+    setMessages((m) => [
+      ...m,
+      { id: idRef.current++, role: 'user', text: question, time: stamp },
+      { id: idRef.current++, role: 'coach', text: answer.text, chips: answer.chips, time: stamp },
+    ]);
+  }
+
+  return { messages, send, quickReplies: useMemo(() => [...COACH_QUICK_REPLIES], []) };
+}
+
+/**
+ * A chip's ring shows its real share of the period total — previously these
+ * were decorative values (`60 + i * 13`) rendered next to genuine calorie
+ * figures, which read as data.
+ */
+export function CoachChips({ chips }: { chips: CoachChip[] }) {
+  return (
+    <div className="mt-3 flex [scrollbar-width:none] gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+      {chips.map((c) => (
+        <div
+          key={c.label}
+          className="border-border bg-card flex min-w-[132px] items-center gap-3 rounded-2xl border px-4 py-3 shadow-sm"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="text-muted-foreground block truncate text-xs font-medium">
+              {c.label}
+            </span>
+            <span className="text-foreground block text-sm font-extrabold">{c.value}</span>
+          </span>
+          <Ring pct={c.pct} size={40} stroke={4}>
+            <span className="text-[10px] font-bold tabular-nums">{c.pct}%</span>
+          </Ring>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function CoachMessages({
+  messages,
+  className,
+}: {
+  messages: CoachMessage[];
+  className?: string;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
-  function send(text: string) {
-    const q = text.trim();
-    if (!q) return;
-    const time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-    const reply = coachReply(q, state);
-    setMessages((m) => [
-      ...m,
-      { id: idRef.current++, role: 'user', text: q, time },
-      { id: idRef.current++, role: 'coach', ...reply, time },
-    ]);
-    setInput('');
-  }
-
   return (
-    <div
-      className={cn(
-        'flex h-full min-h-[560px] flex-col overflow-hidden rounded-[2rem] border border-border bg-card/70 shadow-sm',
-        className,
-      )}
-    >
-      {/* Header */}
-      <div className="flex justify-center pt-5">
-        <span className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-white shadow-md shadow-primary/30">
-          <Sparkles className="h-4 w-4" /> AI Chatbot
-        </span>
-      </div>
-
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-5 py-6">
-        {messages.map((m) => (
-          <div key={m.id} className={cn('flex flex-col', m.role === 'user' ? 'items-end' : 'items-start')}>
-            <div
-              className={cn(
-                'max-w-[88%] rounded-3xl px-4 py-3 text-sm font-medium leading-relaxed shadow-sm',
-                m.role === 'user'
-                  ? 'rounded-tr-md bg-secondary text-foreground'
-                  : 'rounded-tl-md border border-border bg-card text-foreground',
-              )}
-            >
-              {m.text}
-            </div>
-            {m.chips && (
-              <div className="mt-3 flex gap-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                {m.chips.map((c, i) => (
-                  <div
-                    key={i}
-                    className="flex min-w-[120px] items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 shadow-sm"
-                  >
-                    <span className="flex-1">
-                      <span className="block text-xs font-medium text-muted-foreground">{c.label}</span>
-                      <span className="block text-sm font-extrabold text-foreground">{c.kcal}</span>
-                    </span>
-                    <MiniRing pct={55 + i * 20} />
-                  </div>
-                ))}
-              </div>
+    <div ref={scrollRef} className={cn('flex-1 space-y-4 overflow-y-auto', className)}>
+      {messages.map((m) => (
+        <div
+          key={m.id}
+          className={cn('flex flex-col', m.role === 'user' ? 'items-end' : 'items-start')}
+        >
+          <div
+            className={cn(
+              'max-w-[88%] rounded-3xl px-4 py-3 text-sm leading-relaxed shadow-sm',
+              m.role === 'user'
+                ? 'bg-primary text-primary-foreground rounded-tr-md'
+                : 'border-border bg-card text-card-foreground rounded-tl-md border',
             )}
-            <span className="mt-1 px-1 text-[11px] text-muted-foreground">
-              {m.role === 'coach' ? m.time : ''}
-            </span>
+          >
+            {m.text}
           </div>
-        ))}
-      </div>
-
-      {/* Quick chips */}
-      <div className="flex gap-2 overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {QUICK.map((q) => (
-          <Button
-            key={q}
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => send(q)}
-            className="whitespace-nowrap rounded-full text-xs font-semibold text-clay hover:border-primary hover:text-primary"
-          >
-            {q}
-          </Button>
-        ))}
-      </div>
-
-      {/* Input */}
-      <div className="flex items-center gap-2 p-4 pt-1">
-        <div className="flex flex-1 items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 shadow-sm">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && send(input)}
-            placeholder="Type something…"
-            aria-label="Message your coach"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-          />
-          <button
-            type="button"
-            aria-label="Voice"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <Mic className="h-4 w-4" />
-          </button>
+          {m.chips && m.chips.length > 0 && <CoachChips chips={m.chips} />}
+          <span className="text-muted-foreground mt-1 px-1 text-[10px]">{m.time}</span>
         </div>
-      </div>
+      ))}
     </div>
   );
 }
 
-function MiniRing({ pct }: { pct: number }) {
-  const r = 15;
-  const c = 2 * Math.PI * r;
+export function CoachComposer({
+  onSend,
+  placeholder = 'Ask your coach anything…',
+}: {
+  onSend: (text: string) => void;
+  placeholder?: string;
+}) {
+  const [input, setInput] = useState('');
+
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!input.trim()) return;
+    onSend(input);
+    setInput('');
+  }
+
   return (
-    <svg width="40" height="40" viewBox="0 0 40 40" className="-rotate-90">
-      <circle cx="20" cy="20" r={r} fill="none" stroke="var(--secondary)" strokeWidth="4" />
-      <circle
-        cx="20"
-        cy="20"
-        r={r}
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeDasharray={c}
-        strokeDashoffset={c - (c * pct) / 100}
+    <form onSubmit={submit} className="flex items-center gap-2">
+      <Input
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder={placeholder}
+        aria-label="Message your coach"
+        className="border-border bg-card h-12 flex-1 rounded-full pl-5 shadow-sm"
       />
-    </svg>
+      <Button
+        type="submit"
+        aria-label="Send"
+        size="icon"
+        disabled={!input.trim()}
+        className="shadow-primary/30 h-12 w-12 shrink-0 rounded-full shadow-md"
+      >
+        <Send className="h-5 w-5" />
+      </Button>
+    </form>
+  );
+}
+
+export function CoachQuickReplies({
+  replies,
+  onPick,
+}: {
+  replies: string[];
+  onPick: (text: string) => void;
+}) {
+  return (
+    <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+      {replies.map((q) => (
+        <Button
+          key={q}
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => onPick(q)}
+          className="hover:border-primary hover:text-primary rounded-full text-xs font-semibold whitespace-nowrap"
+        >
+          {q}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+/** Compact coach used in the dashboard's right-hand column. */
+export function CoachPanel({ className }: { className?: string }) {
+  const { messages, send, quickReplies } = useCoachConversation();
+
+  return (
+    <div
+      className={cn(
+        'border-border bg-card/70 flex h-full min-h-[560px] flex-col overflow-hidden rounded-[2rem] border shadow-sm',
+        className,
+      )}
+    >
+      <div className="flex justify-center pt-5">
+        <span className="bg-primary text-primary-foreground shadow-primary/30 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-md">
+          <Sparkles className="h-4 w-4" /> Your coach
+        </span>
+      </div>
+
+      <CoachMessages messages={messages} className="px-5 py-6" />
+
+      <div className="px-5 pb-3">
+        <CoachQuickReplies replies={quickReplies} onPick={send} />
+      </div>
+
+      <div className="p-4 pt-1">
+        <CoachComposer onSend={send} placeholder="Type something…" />
+      </div>
+    </div>
   );
 }

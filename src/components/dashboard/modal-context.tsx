@@ -1,28 +1,47 @@
 'use client';
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import type { BodyLog, FitnessGoal, ScheduledWorkout, WorkoutSession } from '@smartfit/core';
 
-export type ModalKind =
-  | 'workout'
-  | 'schedule'
-  | 'goal'
-  | 'body'
-  | 'category'
-  | null;
+/**
+ * Global modal coordinator.
+ *
+ * Modals carry an optional payload so the same dialog handles both "create"
+ * and "edit" — previously every modal was create-only, which is why logged
+ * sessions, goals and scheduled slots could never be corrected.
+ */
+export type ModalKind = 'workout' | 'schedule' | 'goal' | 'body' | 'category' | 'session-detail';
+
+export type ModalPayload =
+  | { kind: 'workout'; session?: WorkoutSession; prefill?: Partial<WorkoutSession> }
+  | { kind: 'schedule'; schedule?: ScheduledWorkout }
+  | { kind: 'goal'; goal?: FitnessGoal }
+  | { kind: 'body'; log?: BodyLog }
+  | { kind: 'category' }
+  | { kind: 'session-detail'; session: WorkoutSession };
 
 interface ModalContextValue {
-  open: ModalKind;
-  openModal: (m: Exclude<ModalKind, null>) => void;
+  open: ModalKind | null;
+  payload: ModalPayload | null;
+  openModal: (kind: ModalKind) => void;
+  openWith: (payload: ModalPayload) => void;
   closeModal: () => void;
 }
 
 const ModalContext = createContext<ModalContextValue | null>(null);
 
 export function ModalProvider({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState<ModalKind>(null);
-  const openModal = useCallback((m: Exclude<ModalKind, null>) => setOpen(m), []);
-  const closeModal = useCallback(() => setOpen(null), []);
-  const value = useMemo(() => ({ open, openModal, closeModal }), [open, openModal, closeModal]);
+  const [payload, setPayload] = useState<ModalPayload | null>(null);
+
+  const openWith = useCallback((next: ModalPayload) => setPayload(next), []);
+  const openModal = useCallback((kind: ModalKind) => setPayload({ kind } as ModalPayload), []);
+  const closeModal = useCallback(() => setPayload(null), []);
+
+  const value = useMemo(
+    () => ({ open: payload?.kind ?? null, payload, openModal, openWith, closeModal }),
+    [payload, openModal, openWith, closeModal],
+  );
+
   return <ModalContext.Provider value={value}>{children}</ModalContext.Provider>;
 }
 
@@ -30,4 +49,10 @@ export function useModals(): ModalContextValue {
   const ctx = useContext(ModalContext);
   if (!ctx) throw new Error('useModals must be used within <ModalProvider>');
   return ctx;
+}
+
+/** Narrow the payload for a specific modal. */
+export function usePayload<K extends ModalKind>(kind: K) {
+  const { payload } = useModals();
+  return payload?.kind === kind ? (payload as Extract<ModalPayload, { kind: K }>) : null;
 }

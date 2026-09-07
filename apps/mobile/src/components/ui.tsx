@@ -12,19 +12,21 @@ import { cn } from '@/lib/cn';
 
 export function Card({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
-    <View className={cn('rounded-2xl border border-border bg-card p-4', className)}>{children}</View>
+    <View className={cn('border-border bg-card rounded-2xl border p-4', className)}>
+      {children}
+    </View>
   );
 }
 
 export function Label({ children }: { children: React.ReactNode }) {
-  return <Text className="mb-1.5 text-sm font-medium text-foreground/80">{children}</Text>;
+  return <Text className="text-foreground/80 mb-1.5 text-sm font-medium">{children}</Text>;
 }
 
 export function Input(props: TextInputProps) {
   return (
     <RNTextInput
       placeholderTextColor="#A9A098"
-      className="h-11 rounded-xl border border-border bg-background px-3 text-base text-foreground"
+      className="border-border bg-background text-foreground h-11 rounded-xl border px-3 text-base"
       {...props}
     />
   );
@@ -88,7 +90,7 @@ export function Badge({ children, color }: { children: React.ReactNode; color?: 
 
 export function ProgressBar({ value, color = '#D6532F' }: { value: number; color?: string }) {
   return (
-    <View className="h-2.5 w-full overflow-hidden rounded-full bg-muted">
+    <View className="bg-muted h-2.5 w-full overflow-hidden rounded-full">
       <View
         className="h-full rounded-full"
         style={{ width: `${Math.min(100, Math.max(0, value))}%`, backgroundColor: color }}
@@ -98,5 +100,9 @@ export function ProgressBar({ value, color = '#D6532F' }: { value: number; color
 }
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <Text className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{children}</Text>;
+  return (
+    <Text className="text-muted-foreground mb-2 text-sm font-semibold tracking-wide uppercase">
+      {children}
+    </Text>
+  );
 }

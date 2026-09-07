@@ -5,7 +5,7 @@ export function Logo({ className, size = 36 }: { className?: string; size?: numb
   return (
     <span
       className={cn(
-        'inline-flex items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm shadow-primary/25',
+        'bg-primary text-primary-foreground shadow-primary/25 inline-flex items-center justify-center rounded-2xl shadow-sm',
         className,
       )}
       style={{ width: size, height: size }}
@@ -20,7 +20,7 @@ export function Wordmark({ className }: { className?: string }) {
     <span className={cn('inline-flex items-center gap-2.5 tracking-tight', className)}>
       <Logo size={28} />
       <span className="font-display text-xl font-semibold">
-        Smart<span className="italic text-primary">Fit</span>
+        Smart<span className="text-primary italic">Fit</span>
       </span>
     </span>
   );

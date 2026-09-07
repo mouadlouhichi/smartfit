@@ -5,6 +5,7 @@ import { ScheduleModal } from './modals/ScheduleModal';
 import { GoalModal } from './modals/GoalModal';
 import { BodyModal } from './modals/BodyModal';
 import { CategoryModal } from './modals/CategoryModal';
+import { SessionDetailModal } from './modals/SessionDetailModal';
 
 /**
  * Renders every global modal. Must sit inside <ModalProvider> — the shell wraps
@@ -18,6 +19,7 @@ export function DashboardModals() {
       <GoalModal />
       <BodyModal />
       <CategoryModal />
+      <SessionDetailModal />
     </>
   );
 }

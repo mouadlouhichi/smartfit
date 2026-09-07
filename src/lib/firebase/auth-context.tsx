@@ -1,15 +1,9 @@
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { getFirebaseServices, isFirebaseConfigured } from './config';
+import { getFirebaseServices, missingFirebaseKeys, isFirebaseConfigured } from './config';
+import { AUTH_UNAVAILABLE, friendlyAuthError, isSilentResetMiss } from './auth-errors';
 
 export type AuthMode = 'cloud' | 'local';
 
@@ -28,39 +22,30 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /**
+   * Permanently delete the Firebase Auth account. Firestore data must be
+   * wiped first — see `useStore().clearData()`.
+   */
+  deleteAccount: () => Promise<void>;
   clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-/** Turn a Firebase auth error code into a short human message. */
-function friendlyError(err: unknown): string {
-  const code = (err as { code?: string })?.code ?? '';
-  switch (code) {
-    case 'auth/invalid-credential':
-    case 'auth/wrong-password':
-    case 'auth/user-not-found':
-      return 'Incorrect email or password.';
-    case 'auth/email-already-in-use':
-      return 'An account already exists with that email. Try signing in.';
-    case 'auth/weak-password':
-      return 'Password should be at least 6 characters.';
-    case 'auth/invalid-email':
-      return 'Please enter a valid email address.';
-    case 'auth/popup-closed-by-user':
-    case 'auth/cancelled-popup-request':
-      return 'Sign-in cancelled.';
-    case 'auth/popup-blocked':
-      return 'Pop-up was blocked — allow pop-ups for this site and try again.';
-    case 'auth/network-request-failed':
-      return 'Network error — check your connection and try again.';
-    case 'auth/operation-not-allowed':
-      return 'That sign-in method is not enabled in this Firebase project.';
-    case 'auth/too-many-requests':
-      return 'Too many attempts — please wait a moment and try again.';
-    default:
-      return 'Something went wrong. Please try again.';
-  }
+/**
+ * Resolve the Firebase services or fail loudly.
+ *
+ * Callers must invoke this *inside* `run()`. It used to be thrown before the
+ * wrapper, which meant a deployment with no Firebase credentials produced a
+ * rejected promise that nothing translated and nothing displayed — the sign-in
+ * button simply did nothing at all.
+ */
+async function requireAuth() {
+  const svc = await getFirebaseServices();
+  // An empty `missingKeys` here means the config was present but init threw,
+  // which is a different failure needing a different message.
+  if (!svc) throw Object.assign(new Error(AUTH_UNAVAILABLE), { missingKeys: missingFirebaseKeys });
+  return svc;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -110,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await fn();
     } catch (err) {
-      setAuthError(friendlyError(err));
+      setAuthError(friendlyAuthError(err));
       throw err;
     } finally {
       setLoading(false);
@@ -119,10 +104,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = useCallback(
     async (email: string, password: string, displayName?: string) => {
-      const svc = await getFirebaseServices();
-      if (!svc) throw new Error('auth-unavailable');
-      const fb = await import('firebase/auth');
       await run(async () => {
+        const svc = await requireAuth();
+        const fb = await import('firebase/auth');
         const cred = await fb.createUserWithEmailAndPassword(svc.auth, email, password);
         if (displayName && cred.user) {
           await fb.updateProfile(cred.user, { displayName });
@@ -134,33 +118,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const svc = await getFirebaseServices();
-      if (!svc) throw new Error('auth-unavailable');
-      const fb = await import('firebase/auth');
-      await run(() => fb.signInWithEmailAndPassword(svc.auth, email, password));
+      await run(async () => {
+        const svc = await requireAuth();
+        const fb = await import('firebase/auth');
+        await fb.signInWithEmailAndPassword(svc.auth, email, password);
+      });
     },
     [run],
   );
 
   const signInWithGoogle = useCallback(async () => {
-    const svc = await getFirebaseServices();
-    if (!svc) throw new Error('auth-unavailable');
-    const fb = await import('firebase/auth');
-    await run(() => {
+    await run(async () => {
+      const svc = await requireAuth();
+      const fb = await import('firebase/auth');
       const provider = new fb.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      return fb.signInWithPopup(svc.auth, provider);
+      await fb.signInWithPopup(svc.auth, provider);
     });
   }, [run]);
 
   const resetPassword = useCallback(
     async (email: string) => {
-      const svc = await getFirebaseServices();
-      if (!svc) throw new Error('auth-unavailable');
-      const fb = await import('firebase/auth');
       await run(async () => {
-        await fb.sendPasswordResetEmail(svc.auth, email);
-        setAuthInfo(`Password reset link sent to ${email}. Check your inbox.`);
+        const svc = await requireAuth();
+        const fb = await import('firebase/auth');
+        // Treat "no such account" as success. Reporting it would (a) confirm
+        // to an attacker which emails are registered, and (b) surface through
+        // friendlyError as "Incorrect email or password.", which is nonsense
+        // on a form that has no password field. Firebase's own email
+        // enumeration protection behaves the same way.
+        try {
+          await fb.sendPasswordResetEmail(svc.auth, email);
+        } catch (err) {
+          if (!isSilentResetMiss(err)) throw err;
+        }
+        setAuthInfo(`If an account exists for ${email}, a reset link is on its way.`);
       });
     },
     [run],
@@ -172,6 +164,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const fb = await import('firebase/auth');
     await fb.signOut(svc.auth);
   }, []);
+
+  const deleteAccount = useCallback(async () => {
+    const svc = await getFirebaseServices();
+    if (!svc) throw new Error('auth-unavailable');
+    const current = svc.auth.currentUser;
+    if (!current) throw new Error('not-signed-in');
+    const fb = await import('firebase/auth');
+
+    await run(async () => {
+      try {
+        await fb.deleteUser(current);
+      } catch (err) {
+        // Deleting an account is a sensitive operation: Firebase requires a
+        // recent sign-in. Re-authenticate in place rather than dead-ending.
+        if ((err as { code?: string })?.code !== 'auth/requires-recent-login') throw err;
+        const google = current.providerData.some((p) => p.providerId === 'google.com');
+        if (!google) throw err; // password users are asked to sign in again
+        const provider = new fb.GoogleAuthProvider();
+        await fb.reauthenticateWithPopup(current, provider);
+        await fb.deleteUser(current);
+      }
+    });
+  }, [run]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -186,6 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       resetPassword,
       signOut,
+      deleteAccount,
       clearError: () => {
         setAuthError(null);
         setAuthInfo(null);
@@ -203,6 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       resetPassword,
       signOut,
+      deleteAccount,
     ],
   );
 

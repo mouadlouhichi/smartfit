@@ -26,7 +26,14 @@ export function BarChart({
   return (
     <View>
       <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
-        <Line x1={0} y1={height - padBottom} x2={width} y2={height - padBottom} stroke="#E7E2DB" strokeWidth={1} />
+        <Line
+          x1={0}
+          y1={height - padBottom}
+          x2={width}
+          y2={height - padBottom}
+          stroke="#E7E2DB"
+          strokeWidth={1}
+        />
         {data.map((d, i) => {
           const h = (d.value / max) * chartH;
           const x = i * barW + barW * 0.2;
@@ -34,7 +41,15 @@ export function BarChart({
           const y = height - padBottom - h;
           return (
             <React.Fragment key={i}>
-              <Rect x={x} y={y} width={w} height={Math.max(2, h)} rx={4} fill={color} opacity={i === data.length - 1 ? 1 : 0.75} />
+              <Rect
+                x={x}
+                y={y}
+                width={w}
+                height={Math.max(2, h)}
+                rx={4}
+                fill={color}
+                opacity={i === data.length - 1 ? 1 : 0.75}
+              />
               <SvgText
                 x={i * barW + barW / 2}
                 y={height - 6}
@@ -49,7 +64,7 @@ export function BarChart({
         })}
         {padTop ? null : null}
       </Svg>
-      <Text className="mt-1 text-xs text-muted-foreground"> </Text>
+      <Text className="text-muted-foreground mt-1 text-xs"> </Text>
     </View>
   );
 }

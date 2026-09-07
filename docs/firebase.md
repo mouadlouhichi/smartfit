@@ -59,7 +59,7 @@ The app never seeds demo data. For demos/analytics use one of:
 - **Firestore:** `pnpm seed` — see `scripts/README.md`. Requires a service
   account (`FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`)
   and writes a realistic ~6-week history to a `demo-user` (or `SEED_UID`).
-- **SQL:** `seed.sql` — relational schema + the same demo data for Postgres/SQLite
+- **SQL:** `scripts/seed.sql` — relational schema + the same demo data for Postgres/SQLite
   exploration and analytics (includes a `v_weekly_volume` view).
 
 ## Local-only mode

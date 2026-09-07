@@ -1,0 +1,23 @@
+{
+  "name": "SmartFit — Train with intention",
+  "short_name": "SmartFit",
+  "description": "A private, mobile-first fitness tracker. Plan your week, log every session, and watch the trends build.",
+  "id": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#efedea",
+  "theme_color": "#e05e36",
+  "categories": ["health", "fitness", "lifestyle"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Log a workout", "url": "/dashboard?log=1" },
+    { "name": "Your plan", "url": "/dashboard/plan" },
+    { "name": "Progress", "url": "/dashboard/progress" }
+  ]
+}

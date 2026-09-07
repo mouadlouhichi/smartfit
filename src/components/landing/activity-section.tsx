@@ -42,8 +42,8 @@ export function ActivitySection() {
             we track it.
           </h2>
           <p className="text-xl text-[color:var(--muted-foreground)]">
-            Every session maps to a type, and every type feeds your plan, goals and trends. Change your strategy from
-            Profile anytime.
+            Every session maps to a type, and every type feeds your plan, goals and trends. Change
+            your strategy from Profile anytime.
           </p>
           <div className="mt-6 flex justify-center gap-3">
             <Link
@@ -72,7 +72,9 @@ export function ActivitySection() {
                   key={`${a.name}-${setIndex}`}
                   className="group shrink-0 border border-[color:var(--foreground)]/10 px-8 py-6 transition-all duration-300 hover:border-[color:var(--foreground)]/30 hover:bg-[color:var(--foreground)]/[0.02]"
                 >
-                  <div className="text-lg font-medium transition-transform group-hover:translate-x-1">{a.name}</div>
+                  <div className="text-lg font-medium transition-transform group-hover:translate-x-1">
+                    {a.name}
+                  </div>
                   <div className="text-sm text-[color:var(--muted-foreground)]">{a.category}</div>
                 </div>
               ))}
@@ -90,7 +92,9 @@ export function ActivitySection() {
                   key={`${a.name}-reverse-${setIndex}`}
                   className="group shrink-0 border border-[color:var(--foreground)]/10 px-8 py-6 transition-all duration-300 hover:border-[color:var(--foreground)]/30 hover:bg-[color:var(--foreground)]/[0.02]"
                 >
-                  <div className="text-lg font-medium transition-transform group-hover:translate-x-1">{a.name}</div>
+                  <div className="text-lg font-medium transition-transform group-hover:translate-x-1">
+                    {a.name}
+                  </div>
                   <div className="text-sm text-[color:var(--muted-foreground)]">{a.category}</div>
                 </div>
               ))}

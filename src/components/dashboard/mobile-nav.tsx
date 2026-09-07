@@ -97,12 +97,25 @@ export function MobileNav() {
     window.addEventListener('resize', measure);
     if (document.fonts?.ready) document.fonts.ready.then(measure).catch(() => {});
     const t = setTimeout(() => setAnimate(true), 80);
+
+    // The active tab is sized to its own content, so the pill must follow any
+    // geometry change — late webfont swap, container resize, label change —
+    // rather than trusting a single measurement taken on mount.
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure);
+      if (navRef.current) ro.observe(navRef.current);
+      const activeEl = activeId ? tabRefs.current[activeId] : null;
+      if (activeEl) ro.observe(activeEl);
+    }
+
     return () => {
       cancelAnimationFrame(raf);
       clearTimeout(t);
       window.removeEventListener('resize', measure);
+      ro?.disconnect();
     };
-  }, [measure]);
+  }, [measure, activeId]);
 
   if (onCoach) return null;
 
@@ -120,16 +133,27 @@ export function MobileNav() {
         aria-label={tab.label}
         aria-current={isActive ? 'page' : undefined}
         className={cn(
-          'relative z-10 flex min-w-0 flex-1 items-center justify-center rounded-full py-2 transition-colors duration-300 active:scale-95',
+          'relative z-10 flex items-center justify-center rounded-full py-2 transition-colors duration-300 active:scale-95',
+          // Only the active tab renders a label, so size it to its content and
+          // let the icon-only tabs absorb the remaining space. Equal `flex-1`
+          // widths sized every tab for a bare icon and then overflowed the
+          // active one, pushing its icon outside the measured pill.
+          isActive ? 'flex-initial px-2' : 'flex-1',
+          'min-w-0',
           isActive ? 'text-primary' : 'text-white/55 hover:text-white/85',
         )}
       >
-        <span className="flex items-center gap-1.5">
+        <span className={cn('flex min-w-0 items-center', isActive ? 'gap-1.5' : 'gap-0')}>
           <Icon className="h-5 w-5 shrink-0" strokeWidth={2.3} />
           <span
             className={cn(
-              'overflow-hidden whitespace-nowrap text-xs font-bold text-charcoal transition-all duration-300 ease-out',
-              isActive ? 'max-w-[72px] opacity-100' : 'max-w-0 opacity-0',
+              // `truncate` (not a bare max-width clip) so a narrow phone
+              // ellipsizes the label instead of slicing it mid-word.
+              // Only opacity is transitioned: the tab is sized to its content,
+              // so animating max-width would animate the tab's own geometry and
+              // the pill would measure a half-open label.
+              'text-charcoal min-w-0 truncate text-xs font-bold transition-opacity duration-300 ease-out',
+              isActive ? 'max-w-[84px] opacity-100' : 'max-w-0 opacity-0',
             )}
           >
             {tab.label}
@@ -143,7 +167,7 @@ export function MobileNav() {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),14px)] lg:hidden">
       <nav
         ref={navRef}
-        className="pointer-events-auto relative flex w-full max-w-md items-center gap-1 rounded-full px-2 py-2 shadow-2xl shadow-black/30 ring-1 ring-white/10"
+        className="pointer-events-auto relative flex w-full max-w-md items-center gap-1 rounded-full px-2 py-2 shadow-2xl ring-1 shadow-black/30 ring-white/10"
         style={{
           background: 'linear-gradient(180deg, #4d4a47 0%, #3d3b39 48%, #353331 100%)',
         }}
@@ -152,7 +176,7 @@ export function MobileNav() {
         {pill && (
           <span
             aria-hidden
-            className="pointer-events-none absolute left-0 top-0 rounded-full bg-white shadow-sm"
+            className="pointer-events-none absolute top-0 left-0 rounded-full bg-white shadow-sm"
             style={{
               transform: `translate(${pill.x}px, ${pill.y}px)`,
               width: pill.width,
@@ -173,7 +197,7 @@ export function MobileNav() {
           aria-label="Log workout"
           className="relative z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-black/5 transition-transform active:scale-90"
         >
-          <Zap className="h-5 w-5 fill-charcoal text-charcoal" strokeWidth={1.6} />
+          <Zap className="fill-charcoal text-charcoal h-5 w-5" strokeWidth={1.6} />
         </button>
 
         {RIGHT_TABS.map(renderTab)}

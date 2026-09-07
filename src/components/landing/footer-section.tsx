@@ -17,9 +17,9 @@ const FOOTER_LINKS = [
     title: 'Training',
     links: [
       { name: 'All styles explained', href: '/#plans' },
-      { name: 'Push / Pull / Legs', href: '/dashboard' },
-      { name: 'Upper / Lower', href: '/dashboard' },
-      { name: 'Full Body 3×', href: '/dashboard' },
+      { name: 'Push / Pull / Legs', href: '/#plans' },
+      { name: 'Upper / Lower', href: '/#plans' },
+      { name: 'Full Body 3×', href: '/#plans' },
     ],
   },
   {
@@ -27,25 +27,25 @@ const FOOTER_LINKS = [
     links: [
       { name: 'Training guides', href: '/#guides' },
       { name: 'Session vs plan', href: '/#features' },
-      { name: 'Help center', href: '/dashboard' },
-      { name: 'Contact', href: '/dashboard' },
+      { name: 'How it works', href: '/#how-it-works' },
+      { name: 'FAQ', href: '/#faq' },
     ],
   },
   {
     title: 'App',
     links: [
       { name: 'Open dashboard', href: '/dashboard' },
-      { name: 'Onboarding', href: '/onboarding' },
-      { name: 'Sign in', href: '/dashboard' },
-      { name: 'Privacy', href: '/#security' },
+      { name: 'Get started', href: '/onboarding' },
+      { name: 'Sign in', href: '/login' },
+      { name: 'Your data', href: '/#security' },
     ],
   },
   {
     title: 'Legal',
     links: [
-      { name: 'Privacy policy', href: '/#security' },
-      { name: 'Data on-device', href: '/#security' },
-      { name: 'Export & delete', href: '/dashboard' },
+      { name: 'Privacy policy', href: '/privacy' },
+      { name: 'Terms of use', href: '/terms' },
+      { name: 'Export & delete', href: '/dashboard/profile' },
     ],
   },
 ];
@@ -63,15 +63,23 @@ export function FooterSection() {
             <div className="col-span-2">
               <Link href="/" className="mb-6 inline-flex items-center gap-2">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color:var(--foreground)] text-[color:var(--background)]">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="18"
+                    height="18"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                  >
                     <path d="M6.5 8.5v7M17.5 8.5v7M3.5 10.5v3M20.5 10.5v3M6.5 12h11" />
                   </svg>
                 </span>
                 <span className="font-display text-2xl">SmartFit</span>
               </Link>
               <p className="max-w-xs leading-relaxed text-[color:var(--muted-foreground)]">
-                The free, private workout tracker. Plan, log and understand your training — no wearables, no
-                subscriptions, no data leaving your device.
+                The free, private workout tracker. Plan, log and understand your training — no
+                wearables, no subscriptions, no data leaving your device.
               </p>
               <p className="mt-4 text-xs leading-relaxed text-[color:var(--muted-foreground)]">
                 SmartFit is a tracker, not a medical device — train within your limits.
@@ -111,6 +119,12 @@ export function FooterSection() {
             </Link>
             <Link href="/#guides" className="hover:text-[color:var(--foreground)]">
               Guides
+            </Link>
+            <Link href="/privacy" className="hover:text-[color:var(--foreground)]">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-[color:var(--foreground)]">
+              Terms
             </Link>
           </div>
         </div>

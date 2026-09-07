@@ -1,13 +1,8 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   emptyState,
+  parseStateJSON,
   uid,
   type BodyLog,
   type FitnessGoal,
@@ -46,8 +41,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // Persisted JSON is validated rather than cast: a partial write, an older
+    // shape or hand-edited storage must not crash the app on launch.
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => setState(raw ? (JSON.parse(raw) as FitnessState) : freshState()))
+      .then((raw) => setState(parseStateJSON(raw) ?? freshState()))
       .catch(() => setState(freshState()))
       .finally(() => setReady(true));
   }, []);
@@ -70,7 +67,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       deleteSession: (id) =>
         setState((p) => ({ ...p, sessions: p.sessions.filter((s) => s.id !== id) })),
       addGoal: (g) =>
-        setState((p) => ({ ...p, goals: [...p.goals, { ...g, id: uid('goal'), createdAt: Date.now() }] })),
+        setState((p) => ({
+          ...p,
+          goals: [...p.goals, { ...g, id: uid('goal'), createdAt: Date.now() }],
+        })),
       deleteGoal: (id) => setState((p) => ({ ...p, goals: p.goals.filter((g) => g.id !== id) })),
       updateSchedule: (id, patch) =>
         setState((p) => ({
@@ -82,8 +82,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ...p,
           bodyLogs: [...p.bodyLogs, { ...b, id: uid('body'), createdAt: Date.now() }],
         })),
-      updateProfile: (patch) =>
-        setState((p) => ({ ...p, profile: { ...p.profile, ...patch } })),
+      updateProfile: (patch) => setState((p) => ({ ...p, profile: { ...p.profile, ...patch } })),
       clearData: () => setState(emptyState()),
     }),
     [state, ready],

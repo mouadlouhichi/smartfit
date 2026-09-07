@@ -52,7 +52,15 @@ export function Navigation() {
         >
           <Link href="/" className="group flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color:var(--foreground)] text-[color:var(--background)]">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <svg
+                viewBox="0 0 24 24"
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+              >
                 <path d="M6.5 8.5v7M17.5 8.5v7M3.5 10.5v3M20.5 10.5v3M6.5 12h11" />
               </svg>
             </span>
@@ -73,7 +81,7 @@ export function Navigation() {
                 className="group relative text-sm font-semibold text-[color:var(--foreground)]/70 transition-colors duration-300 hover:text-[color:var(--foreground)] md:text-base"
               >
                 {link.name}
-                <span className="absolute -bottom-1 start-0 h-px w-0 bg-[color:var(--foreground)] transition-all duration-300 group-hover:w-full" />
+                <span className="absolute start-0 -bottom-1 h-px w-0 bg-[color:var(--foreground)] transition-all duration-300 group-hover:w-full" />
               </Link>
             ))}
           </div>
@@ -116,7 +124,7 @@ export function Navigation() {
           isMobileMenuOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
       >
-        <div className="flex h-full flex-col px-8 pb-8 pt-28">
+        <div className="flex h-full flex-col px-8 pt-28 pb-8">
           <div className="flex flex-1 flex-col justify-center gap-8">
             {navLinks.map((link, i) => (
               <Link
@@ -163,7 +171,15 @@ export function LogoMark({ size = 34 }: { size?: number }) {
       className="flex items-center justify-center rounded-xl bg-[color:var(--primary)] shadow-md"
       style={{ width: size, height: size }}
     >
-      <svg viewBox="0 0 24 24" width={size * 0.58} height={size * 0.58} fill="none" stroke="#FDF6F2" strokeWidth="2.6" strokeLinecap="round">
+      <svg
+        viewBox="0 0 24 24"
+        width={size * 0.58}
+        height={size * 0.58}
+        fill="none"
+        stroke="#FDF6F2"
+        strokeWidth="2.6"
+        strokeLinecap="round"
+      >
         <path d="M6.5 8.5v7M17.5 8.5v7M3.5 10.5v3M20.5 10.5v3M6.5 12h11" />
       </svg>
     </span>

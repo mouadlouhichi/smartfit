@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
-import { CalendarCheck2, Home, LineChart, Target, UserRound, type LucideIcon } from 'lucide-react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import {
+  CalendarCheck2,
+  Home,
+  LineChart,
+  Target,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react-native';
 
 const EMBER = '#D6532F';
 const INK = '#181615';
@@ -25,7 +28,9 @@ const SPRING = { damping: 22, stiffness: 280, mass: 0.85 } as const;
 type FloatingTabBarProps = {
   state: { index: number; routes: { key: string; name: string }[] };
   navigation: {
-    emit: (e: { type: 'tabPress'; target: string; canPreventDefault: true }) => { defaultPrevented: boolean };
+    emit: (e: { type: 'tabPress'; target: string; canPreventDefault: true }) => {
+      defaultPrevented: boolean;
+    };
     navigate: (name: string) => void;
   };
 };
@@ -50,7 +55,16 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   }));
 
   return (
-    <View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: insets.bottom + 12, alignItems: 'center' }}>
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: insets.bottom + 12,
+        alignItems: 'center',
+      }}
+    >
       <View
         onLayout={(e) => setBarWidth(e.nativeEvent.layout.width)}
         style={{
@@ -94,10 +108,19 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
               accessibilityRole="button"
               accessibilityState={{ selected: focused }}
               onPress={() => {
-                const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+                const event = navigation.emit({
+                  type: 'tabPress',
+                  target: route.key,
+                  canPreventDefault: true,
+                });
                 if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
               }}
-              style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 }}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: 12,
+              }}
             >
               <Icon color={focused ? INK : INACTIVE} size={22} strokeWidth={focused ? 2.6 : 2} />
             </Pressable>

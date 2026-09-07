@@ -28,7 +28,7 @@ const PLANS = [
     popular: true,
     features: [
       'Everything in Free',
-      'AI Coach insights from your data',
+      'On-device coach, answers from your own data',
       'Progress charts & activity breakdowns',
       'Custom activity types',
       'Export JSON / erase anytime',
@@ -39,20 +39,23 @@ const PLANS = [
 
 export function PricingSection() {
   return (
-    <section id="pricing" className="relative overflow-x-clip border-t border-[color:var(--foreground)]/10 py-32 lg:py-40">
+    <section
+      id="pricing"
+      className="relative overflow-x-clip border-t border-[color:var(--foreground)]/10 py-32 lg:py-40"
+    >
       <div className="mx-auto max-w-7xl px-6 lg:px-12">
         <div className="mb-20 max-w-3xl">
-          <span className="mb-6 block font-mono text-xs uppercase tracking-widest text-[color:var(--muted-foreground)]">
+          <span className="mb-6 block font-mono text-xs tracking-widest text-[color:var(--muted-foreground)] uppercase">
             Pricing
           </span>
-          <h2 className="mb-6 font-display text-5xl tracking-tight md:text-6xl lg:text-7xl">
+          <h2 className="font-display mb-6 text-5xl tracking-tight md:text-6xl lg:text-7xl">
             Free to start.
             <br />
             <span className="text-stroke">Free forever.</span>
           </h2>
           <p className="max-w-xl text-lg text-[color:var(--muted-foreground)]">
-            Every feature is free, with no card and no trial that runs out. SmartFit is private and local-first —
-            there is nothing to upsell.
+            Every feature is free, with no card and no trial that runs out. SmartFit is private and
+            local-first — there is nothing to upsell.
           </p>
         </div>
 
@@ -61,21 +64,28 @@ export function PricingSection() {
             <div
               key={planData.name}
               className={`relative bg-[color:var(--background)] p-8 lg:p-12 ${
-                planData.popular ? 'border-2 border-[color:var(--primary)] md:-my-4 md:py-12 lg:py-16' : ''
+                planData.popular
+                  ? 'border-2 border-[color:var(--primary)] md:-my-4 md:py-12 lg:py-16'
+                  : ''
               }`}
             >
               {planData.popular && (
-                <span className="absolute -top-3 start-8 bg-[color:var(--primary)] px-3 py-1 font-mono text-xs uppercase tracking-widest text-white">
+                <span className="absolute start-8 -top-3 bg-[color:var(--primary)] px-3 py-1 font-mono text-xs tracking-widest text-white uppercase">
                   Everything included
                 </span>
               )}
 
               <div className="mb-8">
                 <span className="font-mono text-xs text-[color:var(--muted-foreground)]">
-                  {new Intl.NumberFormat('en-US', { minimumIntegerDigits: 2, useGrouping: false }).format(idx + 1)}
+                  {new Intl.NumberFormat('en-US', {
+                    minimumIntegerDigits: 2,
+                    useGrouping: false,
+                  }).format(idx + 1)}
                 </span>
-                <h3 className="mt-2 font-display text-3xl">{planData.name}</h3>
-                <p className="mt-2 text-sm text-[color:var(--muted-foreground)]">{planData.description}</p>
+                <h3 className="font-display mt-2 text-3xl">{planData.name}</h3>
+                <p className="mt-2 text-sm text-[color:var(--muted-foreground)]">
+                  {planData.description}
+                </p>
               </div>
 
               <div className="mb-8 border-b border-[color:var(--foreground)]/10 pb-8">

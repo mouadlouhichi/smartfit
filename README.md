@@ -50,16 +50,27 @@ shared domain package — but applies them to **training** instead of money.
 
 ### Platform
 
-- **Local-first & private** — the web app uses `localStorage`; the mobile app
-  uses AsyncStorage. No account, no wearable, no backend, no trackers. One-tap
-  JSON export (web) and demo/erase on both.
-- **Demo mode** — a realistic 6-week training history is seeded on first run so
-  charts and streaks render immediately.
+- **Local-first, cloud-optional** — with no Firebase config the web app runs in
+  **local mode** (`localStorage`, no account). Add a Firebase config and it
+  switches to **cloud mode**: email/password + Google sign-in, per-user data in
+  Cloud Firestore, an offline IndexedDB cache and a retrying write queue. Mobile
+  is local-only (AsyncStorage).
+- **Your data is yours** — JSON export *and* import, erase-everything, and full
+  account deletion. On first sign-in, existing on-device data can be migrated
+  into the new account.
+- **Starts empty** — no demo data is ever seeded into the app. Use
+  `pnpm seed` (`scripts/seed-firestore.mjs`) if you want a populated demo
+  account.
 - **Guided 5-step onboarding** — name → units/rest days → strategy → first goal →
   review.
+- **Installable PWA** — web manifest, maskable icons and a service worker that
+  keeps the app shell working offline.
+- **On-device coach** — a deterministic rule engine (in `@smartfit/core`) that
+  answers questions from your real data. No LLM, no network call.
 - **Light / dark** theming on web; token-driven design system shared conceptually
   across platforms.
-- **Marketing site** included (landing, features, how-it-works, plans, FAQ).
+- **Marketing site** included (landing, features, how-it-works, plans, FAQ),
+  plus `/privacy` and `/terms`.
 
 ## 🧱 Tech stack
 
@@ -71,7 +82,8 @@ shared domain package — but applies them to **training** instead of money.
 | Components       | Radix primitives (shadcn-style)          | Custom NativeWind components              |
 | Charts           | Recharts                                 | react-native-svg                          |
 | Icons            | lucide-react                             | lucide-react-native                       |
-| Persistence      | localStorage                             | AsyncStorage                              |
+| Persistence      | localStorage · Cloud Firestore (optional) | AsyncStorage                             |
+| Auth             | Firebase Auth (optional)                 | —                                         |
 | Shared logic     | **`@smartfit/core`** (TypeScript, no React) | same via Metro workspace resolution    |
 
 The monorepo is orchestrated with **Turborepo** and **pnpm workspaces**.
@@ -90,18 +102,24 @@ pnpm mobile:android # expo run:android
 pnpm mobile:ios     # expo run:ios
 ```
 
-The apps ship with **demo data preloaded**. Erase it from **Profile → Erase
-everything**, or run the guided **onboarding** to start fresh.
+Both apps start **empty** and open the guided **onboarding**. No backend is
+required — cloud mode activates only when a full Firebase config is present (see
+[`docs/firebase.md`](docs/firebase.md)).
 
 ## 🧰 Scripts
 
 The web app runs from the repo root; mobile and the shared package are workspace packages:
 
 ```bash
-pnpm dev         # start the Next.js web app (root)
-pnpm build       # production build of the web app
-pnpm typecheck   # tsc --noEmit for the web app
-pnpm --filter @smartfit/core test    # core domain tests
+pnpm dev            # start the Next.js web app (root)
+pnpm build          # production build of the web app
+pnpm typecheck      # tsc --noEmit for the web app
+pnpm lint           # ESLint (next/core-web-vitals) across the monorepo
+pnpm format         # Prettier --write  (pnpm format:check in CI)
+pnpm test           # core domain tests
+pnpm seed           # populate a Firestore demo account (needs admin creds)
+
+pnpm --filter @smartfit/core test          # core domain tests
 pnpm --filter @smartfit/mobile typecheck   # mobile types
 ```
 
@@ -112,9 +130,10 @@ the relevant `.env.example` to `.env.local` (web) / `.env` (mobile) to override.
 
 | Variable | App | Default | Effect |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_SEED_DEMO` / `EXPO_PUBLIC_SEED_DEMO` | web / mobile | `true` | Seed a demo training history on first run; `false` sends fresh installs to onboarding |
 | `NEXT_PUBLIC_DEFAULT_PLAN` / `EXPO_PUBLIC_DEFAULT_PLAN` | web / mobile | `full-body` | Default strategy for new accounts (`ppl` · `upper-lower` · `full-body` · `cardio-focus`) |
 | `NEXT_PUBLIC_APP_NAME` / `EXPO_PUBLIC_APP_NAME` | web / mobile | `SmartFit` | Display name (web metadata / document title) |
+| `NEXT_PUBLIC_SITE_URL` | web | Vercel URL, else `http://localhost:3000` | Absolute origin for canonical URLs, Open Graph tags, `robots.txt` and the sitemap |
+| `NEXT_PUBLIC_FIREBASE_*` | web | _unset_ | A **complete** set (API key, auth domain, project id, app id) switches the app into cloud mode; anything missing keeps it local |
 
 Env access is centralised and validated in `src/lib/env.ts` (web) and
 `apps/mobile/src/lib/env.ts` (invalid plan values fall back to the default). See
@@ -133,7 +152,8 @@ smartfit/
 │  │  ├─ ui/                        #   shadcn-style primitives (button, card, dialog…)
 │  │  ├─ dashboard/                 #   shell, screens, modals, nav
 │  │  └─ landing/                   #   marketing sections
-│  └─ lib/                          #   web store (localStorage), env, cn helper
+│  ├─ lib/                          #   store, Firebase (auth/repo/write-queue), env
+│  └─ app/{privacy,terms,offline}/  #   legal + offline fallback pages
 ├─ apps/
 │  └─ mobile/                       # Expo Router + NativeWind app
 │     ├─ app.config.js · eas.json
@@ -148,17 +168,24 @@ smartfit/
 │     ├─ src/
 │     │  ├─ types.ts                #   domain model
 │     │  ├─ constants.ts            #   categories, intensities, plans, metadata
-│     │  ├─ fitness.ts              #   pure logic: stats, streaks, goals, series
+│     │  ├─ fitness.ts              #   pure logic: stats, streaks, goals, targets
+│     │  ├─ state.ts                #   dependency-free validation / parsing
+│     │  ├─ units.ts                #   kg/lb · km/mi · cm/in conversion
+│     │  ├─ coach.ts                #   the deterministic coach engine
 │     │  ├─ format.ts               #   display formatters
-│     │  ├─ seed.ts                 #   demo data generator
+│     │  ├─ seed.ts                 #   demo generator (subpath: @smartfit/core/seed)
 │     │  ├─ utils.ts                #   uid / clamp / round
-│     │  └─ index.ts                #   barrel export
-│     └─ tests/fitness.test.ts      # domain unit tests
+│     │  └─ index.ts                #   barrel export (deliberately omits seed.ts)
+│     └─ tests/                     # 57 domain unit tests (node:test)
+├─ public/                          # icons, manifest.webmanifest, og.png, sw.js
+├─ scripts/                         # seed-firestore.mjs · seed.sql
+├─ firestore.rules · firestore.indexes.json
 ├─ next.config.mjs · tsconfig.json · postcss.config.mjs
+├─ eslint.config.mjs · .prettierrc.json
 ├─ turbo.json
 ├─ pnpm-workspace.yaml              # workspaces, hoisted linker, React-types override
 ├─ vercel.json                      # framework=nextjs · pnpm install · next build
-└─ .github/workflows/ci.yml         # web build · core tests · mobile typecheck
+└─ .github/workflows/ci.yml         # lint/format · web build · core tests · mobile typecheck
 ```
 
 ### Why a shared core?
@@ -167,9 +194,10 @@ Every rule that must not drift between platforms lives in `@smartfit/core`, whic
 contains **no React and no platform APIs** — it runs in the browser, in Node
 (CI/tests) and on native (Metro) unchanged:
 
-- calorie estimation, weekly/monthly aggregation & bucketing
-- streaks, goal progress (with the 100% clamp / done flag)
-- the training-plan split logic and activity categories
+- calorie estimation (MET-based, personalised by body mass), aggregation & bucketing
+- streaks, goal progress (with the 100% clamp / done flag) and activity targets
+- unit conversion, and the validating state parser used by both apps
+- the coach engine, the training-plan split logic and activity categories
 - the demo seed and the TypeScript domain model
 
 The web app transpiles it via `transpilePackages`; the mobile app resolves it
@@ -187,26 +215,42 @@ through Metro's workspace config (`metro.config.js`).
 | Budgeting strategies           | PPL / Upper-Lower / Full-Body / Cardio plans      |
 | Trends (money over time)       | Progress (8-week training volume)                 |
 | Net worth                      | Body-metric trends                                |
-| Multi-currency                 | Weight/distance units (kg/lb, km)                 |
+| Multi-currency                 | Weight / distance units (kg·lb, km·mi, cm·in)     |
 
 ## 🔐 Privacy
 
-SmartFit never sends data anywhere. Web state is persisted under a single
-`localStorage` key (`smartfit.state.v1`); mobile state under the same key in
-AsyncStorage. Use **Profile → Export JSON** (web) for a backup, or **Erase
-everything** to wipe the on-device copy.
+**Local mode** (no Firebase config): nothing ever leaves the device. Web state
+lives under a single `localStorage` key (`smartfit.state.v1`); mobile state under
+the same key in AsyncStorage.
+
+**Cloud mode** (Firebase configured): your data lives under `users/{uid}` in
+Cloud Firestore and is readable only by you — `firestore.rules` denies every
+request that isn't your own authenticated account. A per-account offline mirror
+is kept on the device (`smartfit.cache.<uid>`) and is **cleared on sign-out**, so
+one account's history can never surface under another.
+
+Either way there are no analytics SDKs and no third-party trackers. Use
+**Profile → Export JSON** for a backup, **Import backup** to restore, **Erase
+everything** to wipe your data, or **Delete account** to remove data and
+credentials permanently. See [`/privacy`](src/app/privacy/page.tsx).
 
 ## 🧪 Testing
 
-Domain logic is pure and lives in `@smartfit/core`; it's covered by
-`packages/core/tests/fitness.test.ts` (Node's built-in test runner):
+Domain logic is pure and lives in `@smartfit/core`, covered by **57 tests** in
+`packages/core/tests/` (Node's built-in test runner, no framework):
 
-- calorie estimation & aggregation
-- weekly bucketing / series ordering
-- goal progress (clamp + done flag)
-- streaks and plan lookup
+| Suite | Covers |
+| --- | --- |
+| `fitness.test.ts` | calorie estimation (incl. body mass), aggregation, weekly bucketing, goal progress, plan lookup |
+| `streaks.test.ts` | daily/weekly streaks and the rest-day allowance |
+| `state.test.ts`   | the validating parser: migrations, bad input, round-tripping |
+| `units.test.ts`   | kg·lb, km·mi, cm·in conversion at the display boundary |
+| `coach.test.ts`   | coach intents and the numbers behind every answer |
+| `targets.test.ts` | activity targets derived from goals, falling back to the plan |
 
-Run them with `pnpm --filter @smartfit/core test`.
+```bash
+pnpm test   # or: pnpm --filter @smartfit/core test
+```
 
 ## 📦 Mobile builds (EAS)
 
@@ -247,6 +291,6 @@ Notes for the monorepo:
 ## 🛣 Roadmap
 
 - Exercise library with per-set weight/reps history and progressive-overload hints.
-- Optional cloud sync (Firebase) alongside the local-first default.
-- PWA install manifest + offline service worker for the web app.
+- Full mobile parity: auth, cloud sync and onboarding on Expo (web ships first).
 - Push reminders for scheduled sessions (Expo Notifications).
+- Component and end-to-end tests above the domain layer.

@@ -19,7 +19,13 @@ import { Ring } from '../ring';
 import { EmptyState } from '../empty-state';
 import { cn } from '@/lib/utils';
 import { INTENSITY_META } from '@smartfit/core';
-import { sessionsInRange, toISODate, categoryBreakdown, aggregate, weeklySeries } from '@smartfit/core';
+import {
+  sessionsInRange,
+  toISODate,
+  categoryBreakdown,
+  aggregate,
+  weeklySeries,
+} from '@smartfit/core';
 import { formatCalories, formatDistance, formatMinutes } from '@smartfit/core';
 
 type Range = 'daily' | 'weekly' | 'monthly';
@@ -66,10 +72,12 @@ export function ProgressScreen() {
 
   return (
     <div className="grid gap-5">
-      <h1 className="font-display-tight text-xl font-extrabold tracking-tight sm:text-2xl">Your Stats</h1>
+      <h1 className="font-display-tight text-xl font-extrabold tracking-tight sm:text-2xl">
+        Your Stats
+      </h1>
 
       {/* Segmented control */}
-      <div className="mx-auto flex w-full max-w-sm rounded-full bg-secondary p-1">
+      <div className="bg-secondary mx-auto flex w-full max-w-sm rounded-full p-1">
         {RANGES.map((r) => (
           <button
             key={r.key}
@@ -87,10 +95,28 @@ export function ProgressScreen() {
       {/* Goal rings */}
       <Card className="p-5">
         <div className="flex items-center justify-around">
-          <RingStat pct={minPct} label="Exercise" value={`${rangeAgg.minutes}/${goalMin}min`} icon={Timer} />
-          <RingStat pct={calPct} label="Burned" value={formatCalories(rangeAgg.calories)} icon={Flame} big />
           <RingStat
-            pct={Math.min(100, Math.round(((rangeAgg.distance ?? 0) / (range === 'daily' ? 5 : range === 'weekly' ? 25 : 100)) * 100))}
+            pct={minPct}
+            label="Exercise"
+            value={`${rangeAgg.minutes}/${goalMin}min`}
+            icon={Timer}
+          />
+          <RingStat
+            pct={calPct}
+            label="Burned"
+            value={formatCalories(rangeAgg.calories)}
+            icon={Flame}
+            big
+          />
+          <RingStat
+            pct={Math.min(
+              100,
+              Math.round(
+                ((rangeAgg.distance ?? 0) /
+                  (range === 'daily' ? 5 : range === 'weekly' ? 25 : 100)) *
+                  100,
+              ),
+            )}
             label="Distance"
             value={formatDistance(rangeAgg.distance ?? 0)}
             icon={Footprints}
@@ -100,29 +126,67 @@ export function ProgressScreen() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard icon={BarChart3} label="Sessions" value={`${rangeAgg.workouts}`} sub={`last ${days} day${days === 1 ? '' : 's'}`} />
-        <StatCard icon={Timer} label="Active time" value={formatMinutes(rangeAgg.minutes)} sub={`last ${days} day${days === 1 ? '' : 's'}`} />
-        <StatCard icon={Flame} label="Calories" value={formatCalories(rangeAgg.calories)} sub="burned" />
-        <StatCard icon={Footprints} label="Distance" value={formatDistance(rangeAgg.distance ?? 0)} sub="covered" />
+        <StatCard
+          icon={BarChart3}
+          label="Sessions"
+          value={`${rangeAgg.workouts}`}
+          sub={`last ${days} day${days === 1 ? '' : 's'}`}
+        />
+        <StatCard
+          icon={Timer}
+          label="Active time"
+          value={formatMinutes(rangeAgg.minutes)}
+          sub={`last ${days} day${days === 1 ? '' : 's'}`}
+        />
+        <StatCard
+          icon={Flame}
+          label="Calories"
+          value={formatCalories(rangeAgg.calories)}
+          sub="burned"
+        />
+        <StatCard
+          icon={Footprints}
+          label="Distance"
+          value={formatDistance(rangeAgg.distance ?? 0)}
+          sub="covered"
+        />
       </div>
 
       {/* Weekly bar chart */}
       <Card className="p-5">
-        <p className="mb-4 flex items-center gap-2 font-display text-sm font-bold">
-          <TrendingUp className="h-4 w-4 text-primary" /> Active minutes · last 8 weeks
+        <p className="font-display mb-4 flex items-center gap-2 text-sm font-bold">
+          <TrendingUp className="text-primary h-4 w-4" /> Active minutes · last 8 weeks
         </p>
         {state.sessions.length === 0 ? (
-          <EmptyState icon={BarChart3} title="No data yet" body="Log workouts to see your weekly volume trend." />
+          <EmptyState
+            icon={BarChart3}
+            title="No data yet"
+            body="Log workouts to see your weekly volume trend."
+          />
         ) : (
           <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={series} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} />
+                <XAxis
+                  dataKey="label"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                />
                 <Tooltip
                   cursor={{ fill: 'var(--secondary)', opacity: 0.5 }}
-                  contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 14, fontSize: 12 }}
+                  contentStyle={{
+                    background: 'var(--popover)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 14,
+                    fontSize: 12,
+                  }}
                 />
                 <Bar dataKey="minutes" fill="var(--chart-1)" radius={[7, 7, 0, 0]} name="Minutes" />
               </BarChart>
@@ -134,22 +198,35 @@ export function ProgressScreen() {
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Activity mix */}
         <Card className="p-5">
-          <p className="mb-4 font-display text-sm font-bold">Time by activity</p>
+          <p className="font-display mb-4 text-sm font-bold">Time by activity</p>
           {breakdown.length === 0 ? (
-            <EmptyState icon={BarChart3} title="Nothing logged" body="Your activity mix will appear here." />
+            <EmptyState
+              icon={BarChart3}
+              title="Nothing logged"
+              body="Your activity mix will appear here."
+            />
           ) : (
             <div className="flex items-center gap-5">
               <div className="relative h-36 w-36 shrink-0">
-                <Donut data={breakdown.map((b) => ({ value: b.minutes, color: b.category.color }))} />
+                <Donut
+                  data={breakdown.map((b) => ({ value: b.minutes, color: b.category.color }))}
+                />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="font-display text-lg font-extrabold">{formatMinutes(totalMin)}</span>
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">total</span>
+                  <span className="font-display text-lg font-extrabold">
+                    {formatMinutes(totalMin)}
+                  </span>
+                  <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
+                    total
+                  </span>
                 </div>
               </div>
               <div className="grid flex-1 gap-2">
                 {breakdown.map((b) => (
                   <div key={b.category.id} className="flex items-center gap-2 text-sm">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: b.category.color }} />
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ backgroundColor: b.category.color }}
+                    />
                     <span className="flex-1 font-semibold">{b.category.name}</span>
                     <span className="text-muted-foreground">{formatMinutes(b.minutes)}</span>
                   </div>
@@ -161,9 +238,13 @@ export function ProgressScreen() {
 
         {/* Intensity */}
         <Card className="p-5">
-          <p className="mb-4 font-display text-sm font-bold">Intensity spread</p>
+          <p className="font-display mb-4 text-sm font-bold">Intensity spread</p>
           {intensityData.length === 0 ? (
-            <EmptyState icon={Flame} title="No sessions" body="Intensity distribution shows up after logging." />
+            <EmptyState
+              icon={Flame}
+              title="No sessions"
+              body="Intensity distribution shows up after logging."
+            />
           ) : (
             <div className="space-y-4">
               {intensityData.map((d) => {
@@ -176,13 +257,16 @@ export function ProgressScreen() {
                         {d.value} · {Math.round((d.value / total) * 100)}%
                       </span>
                     </div>
-                    <div className="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-secondary">
-                      <div className="h-full rounded-full" style={{ width: `${(d.value / total) * 100}%`, backgroundColor: d.color }} />
+                    <div className="bg-secondary mt-1.5 h-2.5 w-full overflow-hidden rounded-full">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${(d.value / total) * 100}%`, backgroundColor: d.color }}
+                      />
                     </div>
                   </div>
                 );
               })}
-              <p className="pt-1 text-xs text-muted-foreground">
+              <p className="text-muted-foreground pt-1 text-xs">
                 <Link href="/dashboard/body" className="text-primary hover:underline">
                   See body trends →
                 </Link>
@@ -218,10 +302,10 @@ function RingStat({
   return (
     <div className="flex flex-col items-center gap-2">
       <Ring pct={pct} size={big ? 92 : 72} stroke={big ? 9 : 7}>
-        <Icon className={big ? 'h-6 w-6 text-primary' : 'h-5 w-5 text-terracotta'} />
+        <Icon className={big ? 'text-primary h-6 w-6' : 'text-terracotta h-5 w-5'} />
       </Ring>
       <p className="text-xs font-bold">{label}</p>
-      <p className="text-xs text-muted-foreground">{value}</p>
+      <p className="text-muted-foreground text-xs">{value}</p>
     </div>
   );
 }
@@ -240,11 +324,11 @@ function StatCard({
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-muted-foreground">{label}</p>
-        <Icon className="h-4 w-4 text-terracotta" />
+        <p className="text-muted-foreground text-xs font-semibold">{label}</p>
+        <Icon className="text-terracotta h-4 w-4" />
       </div>
-      <p className="mt-2 font-display text-lg font-extrabold tracking-tight sm:text-xl">{value}</p>
-      <p className="text-xs text-muted-foreground">{sub}</p>
+      <p className="font-display mt-2 text-lg font-extrabold tracking-tight sm:text-xl">{value}</p>
+      <p className="text-muted-foreground text-xs">{sub}</p>
     </Card>
   );
 }
