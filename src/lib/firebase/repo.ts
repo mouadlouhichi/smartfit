@@ -4,9 +4,9 @@
  * collection lives in its own sub-collection so large histories stay
  * scalable and don't require rewriting a single giant document.
  *
- * Writes are fire-and-forget (the in-memory store is the source of truth
- * for rendering; Firestore is the durable backend). Reads assemble the same
- * FitnessState shape used by the local store.
+ * The in-memory store is the source of truth for rendering; Firestore is the
+ * durable backend. Reads assemble the same FitnessState shape the local
+ * store uses; writes are best-effort (never block UI).
  */
 import {
   type BodyLog,
@@ -17,7 +17,7 @@ import {
   type UserProfile,
   type WorkoutSession,
 } from '@smartfit/core';
-import { getDb, colPath, userDoc } from './config';
+import { getFirebaseServices, colPath, userDoc } from './config';
 
 type CollectionName = 'sessions' | 'schedule' | 'goals' | 'bodyLogs' | 'categories';
 
@@ -26,16 +26,23 @@ interface DocMap<T> {
   [id: string]: T;
 }
 
-function fs() {
-  // Lazy require keeps these out of any server bundle.
-  return require('firebase/firestore') as typeof import('firebase/firestore');
+/** True when an error is a Firestore permissions/network failure. */
+export function isFirestoreError(err: unknown): boolean {
+  const code = (err as { code?: string })?.code ?? '';
+  return (
+    code === 'permission-denied' ||
+    code === 'unavailable' ||
+    code === 'unauthenticated' ||
+    code.startsWith('failed-precondition')
+  );
 }
 
 /** Load the entire FitnessState for a user from Firestore. */
 export async function loadUserState(uid: string): Promise<FitnessState | null> {
-  const db = getDb();
-  if (!db) return null;
-  const { doc, getDoc, collection, getDocs } = fs();
+  const svc = await getFirebaseServices();
+  if (!svc) return null;
+  const { db } = svc;
+  const { doc, getDoc, collection, getDocs } = await import('firebase/firestore');
 
   const profileSnap = await getDoc(doc(db, userDoc(uid)));
   if (!profileSnap.exists()) return null;
@@ -44,9 +51,8 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
   const profile = (data.profile as UserProfile) ?? undefined;
   if (!profile) return null;
 
-  const firestore = db;
   async function getCol<T>(name: CollectionName): Promise<T[]> {
-    const snap = await getDocs(collection(firestore, colPath(uid, name)));
+    const snap = await getDocs(collection(db, colPath(uid, name)));
     return snap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as unknown as T);
   }
 
@@ -70,9 +76,11 @@ export async function ensureUserProfile(
   profile: UserProfile,
   fallbackCategories: Category[],
 ): Promise<void> {
-  const db = getDb();
-  if (!db) return;
-  const { doc, getDoc, setDoc, writeBatch } = fs();
+  const svc = await getFirebaseServices();
+  if (!svc) return;
+  const { db } = svc;
+  const { doc, getDoc, setDoc, writeBatch } = await import('firebase/firestore');
+
   const ref = doc(db, userDoc(uid));
   const snap = await getDoc(ref);
   if (snap.exists()) return;
@@ -89,26 +97,11 @@ export async function ensureUserProfile(
 
 /** Persist a profile patch (whole-profile writes are cheap and simple). */
 export async function saveProfile(uid: string, profile: UserProfile): Promise<void> {
-  const db = getDb();
-  if (!db) return;
-  const { doc, setDoc } = fs();
+  const svc = await getFirebaseServices();
+  if (!svc) return;
+  const { db } = svc;
+  const { doc, setDoc } = await import('firebase/firestore');
   await setDoc(doc(db, userDoc(uid)), { profile, updatedAt: Date.now() }, { merge: true });
-}
-
-/** Persist a full collection in one batch (used after a mutation). */
-export async function saveCollection<T extends { id: string }>(
-  uid: string,
-  name: CollectionName,
-  items: T[],
-): Promise<void> {
-  const db = getDb();
-  if (!db) return;
-  const { doc, writeBatch } = fs();
-  const batch = writeBatch(db);
-  for (const item of items) {
-    batch.set(doc(db, colPath(uid, name), item.id), stripId(item));
-  }
-  await batch.commit();
 }
 
 /** Upsert a single item into a sub-collection. */
@@ -117,25 +110,28 @@ export async function upsertItem<T extends { id: string }>(
   name: CollectionName,
   item: T,
 ): Promise<void> {
-  const db = getDb();
-  if (!db) return;
-  const { doc, setDoc } = fs();
+  const svc = await getFirebaseServices();
+  if (!svc) return;
+  const { db } = svc;
+  const { doc, setDoc } = await import('firebase/firestore');
   await setDoc(doc(db, colPath(uid, name), item.id), stripId(item));
 }
 
 /** Delete a single item from a sub-collection. */
 export async function deleteItem(uid: string, name: CollectionName, id: string): Promise<void> {
-  const db = getDb();
-  if (!db) return;
-  const { doc, deleteDoc } = fs();
+  const svc = await getFirebaseServices();
+  if (!svc) return;
+  const { db } = svc;
+  const { doc, deleteDoc } = await import('firebase/firestore');
   await deleteDoc(doc(db, colPath(uid, name), id));
 }
 
 /** Remove every document for a user (account reset / sign-out & wipe). */
 export async function wipeUserData(uid: string): Promise<void> {
-  const db = getDb();
-  if (!db) return;
-  const { doc, deleteDoc, collection, getDocs } = fs();
+  const svc = await getFirebaseServices();
+  if (!svc) return;
+  const { db } = svc;
+  const { doc, deleteDoc, collection, getDocs } = await import('firebase/firestore');
   const names: CollectionName[] = ['sessions', 'schedule', 'goals', 'bodyLogs', 'categories'];
   for (const name of names) {
     const snap = await getDocs(collection(db, colPath(uid, name)));

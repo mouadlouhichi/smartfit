@@ -37,22 +37,42 @@ function GoogleMark() {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { mode, signIn, signUp, signInWithGoogle, signOut, loading, initializing, authError, clearError, user } =
-    useAuth();
+  const {
+    mode,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    resetPassword,
+    signOut,
+    loading,
+    initializing,
+    authError,
+    authInfo,
+    clearError,
+    user,
+  } = useAuth();
   const { state, ready, updateProfile } = useStore();
 
-  const [isSignUp, setIsSignUp] = useState(false);
+  type View = 'signin' | 'signup' | 'reset';
+  const [view, setView] = useState<View>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localName, setLocalName] = useState('');
 
+  const isSignUp = view === 'signup';
+  const isReset = view === 'reset';
   const cloud = isFirebaseConfigured && mode === 'cloud';
 
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
     clearError();
     try {
+      if (isReset) {
+        await resetPassword(email.trim());
+        setView('signin');
+        return;
+      }
       if (isSignUp) {
         await signUp(email.trim(), password, name.trim() || undefined);
       } else {
@@ -76,24 +96,20 @@ export default function LoginPage() {
 
   function continueLocal(e: React.FormEvent) {
     e.preventDefault();
-    // Stash the name; onboarding picks it up.
     updateProfile({ name: localName.trim() || 'Athlete' });
-    // Route to onboarding (or dashboard if already onboarded).
     router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
   }
 
   // ── Gateway (flousy-style) ──────────────────────────────────────────────
   // Cloud: once signed in and data is ready, route to onboarding first time,
   // otherwise dashboard. Local: only auto-route an already-onboarded visitor
-  // (brand-new local users use the name form below).
+  // (brand-new local users use the entry form below).
   useEffect(() => {
     if (cloud) {
       if (initializing || !user || !ready) return;
       router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
     } else {
       if (!ready) return;
-      // Local mode: if this device has already finished onboarding, jump
-      // straight to the app; otherwise stay on the login / entry screen.
       if (state.profile.onboardingDone) router.replace('/dashboard');
     }
   }, [cloud, initializing, user, ready, state.profile.onboardingDone, router]);
@@ -116,13 +132,15 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm">
         <CardContent className="p-6">
           <h1 className="font-display text-2xl font-bold tracking-tight">
-            {isSignUp ? 'Create your account' : 'Welcome back'}
+            {isReset ? 'Reset your password' : isSignUp ? 'Create your account' : 'Welcome back'}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {cloud
-              ? isSignUp
-                ? 'Sign up to sync your training across every device.'
-                : 'Sign in to pick up right where you left off.'
+              ? isReset
+                ? "Enter your email and we'll send you a reset link."
+                : isSignUp
+                  ? 'Sign up to sync your training across every device.'
+                  : 'Sign in to pick up right where you left off.'
               : 'SmartFit runs on this device — no account needed.'}
           </p>
 
@@ -157,29 +175,52 @@ export default function LoginPage() {
                     />
                   </div>
                 </div>
-                <div className="grid gap-1.5">
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    minLength={6}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                  />
-                </div>
+                {!isReset && (
+                  <div className="grid gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearError();
+                          setView('reset');
+                        }}
+                        className="text-xs font-medium text-primary hover:underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <Input
+                      id="password"
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                    />
+                  </div>
+                )}
 
                 {authError && (
                   <p className="rounded-lg bg-destructive/10 px-3 py-2 text-xs font-medium text-destructive">
                     {authError}
                   </p>
                 )}
+                {authInfo && (
+                  <p className="rounded-lg bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    {authInfo}
+                  </p>
+                )}
 
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : isReset ? (
+                    <>
+                      Send reset link <ArrowRight className="h-4 w-4" />
+                    </>
                   ) : (
                     <>
                       {isSignUp ? 'Create account' : 'Sign in'} <ArrowRight className="h-4 w-4" />
@@ -188,33 +229,50 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
-                <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
-              </div>
+              {isReset ? (
+                <p className="mt-5 text-center text-sm text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearError();
+                      setView('signin');
+                    }}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    Back to sign in
+                  </button>
+                </p>
+              ) : (
+                <>
+                  <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+                  </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loading}
-                onClick={handleGoogle}
-                className="w-full"
-              >
-                <GoogleMark /> Continue with Google
-              </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={loading}
+                    onClick={handleGoogle}
+                    className="w-full"
+                  >
+                    <GoogleMark /> Continue with Google
+                  </Button>
 
-              <p className="mt-5 text-center text-sm text-muted-foreground">
-                {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}{' '}
-                <button
-                  type="button"
-                  onClick={() => {
-                    clearError();
-                    setIsSignUp((v) => !v);
-                  }}
-                  className="font-semibold text-primary hover:underline"
-                >
-                  {isSignUp ? 'Sign in' : 'Create one'}
-                </button>
-              </p>
+                  <p className="mt-5 text-center text-sm text-muted-foreground">
+                    {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}{' '}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearError();
+                        setView(isSignUp ? 'signin' : 'signup');
+                      }}
+                      className="font-semibold text-primary hover:underline"
+                    >
+                      {isSignUp ? 'Sign in' : 'Create one'}
+                    </button>
+                  </p>
+                </>
+              )}
             </>
           ) : (
             <>

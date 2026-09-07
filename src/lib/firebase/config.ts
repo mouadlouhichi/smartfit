@@ -6,6 +6,10 @@
  * **cloud mode** — Firebase Auth for identity and Cloud Firestore for data.
  * When any required value is missing it falls back to **local mode** (data
  * on this device) so the app still runs in previews and offline development.
+ *
+ * Firebase is loaded lazily via dynamic `import()` so it is code-split out of
+ * the landing/initial bundle and is only fetched when a user reaches the
+ * authenticated app. The services are cached as singletons.
  */
 
 export interface FirebaseConfig {
@@ -31,38 +35,42 @@ export const isFirebaseConfigured: boolean = Boolean(
   envConfig.apiKey && envConfig.projectId && envConfig.appId && envConfig.authDomain,
 );
 
-// Lazily-initialised singletons — never instantiate Firebase on the server and
-// never twice under Next.js fast-refresh / HMR.
-let _app: import('firebase/app').FirebaseApp | null = null;
-let _auth: import('firebase/auth').Auth | null = null;
-let _db: import('firebase/firestore').Firestore | null = null;
-
-export function getFirebaseApp() {
-  if (!isFirebaseConfigured) return null;
-  if (typeof window === 'undefined') return null;
-  if (_app) return _app;
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { initializeApp, getApps } = require('firebase/app') as typeof import('firebase/app');
-  _app = getApps().length ? getApps()[0] : initializeApp(envConfig);
-  return _app;
+export interface FirebaseServices {
+  auth: import('firebase/auth').Auth;
+  db: import('firebase/firestore').Firestore;
 }
 
-export function getAuth(): import('firebase/auth').Auth | null {
-  const app = getFirebaseApp();
-  if (!app) return null;
-  if (_auth) return _auth;
-  const fbAuth = require('firebase/auth') as typeof import('firebase/auth');
-  _auth = fbAuth.getAuth(app);
-  return _auth;
-}
+let _services: Promise<FirebaseServices | null> | null = null;
 
-export function getDb(): import('firebase/firestore').Firestore | null {
-  const app = getFirebaseApp();
-  if (!app) return null;
-  if (_db) return _db;
-  const fs = require('firebase/firestore') as typeof import('firebase/firestore');
-  _db = fs.getFirestore(app);
-  return _db;
+/**
+ * Lazily initialise Firebase and resolve the Auth + Firestore services.
+ * Returns null in local mode, on the server, or if initialisation fails.
+ * Safe to call repeatedly — the initialisation promise is cached.
+ */
+export function getFirebaseServices(): Promise<FirebaseServices | null> {
+  if (!isFirebaseConfigured) return Promise.resolve(null);
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  if (_services) return _services;
+
+  _services = (async () => {
+    try {
+      const [{ initializeApp, getApps }, { getAuth }, { getFirestore }] = await Promise.all([
+        import('firebase/app'),
+        import('firebase/auth'),
+        import('firebase/firestore'),
+      ]);
+      const app = getApps().length ? getApps()[0] : initializeApp(envConfig);
+      const auth = getAuth(app);
+      const db = getFirestore(app);
+      return { auth, db };
+    } catch (err) {
+      console.error('[smartfit] Firebase init failed:', err);
+      _services = null; // allow a retry on a later call
+      return null;
+    }
+  })();
+
+  return _services;
 }
 
 /** Path of a user's Firestore document root: users/{uid} */
