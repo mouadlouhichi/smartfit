@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store-context';
+import { useAuth } from '@/lib/firebase/auth-context';
 import { GOAL_METRIC_META, PLANS } from '@smartfit/core';
 import { toISODate } from '@smartfit/core';
 import { env } from '@/lib/env';
@@ -20,8 +21,12 @@ const STEPS = ['Welcome', 'About you', 'Strategy', 'First goal', 'Ready'] as con
 export default function OnboardingPage() {
   const router = useRouter();
   const { state, completeOnboarding, addGoal, cloud } = useStore();
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
-  const [name, setName] = useState(state.profile.name ?? '');
+  // Prefill from whatever the account already knows: the profile if it has a
+  // name, otherwise the display name the provider gave us (Google always
+  // supplies one; email sign-up supplies it when the field was filled in).
+  const [name, setName] = useState(state.profile.name?.trim() || (user?.displayName ?? ''));
   const [weightUnit, setWeightUnit] = useState<'kg' | 'lb'>(state.profile.weightUnit ?? 'kg');
   const [distanceUnit, setDistanceUnit] = useState<'km' | 'mi'>(state.profile.distanceUnit ?? 'km');
   const [restDays, setRestDays] = useState(state.profile.weeklyRestDays ?? 2);
@@ -43,7 +48,9 @@ export default function OnboardingPage() {
     // guard sees a finished profile the moment we navigate. (This used to be
     // two writes separated by a setTimeout, which raced the redirect.)
     completeOnboarding({
-      name: name.trim() || 'Athlete',
+      // The name is required by `canNext`, so there is never an invented
+      // stand-in identity to fall back to.
+      name: name.trim(),
       weightUnit,
       distanceUnit,
       weeklyRestDays: restDays,
@@ -52,7 +59,8 @@ export default function OnboardingPage() {
     router.replace('/dashboard');
   }
 
-  const canNext = step === 1 ? name.trim().length > 0 : true;
+  const nameOk = name.trim().length > 0;
+  const canNext = step === 1 ? nameOk : true;
 
   return (
     <div className="bg-background flex min-h-dvh flex-col">
@@ -237,9 +245,7 @@ export default function OnboardingPage() {
             <span className="bg-primary text-primary-foreground mx-auto flex h-16 w-16 items-center justify-center rounded-full">
               <Check className="h-8 w-8" />
             </span>
-            <h2 className="mt-6 text-2xl font-bold">
-              You&apos;re all set, {name.trim() || 'Athlete'}!
-            </h2>
+            <h2 className="mt-6 text-2xl font-bold">You&apos;re all set, {name.trim()}!</h2>
             <Card className="mt-6 text-left">
               <CardContent className="grid gap-2 p-5 text-sm">
                 <Row label="Strategy" value={PLANS.find((p) => p.id === planId)?.name ?? ''} />
@@ -276,7 +282,7 @@ export default function OnboardingPage() {
             Continue <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={finish}>
+          <Button onClick={finish} disabled={!nameOk}>
             Enter dashboard <ArrowRight className="h-4 w-4" />
           </Button>
         )}

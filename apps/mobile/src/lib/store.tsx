@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   emptyState,
+  parseStateJSON,
   uid,
   type BodyLog,
   type FitnessGoal,
@@ -40,8 +41,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
+    // Persisted JSON is validated rather than cast: a partial write, an older
+    // shape or hand-edited storage must not crash the app on launch.
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => setState(raw ? (JSON.parse(raw) as FitnessState) : freshState()))
+      .then((raw) => setState(parseStateJSON(raw) ?? freshState()))
       .catch(() => setState(freshState()))
       .finally(() => setReady(true));
   }, []);

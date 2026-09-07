@@ -13,7 +13,6 @@ import {
   STORAGE_KEY,
   DEFAULT_CATEGORIES,
   emptyState,
-  isEmptyState,
   parseState,
   parseStateJSON,
   uid,
@@ -28,6 +27,12 @@ import {
   type WorkoutSession,
 } from '@smartfit/core';
 import { env } from './env';
+import {
+  decideCloudHydration,
+  decideLocalHydration,
+  freshState as buildFreshState,
+  type PendingMigration,
+} from './hydration';
 import { useAuth } from './firebase/auth-context';
 import {
   ensureUserProfile,
@@ -41,15 +46,9 @@ import {
 } from './firebase/repo';
 import { WriteQueue, type SyncStatus } from './firebase/write-queue';
 
-/**
- * First-run state for a brand-new user: a clean account that lands on
- * guided onboarding. No demo data is seeded in production.
- */
-function freshState(): FitnessState {
-  const empty = emptyState();
-  empty.profile.planId = env.defaultPlan;
-  return empty;
-}
+/** First-run state for a brand-new user (see ./hydration). */
+const freshState = (displayName?: string | null): FitnessState =>
+  buildFreshState(env.defaultPlan, displayName);
 
 /**
  * The in-memory snapshot always carries the identity it belongs to.
@@ -104,11 +103,7 @@ function clearLocal(owner: string | null) {
   }
 }
 
-export interface PendingMigration {
-  /** On-device data found when signing in to an empty cloud account. */
-  state: FitnessState;
-  counts: { sessions: number; goals: number; schedule: number; bodyLogs: number };
-}
+export type { PendingMigration };
 
 interface StoreContextValue {
   state: FitnessState;
@@ -199,8 +194,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     async function hydrate() {
       // ── Local mode / signed out ───────────────────────────────────────
       if (!uidValue) {
-        const local = readLocal(null) ?? freshState();
-        if (!cancelled) setSnapshot({ owner: null, ready: true, state: local });
+        const decision = decideLocalHydration(readLocal(null), env.defaultPlan);
+        if (!cancelled) setSnapshot({ owner: null, ready: true, state: decision.state });
         return;
       }
 
@@ -210,32 +205,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const remote = await loadUserState(owner);
         if (cancelled) return;
 
-        if (remote) {
-          setSnapshot({ owner, ready: true, state: remote });
-          return;
+        const decision = decideCloudHydration({
+          remote,
+          local: readLocal(null),
+          displayName: user?.displayName,
+          defaultPlan: env.defaultPlan,
+        });
+
+        // A brand-new account needs its profile document before anything can
+        // be written to it.
+        if (decision.isNewAccount) {
+          await ensureUserProfile(owner, decision.state.profile, DEFAULT_CATEGORIES);
+          if (cancelled) return;
         }
 
-        // Brand-new account. Offer to bring across anything logged on this
-        // device before signing up, rather than silently orphaning it.
-        const starter = freshState();
-        if (user?.displayName) starter.profile.name = user.displayName;
-        await ensureUserProfile(owner, starter.profile, DEFAULT_CATEGORIES);
-        if (cancelled) return;
-
-        setSnapshot({ owner, ready: true, state: starter });
-
-        const local = readLocal(null);
-        if (local && !isEmptyState(local)) {
-          setPendingMigration({
-            state: local,
-            counts: {
-              sessions: local.sessions.length,
-              goals: local.goals.length,
-              schedule: local.schedule.length,
-              bodyLogs: local.bodyLogs.length,
-            },
-          });
-        }
+        setSnapshot({ owner, ready: true, state: decision.state });
+        // Offered, never applied automatically — a new account starts clean.
+        setPendingMigration(decision.migration);
       } catch {
         // Offline or Firestore unreachable: fall back to this account's
         // cached copy so the app is usable rather than stuck or empty.
@@ -342,16 +328,31 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       pendingMigration,
       importLocalData: async () => {
         if (!pendingMigration || !owner) return;
+        const incoming = pendingMigration.state;
         const merged = parseState({
-          ...pendingMigration.state,
-          profile: { ...pendingMigration.state.profile, onboardingDone: true },
+          ...incoming,
+          profile: {
+            ...incoming.profile,
+            // Only skip onboarding if the on-device profile was actually set
+            // up. Importing a half-configured profile must not strand the user
+            // in a dashboard with no name, units or plan.
+            onboardingDone: incoming.profile.onboardingDone && !!incoming.profile.name.trim(),
+          },
         });
         await importState(owner, merged);
         clearLocal(null); // it now lives in the cloud account
         setPendingMigration(null);
         setSnapshot((prev) => (prev.owner === owner ? { ...prev, state: merged } : prev));
       },
-      discardLocalData: () => setPendingMigration(null),
+      /**
+       * "Start fresh" has to actually erase the on-device copy. Otherwise the
+       * same leftovers are offered again at the next sign-in — and to every
+       * other account that signs in on this device.
+       */
+      discardLocalData: () => {
+        clearLocal(null);
+        setPendingMigration(null);
+      },
 
       addSession: (s) => {
         const item: WorkoutSession = { ...s, id: uid('ses'), createdAt: Date.now() };

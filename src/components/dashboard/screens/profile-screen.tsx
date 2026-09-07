@@ -129,9 +129,11 @@ export function ProfileScreen() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">
-                  {user.displayName || state.profile.name || 'Athlete'}
+                  {state.profile.name || user.displayName || user.email}
                 </p>
-                <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+                {(state.profile.name || user.displayName) && (
+                  <p className="text-muted-foreground truncate text-xs">{user.email}</p>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => void signOutAndForget()}>
