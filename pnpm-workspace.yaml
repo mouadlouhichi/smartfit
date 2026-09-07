@@ -1,0 +1,22 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# Use the hoisted (flat) node_modules layout. The Expo/Metro toolchain expects a
+# flat node_modules, and Vercel's Next.js detection needs `next` to resolve from
+# the monorepo root.
+nodeLinker: hoisted
+
+# Single React type identity across the whole monorepo. The hoisted virtual
+# store would otherwise expose @types/react@18 (mobile) to web's Radix packages,
+# producing duplicate-JSX-namespace errors; pinning one version removes the clash.
+overrides:
+  '@types/react': 19.1.10
+  '@types/react-dom': 19.1.7
+
+# Approve install scripts for dependencies that legitimately need a postinstall
+# step (esbuild links its platform binary and is used by tsx). This is the
+# committed form of `pnpm approve-builds` and keeps
+# `pnpm install --frozen-lockfile` green in CI/Vercel.
+onlyBuiltDependencies:
+  - esbuild

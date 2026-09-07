@@ -1,0 +1,54 @@
+# dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# builds
+.next/
+out/
+dist/
+build/
+.expo/
+*.tsbuildinfo
+
+# expo
+apps/mobile/.expo/
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/dist/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# misc
+.DS_Store
+*.pem
+.vscode/
+.idea/
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# env
+.env
+.env*.local
+
+# next
+apps/web/.next/
+apps/web/out/
+next-env.d.ts
+
+# turbo
+.turbo/
+apps/*/.turbo/
+packages/*/.turbo/
+
+# local image-search working files
+/image-search/

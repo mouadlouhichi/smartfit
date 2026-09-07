@@ -1,0 +1,463 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * SmartFit design system — "Ember"
+ * A calm, editorial, warm-light fitness interface inspired by Paperpillar's
+ * AI-Driven Fitness App: near-black ink (#161313) on warm paper, a single
+ * vermilion accent (#B7220F) with terracotta/rose supporting tones. The
+ * product app defaults to light; a tuned warm-dark ships for dark mode.
+ * The marketing site keeps its own bold "Volt" constants (--color-volt/ink/…),
+ * which are retained below for the landing page.
+ */
+
+:root {
+  --radius: 1.5rem;
+
+  /* Reference dashboard palette — light warm-gray canvas, white cards,
+     charcoal rail, single orange accent. */
+  --background: #efedea;
+  --foreground: #171615;
+
+  --card: #ffffff;
+  --card-foreground: #1b1a19;
+
+  --popover: #ffffff;
+  --popover-foreground: #1b1a19;
+
+  --primary: #e05e36;
+  --primary-foreground: #ffffff;
+
+  --secondary: #eceae6;
+  --secondary-foreground: #1b1a19;
+
+  --muted: #e9e7e3;
+  --muted-foreground: #87857f;
+
+  --accent: #f6d9ce;
+  --accent-foreground: #8a3418;
+
+  --destructive: #c0392b;
+  --destructive-foreground: #fdf6f2;
+
+  --border: #e5e2dd;
+  --input: #e5e2dd;
+  --ring: #e05e36;
+
+  --chart-1: #e05e36;
+  --chart-2: #eda07e;
+  --chart-3: #cdaca4;
+  --chart-4: #8a6a58;
+  --chart-5: #2b2725;
+
+  /* Dark charcoal rail / dark cards */
+  --charcoal: #3f3d3b;
+  --charcoal-2: #4a4846;
+}
+
+.dark {
+  --background: #161313;
+  --foreground: #f3ece4;
+
+  --card: #201b1a;
+  --card-foreground: #f3ece4;
+
+  --popover: #221c1b;
+  --popover-foreground: #f3ece4;
+
+  --primary: #e0603f;
+  --primary-foreground: #1c0e0a;
+
+  --secondary: #2c2523;
+  --secondary-foreground: #f3ece4;
+
+  --muted: #27211f;
+  --muted-foreground: #b5a89d;
+
+  --accent: #d38977;
+  --accent-foreground: #f6e7e0;
+
+  --destructive: #f0817a;
+  --destructive-foreground: #2a0d0a;
+
+  --border: #39312d;
+  --input: #39312d;
+  --ring: #e0603f;
+
+  --chart-1: #e0603f;
+  --chart-2: #d38977;
+  --chart-3: #cdaca4;
+  --chart-4: #a98778;
+  --chart-5: #8e857e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Ember brand accents (product app). */
+  --color-ember: #e05e36;
+  --color-ember-deep: #c4451f;
+  --color-ember-bright: #ee7d5a;
+  --color-terracotta: #e8a087;
+  --color-rose: #cdaca4;
+  --color-clay: #5c5a57;
+  --color-ink-warm: #171615;
+  --color-paper-warm: #efedea;
+  --color-charcoal: #3f3d3b;
+  --color-charcoal-2: #4a4846;
+
+  /* Volt brand constants — retained for the always-dark marketing landing. */
+  --color-volt: #c8f135;
+  --color-volt-soft: #e3f88a;
+  --color-volt-dim: #9dbd1f;
+  --color-ink: #0b0e09;
+  --color-ink-2: #12160c;
+  --color-ink-card: #161b10;
+  --color-paper: #eff3e6;
+  --color-sage: #9ba886;
+  --color-pine: #2b4016;
+
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
+  --radius-2xl: calc(var(--radius) + 14px);
+
+  --font-sans: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Base typography. Kept in @layer base so per-page overrides and font-weight
+   utilities (font-medium/semibold/bold) can win the cascade. */
+@layer base {
+  /* Product app: heavy Jakarta grotesque for headings. */
+  h1,
+  h2 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+  }
+
+  /* Landing: mirrors the reference (SmartJib) — Instrument Sans headings default
+     to a regular weight; weight/size come from the copied utility classes.
+     :where() keeps specificity at (0,1,0) so utilities like .font-medium win. */
+  .landing :where(h1, h2, h3) {
+    font-weight: 400;
+    letter-spacing: normal;
+  }
+}
+.font-display-tight {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+}
+.eyebrow {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+  border: 3px solid var(--background);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+.animate-float {
+  animation: float-y 6s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LANDING design system — exact match to the reference landing (SmartJib).
+   Scoped to `.landing` so the product app keeps its own Ember/Jakarta theme.
+   Light editorial palette, Instrument Sans (body + display),
+   JetBrains Mono labels, and the reference animation set.
+   ═══════════════════════════════════════════════════════════════════════ */
+.landing {
+  --background: oklch(0.9808 0.0059 170.45);
+  --foreground: oklch(0.3079 0.0072 182.54);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.3079 0.0072 182.54);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.3079 0.0072 182.54);
+  --primary: oklch(0.465 0.0821 184.55);
+  --primary-foreground: oklch(0.985 0.006 170);
+  --secondary: oklch(0.955 0.012 172);
+  --secondary-foreground: oklch(0.3079 0.0072 182.54);
+  --muted: oklch(0.935 0.014 172);
+  --muted-foreground: oklch(0.49 0.022 172);
+  --accent: oklch(0.9 0.026 172);
+  --accent-foreground: oklch(0.3079 0.0072 182.54);
+  --border: oklch(0.875 0.016 172);
+  --input: oklch(0.915 0.016 172);
+  --ring: oklch(0.465 0.0821 184.55);
+}
+
+.landing {
+  font-family: var(--font-sans);
+  color: var(--foreground);
+  background: var(--background);
+  font-feature-settings: normal;
+  /* Same font stack as the reference landing: Instrument Sans for body +
+     display, JetBrains Mono for mono. Overriding the theme variables here makes
+     every Tailwind font-sans/font-display/font-mono utility resolve to these. */
+  --font-sans: 'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.landing .font-display {
+  font-family: var(--font-display);
+}
+
+/* Eyebrow label: small mono text with a leading dash */
+.landing .eyebrow-mono {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.landing .eyebrow-mono::before {
+  content: '';
+  width: 2rem;
+  height: 1px;
+  background: color-mix(in oklab, var(--foreground) 30%, transparent);
+}
+
+/* Outlined text (pricing) */
+.landing .text-stroke {
+  -webkit-text-stroke: 1.5px currentColor;
+  -webkit-text-fill-color: transparent;
+  color: var(--muted-foreground);
+}
+
+/* Marquees */
+.landing .marquee {
+  display: flex;
+  width: max-content;
+  animation: landing-marquee 30s linear infinite;
+}
+.landing .marquee-reverse {
+  display: flex;
+  width: max-content;
+  animation: landing-marquee-reverse 25s linear infinite;
+}
+@keyframes landing-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+@keyframes landing-marquee-reverse {
+  0% { transform: translateX(-50%); }
+  100% { transform: translateX(0); }
+}
+
+/* Per-character hero word reveal */
+.landing .animate-char-in {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(10px);
+  transform: translateY(0.6em);
+  animation: landing-char-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes landing-char-in {
+  0% { opacity: 0; filter: blur(10px); transform: translateY(0.6em); }
+  100% { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+
+/* Line reveal (clip) */
+.landing .line-reveal {
+  clip-path: inset(0 100% 0 0);
+  animation: landing-line-reveal 0.8s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+@keyframes landing-line-reveal {
+  to { clip-path: inset(0 0 0 0); }
+}
+
+.landing .hover-lift {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.landing .hover-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Scroll-reveal helper (toggled via IntersectionObserver) */
+.landing .reveal {
+  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.landing .reveal[data-state='hidden'] {
+  opacity: 0;
+  transform: translateY(2.5rem);
+}
+.landing .reveal[data-state='hidden-left'] {
+  opacity: 0;
+  transform: translateX(-2rem);
+}
+.landing .reveal[data-state='hidden-right'] {
+  opacity: 0;
+  transform: translateX(2rem);
+}
+
+/* Primary pill button on the light landing */
+.landing .btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 3.5rem;
+  padding: 0 2rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: oklch(0.985 0.006 170);
+  font-weight: 500;
+  font-size: 1rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.landing .btn-primary:hover { background: color-mix(in oklab, var(--primary) 88%, black); }
+.landing .btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 3.5rem;
+  padding: 0 2rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in oklab, var(--foreground) 20%, transparent);
+  color: var(--foreground);
+  font-weight: 500;
+  font-size: 1rem;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+.landing .btn-outline:hover { background: color-mix(in oklab, var(--foreground) 5%, transparent); }
+
+/* Snapshot line reveal for the how-it-works terminal */
+.landing .snapshot-line-reveal {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: landing-snapshot 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes landing-snapshot {
+  to { opacity: 1; transform: translateY(0); }
+}
+.landing .progress-bar-anim {
+  height: 100%;
+  background: var(--background);
+  width: 0;
+  animation: landing-progress 5s linear forwards;
+}
+@keyframes landing-progress {
+  from { width: 0; }
+  to { width: 100%; }
+}

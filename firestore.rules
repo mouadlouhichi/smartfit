@@ -1,0 +1,23 @@
+rules_version = '2';
+
+// ── SmartFit Cloud Firestore security rules ───────────────────────────────
+// Every user owns exactly one document tree under users/{uid} and may only
+// read/write their own data. Nothing is world-readable.
+// Deploy with:  firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      match /{collection}/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Deny everything else by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
