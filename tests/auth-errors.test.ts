@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   AUTH_MESSAGES,
+  AUTH_UNAVAILABLE,
   errorCode,
   friendlyAuthError,
   isSilentResetMiss,
@@ -85,4 +86,12 @@ test('a reset for an unknown address is treated as success, not as a bad passwor
   assert.equal(isSilentResetMiss(fbError('auth/network-request-failed')), false);
   assert.equal(isSilentResetMiss(fbError('auth/too-many-requests')), false);
   assert.equal(isSilentResetMiss(null), false);
+});
+
+test('a deployment with no Firebase config explains itself instead of failing silently', () => {
+  // This throw happens before any Firebase call. It used to escape the error
+  // wrapper entirely, so the sign-in button did nothing at all.
+  assert.equal(friendlyAuthError(new Error(AUTH_UNAVAILABLE)), AUTH_MESSAGES.unavailable);
+  assert.match(friendlyAuthError(new Error(AUTH_UNAVAILABLE)), /NEXT_PUBLIC_FIREBASE_/);
+  assert.notEqual(friendlyAuthError(new Error(AUTH_UNAVAILABLE)), AUTH_MESSAGES.generic);
 });

@@ -12,7 +12,12 @@
  * again." sends them into a retry loop that can never succeed.
  */
 
+/** Sentinel thrown when the deployment has no Firebase credentials at all. */
+export const AUTH_UNAVAILABLE = 'auth-unavailable';
+
 export const AUTH_MESSAGES = {
+  unavailable:
+    'Sign-in is unavailable: this deployment is missing its Firebase configuration. Set the NEXT_PUBLIC_FIREBASE_* environment variables.',
   unauthorizedDomain:
     'This domain is not authorised for sign-in. Add it under Firebase → Authentication → Settings → Authorized domains.',
   invalidApiKey:
@@ -55,6 +60,8 @@ export function isSilentResetMiss(err: unknown): boolean {
 export function friendlyAuthError(err: unknown): string {
   const code = errorCode(err);
   const raw = err instanceof Error ? err.message : typeof err === 'string' ? err : '';
+
+  if (raw === AUTH_UNAVAILABLE) return AUTH_MESSAGES.unavailable;
 
   switch (code) {
     case 'auth/unauthorized-domain':

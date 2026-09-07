@@ -136,26 +136,6 @@ export default function LoginPage() {
                 : 'Sign in to pick up right where you left off.'}
           </p>
 
-          {!cloud && (
-            <div className="border-border bg-muted/50 mt-4 rounded-lg border px-3 py-2.5">
-              <p className="text-xs font-medium">Accounts aren&apos;t set up on this deployment.</p>
-              <p className="text-muted-foreground mt-1 text-xs">
-                Sign-in needs Firebase credentials. You can still use SmartFit on this device — your
-                training stays in this browser.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  router.push(state.profile.onboardingDone ? '/dashboard' : '/onboarding')
-                }
-                className="mt-2.5 h-8 w-full text-xs"
-              >
-                Continue without an account <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-
           <form onSubmit={handleEmail} className="mt-5 grid gap-4">
             {isSignUp && (
               <div className="grid gap-1.5">
@@ -235,7 +215,7 @@ export default function LoginPage() {
               </p>
             )}
 
-            <Button type="submit" disabled={loading || !cloud} className="w-full">
+            <Button type="submit" disabled={loading} className="w-full">
               {loading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : isReset ? (
@@ -273,7 +253,7 @@ export default function LoginPage() {
               <Button
                 type="button"
                 variant="outline"
-                disabled={loading || !cloud}
+                disabled={loading}
                 onClick={handleGoogle}
                 className="w-full"
               >

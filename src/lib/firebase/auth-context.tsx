@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { getFirebaseServices, isFirebaseConfigured } from './config';
-import { friendlyAuthError, isSilentResetMiss } from './auth-errors';
+import { AUTH_UNAVAILABLE, friendlyAuthError, isSilentResetMiss } from './auth-errors';
 
 export type AuthMode = 'cloud' | 'local';
 
@@ -31,6 +31,20 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/**
+ * Resolve the Firebase services or fail loudly.
+ *
+ * Callers must invoke this *inside* `run()`. It used to be thrown before the
+ * wrapper, which meant a deployment with no Firebase credentials produced a
+ * rejected promise that nothing translated and nothing displayed — the sign-in
+ * button simply did nothing at all.
+ */
+async function requireAuth() {
+  const svc = await getFirebaseServices();
+  if (!svc) throw new Error(AUTH_UNAVAILABLE);
+  return svc;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -88,10 +102,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = useCallback(
     async (email: string, password: string, displayName?: string) => {
-      const svc = await getFirebaseServices();
-      if (!svc) throw new Error('auth-unavailable');
-      const fb = await import('firebase/auth');
       await run(async () => {
+        const svc = await requireAuth();
+        const fb = await import('firebase/auth');
         const cred = await fb.createUserWithEmailAndPassword(svc.auth, email, password);
         if (displayName && cred.user) {
           await fb.updateProfile(cred.user, { displayName });
@@ -103,31 +116,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      const svc = await getFirebaseServices();
-      if (!svc) throw new Error('auth-unavailable');
-      const fb = await import('firebase/auth');
-      await run(() => fb.signInWithEmailAndPassword(svc.auth, email, password));
+      await run(async () => {
+        const svc = await requireAuth();
+        const fb = await import('firebase/auth');
+        await fb.signInWithEmailAndPassword(svc.auth, email, password);
+      });
     },
     [run],
   );
 
   const signInWithGoogle = useCallback(async () => {
-    const svc = await getFirebaseServices();
-    if (!svc) throw new Error('auth-unavailable');
-    const fb = await import('firebase/auth');
-    await run(() => {
+    await run(async () => {
+      const svc = await requireAuth();
+      const fb = await import('firebase/auth');
       const provider = new fb.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      return fb.signInWithPopup(svc.auth, provider);
+      await fb.signInWithPopup(svc.auth, provider);
     });
   }, [run]);
 
   const resetPassword = useCallback(
     async (email: string) => {
-      const svc = await getFirebaseServices();
-      if (!svc) throw new Error('auth-unavailable');
-      const fb = await import('firebase/auth');
       await run(async () => {
+        const svc = await requireAuth();
+        const fb = await import('firebase/auth');
         // Treat "no such account" as success. Reporting it would (a) confirm
         // to an attacker which emails are registered, and (b) surface through
         // friendlyError as "Incorrect email or password.", which is nonsense
