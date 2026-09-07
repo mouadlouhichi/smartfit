@@ -30,10 +30,31 @@ const envConfig: FirebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? '',
 };
 
+/**
+ * The four values Firebase Auth + Firestore actually need. `storageBucket` and
+ * `messagingSenderId` are only used by Cloud Storage and FCM, neither of which
+ * this app calls, so they are deliberately not required.
+ *
+ * Reported by name: "missing configuration" is otherwise indistinguishable
+ * from "configured for a different environment" or "added after the last
+ * build", which are the two ways this actually goes wrong on Vercel.
+ */
+const REQUIRED_ENV: Record<string, string> = {
+  NEXT_PUBLIC_FIREBASE_API_KEY: envConfig.apiKey,
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: envConfig.authDomain,
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID: envConfig.projectId,
+  NEXT_PUBLIC_FIREBASE_APP_ID: envConfig.appId,
+};
+
+/** Names of the required variables that were empty in *this build*. */
+export const missingFirebaseKeys: string[] = Object.entries(REQUIRED_ENV)
+  // Trim: a variable pasted with a stray newline is present but useless, and
+  // would otherwise pass the check and fail later inside the SDK.
+  .filter(([, value]) => !value.trim())
+  .map(([key]) => key);
+
 /** True when enough config is present to initialise Firebase. */
-export const isFirebaseConfigured: boolean = Boolean(
-  envConfig.apiKey && envConfig.projectId && envConfig.appId && envConfig.authDomain,
-);
+export const isFirebaseConfigured: boolean = missingFirebaseKeys.length === 0;
 
 export interface FirebaseServices {
   auth: import('firebase/auth').Auth;

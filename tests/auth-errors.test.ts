@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   AUTH_MESSAGES,
   AUTH_UNAVAILABLE,
+  firebaseUnavailableMessage,
   errorCode,
   friendlyAuthError,
   isSilentResetMiss,
@@ -88,10 +89,34 @@ test('a reset for an unknown address is treated as success, not as a bad passwor
   assert.equal(isSilentResetMiss(null), false);
 });
 
-test('a deployment with no Firebase config explains itself instead of failing silently', () => {
+test('a build with no Firebase config names the variables that are absent', () => {
   // This throw happens before any Firebase call. It used to escape the error
   // wrapper entirely, so the sign-in button did nothing at all.
-  assert.equal(friendlyAuthError(new Error(AUTH_UNAVAILABLE)), AUTH_MESSAGES.unavailable);
-  assert.match(friendlyAuthError(new Error(AUTH_UNAVAILABLE)), /NEXT_PUBLIC_FIREBASE_/);
-  assert.notEqual(friendlyAuthError(new Error(AUTH_UNAVAILABLE)), AUTH_MESSAGES.generic);
+  const err = Object.assign(new Error(AUTH_UNAVAILABLE), {
+    missingKeys: ['NEXT_PUBLIC_FIREBASE_API_KEY', 'NEXT_PUBLIC_FIREBASE_APP_ID'],
+  });
+  const msg = friendlyAuthError(err);
+  assert.match(msg, /NEXT_PUBLIC_FIREBASE_API_KEY/);
+  assert.match(msg, /NEXT_PUBLIC_FIREBASE_APP_ID/);
+  // The two ways this happens on Vercel: wrong environment, or no rebuild.
+  assert.match(msg, /redeploy/i);
+  assert.match(msg, /Preview/);
+  assert.notEqual(msg, AUTH_MESSAGES.generic);
+});
+
+test('config present but init failed is reported as a different problem', () => {
+  // Both cases surface as a null service; conflating them would send someone
+  // to re-enter environment variables that are already correct.
+  const err = Object.assign(new Error(AUTH_UNAVAILABLE), { missingKeys: [] });
+  assert.equal(friendlyAuthError(err), AUTH_MESSAGES.initFailed);
+  assert.doesNotMatch(friendlyAuthError(err), /redeploy/i);
+});
+
+test('firebaseUnavailableMessage tolerates a malformed missingKeys payload', () => {
+  assert.equal(firebaseUnavailableMessage([]), AUTH_MESSAGES.initFailed);
+  assert.equal(friendlyAuthError(new Error(AUTH_UNAVAILABLE)), AUTH_MESSAGES.initFailed);
+  assert.equal(
+    friendlyAuthError(Object.assign(new Error(AUTH_UNAVAILABLE), { missingKeys: 'nope' })),
+    AUTH_MESSAGES.initFailed,
+  );
 });

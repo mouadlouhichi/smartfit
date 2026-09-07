@@ -16,8 +16,8 @@
 export const AUTH_UNAVAILABLE = 'auth-unavailable';
 
 export const AUTH_MESSAGES = {
-  unavailable:
-    'Sign-in is unavailable: this deployment is missing its Firebase configuration. Set the NEXT_PUBLIC_FIREBASE_* environment variables.',
+  initFailed:
+    'Firebase is configured for this build but failed to start. Check the browser console for the underlying error.',
   unauthorizedDomain:
     'This domain is not authorised for sign-in. Add it under Firebase → Authentication → Settings → Authorized domains.',
   invalidApiKey:
@@ -57,11 +57,36 @@ export function isSilentResetMiss(err: unknown): boolean {
   return RESET_MISS_CODES.has(errorCode(err));
 }
 
+/**
+ * Explain why Firebase could not be reached.
+ *
+ * Naming the absent variables matters because the two real-world causes look
+ * identical from inside the app: NEXT_PUBLIC_* values are inlined at build
+ * time, so they are missing both when they were never set for the environment
+ * being deployed (Vercel scopes them per environment) and when they were added
+ * after the last build. Either way the fix is "set them here, then redeploy" —
+ * advice that is useless unless the message says which ones are absent.
+ */
+export function firebaseUnavailableMessage(missingKeys: readonly string[]): string {
+  if (missingKeys.length === 0) return AUTH_MESSAGES.initFailed;
+  return (
+    `Sign-in is unavailable: this build has no Firebase configuration (missing ` +
+    `${missingKeys.join(', ')}). These are read at build time, so set them for the ` +
+    `environment you are deploying — Production, Preview and Development are separate — ` +
+    `and then redeploy.`
+  );
+}
+
 export function friendlyAuthError(err: unknown): string {
   const code = errorCode(err);
   const raw = err instanceof Error ? err.message : typeof err === 'string' ? err : '';
 
-  if (raw === AUTH_UNAVAILABLE) return AUTH_MESSAGES.unavailable;
+  if (raw === AUTH_UNAVAILABLE) {
+    const keys = (err as { missingKeys?: unknown }).missingKeys;
+    return firebaseUnavailableMessage(
+      Array.isArray(keys) ? keys.filter((k): k is string => typeof k === 'string') : [],
+    );
+  }
 
   switch (code) {
     case 'auth/unauthorized-domain':

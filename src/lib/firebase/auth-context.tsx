@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { getFirebaseServices, isFirebaseConfigured } from './config';
+import { getFirebaseServices, missingFirebaseKeys, isFirebaseConfigured } from './config';
 import { AUTH_UNAVAILABLE, friendlyAuthError, isSilentResetMiss } from './auth-errors';
 
 export type AuthMode = 'cloud' | 'local';
@@ -42,7 +42,9 @@ const AuthContext = createContext<AuthContextValue | null>(null);
  */
 async function requireAuth() {
   const svc = await getFirebaseServices();
-  if (!svc) throw new Error(AUTH_UNAVAILABLE);
+  // An empty `missingKeys` here means the config was present but init threw,
+  // which is a different failure needing a different message.
+  if (!svc) throw Object.assign(new Error(AUTH_UNAVAILABLE), { missingKeys: missingFirebaseKeys });
   return svc;
 }
 
