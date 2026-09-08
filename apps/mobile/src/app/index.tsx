@@ -19,10 +19,13 @@ import { useStore } from '@/lib/store';
 import { Badge, Card, ProgressBar } from '@/components/ui';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { LogWorkoutModal } from '@/components/LogWorkoutModal';
+import { SessionDetailModal } from '@/components/SessionDetailModal';
+import type { WorkoutSession } from '@smartfit/core';
 
 export default function HomeScreen() {
   const { state, ready, deleteSession } = useStore();
   const [logOpen, setLogOpen] = useState(false);
+  const [detailSession, setDetailSession] = useState<WorkoutSession | null>(null);
 
   if (!ready) {
     return (
@@ -153,24 +156,32 @@ export default function HomeScreen() {
               return (
                 <Card key={s.id}>
                   <View className="flex-row items-center gap-3">
-                    <View
-                      className="h-10 w-10 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${cat?.color ?? '#64748b'}1a` }}
+                    <Pressable
+                      className="flex-1 flex-row items-center gap-3"
+                      onPress={() => setDetailSession(s)}
                     >
-                      <CategoryIcon
-                        name={cat?.icon ?? 'activity'}
-                        color={cat?.color ?? '#64748b'}
-                        size={18}
-                      />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-foreground text-sm font-semibold">{s.title}</Text>
-                      <Text className="text-muted-foreground text-xs">
-                        {relativeDay(s.date)} · {formatMinutes(s.durationMin)} ·{' '}
-                        <Text style={{ color: meta.color }}>{meta.label}</Text>
-                        {s.distanceKm ? ` · ${formatDistance(s.distanceKm)}` : ''}
-                      </Text>
-                    </View>
+                      <View
+                        className="h-10 w-10 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: `${cat?.color ?? '#64748b'}1a` }}
+                      >
+                        <CategoryIcon
+                          name={cat?.icon ?? 'activity'}
+                          color={cat?.color ?? '#64748b'}
+                          size={18}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-foreground text-sm font-semibold">{s.title}</Text>
+                        <Text className="text-muted-foreground text-xs">
+                          {relativeDay(s.date)} · {formatMinutes(s.durationMin)} ·{' '}
+                          <Text style={{ color: meta.color }}>{meta.label}</Text>
+                          {s.distanceKm ? ` · ${formatDistance(s.distanceKm)}` : ''}
+                          {s.exercises?.length
+                            ? ` · ${s.exercises.length} exercise${s.exercises.length === 1 ? '' : 's'}`
+                            : ''}
+                        </Text>
+                      </View>
+                    </Pressable>
                     <Pressable onPress={() => deleteSession(s.id)} hitSlop={8}>
                       <Trash2 color="#DC2626" size={18} />
                     </Pressable>
@@ -183,6 +194,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       <LogWorkoutModal open={logOpen} onClose={() => setLogOpen(false)} />
+      <SessionDetailModal session={detailSession} onClose={() => setDetailSession(null)} />
     </SafeAreaView>
   );
 }

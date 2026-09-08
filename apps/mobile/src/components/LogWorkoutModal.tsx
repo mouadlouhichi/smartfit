@@ -11,8 +11,10 @@ import {
   toKm,
   INTENSITY_META,
 } from '@smartfit/core';
-import type { Intensity } from '@smartfit/core';
+import type { Intensity, WorkoutExercise } from '@smartfit/core';
 import { useStore } from '@/lib/store';
+import { ExerciseDemo } from './ExerciseDemo';
+import { ExercisePickerModal } from './ExercisePickerModal';
 
 const INTENSITIES: Intensity[] = ['low', 'moderate', 'high'];
 
@@ -36,6 +38,8 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
   const [duration, setDuration] = useState('45');
   const [intensity, setIntensity] = useState<Intensity>('moderate');
   const [distance, setDistance] = useState('');
+  const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const category = state.categories.find((c) => c.id === categoryId);
   const isCardio = categoryId === 'cat-cardio' || categoryId === 'cat-sports';
@@ -178,6 +182,68 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
             </View>
           </View>
 
+          <View>
+            <Label>Exercises</Label>
+            <View className="gap-2">
+              {exercises.map((ex, i) => (
+                <Card key={`${ex.name}-${i}`} className="flex-row items-center gap-3 p-3">
+                  <ExerciseDemo name={ex.name} size={44} animated={false} />
+                  <View className="flex-1">
+                    <Text className="text-foreground text-sm font-semibold">{ex.name}</Text>
+                    <Text className="text-muted-foreground text-xs">
+                      {ex.sets.length} {ex.sets.length === 1 ? 'set' : 'sets'}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center gap-2">
+                    <Pressable
+                      accessibilityLabel={`Remove a set from ${ex.name}`}
+                      onPress={() =>
+                        setExercises((prev) =>
+                          prev.map((x, xi) =>
+                            xi === i
+                              ? { ...x, sets: x.sets.slice(0, Math.max(1, x.sets.length - 1)) }
+                              : x,
+                          ),
+                        )
+                      }
+                      className="border-border active:bg-muted h-8 w-8 items-center justify-center rounded-full border"
+                    >
+                      <Text className="text-foreground text-base font-bold">−</Text>
+                    </Pressable>
+                    <Text className="text-foreground w-6 text-center text-sm font-bold">
+                      {ex.sets.length}
+                    </Text>
+                    <Pressable
+                      accessibilityLabel={`Add a set to ${ex.name}`}
+                      onPress={() =>
+                        setExercises((prev) =>
+                          prev.map((x, xi) => (xi === i ? { ...x, sets: [...x.sets, {}] } : x)),
+                        )
+                      }
+                      className="border-border active:bg-muted h-8 w-8 items-center justify-center rounded-full border"
+                    >
+                      <Text className="text-foreground text-base font-bold">+</Text>
+                    </Pressable>
+                    <Pressable
+                      accessibilityLabel={`Remove ${ex.name}`}
+                      onPress={() => setExercises((prev) => prev.filter((_, xi) => xi !== i))}
+                      className="active:bg-muted h-8 w-8 items-center justify-center"
+                      hitSlop={6}
+                    >
+                      <X color="#DC2626" size={18} />
+                    </Pressable>
+                  </View>
+                </Card>
+              ))}
+
+              <Button
+                variant="secondary"
+                label="+ Add exercise"
+                onPress={() => setPickerOpen(true)}
+              />
+            </View>
+          </View>
+
           <Card className="flex-row items-center justify-between">
             <Text className="text-muted-foreground text-sm">Estimated burn</Text>
             <Text className="text-primary text-base font-bold">{calories} kcal</Text>
@@ -186,6 +252,12 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
           <Button label="Save workout" onPress={save} />
         </ScrollView>
       </View>
+
+      <ExercisePickerModal
+        visible={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={(name) => setExercises((prev) => [...prev, { name, sets: [{}, {}, {}] }])}
+      />
     </Modal>
   );
 }

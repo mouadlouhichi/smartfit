@@ -34,7 +34,14 @@ shared domain package — but applies them to **training** instead of money.
 ### Training
 
 - **Log workouts** — strength, cardio, HIIT, mobility, sport & active rest, with
-  duration, intensity, estimated calories, distance and (web) exercises.
+  duration, intensity, estimated calories, distance and exercises on both apps.
+- **Illustrated exercise library** — a curated catalog of 100+ common movements
+  (muscles, equipment, aliases) in `@smartfit/core`, with two-frame
+  demonstration images streamed from the open
+  [free-exercise-db](https://github.com/yuhonas/free-exercise-db) dataset
+  (Unlicense) and crossfaded into a GIF-style loop. Logging suggests matches as
+  you type; free-typed names and old logs are matched to the catalog so history
+  gets illustrations too.
 - **Training plans** — four proven splits: **Push/Pull/Legs**, **Upper/Lower**,
   **Full Body 3×**, and **Cardio & Conditioning**. Pick one and the weekly split
   lights up on both apps.

@@ -21,6 +21,7 @@ import {
   formatMinutes,
 } from '@smartfit/core';
 import { Clock, Flame, Pencil, Route, StickyNote } from 'lucide-react';
+import { ExerciseImage } from '@/components/exercise-image';
 
 /**
  * Read-only detail for a logged session.
@@ -97,9 +98,12 @@ export function SessionDetailModal() {
               {exercises.map((ex, i) => (
                 <li
                   key={`${ex.name}-${i}`}
-                  className="flex items-center justify-between px-3 py-2.5"
+                  className="flex items-center justify-between gap-3 px-3 py-2.5"
                 >
-                  <span className="text-sm font-medium">{ex.name}</span>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <ExerciseImage name={ex.name} className="h-11 w-11 shrink-0 rounded-lg" />
+                    <span className="truncate text-sm font-medium">{ex.name}</span>
+                  </span>
                   <span className="text-muted-foreground text-xs">{describeSets(ex.sets)}</span>
                 </li>
               ))}

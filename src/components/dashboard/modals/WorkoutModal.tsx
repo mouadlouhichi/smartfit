@@ -18,6 +18,7 @@ import { useModals, usePayload } from '../modal-context';
 import { INTENSITY_META, toISODate, fromKm, toKm } from '@smartfit/core';
 import type { Intensity, WorkoutExercise } from '@smartfit/core';
 import { Trash2 } from 'lucide-react';
+import { ExercisePicker } from '@/components/exercise-picker';
 
 const BLANK_EXERCISE: WorkoutExercise = { name: '', sets: [{}] };
 
@@ -236,14 +237,12 @@ export function WorkoutModal() {
               <div className="grid gap-2">
                 {exercises.map((ex, i) => (
                   <div key={i} className="flex items-center gap-2">
-                    <Input
-                      aria-label={`Exercise ${i + 1} name`}
+                    <ExercisePicker
+                      ariaLabel={`Exercise ${i + 1} name`}
                       placeholder={`Exercise ${i + 1} (e.g. Squat)`}
                       value={ex.name}
-                      onChange={(e) =>
-                        setExercises((p) =>
-                          p.map((x, xi) => (xi === i ? { ...x, name: e.target.value } : x)),
-                        )
+                      onChange={(name) =>
+                        setExercises((p) => p.map((x, xi) => (xi === i ? { ...x, name } : x)))
                       }
                     />
                     <Input
