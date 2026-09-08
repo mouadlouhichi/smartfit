@@ -1265,3 +1265,49 @@ function scoreCandidate(candidate: string, q: string): number {
   if (c.includes(q)) return 45;
   return 0;
 }
+
+/**
+ * Category → the muscle groups a sensible starter session for it would hit.
+ * Used to suggest exercises when a guided session opens without a routine, so
+ * "start exercise" is never a dead end on a fresh account.
+ */
+const CATEGORY_GROUPS: Record<string, ExerciseGroup[]> = {
+  'cat-strength': ['chest', 'back', 'legs', 'shoulders'],
+  'cat-cardio': ['conditioning'],
+  'cat-hiit': ['conditioning', 'core'],
+  'cat-mobility': ['mobility'],
+  'cat-sports': ['conditioning', 'legs'],
+  'cat-rest': ['mobility', 'core'],
+};
+
+/**
+ * A short, curated starter list for a category — popular lifts first, spread
+ * across the category's muscle groups so a tap-built session is balanced.
+ * Falls back to the overall popular lifts for unknown categories.
+ */
+export function suggestedExercisesForCategory(
+  categoryId: string,
+  limit = 6,
+): ExerciseCatalogEntry[] {
+  const groups = CATEGORY_GROUPS[categoryId] ?? [];
+  const pool = EXERCISES.filter((e) => groups.length === 0 || groups.includes(e.group));
+  const ranked = [...pool].sort((a, b) => Number(b.popular ?? 0) - Number(a.popular ?? 0));
+
+  // Round-robin across groups so we don't return six chest presses.
+  const picked: ExerciseCatalogEntry[] = [];
+  const queues = new Map<ExerciseGroup, ExerciseCatalogEntry[]>();
+  for (const entry of ranked) {
+    const q = queues.get(entry.group) ?? [];
+    q.push(entry);
+    queues.set(entry.group, q);
+  }
+  const keys = [...queues.keys()];
+  let i = 0;
+  while (picked.length < limit && keys.some((k) => (queues.get(k)?.length ?? 0) > 0)) {
+    const k = keys[i % keys.length];
+    const next = queues.get(k)?.shift();
+    if (next) picked.push(next);
+    i += 1;
+  }
+  return picked.slice(0, limit);
+}

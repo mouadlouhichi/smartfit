@@ -439,3 +439,29 @@ test('a scheduled slot keeps its exercise list through parsing', () => {
   assert.deepEqual(withRoutine.exercises?.[0].sets[0].reps, 8);
   assert.equal('exercises' in plain, false, 'a reminder carries no routine');
 });
+
+// ── starter suggestions ─────────────────────────────────────────────────
+
+test('suggestedExercisesForCategory returns a balanced, curated starter', async () => {
+  const { suggestedExercisesForCategory } = await import('../src/exercises.ts');
+  const strength = suggestedExercisesForCategory('cat-strength', 6);
+  assert.equal(strength.length, 6, 'returns the requested count');
+  // Round-robin across muscle groups: not all the same group.
+  const groups = new Set(strength.map((s) => s.group));
+  assert.ok(groups.size > 1, 'balanced across muscle groups');
+  // Every suggestion is a curated (offline-safe) catalog entry.
+  assert.ok(
+    strength.every((s) => !s.extended),
+    'curated entries only',
+  );
+
+  const cardio = suggestedExercisesForCategory('cat-cardio', 4);
+  assert.ok(
+    cardio.every((s) => s.group === 'conditioning'),
+    'cardio maps to conditioning',
+  );
+
+  // Unknown category falls back to popular lifts rather than nothing.
+  const fallback = suggestedExercisesForCategory('cat-unknown', 4);
+  assert.ok(fallback.length > 0, 'unknown category still yields suggestions');
+});

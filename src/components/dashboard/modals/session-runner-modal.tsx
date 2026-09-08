@@ -33,6 +33,7 @@ import {
   formatVolume,
   isPersonalRecord,
   lastPerformance,
+  suggestedExercisesForCategory,
   suggestedRestSeconds,
   summariseLiveSession,
   type LastPerformance,
@@ -620,16 +621,7 @@ function LiveScreen(p: LiveProps) {
             </div>
           </div>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-            <span className="session-tile flex h-16 w-16 items-center justify-center rounded-2xl">
-              <Dumbbell className="h-7 w-7 text-[rgba(247,242,234,0.7)]" aria-hidden />
-            </span>
-            <p className="text-sm font-bold">No exercises yet</p>
-            <p className="session-muted max-w-[16rem] text-xs">
-              Add the lifts you&rsquo;re doing and log your sets — SmartFit pre-fills your last
-              numbers.
-            </p>
-          </div>
+          <EmptyRunner categoryId={p.run.categoryId} onAdd={(name) => p.addExercise(name)} />
         )}
 
         {/* Add-exercise field */}
@@ -660,6 +652,53 @@ function LiveScreen(p: LiveProps) {
         >
           <Flag className="h-5 w-5" aria-hidden /> Finish session
         </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── empty state with tap-to-add suggestions ───────────────────────────── */
+
+/**
+ * First-run / no-routine state. Rather than a dead end, it offers a curated,
+ * balanced starter list for the session's category (from the shared catalog,
+ * with demo tiles) so a tap builds a real session — and the free-text field
+ * below still takes anything.
+ */
+function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: string) => void }) {
+  const suggestions = useMemo(() => suggestedExercisesForCategory(categoryId, 6), [categoryId]);
+  return (
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex flex-col items-center gap-2 text-center">
+        <span className="session-tile flex h-14 w-14 items-center justify-center rounded-2xl">
+          <Dumbbell className="h-6 w-6 text-[rgba(247,242,234,0.7)]" aria-hidden />
+        </span>
+        <p className="text-sm font-bold">No exercises yet</p>
+        <p className="session-muted max-w-[18rem] text-xs">
+          Tap a suggestion to build your session, or add any lift below — SmartFit pre-fills your
+          last numbers.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5">
+        {suggestions.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => onAdd(s.name)}
+            className="session-tile press flex items-center gap-2.5 rounded-xl p-2.5 text-left"
+          >
+            <ExerciseImage
+              name={s.name}
+              className="h-11 w-11 shrink-0 rounded-lg"
+              animated={false}
+            />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-bold">{s.name}</span>
+              <span className="session-muted block text-[10px] capitalize">{s.equipment}</span>
+            </span>
+            <Plus className="h-4 w-4 shrink-0" style={{ color: 'var(--chart-1)' }} aria-hidden />
+          </button>
+        ))}
       </div>
     </div>
   );
