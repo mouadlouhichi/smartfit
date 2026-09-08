@@ -365,9 +365,13 @@ export function OverviewScreen() {
         </div>
       </div>
 
-      {/* ── Right column: coach (desktop) ────────────────────── */}
-      <div className="hidden lg:block">
-        <CoachPanel />
+      {/* ── Right column: coach (desktop) ──────────────────────
+          Sticky + viewport-capped: the panel follows the scroll and keeps a
+          chat-sized height instead of stretching the full feed height.
+          self-start is required for sticky to have travel inside the grid
+          area; the height overrides CoachPanel's h-full via tailwind-merge. */}
+      <div className="hidden lg:sticky lg:top-5 lg:block lg:self-start">
+        <CoachPanel className="h-[min(760px,calc(100dvh-2.5rem))]" />
       </div>
     </div>
   );
