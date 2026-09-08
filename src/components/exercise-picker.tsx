@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Check, Search } from 'lucide-react';
+import { Check, Info, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   EXERCISE_EQUIPMENT_LABELS,
@@ -10,13 +10,15 @@ import {
   searchExercises,
 } from '@smartfit/core';
 import { ExerciseImage } from './exercise-image';
+import { ExerciseDetailDialog } from './exercise-detail';
 
 /**
  * Exercise name field with a searchable, illustrated suggestions list.
  *
  * Free text stays first-class — the user can still type any custom name —
  * but matching entries from the shared catalog can be picked with a click
- * or the keyboard, which links the log entry to a demo image.
+ * or the keyboard, which links the log entry to a demo image. Every
+ * suggestion carries an info button that opens the how-to steps.
  */
 export function ExercisePicker({
   value,
@@ -31,6 +33,7 @@ export function ExercisePicker({
 }) {
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
+  const [detailName, setDetailName] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
 
@@ -133,7 +136,15 @@ export function ExercisePicker({
             const active = i === highlight;
             const selected = matched?.id === entry.id && entry.name === value;
             return (
-              <li key={entry.id} role="option" aria-selected={active}>
+              <li
+                key={entry.id}
+                role="option"
+                aria-selected={active}
+                className={cn(
+                  'flex items-center gap-1 rounded-lg transition-colors',
+                  active ? 'bg-accent' : 'bg-transparent',
+                )}
+              >
                 <button
                   type="button"
                   tabIndex={-1}
@@ -142,10 +153,7 @@ export function ExercisePicker({
                     e.preventDefault(); // keep the input's blur/click ordering sane
                     select(i);
                   }}
-                  className={cn(
-                    'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors',
-                    active ? 'bg-accent' : 'bg-transparent',
-                  )}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-1.5 text-left"
                 >
                   <ExerciseImage
                     name={entry.name}
@@ -163,11 +171,31 @@ export function ExercisePicker({
                   </span>
                   {selected && <Check className="text-primary h-4 w-4 shrink-0" />}
                 </button>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label={`How to do ${entry.name}`}
+                  title="How to do it"
+                  onMouseEnter={() => setHighlight(i)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    setDetailName(entry.name);
+                  }}
+                  className="text-muted-foreground hover:text-foreground mr-1 shrink-0 rounded-full p-1.5"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
               </li>
             );
           })}
         </ul>
       )}
+
+      <ExerciseDetailDialog
+        name={detailName}
+        open={!!detailName}
+        onOpenChange={(o) => !o && setDetailName(null)}
+      />
     </div>
   );
 }

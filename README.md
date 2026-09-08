@@ -41,7 +41,9 @@ shared domain package — but applies them to **training** instead of money.
   [free-exercise-db](https://github.com/yuhonas/free-exercise-db) dataset
   (Unlicense) and crossfaded into a GIF-style loop. Logging suggests matches as
   you type; free-typed names and old logs are matched to the catalog so history
-  gets illustrations too.
+  gets illustrations too. A "how to do it" sheet with step-by-step instructions
+  (lazily fetched from the same dataset, session-cached) is one tap away from
+  both the picker and any logged exercise.
 - **Training plans** — four proven splits: **Push/Pull/Legs**, **Upper/Lower**,
   **Full Body 3×**, and **Cardio & Conditioning**. Pick one and the weekly split
   lights up on both apps.

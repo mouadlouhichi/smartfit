@@ -58,6 +58,23 @@ export interface ExerciseCatalogEntry {
 export const EXERCISE_IMAGE_BASE =
   'https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises';
 
+/**
+ * The subset of the upstream per-exercise JSON the apps consume. Fetched
+ * lazily (same CDN as the demo frames) when a user asks "how do I do this?".
+ */
+export interface ExerciseUpstream {
+  instructions?: string[];
+  level?: 'beginner' | 'intermediate' | 'advanced' | string;
+  mechanic?: 'compound' | 'isolation' | string | null;
+  primaryMuscles?: string[];
+  secondaryMuscles?: string[];
+}
+
+/** URL of the upstream per-exercise JSON (instructions, level, muscles…). */
+export function exerciseInstructionsUrl(entry: ExerciseCatalogEntry): string {
+  return `${EXERCISE_IMAGE_BASE}/${entry.id}.json`;
+}
+
 /** Demo frame URLs for an entry: [start, end] — crossfade them for a loop. */
 export function exerciseImages(entry: ExerciseCatalogEntry): [string, string] {
   return [`${EXERCISE_IMAGE_BASE}/${entry.id}/0.jpg`, `${EXERCISE_IMAGE_BASE}/${entry.id}/1.jpg`];

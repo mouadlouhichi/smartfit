@@ -6,6 +6,7 @@ import {
   EXERCISE_IMAGE_BASE,
   EXERCISE_MUSCLE_LABELS,
   exerciseImages,
+  exerciseInstructionsUrl,
   matchExercise,
   searchExercises,
   type ExerciseEquipment,
@@ -54,6 +55,15 @@ test('demo image URLs point at the CDN with both frames', () => {
   const [start, end] = exerciseImages(squat);
   assert.equal(start, `${EXERCISE_IMAGE_BASE}/Barbell_Squat/0.jpg`);
   assert.equal(end, `${EXERCISE_IMAGE_BASE}/Barbell_Squat/1.jpg`);
+});
+
+test('instruction URLs point at the per-exercise JSON next to the frames', () => {
+  const bench = matchExercise('bench press');
+  assert.ok(bench);
+  assert.equal(
+    exerciseInstructionsUrl(bench),
+    `${EXERCISE_IMAGE_BASE}/Barbell_Bench_Press_-_Medium_Grip.json`,
+  );
 });
 
 test('exact names and aliases match, case and punctuation insensitive', () => {
