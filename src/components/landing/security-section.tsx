@@ -8,7 +8,7 @@ const FEATURES = [
     icon: Shield,
     title: 'Private by default',
     description:
-      'Your workouts live in local storage on your device. There is no cloud account to breach.',
+      'Your workouts live in local-first storage on your device — and if your SmartFit uses cloud sync, in a private account only you can read.',
   },
   {
     icon: Lock,
@@ -30,11 +30,11 @@ const FEATURES = [
 ];
 
 const BADGES = [
-  'On-device storage',
-  'No account needed',
+  'Local-first storage',
   'No wearable pairing',
   'JSON export',
   'No ad profiles',
+  'Delete anytime',
 ];
 
 export function SecuritySection() {
@@ -56,8 +56,8 @@ export function SecuritySection() {
               your business.
             </h2>
             <p className="mb-12 text-xl leading-relaxed text-[color:var(--muted-foreground)]">
-              Everything stays on your device. Export and deletion controls live in Profile, and
-              there is no account that could ever leak.
+              Everything stays under your control — on your device or in your private account.
+              Export and deletion controls live in Profile, and nothing is ever shared.
             </p>
             <div className="flex flex-wrap gap-3">
               {BADGES.map((cert, index) => (

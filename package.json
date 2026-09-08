@@ -21,7 +21,9 @@
     "format:check": "prettier --check .",
     "test": "node --import tsx --test tests/*.test.ts",
     "test:all": "pnpm --filter @smartfit/core test && pnpm test",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "test:e2e": "playwright test",
+    "prepare": "git config core.hooksPath .githooks || true",
+    "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project smartfit-rules-ci \"node --import tsx --test tests/rules/firestore-rules.test.ts\""
   },
   "dependencies": {
     "@fontsource-variable/instrument-sans": "^5.3.0",
@@ -49,6 +51,8 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.7",
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.1.14",
     "@types/node": "^22.14.0",
     "@types/react": "19.1.10",

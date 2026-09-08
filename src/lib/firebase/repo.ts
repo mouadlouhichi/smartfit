@@ -92,7 +92,12 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
       ),
     ).then((s) => s.docs.map((d) => withId<WorkoutSession>(d))),
     getDocs(
-      query(collection(db, colPath(uid, 'bodyLogs')), orderBy('date', 'desc'), limit(PAGE_SIZE)),
+      query(
+        collection(db, colPath(uid, 'bodyLogs')),
+        orderBy('date', 'desc'),
+        orderBy('createdAt', 'desc'),
+        limit(PAGE_SIZE),
+      ),
     ).then((s) => s.docs.map((d) => withId<BodyLog>(d))),
   ]);
 
@@ -120,6 +125,27 @@ export async function loadMoreSessions(
     ),
   );
   return parseState({ sessions: snap.docs.map((d) => withId<WorkoutSession>(d)) }).sessions;
+}
+
+/** Page further back through the measurement history. */
+export async function loadMoreBodyLogs(
+  uid: string,
+  cursor: { date: string; createdAt: number },
+  pageSize = PAGE_SIZE,
+): Promise<BodyLog[]> {
+  const { db } = await requireServices();
+  const { collection, getDocs, query, orderBy, limit, startAfter } =
+    await import('firebase/firestore');
+  const snap = await getDocs(
+    query(
+      collection(db, colPath(uid, 'bodyLogs')),
+      orderBy('date', 'desc'),
+      orderBy('createdAt', 'desc'),
+      startAfter(cursor.date, cursor.createdAt),
+      limit(pageSize),
+    ),
+  );
+  return parseState({ bodyLogs: snap.docs.map((d) => withId<BodyLog>(d)) }).bodyLogs;
 }
 
 /** Create the user's profile document if it doesn't exist yet. */

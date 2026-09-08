@@ -10,7 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Pencil, Plus, Ruler, TrendingDown, TrendingUp } from 'lucide-react';
+import { History, Loader2, Pencil, Plus, Ruler, TrendingDown, TrendingUp } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,8 +27,18 @@ import {
 import type { BodyUnit } from '@smartfit/core';
 
 export function BodyScreen() {
-  const { state } = useStore();
+  const { state, hasMoreBodyLogs, loadingMore, loadEarlierBodyLogs } = useStore();
   const { openModal, openWith } = useModals();
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  async function loadMore() {
+    setPageError(null);
+    try {
+      await loadEarlierBodyLogs();
+    } catch (e) {
+      setPageError(e instanceof Error ? e.message : 'Could not load older measurements.');
+    }
+  }
 
   const unitsWithData = useMemo(
     () => Array.from(new Set(state.bodyLogs.map((l) => l.unit))) as BodyUnit[],
@@ -195,6 +205,25 @@ export function BodyScreen() {
                     </button>
                   );
                 })}
+              {hasMoreBodyLogs && (
+                <div className="mt-1 flex flex-col items-center gap-1.5 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={loadingMore !== null}
+                    onClick={() => void loadMore()}
+                    className="rounded-full"
+                  >
+                    {loadingMore === 'body' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <History className="h-4 w-4" />
+                    )}
+                    Load earlier measurements
+                  </Button>
+                  {pageError && <p className="text-destructive text-xs">{pageError}</p>}
+                </div>
+              )}
             </CardContent>
           </Card>
         </>

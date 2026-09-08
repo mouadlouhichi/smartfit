@@ -125,6 +125,7 @@ export default function OnboardingPage() {
                 autoFocus
                 placeholder="Your name"
                 value={name}
+                maxLength={80}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>

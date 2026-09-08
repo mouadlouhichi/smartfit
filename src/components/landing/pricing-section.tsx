@@ -16,7 +16,7 @@ const PLANS = [
       'Log strength, cardio, HIIT & sport',
       'Schedule your recurring week',
       'Goals, streaks & body trends',
-      'Private on-device storage',
+      'Private, local-first storage',
     ],
   },
   {

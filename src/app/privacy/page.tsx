@@ -65,6 +65,17 @@ export default function PrivacyPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold">Crash reports (optional)</h2>
+          <p>
+            A deployment&apos;s operator may enable a self-hosted, cookie-free error collector. When
+            — and only when — one is configured, the app may send technical crash reports and
+            page-performance measurements (an error message, the page path, timing figures) as plain
+            JSON to that collector. No cookies, no advertising SDKs, no user identity and no
+            training content are included, and a default deployment sends nothing at all.
+          </p>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="font-display text-xl font-bold">Processors</h2>
           <p>
             In account mode, Google (Firebase Authentication and Cloud Firestore) processes your

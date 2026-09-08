@@ -15,12 +15,14 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
+import { useConfirm } from '../confirm-context';
 import { GOAL_METRIC_META, fromKm, toKm, toISODate } from '@smartfit/core';
 import type { GoalCadence, GoalMetric } from '@smartfit/core';
 import { Trash2 } from 'lucide-react';
 
 export function GoalModal() {
   const { state, addGoal, updateGoal, deleteGoal } = useStore();
+  const confirmDialog = useConfirm();
   const { closeModal } = useModals();
   const payload = usePayload('goal');
   const open = payload !== null;
@@ -68,9 +70,15 @@ export function GoalModal() {
     closeModal();
   }
 
-  function remove() {
+  async function remove() {
     if (!editing) return;
-    if (!confirm(`Delete "${editing.name}"?`)) return;
+    const ok = await confirmDialog({
+      title: 'Delete this goal?',
+      body: `"${editing.name}" and its progress will be removed. This cannot be undone.`,
+      confirmLabel: 'Delete goal',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteGoal(editing.id);
     closeModal();
   }
@@ -94,6 +102,7 @@ export function GoalModal() {
                 id="g-name"
                 placeholder="e.g. Train 5 days a week"
                 value={name}
+                maxLength={80}
                 onChange={(e) => setName(e.target.value)}
               />
             </div>

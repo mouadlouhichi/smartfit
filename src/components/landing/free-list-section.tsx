@@ -12,7 +12,7 @@ const PERKS: { name: string }[] = [
   { name: 'Streaks, volume, calories & body trends' },
   { name: 'Export your data from Profile anytime' },
   { name: 'Installable PWA with an offline shell' },
-  { name: 'On-device storage — no account, no wearable' },
+  { name: 'Local-first storage — no wearable required' },
 ];
 
 export function FreeListSection() {

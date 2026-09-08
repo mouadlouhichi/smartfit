@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
+import { useConfirm } from '../confirm-context';
 import { INTENSITY_META, toISODate, fromKm, toKm } from '@smartfit/core';
 import type { Intensity, WorkoutExercise } from '@smartfit/core';
 import { Trash2 } from 'lucide-react';
@@ -30,6 +31,7 @@ const BLANK_EXERCISE: WorkoutExercise = { name: '', sets: [{}] };
 export function WorkoutModal() {
   const { state, addSession, updateSession, deleteSession, estimateSessionCalories } = useStore();
   const { closeModal } = useModals();
+  const confirmDialog = useConfirm();
   const payload = usePayload('workout');
   const open = payload !== null;
 
@@ -100,9 +102,15 @@ export function WorkoutModal() {
     closeModal();
   }
 
-  function removeSession() {
+  async function removeSession() {
     if (!editing) return;
-    if (!confirm('Delete this workout? This cannot be undone.')) return;
+    const ok = await confirmDialog({
+      title: 'Delete this workout?',
+      body: `"${editing.title}" will be removed from your log. This cannot be undone.`,
+      confirmLabel: 'Delete workout',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteSession(editing.id);
     closeModal();
   }
@@ -154,6 +162,7 @@ export function WorkoutModal() {
                 id="w-title"
                 placeholder={category?.name ?? 'Workout'}
                 value={title}
+                maxLength={120}
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
@@ -239,6 +248,7 @@ export function WorkoutModal() {
                     <Input
                       aria-label={`Exercise ${i + 1} name`}
                       placeholder={`Exercise ${i + 1} (e.g. Squat)`}
+                      maxLength={80}
                       value={ex.name}
                       onChange={(e) =>
                         setExercises((p) =>
@@ -290,6 +300,7 @@ export function WorkoutModal() {
                 id="w-notes"
                 placeholder="How did it feel? (optional)"
                 value={notes}
+                maxLength={2000}
                 onChange={(e) => setNotes(e.target.value)}
               />
             </div>

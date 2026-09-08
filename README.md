@@ -116,7 +116,9 @@ pnpm build          # production build of the web app
 pnpm typecheck      # tsc --noEmit for the web app
 pnpm lint           # ESLint (next/core-web-vitals) across the monorepo
 pnpm format         # Prettier --write  (pnpm format:check in CI)
-pnpm test           # core domain tests
+pnpm test           # web lib tests (hydration, write queue, auth errors, diagnostics)
+pnpm test:e2e       # Playwright smoke suite against the production build (needs pnpm build first)
+pnpm test:rules     # Firestore rules tests against the emulator (needs Java 17+)
 pnpm seed           # populate a Firestore demo account (needs admin creds)
 
 pnpm --filter @smartfit/core test          # core domain tests
@@ -134,6 +136,8 @@ the relevant `.env.example` to `.env.local` (web) / `.env` (mobile) to override.
 | `NEXT_PUBLIC_APP_NAME` / `EXPO_PUBLIC_APP_NAME` | web / mobile | `SmartFit` | Display name (web metadata / document title) |
 | `NEXT_PUBLIC_SITE_URL` | web | Vercel URL, else `http://localhost:3000` | Absolute origin for canonical URLs, Open Graph tags, `robots.txt` and the sitemap |
 | `NEXT_PUBLIC_FIREBASE_*` | web | _unset_ | A **complete** set (API key, auth domain, project id, app id) switches the app into cloud mode; anything missing keeps it local |
+| `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | web | _unset_ | reCAPTCHA v3 site key from Firebase App Check; when set, the client attests every request (enable enforcement in the console only after deploying it) |
+| `NEXT_PUBLIC_ERROR_ENDPOINT` | web | _unset_ | Optional **self-hosted**, cookie-free collector for crash reports and web vitals. Unset = nothing is ever sent (see `docs/ops-runbook.md`) |
 
 Env access is centralised and validated in `src/lib/env.ts` (web) and
 `apps/mobile/src/lib/env.ts` (invalid plan values fall back to the default). See
@@ -177,15 +181,20 @@ smartfit/
 │     │  ├─ utils.ts                #   uid / clamp / round
 │     │  └─ index.ts                #   barrel export (deliberately omits seed.ts)
 │     └─ tests/                     # 57 domain unit tests (node:test)
+├─ e2e/                             # Playwright smoke suite (local-mode product journey)
+├─ tests/                           # web lib unit tests + tests/rules (Firestore rules, emulator)
+├─ docs/                            # firebase.md · ops-runbook.md · audits
 ├─ public/                          # icons, manifest.webmanifest, og.png, sw.js
 ├─ scripts/                         # seed-firestore.mjs · seed.sql
+├─ firebase.json                    # Firestore rules/indexes deploy config + emulator ports
 ├─ firestore.rules · firestore.indexes.json
+├─ playwright.config.ts
 ├─ next.config.mjs · tsconfig.json · postcss.config.mjs
 ├─ eslint.config.mjs · .prettierrc.json
 ├─ turbo.json
 ├─ pnpm-workspace.yaml              # workspaces, hoisted linker, React-types override
 ├─ vercel.json                      # framework=nextjs · pnpm install · next build
-└─ .github/workflows/ci.yml         # lint/format · web build · core tests · mobile typecheck
+└─ .github/workflows/ci.yml         # lint/format/audit · build · unit · e2e · rules · mobile
 ```
 
 ### Why a shared core?
@@ -229,15 +238,19 @@ request that isn't your own authenticated account. A per-account offline mirror
 is kept on the device (`smartfit.cache.<uid>`) and is **cleared on sign-out**, so
 one account's history can never surface under another.
 
-Either way there are no analytics SDKs and no third-party trackers. Use
+Either way there are no analytics SDKs and no third-party trackers, and the
+optional crash-report endpoint (`NEXT_PUBLIC_ERROR_ENDPOINT`) is off unless a
+deployment explicitly self-hosts one. Use
 **Profile → Export JSON** for a backup, **Import backup** to restore, **Erase
 everything** to wipe your data, or **Delete account** to remove data and
 credentials permanently. See [`/privacy`](src/app/privacy/page.tsx).
 
 ## 🧪 Testing
 
-Domain logic is pure and lives in `@smartfit/core`, covered by **57 tests** in
-`packages/core/tests/` (Node's built-in test runner, no framework):
+Four layers, all running in CI (Node's built-in test runner + Playwright — no
+heavy frameworks):
+
+**Domain (`packages/core/tests/`, 57 tests)** — pure logic:
 
 | Suite | Covers |
 | --- | --- |
@@ -248,11 +261,34 @@ Domain logic is pure and lives in `@smartfit/core`, covered by **57 tests** in
 | `coach.test.ts`   | coach intents and the numbers behind every answer |
 | `targets.test.ts` | activity targets derived from goals, falling back to the plan |
 
+**Web lib (`tests/`, 34 tests)** — the decisions that used to be untestable
+inside React: `hydration.test.ts` (what every identity/mode combination sees),
+`write-queue.test.ts` (ordering, retries, collapsing, failure surfacing),
+`auth-errors.test.ts` (friendly, enumeration-safe messages),
+`report.test.ts` (diagnostics stay silent by default and never leak query strings).
+
+**E2E (`e2e/`, Playwright)** — the real production build in local mode:
+onboarding → log → detail → edit → delete → schedule → goals → body → units →
+coach → export → erase, plus deep-link guards, reload persistence, legal/404
+pages and the PWA asset chain.
+
 ```bash
-pnpm test   # or: pnpm --filter @smartfit/core test
+pnpm build && pnpm test:e2e
+```
+
+**Security rules (`tests/rules/`)** — ownership and payload validation against
+the Firestore emulator (advisory CI job until observed green, then blocking):
+
+```bash
+pnpm test:rules   # requires Java 17+
 ```
 
 ## 📦 Mobile builds (EAS)
+
+> **Status: internal prototype — deliberately descoped from launch.** The Expo
+> app has no auth, no cloud sync and no onboarding; its data stays in
+> AsyncStorage and cannot see web-account data. Don't surface it to users until
+> the parity work in `docs/production-audit.md` §4.8 is done.
 
 The Expo app ships with an `eas.json` (development / preview / production
 profiles). Native builds run through [EAS Build](https://expo.dev/eas):
@@ -293,4 +329,7 @@ Notes for the monorepo:
 - Exercise library with per-set weight/reps history and progressive-overload hints.
 - Full mobile parity: auth, cloud sync and onboarding on Expo (web ships first).
 - Push reminders for scheduled sessions (Expo Notifications).
-- Component and end-to-end tests above the domain layer.
+- Real-time cross-device sync (Firestore `onSnapshot` listeners) — cross-tab
+  convergence already ships via the storage-event bridge.
+- Launch ops: see `docs/ops-runbook.md` (App Check enforcement, billing alarms,
+  scheduled Firestore exports, collector for diagnostics).

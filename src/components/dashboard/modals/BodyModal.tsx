@@ -15,9 +15,11 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
+import { useConfirm } from '../confirm-context';
 import {
   BODY_UNIT_META,
   bodyDisplayUnit,
+  bodyLabel,
   bodyValueToCanonical,
   bodyValueToDisplay,
   toISODate,
@@ -32,6 +34,7 @@ import { Trash2 } from 'lucide-react';
 export function BodyModal() {
   const { state, addBodyLog, deleteBodyLog } = useStore();
   const { closeModal } = useModals();
+  const confirmDialog = useConfirm();
   const payload = usePayload('body');
   const open = payload !== null;
   const editing = payload?.log ?? null;
@@ -73,8 +76,15 @@ export function BodyModal() {
     closeModal();
   }
 
-  function remove() {
+  async function remove() {
     if (!editing) return;
+    const ok = await confirmDialog({
+      title: 'Delete this measurement?',
+      body: `The ${bodyLabel(editing.unit, editing.label).toLowerCase()} entry from ${editing.date} will be removed. This cannot be undone.`,
+      confirmLabel: 'Delete entry',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteBodyLog(editing.id);
     closeModal();
   }
@@ -125,6 +135,7 @@ export function BodyModal() {
                   id="b-label"
                   placeholder="e.g. Thigh"
                   value={label}
+                  maxLength={40}
                   onChange={(e) => setLabel(e.target.value)}
                 />
               </div>

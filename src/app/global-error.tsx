@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { reportError } from '@/lib/report';
 
 /**
  * Last-resort boundary: catches failures in the root layout itself, so it must
@@ -15,6 +16,8 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error('[smartfit] fatal error:', error);
+    // No-op unless the deployment configures a self-hosted collector.
+    reportError('global', error, { digest: error.digest });
   }, [error]);
 
   return (

@@ -1,7 +1,16 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CalendarCheck2, ChevronRight, Clock, Pencil, Plus, Tag } from 'lucide-react';
+import {
+  CalendarCheck2,
+  ChevronRight,
+  Clock,
+  History,
+  Loader2,
+  Pencil,
+  Plus,
+  Tag,
+} from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { EmptyState } from '../empty-state';
@@ -18,9 +27,26 @@ import { cn } from '@/lib/utils';
 import type { ScheduledWorkout } from '@smartfit/core';
 
 export function PlanScreen() {
-  const { state, updateProfile, updateSchedule } = useStore();
+  const {
+    state,
+    updateProfile,
+    updateSchedule,
+    hasMoreSessions,
+    loadingMore,
+    loadEarlierSessions,
+  } = useStore();
   const { openModal, openWith } = useModals();
   const [filter, setFilter] = useState('all');
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  async function loadMore() {
+    setPageError(null);
+    try {
+      await loadEarlierSessions();
+    } catch (e) {
+      setPageError(e instanceof Error ? e.message : 'Could not load older workouts.');
+    }
+  }
 
   const plan = getPlan(state.profile.planId);
   const today = new Date().getDay();
@@ -239,6 +265,28 @@ export function PlanScreen() {
               </button>
             );
           })}
+          {hasMoreSessions && (
+            <div className="mt-1 flex flex-col items-center gap-1.5 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loadingMore !== null}
+                onClick={() => void loadMore()}
+                className="rounded-full"
+              >
+                {loadingMore === 'sessions' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <History className="h-4 w-4" />
+                )}
+                Load earlier workouts
+              </Button>
+              <p className="text-muted-foreground text-[11px]">
+                Long histories load in pages — older workouts stay in your account until you do.
+              </p>
+              {pageError && <p className="text-destructive text-xs">{pageError}</p>}
+            </div>
+          )}
         </CardContent>
       </Card>
 

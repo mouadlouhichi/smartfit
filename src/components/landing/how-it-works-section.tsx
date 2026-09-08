@@ -200,7 +200,7 @@ export function HowItWorksSection() {
               >
                 <span className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--primary)]" />
                 <span className="font-mono text-xs" style={{ color: 'rgba(248,250,247,0.4)' }}>
-                  Saved on-device
+                  Saved privately
                 </span>
               </div>
             </div>

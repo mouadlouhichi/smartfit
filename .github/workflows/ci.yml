@@ -24,6 +24,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm format:check
+      # Advisory-only: the current findings live in build-time transitive deps
+      # of the mobile Expo toolchain (tar, xmldom, postcss). Flip to blocking
+      # once they are triaged — see docs/ops-runbook.md §Dependencies.
+      - name: Dependency audit (non-blocking)
+        continue-on-error: true
+        run: pnpm audit --audit-level=high
 
   web-build:
     name: Web build & typecheck
@@ -52,6 +58,54 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @smartfit/core test
       - run: pnpm test
+
+  e2e:
+    name: E2E smoke (production build, local mode)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  firestore-rules:
+    name: Firestore rules tests (emulator)
+    runs-on: ubuntu-latest
+    # Advisory-only until this job has been observed green a few times, then
+    # remove continue-on-error: the rules are a security boundary and their
+    # tests should block merges.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Run rules unit tests against the Firestore emulator
+        run: >-
+          npx -y firebase-tools@latest emulators:exec --only firestore
+          --project smartfit-rules-ci
+          "node --import tsx --test tests/rules/firestore-rules.test.ts"
 
   mobile-typecheck:
     name: Mobile typecheck

@@ -16,6 +16,7 @@ import {
   Download,
   Loader2,
   LogOut,
+  Mail,
   RefreshCw,
   Tag,
   Trash2,
@@ -25,6 +26,7 @@ import {
 import { PLANS, parseStateJSON } from '@smartfit/core';
 import type { WeekStart } from '@smartfit/core';
 import { useAuth } from '@/lib/firebase/auth-context';
+import { useConfirm } from '../confirm-context';
 
 export function ProfileScreen() {
   const {
@@ -37,12 +39,17 @@ export function ProfileScreen() {
     syncError,
     retrySync,
     signOutAndForget,
+    collectFullState,
   } = useStore();
-  const { user, mode, deleteAccount, authError } = useAuth();
+  const { user, mode, deleteAccount, reauthenticate, resendVerification, authError } = useAuth();
   const { openModal } = useModals();
+  const confirmDialog = useConfirm();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState<null | 'delete' | 'import'>(null);
+  const [busy, setBusy] = useState<null | 'delete' | 'import' | 'export'>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [needPassword, setNeedPassword] = useState(false);
+  const [password, setPassword] = useState('');
+  const [verifySent, setVerifySent] = useState(false);
 
   const counts = {
     workouts: state.sessions.length,
@@ -51,14 +58,24 @@ export function ProfileScreen() {
     measurements: state.bodyLogs.length,
   };
 
-  function exportData() {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `smartfit-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const isPasswordUser = !!user?.providerData.some((p) => p.providerId === 'password');
+
+  async function exportData() {
+    setBusy('export');
+    try {
+      // Pages through any history the initial bounded load left in the cloud,
+      // so the backup is complete even for multi-year accounts.
+      const full = await collectFullState();
+      const blob = new Blob([JSON.stringify(full, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `smartfit-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setBusy(null);
+    }
   }
 
   /** Import validates through the shared parser — never a raw JSON cast. */
@@ -76,12 +93,13 @@ export function ProfileScreen() {
         parsed.goals.length +
         parsed.schedule.length +
         parsed.bodyLogs.length;
-      if (
-        !confirm(
-          `Replace everything in SmartFit with this backup (${total} records)? Your current data will be overwritten.`,
-        )
-      )
-        return;
+      const ok = await confirmDialog({
+        title: 'Replace everything with this backup?',
+        body: `The backup holds ${total} record${total === 1 ? '' : 's'}. Your current data will be overwritten — this cannot be undone.`,
+        confirmLabel: 'Replace data',
+        destructive: true,
+      });
+      if (!ok) return;
       await replaceState(parsed);
     } catch {
       setImportError('We couldn’t read that file.');
@@ -91,20 +109,66 @@ export function ProfileScreen() {
     }
   }
 
-  async function removeAccount() {
-    if (
-      !confirm('Permanently delete your account and all your training data? This cannot be undone.')
-    )
-      return;
+  async function executeDeletion(pw?: string) {
     setBusy('delete');
     try {
+      // Prove the password *before* wiping data: a wrong password must never
+      // leave behind an empty-but-alive account.
+      if (pw !== undefined) await reauthenticate(pw);
       // Data first — the security rules require an authenticated user.
       await clearData();
       await deleteAccount();
       window.location.href = '/';
+    } catch (err) {
+      // Firebase demanded a fresh login we don't have: fall back to asking
+      // for the password inline instead of dead-ending the user.
+      if ((err as { code?: string })?.code === 'auth/requires-recent-login') {
+        setNeedPassword(true);
+      }
+      // Anything else is already surfaced via authError below the button.
     } finally {
       setBusy(null);
     }
+  }
+
+  async function removeAccount() {
+    const ok = await confirmDialog({
+      title: 'Delete your account?',
+      body: 'Your training data and sign-in credentials will be erased for good. Export a backup first if you might ever want it. This cannot be undone.',
+      confirmLabel: 'Delete account',
+      destructive: true,
+    });
+    if (!ok) return;
+    // Password users confirm with their password; Google users only get a
+    // re-auth popup if Firebase actually demands one.
+    if (isPasswordUser) {
+      setNeedPassword(true);
+      return;
+    }
+    await executeDeletion();
+  }
+
+  function submitPassword(f: React.FormEvent) {
+    f.preventDefault();
+    const pw = password;
+    if (!pw) return;
+    setPassword('');
+    void executeDeletion(pw);
+  }
+
+  async function eraseEverything() {
+    const ok = await confirmDialog({
+      title: 'Erase all your SmartFit data?',
+      body: 'Workouts, goals, schedule and measurements will be deleted and the app resets to a fresh start. This cannot be undone.',
+      confirmLabel: 'Erase everything',
+      destructive: true,
+    });
+    if (ok) await clearData();
+  }
+
+  async function resendEmail() {
+    await resendVerification();
+    setVerifySent(true);
   }
 
   return (
@@ -167,25 +231,91 @@ export function ProfileScreen() {
               )}
             </div>
 
+            {/* Email verification (password accounts only — OAuth emails arrive verified) */}
+            {isPasswordUser && user && !user.emailVerified && (
+              <div className="bg-secondary/60 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5 text-xs">
+                <Mail className="text-muted-foreground h-4 w-4" />
+                <span className="text-muted-foreground min-w-0 flex-1">
+                  {verifySent
+                    ? 'Verification email sent — check your inbox.'
+                    : 'Email not verified yet. We sent a link when you signed up.'}
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={verifySent}
+                  onClick={() => void resendEmail()}
+                >
+                  {verifySent ? 'Sent' : 'Resend email'}
+                </Button>
+              </div>
+            )}
+
             <div className="border-border border-t pt-3">
               <p className="text-muted-foreground text-xs">
                 Deleting your account erases your training data and sign-in credentials for good.
               </p>
               {authError && <p className="text-destructive mt-1 text-xs">{authError}</p>}
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={busy !== null}
-                onClick={removeAccount}
-                className="text-destructive hover:text-destructive mt-2"
-              >
-                {busy === 'delete' ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-                Delete account
-              </Button>
+              {needPassword ? (
+                <form onSubmit={submitPassword} className="mt-2 grid gap-2">
+                  <Label htmlFor="del-password">
+                    Confirm your password to delete the account
+                    <span className="text-muted-foreground block font-normal">
+                      For your security Firebase needs a fresh sign-in before an account can be
+                      deleted.
+                    </span>
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Input
+                      id="del-password"
+                      type="password"
+                      autoComplete="current-password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="min-w-0 flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      type="submit"
+                      variant="destructive"
+                      disabled={!password || busy !== null}
+                    >
+                      {busy === 'delete' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      Delete for good
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      disabled={busy !== null}
+                      onClick={() => {
+                        setNeedPassword(false);
+                        setPassword('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy !== null}
+                  onClick={() => void removeAccount()}
+                  className="text-destructive hover:text-destructive mt-2"
+                >
+                  {busy === 'delete' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                  Delete account
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -205,6 +335,7 @@ export function ProfileScreen() {
               value={state.profile.name}
               onChange={(e) => updateProfile({ name: e.target.value })}
               placeholder="Your name"
+              maxLength={80}
             />
           </div>
           <div className="grid gap-1.5">
@@ -300,8 +431,18 @@ export function ProfileScreen() {
             <Button variant="outline" size="sm" onClick={() => openModal('category')}>
               <Tag className="h-4 w-4" /> Activity types
             </Button>
-            <Button variant="outline" size="sm" onClick={exportData}>
-              <Download className="h-4 w-4" /> Export JSON
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy === 'export'}
+              onClick={() => void exportData()}
+            >
+              {busy === 'export' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
+              Export JSON
             </Button>
             <Button
               variant="outline"
@@ -330,10 +471,7 @@ export function ProfileScreen() {
               variant="outline"
               size="sm"
               className="text-destructive hover:text-destructive"
-              onClick={() => {
-                if (confirm('Erase all your SmartFit data? This cannot be undone.'))
-                  void clearData();
-              }}
+              onClick={() => void eraseEverything()}
             >
               <Trash2 className="h-4 w-4" /> Erase everything
             </Button>

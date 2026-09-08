@@ -25,6 +25,7 @@ import {
   categoryBreakdown,
   aggregate,
   weeklySeries,
+  targetsForDays,
 } from '@smartfit/core';
 import { formatCalories, formatDistance, formatMinutes } from '@smartfit/core';
 
@@ -65,10 +66,21 @@ export function ProgressScreen() {
       .filter((x) => x.value > 0);
   }, [state, days]);
 
-  const goalMin = range === 'daily' ? 60 : range === 'weekly' ? 300 : 1200;
-  const minPct = Math.min(100, Math.round((rangeAgg.minutes / goalMin) * 100));
-  const goalCal = range === 'daily' ? 500 : range === 'weekly' ? 2500 : 10000;
-  const calPct = Math.min(100, Math.round((rangeAgg.calories / goalCal) * 100));
+  // Targets come from the user's goals (falling back to their plan) — the same
+  // source the overview uses. Calories and distance rings only fill when the
+  // user actually set a goal for them (targetsForDays returns 0 otherwise),
+  // rather than against numbers invented here.
+  const targets = useMemo(() => targetsForDays(state, days), [state, days]);
+  const distanceUnit = state.profile.distanceUnit;
+  const minPct = Math.min(100, Math.round((rangeAgg.minutes / Math.max(1, targets.minutes)) * 100));
+  const calPct =
+    targets.calories > 0
+      ? Math.min(100, Math.round((rangeAgg.calories / targets.calories) * 100))
+      : 0;
+  const distPct =
+    targets.distanceKm > 0
+      ? Math.min(100, Math.round(((rangeAgg.distance ?? 0) / targets.distanceKm) * 100))
+      : 0;
 
   return (
     <div className="grid gap-5">
@@ -98,7 +110,7 @@ export function ProgressScreen() {
           <RingStat
             pct={minPct}
             label="Exercise"
-            value={`${rangeAgg.minutes}/${goalMin}min`}
+            value={`${rangeAgg.minutes}/${targets.minutes}min`}
             icon={Timer}
           />
           <RingStat
@@ -109,19 +121,17 @@ export function ProgressScreen() {
             big
           />
           <RingStat
-            pct={Math.min(
-              100,
-              Math.round(
-                ((rangeAgg.distance ?? 0) /
-                  (range === 'daily' ? 5 : range === 'weekly' ? 25 : 100)) *
-                  100,
-              ),
-            )}
+            pct={distPct}
             label="Distance"
-            value={formatDistance(rangeAgg.distance ?? 0)}
+            value={formatDistance(rangeAgg.distance ?? 0, distanceUnit)}
             icon={Footprints}
           />
         </div>
+        {targets.calories === 0 && targets.distanceKm === 0 && (
+          <p className="text-muted-foreground mt-3 text-center text-xs">
+            Burn and distance rings fill once you set a calories or distance goal.
+          </p>
+        )}
       </Card>
 
       {/* Stat cards */}
@@ -147,7 +157,7 @@ export function ProgressScreen() {
         <StatCard
           icon={Footprints}
           label="Distance"
-          value={formatDistance(rangeAgg.distance ?? 0)}
+          value={formatDistance(rangeAgg.distance ?? 0, distanceUnit)}
           sub="covered"
         />
       </div>

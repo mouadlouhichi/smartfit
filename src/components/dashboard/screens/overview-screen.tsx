@@ -329,7 +329,7 @@ export function OverviewScreen() {
                     Recent activity
                   </h3>
                   <Link
-                    href="/dashboard/progress"
+                    href="/dashboard/plan"
                     className="text-primary flex items-center gap-0.5 text-xs font-semibold hover:underline"
                   >
                     See all <ChevronRight className="h-3.5 w-3.5" />

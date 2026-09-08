@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
+import { useConfirm } from '../confirm-context';
 import { INTENSITY_META, WEEKDAYS_LONG } from '@smartfit/core';
 import type { Intensity, Weekday } from '@smartfit/core';
 import { Trash2 } from 'lucide-react';
@@ -23,6 +24,7 @@ import { Trash2 } from 'lucide-react';
 export function ScheduleModal() {
   const { state, addSchedule, updateSchedule, deleteSchedule } = useStore();
   const { closeModal } = useModals();
+  const confirmDialog = useConfirm();
   const payload = usePayload('schedule');
   const open = payload !== null;
   const editing = payload?.schedule ?? null;
@@ -62,9 +64,15 @@ export function ScheduleModal() {
     closeModal();
   }
 
-  function remove() {
+  async function remove() {
     if (!editing) return;
-    if (!confirm(`Remove "${editing.title}" from your weekly plan?`)) return;
+    const ok = await confirmDialog({
+      title: 'Remove from your weekly plan?',
+      body: `"${editing.title}" will no longer be scheduled. Logged workouts are kept.`,
+      confirmLabel: 'Remove session',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteSchedule(editing.id);
     closeModal();
   }
@@ -88,6 +96,7 @@ export function ScheduleModal() {
                 id="s-title"
                 placeholder="e.g. Upper body"
                 value={title}
+                maxLength={120}
                 onChange={(e) => setTitle(e.target.value)}
               />
             </div>
