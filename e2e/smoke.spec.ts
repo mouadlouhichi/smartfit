@@ -35,7 +35,9 @@ test('the full local-mode journey: log, edit, delete, plan, goals, body, units, 
   await completeOnboarding(page);
 
   // ── Log a workout ──────────────────────────────────────────────────────
-  await page.getByRole('button', { name: 'Log workout' }).click();
+  // Scoped to <main>: the header pill and the overview FAB share the
+  // accessible name "Log workout"; the FAB lives inside main.
+  await page.getByRole('main').getByRole('button', { name: 'Log workout' }).click();
   const logDialog = page.getByRole('dialog').filter({ hasText: 'Log workout' });
   await expect(logDialog).toBeVisible();
   await logDialog.getByLabel('Title').fill('Playwright Bench Press');
@@ -156,7 +158,7 @@ test('the full local-mode journey: log, edit, delete, plan, goals, body, units, 
 test('data survives a reload (localStorage round-trip)', async ({ page }) => {
   await page.goto('/dashboard');
   await completeOnboarding(page, 'Persist Pat');
-  await page.getByRole('button', { name: 'Log workout' }).click();
+  await page.getByRole('main').getByRole('button', { name: 'Log workout' }).click();
   const dialog = page.getByRole('dialog').filter({ hasText: 'Log workout' });
   await dialog.getByLabel('Title').fill('Reload Rowing');
   await dialog.getByRole('button', { name: 'Save workout' }).click();

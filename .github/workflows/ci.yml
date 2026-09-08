@@ -100,7 +100,8 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          # firebase-tools requires Java 21+ for the Firestore emulator
+          java-version: 21
       - name: Run rules unit tests against the Firestore emulator
         run: >-
           npx -y firebase-tools@latest emulators:exec --only firestore
