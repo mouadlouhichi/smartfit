@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import {
   EXERCISES,
   EXERCISE_EQUIPMENT_LABELS,
+  EXERCISE_GIF_BASE,
   EXERCISE_GROUPS,
   EXERCISE_IMAGE_BASE,
   EXERCISE_MUSCLE_LABELS,
+  exerciseGifUrl,
   exerciseImages,
   exerciseInstructionsUrl,
   matchExercise,
@@ -150,4 +152,32 @@ test('an empty query surfaces popular lifts first', () => {
   );
   const popularCount = EXERCISES.filter((e) => e.popular).length;
   assert.ok(suggested.length <= popularCount);
+});
+
+test('curated gif references build valid ExerciseGymGifsDB urls', () => {
+  const withGif = EXERCISES.filter((e) => e.gif);
+  // Broad coverage of the catalog — extend the mapping rather than lowering this.
+  assert.ok(withGif.length >= 85, `expected broad gif coverage, found ${withGif.length}`);
+
+  const seen = new Set<string>();
+  for (const entry of withGif) {
+    const muscle = entry.gif?.muscle ?? '';
+    const slug = entry.gif?.slug ?? '';
+    assert.match(muscle, /^[a-z-]+$/, `${entry.id}: muscle folder must be a slug`);
+    assert.match(slug, /^[a-z0-9-]+$/, `${entry.id}: slug must be a slug`);
+    const key = `${muscle}/${slug}`;
+    assert.ok(!seen.has(key), `duplicate gif reference ${key}`);
+    seen.add(key);
+
+    const thumb = exerciseGifUrl(entry, 'thumb');
+    const full = exerciseGifUrl(entry, 'full');
+    assert.equal(thumb, `${EXERCISE_GIF_BASE}/${muscle}/${slug}.thumb.webp`);
+    assert.equal(full, `${EXERCISE_GIF_BASE}/${muscle}/${slug}.gif`);
+    assert.equal(exerciseGifUrl(entry), thumb, 'defaults to the light thumb');
+  }
+
+  const without = EXERCISES.find((e) => !e.gif);
+  assert.ok(without, 'catalog should contain at least one photo-only entry');
+  assert.equal(exerciseGifUrl(without!, 'full'), null);
+  assert.equal(exerciseGifUrl(without!, 'thumb'), null);
 });

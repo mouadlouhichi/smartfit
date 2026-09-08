@@ -46,6 +46,15 @@ shared domain package — but applies them to **training** instead of money.
   illustrations too. A "how to do it" sheet with step-by-step instructions
   (lazily fetched from the same dataset, session-cached) is one tap away
   from the library, the picker and any logged exercise.
+- **Animated GIF demos** — most of the catalog (92/103 exercises) is mapped to
+  ExerciseDB-style animated demonstrations (illustrated figure, target muscle
+  highlighted in red) mirrored on jsDelivr via
+  [ExerciseGymGifsDB](https://github.com/JahelCuadrado/ExerciseGymGifsDB):
+  light 128px animated WebP thumbs in grids, pickers and session rows, and the
+  full-size GIF in the "how to do it" sheet. Exercises without a curated GIF
+  (or if the CDN is unreachable) fall back to the two-frame photo loop above.
+  Note: those GIFs are ExerciseDB artwork — fine for personal use, but
+  commercial redistribution requires an exercisedb.com license.
 - **Training plans** — four proven splits: **Push/Pull/Legs**, **Upper/Lower**,
   **Full Body 3×**, and **Cardio & Conditioning**. Pick one and the weekly split
   lights up on both apps.

@@ -112,7 +112,7 @@ export function ExerciseDetailDialog({
             </DialogHeader>
 
             <div className="flex flex-col items-center gap-4">
-              <ExerciseImage name={entry.name} className="h-44 w-44 rounded-xl" />
+              <ExerciseImage name={entry.name} className="h-44 w-44 rounded-xl" variant="full" />
 
               <div className="flex flex-wrap justify-center gap-1.5">
                 {entry.muscles.map((m, i) => (
@@ -165,7 +165,16 @@ export function ExerciseDetailDialog({
             </div>
 
             <p className="text-muted-foreground text-center text-xs">
-              Demo &amp; steps from the open{' '}
+              Demo GIFs: ExerciseDB artwork mirrored by{' '}
+              <a
+                href="https://github.com/JahelCuadrado/ExerciseGymGifsDB"
+                target="_blank"
+                rel="noreferrer"
+                className="underline underline-offset-2"
+              >
+                ExerciseGymGifsDB
+              </a>{' '}
+              (personal use). Steps &amp; photo fallbacks from{' '}
               <a
                 href="https://github.com/yuhonas/free-exercise-db"
                 target="_blank"
@@ -174,7 +183,7 @@ export function ExerciseDetailDialog({
               >
                 free-exercise-db
               </a>{' '}
-              dataset (Unlicense).
+              (Unlicense).
             </p>
           </>
         )}

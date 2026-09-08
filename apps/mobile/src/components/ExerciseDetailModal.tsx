@@ -59,7 +59,7 @@ export function ExerciseDetailModal({
 
         <ScrollView className="flex-1" contentContainerClassName="gap-4 p-5 pb-10">
           <View className="items-center gap-3">
-            <ExerciseDemo name={entry.name} size={180} radius={16} />
+            <ExerciseDemo name={entry.name} size={180} radius={16} variant="full" />
             <View className="flex-row flex-wrap justify-center gap-2">
               {entry.muscles.map((m, i) => (
                 <View
@@ -128,7 +128,8 @@ export function ExerciseDetailModal({
             <View className="flex-row items-center justify-center gap-1 pt-2">
               <Info color="#A9A098" size={12} />
               <Text className="text-muted-foreground text-center text-xs">
-                Demo &amp; steps from the open free-exercise-db dataset (Unlicense)
+                Demo GIFs: ExerciseDB artwork via ExerciseGymGifsDB (personal use). Steps &amp;
+                photo fallbacks: free-exercise-db (Unlicense)
               </Text>
             </View>
           </View>

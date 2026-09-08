@@ -3,37 +3,50 @@
 import { useMemo, useState } from 'react';
 import { Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { exerciseImages, matchExercise } from '@smartfit/core';
+import { exerciseGifUrl, exerciseImages, matchExercise } from '@smartfit/core';
 
 /**
  * Demonstration image for a logged exercise.
  *
- * The shared catalog maps free-text exercise names to the open
- * free-exercise-db dataset, which provides two frames per movement (start
- * and end position). Stacking them and crossfading (see `exercise-demo-*`
- * in globals.css) produces the looping, GIF-style preview users expect
- * next to a logged exercise. Unknown names keep their row intact with a
- * neutral dumbbell tile.
+ * Preferred source: the catalog's curated ExerciseDB-style animated GIFs —
+ * looping illustrations with the target muscle highlighted in red, the
+ * demo style people know from workout idea boards. The default `thumb`
+ * variant is a 128px animated WebP (~18KB) that stays cheap even in long
+ * grids; `variant="full"` requests the full-size GIF for the how-to dialog.
+ *
+ * Exercises without a curated GIF — or when the GIF CDN fails to load —
+ * fall back to the open free-exercise-db dataset's two frames per movement
+ * (start and end position), crossfaded for a GIF-like loop (see
+ * `exercise-demo-*` in globals.css). Unknown names keep their row intact
+ * with a neutral dumbbell tile.
  */
 export function ExerciseImage({
   name,
   className,
   animated = true,
   animateOnHover = false,
+  variant = 'thumb',
 }: {
   /** Free-text exercise name from a workout log — matched against the catalog. */
   name: string;
   className?: string;
-  /** Crossfade the two frames; set false for static (e.g. long lists). */
+  /** Crossfade the fallback photo frames; set false for static (e.g. long lists). */
   animated?: boolean;
   /**
-   * Animate only while the tile is hovered — the second frame is not even
-   * fetched until then, keeping large browse grids light.
+   * Animate the fallback photo pair only while the tile is hovered — the
+   * second frame is not even fetched until then, keeping large browse grids
+   * light. GIF-backed tiles always loop; that is the point of them.
    */
   animateOnHover?: boolean;
+  /** GIF size: light animated WebP thumb for tiles, full GIF for the dialog. */
+  variant?: 'thumb' | 'full';
 }) {
   const entry = useMemo(() => matchExercise(name), [name]);
   const [hovered, setHovered] = useState(false);
+  /** Id of the entry whose GIF failed to load — falls back to its photos. */
+  const [failedGifFor, setFailedGifFor] = useState<string | null>(null);
+
+  const gif = entry && failedGifFor !== entry.id ? exerciseGifUrl(entry, variant) : null;
 
   if (!entry) {
     return (
@@ -45,6 +58,26 @@ export function ExerciseImage({
         )}
       >
         <Dumbbell className="h-1/2 w-1/2" strokeWidth={1.75} />
+      </span>
+    );
+  }
+
+  if (gif) {
+    return (
+      <span
+        className={cn('bg-secondary relative shrink-0 overflow-hidden', className)}
+        role="img"
+        aria-label={`${entry.name} demonstration`}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- remote demo gif, not part of the build */}
+        <img
+          src={gif}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailedGifFor(entry.id)}
+          className="h-full w-full object-contain"
+        />
       </span>
     );
   }
