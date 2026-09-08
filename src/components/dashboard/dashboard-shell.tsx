@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Moon, Sun } from 'lucide-react';
+import { ArrowRight, Moon, Sun, Zap } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/brand';
@@ -10,7 +10,7 @@ import { RAIL_ITEMS } from './nav-items';
 import { MobileNav } from './mobile-nav';
 import { DashboardHeader } from './dashboard-header';
 import { DashboardModals } from './dashboard-modals';
-import { ModalProvider } from './modal-context';
+import { ModalProvider, useModals } from './modal-context';
 import { ConfirmProvider } from './confirm-context';
 import { MigrationPrompt, StorageWarningBanner, SyncBanner } from './sync-banner';
 import { InstallPrompt } from '@/components/pwa-install';
@@ -26,9 +26,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <ConfirmProvider>
       <ModalProvider>
-        <div className="mx-auto flex min-h-dvh w-full max-w-[1500px] gap-0 p-0 lg:gap-4 lg:p-4">
+        {/* Desktop layout is flush: no outer padding/gap, full-height rail */}
+        <div className="mx-auto flex min-h-dvh w-full max-w-[1500px] gap-0 p-0">
           {/* Dark rail (desktop) — matches the reference sidebar */}
-          <aside className="bg-charcoal sticky top-4 hidden h-[calc(100dvh-2rem)] w-24 shrink-0 flex-col items-center rounded-[2rem] px-2 py-6 lg:flex">
+          <aside className="bg-charcoal sticky top-0 hidden h-dvh w-24 shrink-0 flex-col items-center rounded-none px-2 py-6 lg:flex">
             <Link
               href="/"
               aria-label="SmartFit home"
@@ -83,7 +84,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <MigrationPrompt />
             <SyncBanner />
             <StorageWarningBanner />
-            <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-8 lg:pt-2 lg:pb-8">
+            <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-6 lg:pt-5">
               <div key={pathname} className="animate-page-in mx-auto w-full max-w-[1300px]">
                 {children}
               </div>
@@ -93,11 +94,33 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           {/* Mobile nav — same dark rail, expands on tap */}
           <MobileNav />
 
+          <GlobalLogCta />
           <DashboardModals />
           <InstallPrompt />
         </div>
       </ModalProvider>
     </ConfirmProvider>
+  );
+}
+
+/**
+ * Desktop global CTA — a SmartJib-style pill (icon + label + sliding arrow,
+ * breathing ember glow) that replaces the old per-tab header "Log workout"
+ * button. One primary action, reachable from every screen. Mobile already
+ * has its global CTA: the raised white bolt in the bottom navigation, so
+ * this pill is lg-only and never stacks with it.
+ */
+function GlobalLogCta() {
+  const { openModal } = useModals();
+  return (
+    <button
+      onClick={() => openModal('workout')}
+      className="zap-glow group bg-primary text-primary-foreground fixed right-8 bottom-8 z-40 hidden h-14 items-center gap-2 rounded-full px-5 text-sm font-extrabold transition-transform hover:-translate-y-0.5 active:scale-95 lg:inline-flex"
+    >
+      <Zap className="h-5 w-5" strokeWidth={2.6} fill="currentColor" aria-hidden />
+      Log workout
+      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
+    </button>
   );
 }
 

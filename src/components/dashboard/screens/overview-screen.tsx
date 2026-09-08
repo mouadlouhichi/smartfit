@@ -105,7 +105,7 @@ export function OverviewScreen() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       {/* ── Center / left column ─────────────────────────────── */}
-      <div className="bg-card rounded-[2rem] p-6 shadow-sm sm:p-8 lg:p-10">
+      <div className="bg-card rounded-[2rem] p-6 shadow-sm sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="font-display text-[2rem] leading-[1.05] font-extrabold tracking-tight sm:text-4xl lg:text-[2.75rem]">
             {firstName ? `Let's go,` : `Let's start`}
@@ -127,10 +127,7 @@ export function OverviewScreen() {
             <button
               onClick={() => openModal('workout')}
               aria-label="Log workout"
-              className="bg-primary relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-90"
-              style={{
-                boxShadow: '0 0 0 6px rgba(224,94,54,0.18), 0 10px 24px -6px rgba(224,94,54,0.65)',
-              }}
+              className="zap-glow bg-primary relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-90"
             >
               <Zap className="h-6 w-6" strokeWidth={2.6} fill="currentColor" />
             </button>

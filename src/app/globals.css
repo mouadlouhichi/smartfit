@@ -311,6 +311,34 @@ input[type='number'] {
   animation: pulse-soft 2s ease-in-out infinite;
 }
 
+/* Breathing ember glow — the weekly-goal energy button and the desktop
+   global CTA pulse their box-shadow: the ember ring expands and the drop
+   glow intensifies, like the button is focussing attention on itself. */
+@keyframes ember-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 6px rgba(224, 94, 54, 0.18),
+      0 10px 24px -6px rgba(224, 94, 54, 0.65);
+  }
+  50% {
+    box-shadow:
+      0 0 0 13px rgba(224, 94, 54, 0.08),
+      0 16px 38px -6px rgba(224, 94, 54, 0.9);
+  }
+}
+.zap-glow {
+  animation: ember-glow 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .zap-glow {
+    animation: none;
+    box-shadow:
+      0 0 0 6px rgba(224, 94, 54, 0.18),
+      0 10px 24px -6px rgba(224, 94, 54, 0.65);
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    Dashboard card treatments — the "gym app" hero look: warm charcoal
    gradient with an ember glow, ivory ink. Muted text inside heroes uses
