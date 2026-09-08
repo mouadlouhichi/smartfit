@@ -22,9 +22,18 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Send (or resend) the "confirm your email" link. Best effort. */
+  resendVerification: () => Promise<void>;
+  /**
+   * Prove the password again before a sensitive operation (account
+   * deletion). Done *before* the data wipe so a wrong password can never
+   * leave behind an empty-but-alive account.
+   */
+  reauthenticate: (password: string) => Promise<void>;
   /**
    * Permanently delete the Firebase Auth account. Firestore data must be
-   * wiped first — see `useStore().clearData()`.
+   * wiped first — see `useStore().clearData()`. Google users are
+   * re-authenticated via popup automatically when Firebase demands it.
    */
   deleteAccount: () => Promise<void>;
   clearError: () => void;
@@ -111,6 +120,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (displayName && cred.user) {
           await fb.updateProfile(cred.user, { displayName });
         }
+        // Kick off email verification immediately. Best effort: a delivery
+        // failure must not block sign-up — the profile screen offers a resend.
+        try {
+          await fb.sendEmailVerification(cred.user);
+        } catch {
+          /* non-fatal */
+        }
+      });
+    },
+    [run],
+  );
+
+  const resendVerification = useCallback(async () => {
+    await run(async () => {
+      const svc = await requireAuth();
+      const current = svc.auth.currentUser;
+      if (!current || current.emailVerified) return;
+      const fb = await import('firebase/auth');
+      await fb.sendEmailVerification(current);
+    });
+  }, [run]);
+
+  const reauthenticate = useCallback(
+    async (password: string) => {
+      await run(async () => {
+        const svc = await requireAuth();
+        const current = svc.auth.currentUser;
+        if (!current?.email) throw new Error('not-signed-in');
+        const fb = await import('firebase/auth');
+        await fb.reauthenticateWithCredential(
+          current,
+          fb.EmailAuthProvider.credential(current.email, password),
+        );
       });
     },
     [run],
@@ -201,6 +243,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       resetPassword,
       signOut,
+      resendVerification,
+      reauthenticate,
       deleteAccount,
       clearError: () => {
         setAuthError(null);
@@ -219,6 +263,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       resetPassword,
       signOut,
+      resendVerification,
+      reauthenticate,
       deleteAccount,
     ],
   );

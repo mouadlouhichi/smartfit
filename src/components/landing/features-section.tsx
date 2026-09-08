@@ -270,7 +270,7 @@ const FEATURES: Feature[] = [
     description:
       'There is no account and no server. Delete a session and its effect reverses cleanly. Export or erase everything from Profile in one tap.',
     visual: 'shield',
-    link: { href: '/#security', anchor: 'How on-device privacy works' },
+    link: { href: '/#security', anchor: 'How SmartFit privacy works' },
   },
 ];
 

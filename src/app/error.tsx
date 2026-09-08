@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { RotateCcw, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { reportError } from '@/lib/report';
 
 /**
  * Route-level error boundary. Without this, a single throw in a client screen
@@ -18,6 +19,8 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error('[smartfit] route error:', error);
+    // No-op unless the deployment configures a self-hosted collector.
+    reportError('route', error, { digest: error.digest });
   }, [error]);
 
   return (

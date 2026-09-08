@@ -20,6 +20,8 @@ export * from './utils';
 export * from './units';
 export * from './state';
 export * from './fitness';
+export * from './program';
+export * from './pro';
 export * from './format';
 export * from './coach';
 export * from './exercises';

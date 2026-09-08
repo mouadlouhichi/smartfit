@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useStore } from '@/lib/store-context';
 
@@ -104,6 +105,36 @@ export default function LoginPage() {
     router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
   }, [cloud, initializing, user, ready, state.profile.onboardingDone, router]);
 
+  // A local-mode deployment has no accounts at all — showing a sign-in form
+  // that can only fail with a configuration error sends visitors in circles.
+  // The dashboard is open in this mode, so offer the one useful action.
+  if (!cloud) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
+        <Link href="/" className="mb-8">
+          <Wordmark />
+        </Link>
+        <Card className="w-full max-w-sm">
+          <CardContent className="p-6 text-center">
+            <span className="bg-primary/10 text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
+              <ShieldCheck className="h-6 w-6" />
+            </span>
+            <h1 className="font-display mt-4 text-xl font-bold tracking-tight">
+              This SmartFit runs on-device
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm">
+              No accounts or servers are configured for this deployment — your training lives in
+              this browser only.
+            </p>
+            <Button className="mt-5 w-full" onClick={() => router.replace('/dashboard')}>
+              Continue on this device <ArrowRight className="h-4 w-4" />
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Only while auth is resolving, or while bouncing an already-signed-in user.
   if (cloud && (initializing || user)) {
     return (
@@ -138,16 +169,14 @@ export default function LoginPage() {
 
           <form onSubmit={handleEmail} className="mt-5 grid gap-4">
             {isSignUp && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="name">Name</Label>
+              <Field id="name" label="Name">
                 <Input
-                  id="name"
                   placeholder="What should we call you?"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoComplete="name"
                 />
-              </div>
+              </Field>
             )}
 
             <div className="grid gap-1.5">

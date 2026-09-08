@@ -130,7 +130,7 @@ function parseProfile(v: unknown): UserProfile {
   const base = emptyProfile();
   if (!isObj(v)) return base;
   const weekStartsOn = num(v.weekStartsOn, DEFAULT_WEEK_START);
-  return {
+  const profile: UserProfile = {
     name: str(v.name, base.name),
     weightUnit: oneOf(v.weightUnit, ['kg', 'lb'] as const, base.weightUnit),
     distanceUnit: oneOf(v.distanceUnit, ['km', 'mi'] as const, base.distanceUnit),
@@ -142,6 +142,25 @@ function parseProfile(v: unknown): UserProfile {
     planId: oneOf(v.planId, PLAN_IDS, base.planId),
     onboardingDone: bool(v.onboardingDone, base.onboardingDone),
   };
+  // Optional target weight (canonical kg): kept only when it is a sane
+  // number, and omitted entirely otherwise so fresh profiles stay keyless.
+  const tw = v.targetWeightKg;
+  if (typeof tw === 'number' && Number.isFinite(tw) && tw >= 20 && tw <= 400) {
+    profile.targetWeightKg = Math.round(tw * 10) / 10;
+  }
+  // Optional gym program id: any short non-empty string survives parsing;
+  // the UI resolves it against the known catalog (unknown → no suggestions).
+  const gymId = str(v.gymId, '').trim();
+  if (gymId && gymId.length <= 64) profile.gymId = gymId;
+  // Optional Pro stamp: only a well-formed {plan, since} pair is kept.
+  if (isObj(v.pro)) {
+    const rawPlan = v.pro.plan;
+    const plan: 'monthly' | 'yearly' | null =
+      rawPlan === 'monthly' || rawPlan === 'yearly' ? rawPlan : null;
+    const since = num(v.pro.since, 0);
+    if (plan && since > 0) profile.pro = { plan, since };
+  }
+  return profile;
 }
 
 function parseCategory(v: unknown): Category | null {

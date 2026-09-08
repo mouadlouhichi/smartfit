@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle, CloudUpload, Loader2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CloudUpload, HardDrive, Loader2, RefreshCw } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { Button } from '@/components/ui/button';
 
@@ -86,6 +86,37 @@ export function MigrationPrompt() {
           {busy ? 'Importing…' : 'Import'}
         </Button>
       </span>
+    </div>
+  );
+}
+
+/**
+ * The browser refused to persist the on-device mirror (localStorage quota
+ * exceeded or storage disabled). The session keeps working in memory, but
+ * offline resilience is gone — the user deserves to know, once, with the
+ * escape hatch that actually helps (exporting a backup).
+ */
+export function StorageWarningBanner() {
+  const { storageFull, dismissStorageWarning } = useStore();
+
+  if (!storageFull) return null;
+
+  return (
+    <div
+      role="alert"
+      className="border-border bg-secondary/70 mx-4 mb-3 flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 sm:mx-6 lg:mx-8"
+    >
+      <HardDrive className="text-muted-foreground h-4 w-4 shrink-0" />
+      <p className="min-w-0 flex-1 text-sm">
+        <span className="font-semibold">This device is out of storage for SmartFit.</span>{' '}
+        <span className="text-muted-foreground">
+          Everything still works, but new changes may not survive a reload. Export a backup from
+          Profile, then free up browser storage.
+        </span>
+      </p>
+      <Button size="sm" variant="ghost" onClick={dismissStorageWarning}>
+        Dismiss
+      </Button>
     </div>
   );
 }

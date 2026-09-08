@@ -7,6 +7,7 @@ import '@fontsource-variable/jetbrains-mono/wght.css';
 import './globals.css';
 import { AppProviders } from '@/components/app-providers';
 import { PwaRegister } from '@/components/pwa-register';
+import { Telemetry } from '@/components/telemetry';
 import { env } from '@/lib/env';
 
 const appName = env.appName;
@@ -72,6 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-dvh antialiased">
         <AppProviders>{children}</AppProviders>
         <PwaRegister />
+        <Telemetry />
       </body>
     </html>
   );

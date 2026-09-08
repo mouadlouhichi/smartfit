@@ -65,6 +65,31 @@ export default function PrivacyPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold">Crash reports (optional)</h2>
+          <p>
+            A deployment&apos;s operator may enable a self-hosted, cookie-free error collector. When
+            — and only when — one is configured, the app may send technical crash reports and
+            page-performance measurements (an error message, the page path, timing figures) as plain
+            JSON to that collector. No cookies, no advertising SDKs, no user identity and no
+            training content are included, and a default deployment sends nothing at all.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold">AI coach answers (optional)</h2>
+          <p>
+            The coach answers from your own data on your device by default. A deployment&apos;s
+            operator may configure an AI provider, and the coach then shows an
+            <strong> &ldquo;AI answers&rdquo; switch which is off unless you turn it on</strong>.
+            While it is on, your question plus a compact summary of your training (weekly totals,
+            streak, goal progress, the last few session titles and your latest weight — never your
+            full export, email or credentials) is sent to that provider to compose the answer. Any
+            AI failure falls back to the on-device coach. Turn the switch off at any time; answers
+            produced by AI are labelled as such.
+          </p>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="font-display text-xl font-bold">Processors</h2>
           <p>
             In account mode, Google (Firebase Authentication and Cloud Firestore) processes your

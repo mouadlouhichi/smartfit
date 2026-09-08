@@ -26,11 +26,14 @@ export function ExercisePicker({
   onChange,
   placeholder,
   ariaLabel,
+  maxLength,
 }: {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   ariaLabel?: string;
+  /** Cap the free-text name length (same intent as the plain Input fields). */
+  maxLength?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
@@ -114,6 +117,7 @@ export function ExercisePicker({
             autoComplete="off"
             className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring focus-visible:border-ring h-10 w-full rounded-xl border pr-3 pl-9 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
             placeholder={placeholder}
+            maxLength={maxLength}
             value={value}
             onChange={(e) => {
               onChange(e.target.value);

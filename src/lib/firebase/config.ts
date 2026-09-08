@@ -81,6 +81,27 @@ export function getFirebaseServices(): Promise<FirebaseServices | null> {
         import('firebase/firestore'),
       ]);
       const app = getApps().length ? getApps()[0] : initializeApp(envConfig);
+
+      // Abuse protection. App Check attests that traffic comes from the real
+      // app on an authorised domain, which is what stops scripts from using
+      // the (necessarily public) API key to farm Auth signups and Firestore
+      // ops. Optional: register a reCAPTCHA v3 key under Firebase → App Check
+      // and set NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY, then enable
+      // enforcement in the console. Without the key everything still works —
+      // requests are simply unattested (today's behaviour).
+      const appCheckKey = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY?.trim() ?? '';
+      if (appCheckKey) {
+        try {
+          const { initializeAppCheck, ReCaptchaV3Provider } = await import('firebase/app-check');
+          await initializeAppCheck(app, {
+            provider: new ReCaptchaV3Provider(appCheckKey),
+          });
+        } catch (err) {
+          // Never block the app on App Check; log and continue unattested.
+          console.warn('[smartfit] App Check unavailable:', err);
+        }
+      }
+
       const auth = getAuth(app);
 
       // Persistent IndexedDB cache: reads are served locally when the network

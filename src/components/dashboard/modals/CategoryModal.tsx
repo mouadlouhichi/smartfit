@@ -12,8 +12,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
+import { useConfirm } from '../confirm-context';
 import {
   CategoryIcon,
   CATEGORY_COLOR_OPTIONS,
@@ -25,14 +27,20 @@ import { cn } from '@/lib/utils';
 export function CategoryModal() {
   const { state, addCategory, deleteCategory } = useStore();
   const { closeModal } = useModals();
+  const confirmDialog = useConfirm();
   const open = usePayload('category') !== null;
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
   const [icon, setIcon] = useState<string>('activity');
   const [color, setColor] = useState<string>(CATEGORY_COLOR_OPTIONS[0]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setNameError('Give the activity type a name.');
+      return;
+    }
+    setNameError(null);
     addCategory({ name: name.trim(), icon, color });
     setName('');
   }
@@ -42,13 +50,18 @@ export function CategoryModal() {
    * into "Other" in every chart, so we say so rather than silently dropping
    * them out of the mix.
    */
-  function remove(id: string, label: string) {
+  async function remove(id: string, label: string) {
     const used = categoryUsage(state, id);
-    const message = used
-      ? `${label} is used by ${used} logged ${used === 1 ? 'workout' : 'workouts'}. ` +
-        'Those workouts are kept and will show as "Other". Delete the type?'
-      : `Delete ${label}?`;
-    if (!confirm(message)) return;
+    const ok = await confirmDialog({
+      title: `Delete "${label}"?`,
+      body: used
+        ? `${label} is used by ${used} logged ${used === 1 ? 'workout' : 'workouts'}. ` +
+          'Those workouts are kept and will show as "Other".'
+        : 'This activity type will be removed. This cannot be undone.',
+      confirmLabel: 'Delete type',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteCategory(id);
   }
 
@@ -84,15 +97,17 @@ export function CategoryModal() {
           </div>
 
           <form onSubmit={submit} className="border-border mt-2 grid gap-3 rounded-xl border p-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="c-name">New type</Label>
+            <Field id="c-name" label="New type" error={nameError}>
               <Input
-                id="c-name"
                 placeholder="e.g. Climbing"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                maxLength={40}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameError(null);
+                }}
               />
-            </div>
+            </Field>
             <div className="grid gap-1.5">
               <Label>Icon</Label>
               <div className="flex flex-wrap gap-1.5">

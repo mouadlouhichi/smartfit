@@ -12,9 +12,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
+import { useConfirm } from '../confirm-context';
 import { INTENSITY_META, toISODate, fromKm, toKm } from '@smartfit/core';
 import type { Intensity, WorkoutExercise } from '@smartfit/core';
 import { Trash2 } from 'lucide-react';
@@ -31,6 +33,7 @@ const BLANK_EXERCISE: WorkoutExercise = { name: '', sets: [{}] };
 export function WorkoutModal() {
   const { state, addSession, updateSession, deleteSession, estimateSessionCalories } = useStore();
   const { closeModal } = useModals();
+  const confirmDialog = useConfirm();
   const payload = usePayload('workout');
   const open = payload !== null;
 
@@ -42,6 +45,7 @@ export function WorkoutModal() {
   const [categoryId, setCategoryId] = useState('cat-strength');
   const [title, setTitle] = useState('');
   const [duration, setDuration] = useState('45');
+  const [durationError, setDurationError] = useState<string | null>(null);
   const [intensity, setIntensity] = useState<Intensity>('moderate');
   const [distance, setDistance] = useState('');
   const [notes, setNotes] = useState('');
@@ -79,6 +83,12 @@ export function WorkoutModal() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    const mins = Number(duration);
+    if (!Number.isFinite(mins) || mins <= 0) {
+      setDurationError('Enter how many minutes the session took.');
+      return;
+    }
+    setDurationError(null);
     const cleaned = exercises
       .filter((x) => x.name.trim())
       .map((x) => ({ ...x, name: x.name.trim() }));
@@ -87,7 +97,7 @@ export function WorkoutModal() {
       date,
       categoryId,
       title: title.trim() || category?.name || 'Workout',
-      durationMin: Math.max(1, Number(duration) || 0),
+      durationMin: Math.max(1, Math.round(mins)),
       intensity,
       calories: cal,
       distanceKm: isCardio && distance ? toKm(Number(distance), distanceUnit) : undefined,
@@ -101,9 +111,15 @@ export function WorkoutModal() {
     closeModal();
   }
 
-  function removeSession() {
+  async function removeSession() {
     if (!editing) return;
-    if (!confirm('Delete this workout? This cannot be undone.')) return;
+    const ok = await confirmDialog({
+      title: 'Delete this workout?',
+      body: `"${editing.title}" will be removed from your log. This cannot be undone.`,
+      confirmLabel: 'Delete workout',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteSession(editing.id);
     closeModal();
   }
@@ -123,58 +139,49 @@ export function WorkoutModal() {
 
           <div className="mt-4 grid gap-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="w-date">Date</Label>
+              <Field id="w-date" label="Date">
                 <Input
-                  id="w-date"
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   required
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="w-cat">Type</Label>
-                <Select
-                  id="w-cat"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                >
+              </Field>
+              <Field id="w-cat" label="Type">
+                <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                   {state.categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
                 </Select>
-              </div>
+              </Field>
             </div>
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="w-title">Title</Label>
+            <Field id="w-title" label="Title">
               <Input
-                id="w-title"
                 placeholder={category?.name ?? 'Workout'}
                 value={title}
+                maxLength={120}
                 onChange={(e) => setTitle(e.target.value)}
               />
-            </div>
+            </Field>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="w-dur">Minutes</Label>
+              <Field id="w-dur" label="Minutes" error={durationError}>
                 <Input
-                  id="w-dur"
                   type="number"
                   min={1}
                   value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
+                  onChange={(e) => {
+                    setDuration(e.target.value);
+                    setDurationError(null);
+                  }}
                   required
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="w-int">Intensity</Label>
+              </Field>
+              <Field id="w-int" label="Intensity">
                 <Select
-                  id="w-int"
                   value={intensity}
                   onChange={(e) => setIntensity(e.target.value as Intensity)}
                 >
@@ -184,19 +191,18 @@ export function WorkoutModal() {
                     </option>
                   ))}
                 </Select>
-              </div>
+              </Field>
               {isCardio ? (
-                <div className="grid gap-1.5">
-                  <Label htmlFor="w-dist">Distance ({distanceUnit})</Label>
+                <Field id="w-dist" label={`Distance (${distanceUnit})`}>
                   <Input
-                    id="w-dist"
                     type="number"
-                    step="0.1"
+                    // step="any": 0.1 rejected splits like 5.25 km.
+                    step="any"
                     min={0}
                     value={distance}
                     onChange={(e) => setDistance(e.target.value)}
                   />
-                </div>
+                </Field>
               ) : (
                 <div className="grid gap-1.5">
                   <Label htmlFor="w-cal">Est. kcal</Label>
@@ -240,6 +246,7 @@ export function WorkoutModal() {
                     <ExercisePicker
                       ariaLabel={`Exercise ${i + 1} name`}
                       placeholder={`Exercise ${i + 1} (e.g. Squat)`}
+                      maxLength={80}
                       value={ex.name}
                       onChange={(name) =>
                         setExercises((p) => p.map((x, xi) => (xi === i ? { ...x, name } : x)))
@@ -283,15 +290,14 @@ export function WorkoutModal() {
               </div>
             </div>
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="w-notes">Notes</Label>
+            <Field id="w-notes" label="Notes">
               <Input
-                id="w-notes"
                 placeholder="How did it feel? (optional)"
                 value={notes}
+                maxLength={2000}
                 onChange={(e) => setNotes(e.target.value)}
               />
-            </div>
+            </Field>
           </div>
 
           <DialogFooter className="mt-6 sm:justify-between">

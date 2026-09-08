@@ -17,7 +17,7 @@ import { FooterSection } from '@/components/landing/footer-section';
 
 const title = 'SmartFit — Free Private Fitness & Workout Tracker App';
 const description =
-  'Track strength, cardio and HIIT for free. Start training with SmartFit, the private workout tracker supporting 4 training styles, 5 activity types and on-device data — no wearable required.';
+  'Track strength, cardio and HIIT for free. Start training with SmartFit, the private workout tracker supporting 4 training styles, 5 activity types and local-first data — no wearable required.';
 
 export const metadata: Metadata = {
   title: { absolute: title },
