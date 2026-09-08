@@ -24,21 +24,17 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
 import { CategoryIcon } from '@/components/category-icon';
-import { INTENSITY_META, PLANS, WEEKDAYS, WEEKDAYS_LONG, ZONE_FIGHT } from '@smartfit/core';
+import { INTENSITY_META, PLANS, WEEKDAYS, WEEKDAYS_LONG } from '@smartfit/core';
 import {
   categoryById,
+  getGymProgram,
   getPlan,
-  kgToTarget,
   suggestProgram,
   suggestedToSchedule,
+  suggestSummary,
 } from '@smartfit/core';
-import {
-  formatCalories,
-  formatDateLabel,
-  formatDistance,
-  formatMinutes,
-  formatWeight,
-} from '@smartfit/core';
+import { formatCalories, formatDateLabel, formatDistance, formatMinutes } from '@smartfit/core';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { ScheduledWorkout } from '@smartfit/core';
 
@@ -66,24 +62,22 @@ export function PlanScreen() {
   const [filter, setFilter] = useState('all');
   const [pageError, setPageError] = useState<string | null>(null);
 
-  // Suggested week from the Zone Fight timetable — recomputed whenever the
-  // strategy, latest weight log or target weight changes.
-  const kgLeft = useMemo(() => kgToTarget(state), [state]);
-  const suggested = useMemo(() => suggestProgram(state), [state]);
-  const targetKg = state.profile.targetWeightKg;
-  const mixLine =
-    kgLeft == null
-      ? 'Set a target weight in Profile and log your weight — the mix then adapts automatically. This is a balanced starting week.'
-      : kgLeft > 0
-        ? `${formatWeight(kgLeft, state.profile.weightUnit)} to your ${
-            targetKg != null ? formatWeight(targetKg, state.profile.weightUnit) : 'target'
-          } — burn-focused mix (HIIT · cardio · combat).`
-        : 'Target reached — maintenance mix keeps strength high and recovery light.';
+  // Selected gym program (Profile → Gym program): suggestions are built from
+  // its real timetable and recomputed whenever the strategy, latest weight
+  // log or target weight changes.
+  const gymProgram = useMemo(() => getGymProgram(state.profile.gymId), [state.profile.gymId]);
+  const suggested = useMemo(
+    () => (gymProgram ? suggestProgram(state, gymProgram) : []),
+    [state, gymProgram],
+  );
+  const mixLine = suggestSummary(state);
 
   async function importSuggestion() {
     const ok = await confirm({
       title: 'Import suggested week?',
-      body: 'Your current scheduled sessions are replaced with the Zone Fight classes shown here.',
+      body: `Your current scheduled sessions are replaced with the ${
+        gymProgram?.name ?? 'gym'
+      } classes shown here.`,
       confirmLabel: 'Replace my week',
       destructive: true,
     });
@@ -193,72 +187,96 @@ export function PlanScreen() {
         </CardContent>
       </Card>
 
-      {/* ── Suggested program (Zone Fight gym) ─────────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex flex-wrap items-center gap-2.5 text-base">
-            <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
-              <Sparkles className="h-4.5 w-4.5" aria-hidden />
-            </span>
-            Suggested program
-            <Badge variant="accent">{ZONE_FIGHT.name}</Badge>
-          </CardTitle>
-          <p className="text-muted-foreground text-xs">{mixLine}</p>
-        </CardHeader>
-        <CardContent className="grid gap-3">
-          {suggested.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              No matching classes on your training days — try another strategy or add sessions
-              manually.
-            </p>
-          ) : (
-            <ul className="grid gap-1.5">
-              {suggested.map((s) => {
-                const meta = INTENSITY_META[s.gymClass.intensity];
-                return (
-                  <li
-                    key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
-                    className="bg-secondary/50 flex items-center gap-3 rounded-xl px-3 py-2"
-                  >
-                    <span className="w-11 text-xs font-bold tabular-nums">
-                      {WEEKDAYS_LONG[s.weekday]}
-                    </span>
-                    <span className="text-muted-foreground w-11 text-xs font-semibold tabular-nums">
-                      {s.time}
-                    </span>
-                    <span className="flex-1 truncate text-sm font-semibold">{s.gymClass.name}</span>
-                    <span className="text-muted-foreground hidden text-xs tabular-nums sm:inline">
-                      {formatMinutes(s.gymClass.minutes)}
-                    </span>
-                    <span
-                      className="flex items-center gap-1.5 text-xs font-bold whitespace-nowrap"
-                      style={{ color: meta.color }}
-                    >
-                      <span
-                        className="h-1.5 w-1.5 rounded-full"
-                        style={{ backgroundColor: meta.color }}
-                        aria-hidden
-                      />
-                      {meta.label}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-muted-foreground text-xs">{ZONE_FIGHT.hours}</p>
-            <Button
-              size="sm"
-              onClick={importSuggestion}
-              disabled={suggested.length === 0}
-              data-testid="import-suggested-week"
-            >
-              <Download className="h-4 w-4" /> Import into my plan
+      {/* ── Suggested program (gym-aware) ──────────────────────────────── */}
+      {gymProgram == null ? (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                <Sparkles className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Suggested program</p>
+                <p className="text-muted-foreground text-xs">
+                  Pick your gym in Profile to unlock a weekly program built from its real class
+                  timetable — tuned to your target weight.
+                </p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/dashboard/profile">Choose gym</Link>
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-2.5 text-base">
+              <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+                <Sparkles className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              Suggested program
+              <Badge variant="accent">{gymProgram.name}</Badge>
+            </CardTitle>
+            <p className="text-muted-foreground text-xs">{mixLine}</p>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {suggested.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No matching classes on your training days — try another strategy or add sessions
+                manually.
+              </p>
+            ) : (
+              <ul className="grid gap-1.5">
+                {suggested.map((s) => {
+                  const meta = INTENSITY_META[s.gymClass.intensity];
+                  return (
+                    <li
+                      key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
+                      className="bg-secondary/50 flex items-center gap-3 rounded-xl px-3 py-2"
+                    >
+                      <span className="w-11 text-xs font-bold tabular-nums">
+                        {WEEKDAYS_LONG[s.weekday]}
+                      </span>
+                      <span className="text-muted-foreground w-11 text-xs font-semibold tabular-nums">
+                        {s.time}
+                      </span>
+                      <span className="flex-1 truncate text-sm font-semibold">
+                        {s.gymClass.name}
+                      </span>
+                      <span className="text-muted-foreground hidden text-xs tabular-nums sm:inline">
+                        {formatMinutes(s.gymClass.minutes)}
+                      </span>
+                      <span
+                        className="flex items-center gap-1.5 text-xs font-bold whitespace-nowrap"
+                        style={{ color: meta.color }}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: meta.color }}
+                          aria-hidden
+                        />
+                        {meta.label}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-muted-foreground text-xs">{gymProgram.hours}</p>
+              <Button
+                size="sm"
+                onClick={importSuggestion}
+                disabled={suggested.length === 0}
+                data-testid="import-suggested-week"
+              >
+                <Download className="h-4 w-4" /> Import into my plan
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Week schedule ──────────────────────────────────────────────── */}
       <div className="grid gap-3">

@@ -148,6 +148,10 @@ function parseProfile(v: unknown): UserProfile {
   if (typeof tw === 'number' && Number.isFinite(tw) && tw >= 20 && tw <= 400) {
     profile.targetWeightKg = Math.round(tw * 10) / 10;
   }
+  // Optional gym program id: any short non-empty string survives parsing;
+  // the UI resolves it against the known catalog (unknown → no suggestions).
+  const gymId = str(v.gymId, '').trim();
+  if (gymId && gymId.length <= 64) profile.gymId = gymId;
   return profile;
 }
 

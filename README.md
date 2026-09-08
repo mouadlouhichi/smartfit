@@ -40,10 +40,11 @@ shared domain package — but applies them to **training** instead of money.
   lights up on both apps.
 - **Recurring schedule** — drop sessions into the week (day/time/duration),
   toggle them active, or delete them.
-- **Suggested program** — a dynamic weekly plan built from the **Zone Fight**
-  gym timetable: set a target weight in Profile and the mix of classes
-  (HIIT/cardio/combat vs strength vs recovery) adapts to how far away you are,
-  then import the whole week into your schedule with one click.
+- **Suggested program** — pick your gym in Profile (**Zone Fight** ships with
+  its full class timetable) and a suggested week appears right in the
+  settings: set a target weight and the mix of classes (HIIT/cardio/combat vs
+  strength vs recovery) adapts to how far away you are, then import the whole
+  week into your schedule with one click — from Profile or the Plan tab.
 - **Goals** — weekly & monthly targets for workouts, active minutes, calories or
   distance, with live progress bars that reset each period.
 - **Streaks & momentum** — a consecutive-day training streak.
@@ -190,7 +191,7 @@ smartfit/
 │     │  ├─ seed.ts                 #   demo generator (subpath: @smartfit/core/seed)
 │     │  ├─ utils.ts                #   uid / clamp / round
 │     │  └─ index.ts                #   barrel export (deliberately omits seed.ts)
-│     └─ tests/                     # 67 domain unit tests (node:test)
+│     └─ tests/                     # 70 domain unit tests (node:test)
 ├─ e2e/                             # Playwright smoke suite (local-mode product journey)
 ├─ tests/                           # web lib unit tests + tests/rules (Firestore rules, emulator)
 ├─ docs/                            # firebase.md · ops-runbook.md · audits
@@ -263,7 +264,7 @@ credentials permanently. See [`/privacy`](src/app/privacy/page.tsx).
 Four layers, all running in CI (Node's built-in test runner + Playwright — no
 heavy frameworks):
 
-**Domain (`packages/core/tests/`, 67 tests)** — pure logic:
+**Domain (`packages/core/tests/`, 70 tests)** — pure logic:
 
 | Suite | Covers |
 | --- | --- |

@@ -181,10 +181,18 @@ export async function saveProfile(uid: string, profile: UserProfile): Promise<vo
     Object.entries(profile).filter(([, value]) => value !== undefined),
   );
   await setDoc(ref, { profile: clean, updatedAt: Date.now() }, { merge: true });
-  // Clearing the optional target weight has to remove the persisted field.
-  if (profile.targetWeightKg === undefined && 'targetWeightKg' in profile) {
-    await updateDoc(ref, { 'profile.targetWeightKg': deleteField() }).catch(() => {
-      /* field was not stored — nothing to delete */
+  // Clearing an optional field (target weight, gym) has to remove it from the
+  // persisted document — merge alone would keep the stale value.
+  const cleared = Object.entries(profile)
+    .filter(([, value]) => value === undefined)
+    .map(([key]) => key);
+  if (cleared.length > 0) {
+    const updates: Record<string, ReturnType<typeof deleteField>> = {};
+    cleared.forEach((key) => {
+      updates[`profile.${key}`] = deleteField();
+    });
+    await updateDoc(ref, updates).catch(() => {
+      /* fields were not stored — nothing to delete */
     });
   }
 }

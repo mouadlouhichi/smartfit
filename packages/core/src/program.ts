@@ -1,5 +1,6 @@
 import type { FitnessState, Intensity, ScheduledWorkout, Weekday } from './types';
 import { getPlan } from './fitness';
+import { formatWeight } from './format';
 import { round } from './utils';
 
 /**
@@ -281,4 +282,33 @@ export function suggestedToSchedule(
     intensity: s.gymClass.intensity,
     active: true,
   }));
+}
+
+/** Every gym program the app can build a suggested week from. */
+export const GYM_PROGRAMS: GymProgram[] = [ZONE_FIGHT];
+
+/** Resolves the athlete's selected gym (`profile.gymId`), or null. */
+export function getGymProgram(gymId: string | undefined | null): GymProgram | null {
+  if (!gymId) return null;
+  return GYM_PROGRAMS.find((p) => p.id === gymId) ?? null;
+}
+
+/**
+ * One-line summary of how the current gap to the target weight shapes the
+ * suggested mix — shared by the Plan card and the Profile preview so both
+ * always tell the same story.
+ */
+export function suggestSummary(state: FitnessState): string {
+  const kgLeft = kgToTarget(state);
+  const unit = state.profile.weightUnit;
+  const target = state.profile.targetWeightKg;
+  if (kgLeft == null) {
+    return 'Set a target weight and log your weight — the mix then adapts automatically. This is a balanced starting week.';
+  }
+  if (kgLeft > 0) {
+    return `${formatWeight(kgLeft, unit)} to your ${
+      target != null ? formatWeight(target, unit) : 'target'
+    } — burn-focused mix (HIIT · cardio · combat).`;
+  }
+  return 'Target reached — maintenance mix keeps strength high and recovery light.';
 }

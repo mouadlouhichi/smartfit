@@ -2,11 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   FOCUS_CATEGORY,
+  GYM_PROGRAMS,
   ZONE_FIGHT,
   emptyState,
+  getGymProgram,
   kgToTarget,
+  parseStateJSON,
   suggestProgram,
   suggestedToSchedule,
+  suggestSummary,
   weeklyMix,
 } from '../src/index.ts';
 import type { BodyLog, FitnessState } from '../src/index.ts';
@@ -123,4 +127,41 @@ test('suggestedToSchedule maps onto schedule rows with built-in categories', () 
     assert.ok(row.durationMin > 0);
     assert.ok(row.title.length > 0);
   }
+});
+
+test('gym registry resolves selections and rejects unknown ids', () => {
+  assert.equal(GYM_PROGRAMS.length, 1);
+  assert.equal(getGymProgram('zone-fight')?.id, 'zone-fight');
+  assert.equal(getGymProgram(''), null);
+  assert.equal(getGymProgram(undefined), null);
+  assert.equal(getGymProgram('gym-that-does-not-exist'), null);
+});
+
+test('profile gymId survives parsing and junk is dropped', () => {
+  const withGym = parseStateJSON(
+    JSON.stringify({ profile: { gymId: 'zone-fight', targetWeightKg: 78 } }),
+  );
+  assert.equal(withGym.profile.gymId, 'zone-fight');
+  assert.equal(withGym.profile.targetWeightKg, 78);
+
+  const junk = parseStateJSON(JSON.stringify({ profile: { gymId: '   ' } }));
+  assert.equal('gymId' in junk.profile, false);
+
+  const plain = parseStateJSON(JSON.stringify({ profile: {} }));
+  assert.equal('gymId' in plain.profile, false);
+  assert.equal('targetWeightKg' in plain.profile, false);
+});
+
+test('suggestSummary tells the target story in display units', () => {
+  assert.match(suggestSummary(stateWith({}, [])), /Set a target weight/);
+  assert.match(
+    suggestSummary(stateWith({ targetWeightKg: 78 }, [weightLog(84.5)])),
+    /6\.5 kg to your 78 kg/,
+  );
+  assert.match(
+    suggestSummary(stateWith({ targetWeightKg: 78 }, [weightLog(77)])),
+    /Target reached/,
+  );
+  const lb = stateWith({ targetWeightKg: 78, weightUnit: 'lb' }, [weightLog(84.5)]);
+  assert.match(suggestSummary(lb), /lb/);
 });

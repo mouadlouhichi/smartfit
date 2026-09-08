@@ -124,6 +124,12 @@ export interface UserProfile {
    * program mix (burn-heavy while far away, maintenance once reached).
    */
   targetWeightKg?: number;
+  /**
+   * Optional selected gym program id (see GYM_PROGRAMS, e.g. 'zone-fight').
+   * When set, the app proposes a weekly program built from that gym's real
+   * class timetable.
+   */
+  gymId?: string;
 }
 
 export interface FitnessState {

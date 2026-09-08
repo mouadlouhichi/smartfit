@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import {
   Database,
   Download,
   Flame,
+  Sparkles,
   HardDrive,
   Loader2,
   LogOut,
@@ -28,7 +29,20 @@ import {
   Upload,
   UserRound,
 } from 'lucide-react';
-import { PLANS, currentStreak, fromKg, parseStateJSON, toKg } from '@smartfit/core';
+import {
+  GYM_PROGRAMS,
+  INTENSITY_META,
+  PLANS,
+  WEEKDAYS,
+  currentStreak,
+  fromKg,
+  getGymProgram,
+  parseStateJSON,
+  suggestProgram,
+  suggestedToSchedule,
+  suggestSummary,
+  toKg,
+} from '@smartfit/core';
 import type { WeekStart } from '@smartfit/core';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
@@ -45,6 +59,7 @@ export function ProfileScreen() {
   const {
     state,
     updateProfile,
+    replaceSchedule,
     clearData,
     replaceState,
     cloud,
@@ -86,6 +101,25 @@ export function ProfileScreen() {
     setTargetInput(
       String(Number(fromKg(Math.round(kg * 10) / 10, state.profile.weightUnit).toFixed(1))),
     );
+  }
+
+  // Gym-aware suggested week — this preview mirrors the Plan tab exactly.
+  const gymProgram = useMemo(() => getGymProgram(state.profile.gymId), [state.profile.gymId]);
+  const suggested = useMemo(
+    () => (gymProgram ? suggestProgram(state, gymProgram) : []),
+    [state, gymProgram],
+  );
+
+  async function importSuggestion() {
+    const ok = await confirmDialog({
+      title: 'Import suggested week?',
+      body: `Your current scheduled sessions are replaced with the ${
+        gymProgram?.name ?? 'gym'
+      } classes shown here.`,
+      confirmLabel: 'Replace my week',
+      destructive: true,
+    });
+    if (ok) replaceSchedule(suggestedToSchedule(suggested));
   }
 
   const counts = {
@@ -450,6 +484,24 @@ export function ProfileScreen() {
             </Select>
           </div>
           <div className="grid gap-1.5">
+            <Label htmlFor="p-gym">Gym program</Label>
+            <Select
+              id="p-gym"
+              value={state.profile.gymId ?? ''}
+              onChange={(e) => updateProfile({ gymId: e.target.value || undefined })}
+            >
+              <option value="">No gym — build my week manually</option>
+              {GYM_PROGRAMS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+            <p className="text-muted-foreground text-xs">
+              Picking your gym unlocks a suggested week built from its real class timetable.
+            </p>
+          </div>
+          <div className="grid gap-1.5">
             <Label htmlFor="p-weight">Weight unit</Label>
             <Select
               id="p-weight"
@@ -524,6 +576,67 @@ export function ProfileScreen() {
               Your streak survives this many untrained days a week.
             </p>
           </div>
+
+          {/* Live suggested-week preview — appears the moment a gym is picked */}
+          {gymProgram && (
+            <div className="bg-secondary/40 grid gap-3 rounded-2xl p-4 sm:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                    <Sparkles className="h-4.5 w-4.5" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold">Suggested week · {gymProgram.name}</p>
+                    <p className="text-muted-foreground text-xs">{suggestSummary(state)}</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={importSuggestion}
+                  disabled={suggested.length === 0}
+                  data-testid="import-suggested-week"
+                >
+                  <Download className="h-4 w-4" /> Import into my plan
+                </Button>
+              </div>
+              {suggested.length === 0 ? (
+                <p className="text-muted-foreground text-xs">
+                  No matching classes on your training days — try another default strategy.
+                </p>
+              ) : (
+                <ul className="grid gap-1 sm:grid-cols-2">
+                  {suggested.map((s) => {
+                    const meta = INTENSITY_META[s.gymClass.intensity];
+                    return (
+                      <li
+                        key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
+                        className="bg-card flex items-center gap-2 rounded-lg px-2.5 py-1.5"
+                      >
+                        <span className="w-8 text-xs font-bold tabular-nums">
+                          {WEEKDAYS[s.weekday]}
+                        </span>
+                        <span className="text-muted-foreground text-xs font-semibold tabular-nums">
+                          {s.time}
+                        </span>
+                        <span className="flex-1 truncate text-xs font-semibold">
+                          {s.gymClass.name}
+                        </span>
+                        <span
+                          className="h-1.5 w-1.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: meta.color }}
+                          title={`${meta.label} intensity`}
+                          aria-hidden
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              <p className="text-muted-foreground text-xs">
+                {gymProgram.hours} · Fine-tune any session on the Plan tab after importing.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
