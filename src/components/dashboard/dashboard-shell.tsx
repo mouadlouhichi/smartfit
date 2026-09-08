@@ -62,7 +62,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     <span
                       className={cn(
                         'text-[10px] leading-none font-medium transition-colors',
-                        active ? 'text-white' : 'text-white/45 group-hover:text-white/70',
+                        active ? 'text-white' : 'text-white/60 group-hover:text-white/90',
                       )}
                     >
                       {item.label}

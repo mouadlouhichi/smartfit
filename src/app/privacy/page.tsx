@@ -76,6 +76,20 @@ export default function PrivacyPage() {
         </section>
 
         <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold">AI coach answers (optional)</h2>
+          <p>
+            The coach answers from your own data on your device by default. A deployment&apos;s
+            operator may configure an AI provider, and the coach then shows an
+            <strong> &ldquo;AI answers&rdquo; switch which is off unless you turn it on</strong>.
+            While it is on, your question plus a compact summary of your training (weekly totals,
+            streak, goal progress, the last few session titles and your latest weight — never your
+            full export, email or credentials) is sent to that provider to compose the answer. Any
+            AI failure falls back to the on-device coach. Turn the switch off at any time; answers
+            produced by AI are labelled as such.
+          </p>
+        </section>
+
+        <section className="space-y-3">
           <h2 className="font-display text-xl font-bold">Processors</h2>
           <p>
             In account mode, Google (Firebase Authentication and Cloud Firestore) processes your

@@ -10,23 +10,36 @@ import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
+  CalendarCheck2,
   Cloud,
   CloudOff,
   Database,
   Download,
+  Flame,
+  HardDrive,
   Loader2,
   LogOut,
   Mail,
   RefreshCw,
+  SlidersHorizontal,
   Tag,
+  Target,
   Trash2,
   Upload,
   UserRound,
 } from 'lucide-react';
-import { PLANS, parseStateJSON } from '@smartfit/core';
+import { PLANS, currentStreak, parseStateJSON } from '@smartfit/core';
 import type { WeekStart } from '@smartfit/core';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
+
+/** Initials for the hero avatar — falls back to an icon when nameless. */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
 
 export function ProfileScreen() {
   const {
@@ -57,6 +70,9 @@ export function ProfileScreen() {
     goals: state.goals.length,
     measurements: state.bodyLogs.length,
   };
+  const streak = currentStreak(state);
+  const displayName = state.profile.name || user?.displayName || user?.email || '';
+  const avatar = initials(displayName);
 
   const isPasswordUser = !!user?.providerData.some((p) => p.providerId === 'password');
 
@@ -173,20 +189,72 @@ export function ProfileScreen() {
 
   return (
     <div className="grid gap-5">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Profile &amp; settings</h1>
-        <p className="text-muted-foreground text-sm">
-          {cloud
-            ? `Signed in${user?.email ? ` as ${user.email}` : ''} — your training syncs to the cloud.`
-            : 'Your data stays on this device — no account needed.'}
-        </p>
-      </div>
+      {/* ── Hero identity card ─────────────────────────────────────────── */}
+      <section className="card-hero p-6 sm:p-8" aria-label="Profile summary">
+        <div className="flex flex-wrap items-center gap-4">
+          <span
+            className="hero-tile flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-extrabold"
+            style={{ boxShadow: '0 0 0 4px rgba(224,94,54,0.25)' }}
+            aria-hidden
+          >
+            {avatar || <UserRound className="h-7 w-7" />}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-display truncate text-xl font-extrabold tracking-tight sm:text-2xl">
+              {displayName || 'Profile & settings'}
+            </h1>
+            <p className="hero-muted mt-0.5 text-sm">
+              {cloud
+                ? `Signed in${user?.email ? ` as ${user.email}` : ''} — your training syncs to the cloud.`
+                : 'Your data stays on this device — no account needed.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+              {cloud ? (
+                <Cloud className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
+              ) : (
+                <HardDrive className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
+              )}
+              {cloud ? 'Cloud synced' : 'Local mode'}
+            </span>
+            {streak > 0 && (
+              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+                <Flame className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
+                {streak}-day streak
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {[
+            { label: 'Workouts', value: counts.workouts, icon: Database },
+            { label: 'Scheduled', value: counts.scheduled, icon: CalendarCheck2 },
+            { label: 'Goals', value: counts.goals, icon: Target },
+            { label: 'Measurements', value: counts.measurements, icon: SlidersHorizontal },
+          ].map((t) => (
+            <div key={t.label} className="hero-tile rounded-2xl px-4 py-3">
+              <div className="flex items-center justify-between gap-2">
+                <p className="hero-muted text-[11px] font-semibold tracking-wide uppercase">
+                  {t.label}
+                </p>
+                <t.icon className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
+              </div>
+              <p className="font-display mt-1 text-xl font-extrabold tabular-nums">{t.value}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {cloud && user && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Cloud className="text-primary h-4 w-4" /> Account
+            <CardTitle className="flex items-center gap-2.5 text-base">
+              <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+                <Cloud className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              Account
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -323,8 +391,11 @@ export function ProfileScreen() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <UserRound className="text-primary h-4 w-4" /> You
+          <CardTitle className="flex items-center gap-2.5 text-base">
+            <span className="bg-chart-2/10 text-chart-2 flex h-9 w-9 items-center justify-center rounded-xl">
+              <UserRound className="h-4.5 w-4.5" aria-hidden />
+            </span>
+            You
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -415,8 +486,11 @@ export function ProfileScreen() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Database className="text-primary h-4 w-4" /> Your data
+          <CardTitle className="flex items-center gap-2.5 text-base">
+            <span className="bg-chart-4/10 text-chart-4 flex h-9 w-9 items-center justify-center rounded-xl">
+              <Database className="h-4.5 w-4.5" aria-hidden />
+            </span>
+            Your data
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">

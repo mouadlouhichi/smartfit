@@ -7,6 +7,7 @@ import {
   Clock,
   History,
   Loader2,
+  Moon,
   Pencil,
   Plus,
   Tag,
@@ -25,6 +26,15 @@ import { categoryById, getPlan } from '@smartfit/core';
 import { formatCalories, formatDateLabel, formatDistance, formatMinutes } from '@smartfit/core';
 import { cn } from '@/lib/utils';
 import type { ScheduledWorkout } from '@smartfit/core';
+
+/** Small neutral metadata pill used across rows. */
+function MetaChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="bg-secondary text-secondary-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap tabular-nums">
+      {children}
+    </span>
+  );
+}
 
 export function PlanScreen() {
   const {
@@ -81,15 +91,22 @@ export function PlanScreen() {
         </Button>
       </div>
 
-      {/* Plan strategy */}
+      {/* ── Plan strategy ──────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarCheck2 className="text-primary h-4 w-4" /> Strategy
+          <CardTitle className="flex items-center gap-2.5 text-base">
+            <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+              <CalendarCheck2 className="h-4.5 w-4.5" aria-hidden />
+            </span>
+            Strategy
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-1.5">
+        <CardContent className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-display text-lg font-extrabold tracking-tight">{plan.name}</p>
+              <Badge variant="accent">{plan.sessionsPerWeek}×/week</Badge>
+            </div>
             <label htmlFor="plan-strategy" className="text-muted-foreground text-xs font-medium">
               Training strategy
             </label>
@@ -106,7 +123,7 @@ export function PlanScreen() {
             </Select>
             <p className="text-muted-foreground text-xs">{plan.description}</p>
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <span className="text-muted-foreground text-xs font-medium">Weekly split</span>
             <div className="flex flex-wrap gap-1.5">
               {WEEKDAYS.map((d, i) => {
@@ -116,7 +133,7 @@ export function PlanScreen() {
                   <span
                     key={d}
                     className={cn(
-                      'flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-xs font-semibold',
+                      'flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-xs font-bold',
                       slot ? 'text-white' : 'bg-secondary text-muted-foreground',
                       i === today && 'ring-primary ring-offset-card ring-2 ring-offset-2',
                     )}
@@ -128,26 +145,61 @@ export function PlanScreen() {
                 );
               })}
             </div>
+            <p className="text-muted-foreground text-xs">
+              Coloured days follow the strategy&rsquo;s focus — hover a day to see it.
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Week schedule */}
+      {/* ── Week schedule ──────────────────────────────────────────────── */}
       <div className="grid gap-3">
-        <h2 className="text-muted-foreground text-sm font-semibold">Your week</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Your week</h2>
+          <span className="bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-xs font-bold tabular-nums">
+            {state.schedule.filter((s) => s.active).length} active session
+            {state.schedule.filter((s) => s.active).length === 1 ? '' : 's'}
+          </span>
+        </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {WEEKDAYS_LONG.map((day, i) => {
             const items = scheduledByDay.get(i) ?? [];
             const isToday = i === today;
             return (
-              <Card key={day} className={cn(isToday && 'border-primary/50 ring-primary/30 ring-1')}>
+              <Card
+                key={day}
+                className={cn(
+                  isToday && 'border-primary/50 ring-primary/25 ring-1',
+                  !isToday && 'hover:shadow-md',
+                )}
+              >
                 <CardContent className="p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className={cn('text-sm font-semibold', isToday && 'text-primary')}>
-                      {day} {isToday && '· today'}
+                  <div className="mb-2.5 flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2.5">
+                      <span
+                        className={cn(
+                          'flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold',
+                          isToday
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-secondary-foreground',
+                        )}
+                        aria-hidden
+                      >
+                        {day.slice(0, 1)}
+                      </span>
+                      <span className={cn('text-sm font-bold', isToday && 'text-primary')}>
+                        {day}
+                      </span>
+                      {isToday && (
+                        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase">
+                          Today
+                        </span>
+                      )}
                     </span>
                     {items.length === 0 && (
-                      <span className="text-muted-foreground text-xs">Rest</span>
+                      <span className="text-muted-foreground inline-flex items-center gap-1 text-xs font-medium">
+                        <Moon className="h-3.5 w-3.5" aria-hidden /> Rest
+                      </span>
                     )}
                   </div>
                   <div className="grid gap-2">
@@ -163,16 +215,29 @@ export function PlanScreen() {
                           )}
                         >
                           <span
-                            className="flex h-9 w-9 items-center justify-center rounded-lg"
-                            style={{ backgroundColor: `${cat?.color}1a`, color: cat?.color }}
+                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                            style={{
+                              backgroundColor: `${cat?.color ?? '#bd4220'}1f`,
+                              color: cat?.color ?? 'var(--primary)',
+                            }}
                           >
                             <CategoryIcon name={cat?.icon ?? 'activity'} size={16} />
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{s.title}</p>
-                            <p className="text-muted-foreground text-xs">
-                              {s.timeOfDay} · {formatMinutes(s.durationMin)} ·{' '}
-                              <span style={{ color: meta.color }}>{meta.label}</span>
+                            <p className="truncate text-sm font-bold">{s.title}</p>
+                            <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs">
+                              <span className="font-semibold capitalize">{s.timeOfDay}</span>
+                              <span aria-hidden>·</span>
+                              <span className="tabular-nums">{formatMinutes(s.durationMin)}</span>
+                              <span aria-hidden>·</span>
+                              <span className="inline-flex items-center gap-1">
+                                <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: meta.color }}
+                                  aria-hidden
+                                />
+                                {meta.label}
+                              </span>
                             </p>
                           </div>
                           <Switch
@@ -198,11 +263,17 @@ export function PlanScreen() {
         </div>
       </div>
 
-      {/* Training log */}
+      {/* ── Training log ───────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Clock className="text-primary h-4 w-4" /> Workout log
+          <CardTitle className="flex items-center gap-2.5 text-base">
+            <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+              <Clock className="h-4.5 w-4.5" aria-hidden />
+            </span>
+            Workout log
+            <span className="bg-secondary text-secondary-foreground rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums">
+              {log.length}
+            </span>
           </CardTitle>
           <Select
             id="log-filter"
@@ -237,28 +308,40 @@ export function PlanScreen() {
               <button
                 key={s.id}
                 onClick={() => openWith({ kind: 'session-detail', session: s })}
-                className="border-border hover:border-primary/50 hover:bg-secondary/40 flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors"
+                className="border-border hover:border-primary/50 hover:bg-secondary/40 flex w-full items-center gap-3 overflow-hidden rounded-xl border p-3 text-left transition-colors"
               >
+                {/* Category colour rail */}
+                <span
+                  className="h-10 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: cat.color }}
+                  aria-hidden
+                />
                 <span
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: `${cat.color}1a`, color: cat.color }}
+                  style={{ backgroundColor: `${cat.color}1f`, color: cat.color }}
+                  aria-hidden
                 >
                   <CategoryIcon name={cat.icon} size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{s.title}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {formatDateLabel(s.date)} · {formatMinutes(s.durationMin)} ·{' '}
-                    {formatCalories(s.calories)}
-                    {s.distanceKm !== undefined
-                      ? ` · ${formatDistance(s.distanceKm, state.profile.distanceUnit)}`
-                      : ''}
-                    {s.exercises && s.exercises.length > 0
-                      ? ` · ${s.exercises.length} exercise${s.exercises.length === 1 ? '' : 's'}`
-                      : ''}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <MetaChip>{formatDateLabel(s.date)}</MetaChip>
+                    <MetaChip>{formatMinutes(s.durationMin)}</MetaChip>
+                    <MetaChip>{formatCalories(s.calories)}</MetaChip>
+                    {s.distanceKm !== undefined && (
+                      <MetaChip>
+                        {formatDistance(s.distanceKm, state.profile.distanceUnit)}
+                      </MetaChip>
+                    )}
+                    {s.exercises && s.exercises.length > 0 && (
+                      <MetaChip>
+                        {s.exercises.length} exercise{s.exercises.length === 1 ? '' : 's'}
+                      </MetaChip>
+                    )}
+                  </div>
                 </div>
-                <Badge variant="secondary" className="hidden sm:inline-flex">
+                <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">
                   {cat.name}
                 </Badge>
                 <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
