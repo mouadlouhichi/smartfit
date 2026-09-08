@@ -93,13 +93,20 @@ screens       components/dashboard/screens/*, auth, onboarding, landing
 
 Shared by `Input` and `Select` (kept byte-identical in their class strings):
 
+Soft-fill pills — controls sit *on* cards as tinted chips (the same visual
+family as `MetaChip`/segmented controls), never as bordered browser defaults:
+
 | State | Treatment |
 | --- | --- |
-| default | `h-10 rounded-xl border-input bg-background shadow-sm text-sm` |
-| focus-visible | `border-ring` + 2px ring (`focus-visible:ring-ring`) |
-| invalid | `aria-[invalid=true]:border-destructive` |
+| default | `h-10 rounded-xl border-transparent bg-secondary text-sm font-medium` (no shadow) |
+| hover | `bg-secondary/70` |
+| focus-visible | surface lifts to `bg-background` + `border-ring` + 2px ring |
+| invalid | `aria-[invalid=true]:border-destructive bg-destructive/5` |
 | disabled | `opacity-50 cursor-not-allowed` |
 | size overrides | via `className` (twMerge wins, e.g. `h-9 w-40` on the body chart select) |
+
+Freeform multi-line entry (coach composer) mirrors the same fill:
+`bg-secondary rounded-2xl` textarea with the identical focus ring.
 
 ## 6. Accessibility contract
 

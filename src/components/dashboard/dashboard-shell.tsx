@@ -26,19 +26,19 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <ConfirmProvider>
       <ModalProvider>
-        {/* Desktop layout is flush: no outer padding/gap, full-height rail */}
+        {/* Desktop layout: canvas-flushed content with a floating pill rail */}
         <div className="mx-auto flex min-h-dvh w-full max-w-[1500px] gap-0 p-0">
-          {/* Dark rail (desktop) — matches the reference sidebar */}
-          <aside className="bg-charcoal sticky top-0 hidden h-dvh w-24 shrink-0 flex-col items-center rounded-none px-2 py-6 lg:flex">
+          {/* Dark rail (desktop) — floating rounded pill, per the reference */}
+          <aside className="bg-charcoal sticky top-3 ml-3 hidden h-[calc(100dvh-1.5rem)] w-24 shrink-0 flex-col items-center rounded-[2.75rem] px-2 py-5 lg:flex">
             <Link
               href="/"
               aria-label="SmartFit home"
-              className="mb-8 rounded-2xl transition-transform hover:scale-105"
+              className="mb-7 rounded-full transition-transform hover:scale-105"
             >
-              <Logo size={44} />
+              <Logo size={46} className="rounded-full" />
             </Link>
 
-            <nav className="flex flex-1 flex-col items-center gap-5">
+            <nav className="flex flex-1 flex-col items-center gap-4">
               {RAIL_ITEMS.map((item) => {
                 const active = isActive(pathname, item.href);
                 return (
@@ -73,7 +73,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               })}
             </nav>
 
-            <div className="mt-4 flex h-10 w-10 items-center justify-center">
+            <div className="mt-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
               <ThemeToggleDark />
             </div>
           </aside>
