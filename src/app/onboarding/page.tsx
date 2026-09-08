@@ -7,12 +7,12 @@ import { Logo, Wordmark } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store-context';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { GOAL_METRIC_META, PLANS } from '@smartfit/core';
+import { GYM_PROGRAMS, GOAL_METRIC_META, PLANS, formatWeight, fromKg, toKg } from '@smartfit/core';
 import { toISODate } from '@smartfit/core';
 import { env } from '@/lib/env';
 
@@ -33,6 +33,13 @@ export default function OnboardingPage() {
   const [planId, setPlanId] = useState(state.profile.planId ?? env.defaultPlan);
   const [goalMetric, setGoalMetric] = useState<'workouts' | 'minutes'>('workouts');
   const [goalTarget, setGoalTarget] = useState('4');
+  // Optional: activate the suggested-program engine from day one.
+  const [targetWeight, setTargetWeight] = useState(
+    state.profile.targetWeightKg != null
+      ? String(Number(fromKg(state.profile.targetWeightKg, weightUnit).toFixed(1)))
+      : '',
+  );
+  const [gymId, setGymId] = useState(state.profile.gymId ?? '');
 
   function finish() {
     if (Number(goalTarget) > 0) {
@@ -47,6 +54,7 @@ export default function OnboardingPage() {
     // One atomic write that also flips `onboardingDone`, so the dashboard's
     // guard sees a finished profile the moment we navigate. (This used to be
     // two writes separated by a setTimeout, which raced the redirect.)
+    const targetKg = parsedTargetWeight();
     completeOnboarding({
       // The name is required by `canNext`, so there is never an invented
       // stand-in identity to fall back to.
@@ -55,12 +63,28 @@ export default function OnboardingPage() {
       distanceUnit,
       weeklyRestDays: restDays,
       planId,
+      ...(targetKg != null ? { targetWeightKg: targetKg } : {}),
+      ...(gymId ? { gymId } : {}),
     });
     router.replace('/dashboard');
   }
 
+  /** Null when left empty; `canNext` keeps invalid values off this path. */
+  function parsedTargetWeight(): number | null {
+    const trimmed = targetWeight.trim();
+    if (trimmed === '') return null;
+    const kg = toKg(Number(trimmed), weightUnit);
+    return Number.isFinite(kg) && kg >= 20 && kg <= 400 ? Math.round(kg * 10) / 10 : null;
+  }
+
   const nameOk = name.trim().length > 0;
-  const canNext = step === 1 ? nameOk : true;
+  const targetWeightOk =
+    targetWeight.trim() === '' ||
+    (() => {
+      const kg = toKg(Number(targetWeight), weightUnit);
+      return Number.isFinite(kg) && kg >= 20 && kg <= 400;
+    })();
+  const canNext = step === 1 ? nameOk && targetWeightOk : true;
 
   return (
     <div className="bg-background flex min-h-dvh flex-col">
@@ -118,52 +142,66 @@ export default function OnboardingPage() {
               <UserRound className="h-5 w-5" />
               <h2 className="text-xl font-bold">About you</h2>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="ob-name">What should we call you?</Label>
+            <Field id="ob-name" label="What should we call you?">
               <Input
-                id="ob-name"
                 autoFocus
                 placeholder="Your name"
                 value={name}
+                maxLength={80}
                 onChange={(e) => setName(e.target.value)}
               />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="ob-unit">Preferred weight unit</Label>
+            </Field>
+            <Field id="ob-unit" label="Preferred weight unit">
               <Select
-                id="ob-unit"
                 value={weightUnit}
                 onChange={(e) => setWeightUnit(e.target.value as 'kg' | 'lb')}
               >
                 <option value="kg">Kilograms (kg)</option>
                 <option value="lb">Pounds (lb)</option>
               </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="ob-dist">Preferred distance unit</Label>
+            </Field>
+            <Field id="ob-dist" label="Preferred distance unit">
               <Select
-                id="ob-dist"
                 value={distanceUnit}
                 onChange={(e) => setDistanceUnit(e.target.value as 'km' | 'mi')}
               >
                 <option value="km">Kilometres (km)</option>
                 <option value="mi">Miles (mi)</option>
               </Select>
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="ob-rest">Rest days per week</Label>
-              <Select
-                id="ob-rest"
-                value={restDays}
-                onChange={(e) => setRestDays(Number(e.target.value))}
-              >
+            </Field>
+            <Field id="ob-rest" label="Rest days per week">
+              <Select value={restDays} onChange={(e) => setRestDays(Number(e.target.value))}>
                 {[1, 2, 3].map((n) => (
                   <option key={n} value={n}>
                     {n} day{n > 1 ? 's' : ''}
                   </option>
                 ))}
               </Select>
-            </div>
+            </Field>
+            <Field
+              id="ob-target-weight"
+              label={`Target weight (${weightUnit}) — optional`}
+              hint="Powers the suggested gym program: the weekly mix adapts to how far you are from it."
+              error={
+                targetWeightOk
+                  ? null
+                  : `Enter a weight between ${formatWeight(20, weightUnit)} and ${formatWeight(
+                      400,
+                      weightUnit,
+                    )}.`
+              }
+            >
+              <Input
+                type="number"
+                min={20}
+                max={400}
+                step="0.5"
+                inputMode="decimal"
+                placeholder="e.g. 78"
+                value={targetWeight}
+                onChange={(e) => setTargetWeight(e.target.value)}
+              />
+            </Field>
           </div>
         )}
 
@@ -196,6 +234,20 @@ export default function OnboardingPage() {
                 </button>
               ))}
             </div>
+            <Field
+              id="ob-gym"
+              label="Your gym — optional"
+              hint="Picking it unlocks a suggested week built from the gym's real class timetable."
+            >
+              <Select value={gymId} onChange={(e) => setGymId(e.target.value)}>
+                <option value="">No gym — build my week manually</option>
+                {GYM_PROGRAMS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
           </div>
         )}
 
@@ -226,17 +278,17 @@ export default function OnboardingPage() {
                 </button>
               ))}
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="ob-target">Target ({GOAL_METRIC_META[goalMetric].unit})</Label>
+            <Field id="ob-target" label={`Target (${GOAL_METRIC_META[goalMetric].unit})`}>
               <Input
-                id="ob-target"
                 type="number"
                 min={1}
-                step={GOAL_METRIC_META[goalMetric].step}
+                // step="any": the metric step ladders (e.g. 30 min from min=1)
+                // invalidated the prefilled target and blocked progression.
+                step="any"
                 value={goalTarget}
                 onChange={(e) => setGoalTarget(e.target.value)}
               />
-            </div>
+            </Field>
           </div>
         )}
 
@@ -256,6 +308,15 @@ export default function OnboardingPage() {
                   label="First goal"
                   value={`${goalTarget} ${GOAL_METRIC_META[goalMetric].unit} / week`}
                 />
+                {GYM_PROGRAMS.find((p) => p.id === gymId) && (
+                  <Row label="Gym" value={GYM_PROGRAMS.find((p) => p.id === gymId)?.name ?? ''} />
+                )}
+                {parsedTargetWeight() != null && (
+                  <Row
+                    label="Target weight"
+                    value={formatWeight(parsedTargetWeight() ?? 0, weightUnit)}
+                  />
+                )}
               </CardContent>
             </Card>
             <p className="text-muted-foreground mt-4 text-sm">

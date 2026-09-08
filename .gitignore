@@ -50,5 +50,11 @@ next-env.d.ts
 apps/*/.turbo/
 packages/*/.turbo/
 
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # local image-search working files
 /image-search/

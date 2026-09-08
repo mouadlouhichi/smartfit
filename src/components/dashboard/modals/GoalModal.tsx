@@ -11,16 +11,18 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
+import { useConfirm } from '../confirm-context';
 import { GOAL_METRIC_META, fromKm, toKm, toISODate } from '@smartfit/core';
 import type { GoalCadence, GoalMetric } from '@smartfit/core';
 import { Trash2 } from 'lucide-react';
 
 export function GoalModal() {
   const { state, addGoal, updateGoal, deleteGoal } = useStore();
+  const confirmDialog = useConfirm();
   const { closeModal } = useModals();
   const payload = usePayload('goal');
   const open = payload !== null;
@@ -30,6 +32,7 @@ export function GoalModal() {
   const [metric, setMetric] = useState<GoalMetric>('workouts');
   const [cadence, setCadence] = useState<GoalCadence>('weekly');
   const [target, setTarget] = useState('5');
+  const [targetError, setTargetError] = useState<string | null>(null);
 
   const distanceUnit = state.profile.distanceUnit;
 
@@ -56,7 +59,12 @@ export function GoalModal() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const typed = Number(target) || 1;
+    const typed = Number(target);
+    if (!Number.isFinite(typed) || typed <= 0) {
+      setTargetError('Enter a target bigger than zero.');
+      return;
+    }
+    setTargetError(null);
     const record = {
       name: name.trim() || `${meta.label} goal`,
       metric,
@@ -68,9 +76,15 @@ export function GoalModal() {
     closeModal();
   }
 
-  function remove() {
+  async function remove() {
     if (!editing) return;
-    if (!confirm(`Delete "${editing.name}"?`)) return;
+    const ok = await confirmDialog({
+      title: 'Delete this goal?',
+      body: `"${editing.name}" and its progress will be removed. This cannot be undone.`,
+      confirmLabel: 'Delete goal',
+      destructive: true,
+    });
+    if (!ok) return;
     deleteGoal(editing.id);
     closeModal();
   }
@@ -88,53 +102,46 @@ export function GoalModal() {
           </DialogHeader>
 
           <div className="mt-4 grid gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="g-name">Name</Label>
+            <Field id="g-name" label="Name">
               <Input
-                id="g-name"
                 placeholder="e.g. Train 5 days a week"
                 value={name}
+                maxLength={80}
                 onChange={(e) => setName(e.target.value)}
               />
-            </div>
+            </Field>
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="g-metric">Track</Label>
-                <Select
-                  id="g-metric"
-                  value={metric}
-                  onChange={(e) => setMetric(e.target.value as GoalMetric)}
-                >
+              <Field id="g-metric" label="Track">
+                <Select value={metric} onChange={(e) => setMetric(e.target.value as GoalMetric)}>
                   {Object.entries(GOAL_METRIC_META).map(([k, m]) => (
                     <option key={k} value={k}>
                       {m.label}
                     </option>
                   ))}
                 </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="g-cadence">Reset</Label>
-                <Select
-                  id="g-cadence"
-                  value={cadence}
-                  onChange={(e) => setCadence(e.target.value as GoalCadence)}
-                >
+              </Field>
+              <Field id="g-cadence" label="Reset">
+                <Select value={cadence} onChange={(e) => setCadence(e.target.value as GoalCadence)}>
                   <option value="weekly">Weekly</option>
                   <option value="monthly">Monthly</option>
                 </Select>
-              </div>
+              </Field>
             </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="g-target">Target ({targetUnit})</Label>
+            <Field id="g-target" label={`Target (${targetUnit})`} error={targetError}>
               <Input
-                id="g-target"
                 type="number"
                 min={1}
-                step={meta.step}
+                // step="any": metric steps (30 min, 250 kcal, 5 km) made the
+                // browser reject perfectly sane targets — even the prefilled
+                // default — and silently block the submit.
+                step="any"
                 value={target}
-                onChange={(e) => setTarget(e.target.value)}
+                onChange={(e) => {
+                  setTarget(e.target.value);
+                  setTargetError(null);
+                }}
               />
-            </div>
+            </Field>
           </div>
 
           <DialogFooter className="mt-6 sm:justify-between">

@@ -1,26 +1,105 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CalendarCheck2, ChevronRight, Clock, Pencil, Plus, Tag } from 'lucide-react';
+import {
+  CalendarCheck2,
+  ChevronRight,
+  Clock,
+  Download,
+  History,
+  Loader2,
+  Moon,
+  Pencil,
+  Play,
+  Plus,
+  Sparkles,
+  Tag,
+} from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
+import { useConfirm } from '../confirm-context';
+import { useToast } from '@/components/ui/toast';
+import { categoryArt } from '@/lib/category-art';
 import { EmptyState } from '../empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
+import { Field } from '@/components/ui/field';
 import { CategoryIcon } from '@/components/category-icon';
 import { INTENSITY_META, PLANS, WEEKDAYS, WEEKDAYS_LONG } from '@smartfit/core';
-import { categoryById, getPlan } from '@smartfit/core';
+import {
+  categoryById,
+  getGymProgram,
+  getPlan,
+  suggestProgram,
+  suggestedToSchedule,
+  suggestSummary,
+} from '@smartfit/core';
 import { formatCalories, formatDateLabel, formatDistance, formatMinutes } from '@smartfit/core';
+import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { ScheduledWorkout } from '@smartfit/core';
 
+/** Small neutral metadata pill used across rows. */
+function MetaChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="bg-secondary text-secondary-foreground inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap tabular-nums">
+      {children}
+    </span>
+  );
+}
+
 export function PlanScreen() {
-  const { state, updateProfile, updateSchedule } = useStore();
+  const {
+    state,
+    updateProfile,
+    updateSchedule,
+    replaceSchedule,
+    hasMoreSessions,
+    loadingMore,
+    loadEarlierSessions,
+  } = useStore();
   const { openModal, openWith } = useModals();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [filter, setFilter] = useState('all');
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  // Selected gym program (Profile → Gym program): suggestions are built from
+  // its real timetable and recomputed whenever the strategy, latest weight
+  // log or target weight changes.
+  const gymProgram = useMemo(() => getGymProgram(state.profile.gymId), [state.profile.gymId]);
+  const suggested = useMemo(
+    () => (gymProgram ? suggestProgram(state, gymProgram) : []),
+    [state, gymProgram],
+  );
+  const mixLine = suggestSummary(state);
+
+  async function importSuggestion() {
+    const ok = await confirm({
+      title: 'Import suggested week?',
+      body: `Your current scheduled sessions are replaced with the ${
+        gymProgram?.name ?? 'gym'
+      } classes shown here.`,
+      confirmLabel: 'Replace my week',
+      destructive: true,
+    });
+    if (ok) {
+      replaceSchedule(suggestedToSchedule(suggested));
+      toast(`Week imported — ${suggested.length} sessions scheduled`);
+    }
+  }
+
+  async function loadMore() {
+    setPageError(null);
+    try {
+      await loadEarlierSessions();
+    } catch (e) {
+      setPageError(e instanceof Error ? e.message : 'Could not load older workouts.');
+    }
+  }
 
   const plan = getPlan(state.profile.planId);
   const today = new Date().getDay();
@@ -55,32 +134,36 @@ export function PlanScreen() {
         </Button>
       </div>
 
-      {/* Plan strategy */}
+      {/* ── Plan strategy ──────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarCheck2 className="text-primary h-4 w-4" /> Strategy
+          <CardTitle className="flex items-center gap-2.5 text-base">
+            <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+              <CalendarCheck2 className="h-4.5 w-4.5" aria-hidden />
+            </span>
+            Strategy
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <label htmlFor="plan-strategy" className="text-muted-foreground text-xs font-medium">
-              Training strategy
-            </label>
-            <Select
-              id="plan-strategy"
-              value={state.profile.planId}
-              onChange={(e) => updateProfile({ planId: e.target.value as typeof plan.id })}
-            >
-              {PLANS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} · {p.sessionsPerWeek}×/week
-                </option>
-              ))}
-            </Select>
-            <p className="text-muted-foreground text-xs">{plan.description}</p>
+        <CardContent className="grid gap-5 sm:grid-cols-2">
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-display text-lg font-extrabold tracking-tight">{plan.name}</p>
+              <Badge variant="accent">{plan.sessionsPerWeek}×/week</Badge>
+            </div>
+            <Field id="plan-strategy" label="Training strategy" hint={plan.description}>
+              <Select
+                value={state.profile.planId}
+                onChange={(e) => updateProfile({ planId: e.target.value as typeof plan.id })}
+              >
+                {PLANS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {p.sessionsPerWeek}×/week
+                  </option>
+                ))}
+              </Select>
+            </Field>
           </div>
-          <div className="grid gap-1.5">
+          <div className="grid gap-2">
             <span className="text-muted-foreground text-xs font-medium">Weekly split</span>
             <div className="flex flex-wrap gap-1.5">
               {WEEKDAYS.map((d, i) => {
@@ -90,7 +173,7 @@ export function PlanScreen() {
                   <span
                     key={d}
                     className={cn(
-                      'flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-xs font-semibold',
+                      'flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-xs font-bold',
                       slot ? 'text-white' : 'bg-secondary text-muted-foreground',
                       i === today && 'ring-primary ring-offset-card ring-2 ring-offset-2',
                     )}
@@ -102,26 +185,152 @@ export function PlanScreen() {
                 );
               })}
             </div>
+            <p className="text-muted-foreground text-xs">
+              Coloured days follow the strategy&rsquo;s focus — hover a day to see it.
+            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Week schedule */}
+      {/* ── Suggested program (gym-aware) ──────────────────────────────── */}
+      {gymProgram == null ? (
+        <Card>
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                <Sparkles className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Suggested program</p>
+                <p className="text-muted-foreground text-xs">
+                  Pick your gym in Profile to unlock a weekly program built from its real class
+                  timetable — tuned to your target weight.
+                </p>
+              </div>
+            </div>
+            <Button size="sm" variant="outline" asChild>
+              <Link href="/dashboard/profile">Choose gym</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-2.5 text-base">
+              <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+                <Sparkles className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              Suggested program
+              <Badge variant="accent">{gymProgram.name}</Badge>
+            </CardTitle>
+            <p className="text-muted-foreground text-xs">{mixLine}</p>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            {suggested.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No matching classes on your training days — try another strategy or add sessions
+                manually.
+              </p>
+            ) : (
+              <ul className="grid gap-1.5">
+                {suggested.map((s) => {
+                  const meta = INTENSITY_META[s.gymClass.intensity];
+                  return (
+                    <li
+                      key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
+                      className="bg-secondary/50 flex items-center gap-3 rounded-xl px-3 py-2"
+                    >
+                      <span className="w-11 text-xs font-bold tabular-nums">
+                        {WEEKDAYS_LONG[s.weekday]}
+                      </span>
+                      <span className="text-muted-foreground w-11 text-xs font-semibold tabular-nums">
+                        {s.time}
+                      </span>
+                      <span className="flex-1 truncate text-sm font-semibold">
+                        {s.gymClass.name}
+                      </span>
+                      <span className="text-muted-foreground hidden text-xs tabular-nums sm:inline">
+                        {formatMinutes(s.gymClass.minutes)}
+                      </span>
+                      <span
+                        className="flex items-center gap-1.5 text-xs font-bold whitespace-nowrap"
+                        style={{ color: meta.color }}
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: meta.color }}
+                          aria-hidden
+                        />
+                        {meta.label}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-muted-foreground text-xs">{gymProgram.hours}</p>
+              <Button
+                size="sm"
+                onClick={importSuggestion}
+                disabled={suggested.length === 0}
+                data-testid="import-suggested-week"
+              >
+                <Download className="h-4 w-4" /> Import into my plan
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Week schedule ──────────────────────────────────────────────── */}
       <div className="grid gap-3">
-        <h2 className="text-muted-foreground text-sm font-semibold">Your week</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Your week</h2>
+          <span className="bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-xs font-bold tabular-nums">
+            {state.schedule.filter((s) => s.active).length} active session
+            {state.schedule.filter((s) => s.active).length === 1 ? '' : 's'}
+          </span>
+        </div>
         <div className="grid gap-2 sm:grid-cols-2">
           {WEEKDAYS_LONG.map((day, i) => {
             const items = scheduledByDay.get(i) ?? [];
             const isToday = i === today;
             return (
-              <Card key={day} className={cn(isToday && 'border-primary/50 ring-primary/30 ring-1')}>
+              <Card
+                key={day}
+                className={cn(
+                  isToday && 'border-primary/50 ring-primary/25 ring-1',
+                  !isToday && 'hover:shadow-md',
+                )}
+              >
                 <CardContent className="p-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className={cn('text-sm font-semibold', isToday && 'text-primary')}>
-                      {day} {isToday && '· today'}
+                  <div className="mb-2.5 flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2.5">
+                      <span
+                        className={cn(
+                          'flex h-8 w-8 items-center justify-center rounded-full text-xs font-extrabold',
+                          isToday
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-secondary text-secondary-foreground',
+                        )}
+                        aria-hidden
+                      >
+                        {day.slice(0, 1)}
+                      </span>
+                      <span className={cn('text-sm font-bold', isToday && 'text-primary')}>
+                        {day}
+                      </span>
+                      {isToday && (
+                        <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase">
+                          Today
+                        </span>
+                      )}
                     </span>
                     {items.length === 0 && (
-                      <span className="text-muted-foreground text-xs">Rest</span>
+                      <span className="text-muted-foreground inline-flex items-center gap-1 text-xs font-medium">
+                        <Moon className="h-3.5 w-3.5" aria-hidden /> Rest
+                      </span>
                     )}
                   </div>
                   <div className="grid gap-2">
@@ -136,19 +345,57 @@ export function PlanScreen() {
                             !s.active && 'opacity-60',
                           )}
                         >
-                          <span
-                            className="flex h-9 w-9 items-center justify-center rounded-lg"
-                            style={{ backgroundColor: `${cat?.color}1a`, color: cat?.color }}
-                          >
-                            <CategoryIcon name={cat?.icon ?? 'activity'} size={16} />
-                          </span>
+                          {categoryArt(s.categoryId) ? (
+                            /* eslint-disable-next-line @next/next/no-img-element -- static export */
+                            <img
+                              src={categoryArt(s.categoryId) ?? ''}
+                              alt=""
+                              aria-hidden
+                              className="h-10 w-10 shrink-0 rounded-lg object-cover shadow-sm"
+                            />
+                          ) : (
+                            <span
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                              style={{
+                                backgroundColor: `${cat?.color ?? '#bd4220'}1f`,
+                                color: cat?.color ?? 'var(--primary)',
+                              }}
+                            >
+                              <CategoryIcon name={cat?.icon ?? 'activity'} size={16} />
+                            </span>
+                          )}
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{s.title}</p>
-                            <p className="text-muted-foreground text-xs">
-                              {s.timeOfDay} · {formatMinutes(s.durationMin)} ·{' '}
-                              <span style={{ color: meta.color }}>{meta.label}</span>
+                            <p className="truncate text-sm font-bold">{s.title}</p>
+                            <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs">
+                              <span className="font-semibold capitalize">{s.timeOfDay}</span>
+                              <span aria-hidden>·</span>
+                              <span className="tabular-nums">{formatMinutes(s.durationMin)}</span>
+                              <span aria-hidden>·</span>
+                              <span className="inline-flex items-center gap-1">
+                                <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: meta.color }}
+                                  aria-hidden
+                                />
+                                {meta.label}
+                              </span>
                             </p>
                           </div>
+                          <button
+                            onClick={() =>
+                              openWith({
+                                kind: 'runner',
+                                title: s.title,
+                                categoryId: s.categoryId,
+                                intensity: s.intensity,
+                                scheduleId: s.id,
+                              })
+                            }
+                            className="bg-primary text-primary-foreground shadow-primary/25 flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95"
+                            aria-label={`Start ${s.title}`}
+                          >
+                            <Play className="ml-0.5 h-4 w-4" />
+                          </button>
                           <Switch
                             checked={s.active}
                             onCheckedChange={(v) => updateSchedule(s.id, { active: v })}
@@ -172,11 +419,17 @@ export function PlanScreen() {
         </div>
       </div>
 
-      {/* Training log */}
+      {/* ── Training log ───────────────────────────────────────────────── */}
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Clock className="text-primary h-4 w-4" /> Workout log
+          <CardTitle className="flex items-center gap-2.5 text-base">
+            <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+              <Clock className="h-4.5 w-4.5" aria-hidden />
+            </span>
+            Workout log
+            <span className="bg-secondary text-secondary-foreground rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums">
+              {log.length}
+            </span>
           </CardTitle>
           <Select
             id="log-filter"
@@ -211,34 +464,68 @@ export function PlanScreen() {
               <button
                 key={s.id}
                 onClick={() => openWith({ kind: 'session-detail', session: s })}
-                className="border-border hover:border-primary/50 hover:bg-secondary/40 flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors"
+                className="border-border hover:border-primary/50 hover:bg-secondary/40 flex w-full items-center gap-3 overflow-hidden rounded-xl border p-3 text-left transition-colors"
               >
+                {/* Category colour rail */}
+                <span
+                  className="h-10 w-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: cat.color }}
+                  aria-hidden
+                />
                 <span
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: `${cat.color}1a`, color: cat.color }}
+                  style={{ backgroundColor: `${cat.color}1f`, color: cat.color }}
+                  aria-hidden
                 >
                   <CategoryIcon name={cat.icon} size={16} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold">{s.title}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {formatDateLabel(s.date)} · {formatMinutes(s.durationMin)} ·{' '}
-                    {formatCalories(s.calories)}
-                    {s.distanceKm !== undefined
-                      ? ` · ${formatDistance(s.distanceKm, state.profile.distanceUnit)}`
-                      : ''}
-                    {s.exercises && s.exercises.length > 0
-                      ? ` · ${s.exercises.length} exercise${s.exercises.length === 1 ? '' : 's'}`
-                      : ''}
-                  </p>
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    <MetaChip>{formatDateLabel(s.date)}</MetaChip>
+                    <MetaChip>{formatMinutes(s.durationMin)}</MetaChip>
+                    <MetaChip>{formatCalories(s.calories)}</MetaChip>
+                    {s.distanceKm !== undefined && (
+                      <MetaChip>
+                        {formatDistance(s.distanceKm, state.profile.distanceUnit)}
+                      </MetaChip>
+                    )}
+                    {s.exercises && s.exercises.length > 0 && (
+                      <MetaChip>
+                        {s.exercises.length} exercise{s.exercises.length === 1 ? '' : 's'}
+                      </MetaChip>
+                    )}
+                  </div>
                 </div>
-                <Badge variant="secondary" className="hidden sm:inline-flex">
+                <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">
                   {cat.name}
                 </Badge>
                 <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
               </button>
             );
           })}
+          {hasMoreSessions && (
+            <div className="mt-1 flex flex-col items-center gap-1.5 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loadingMore !== null}
+                onClick={() => void loadMore()}
+                className="rounded-full"
+              >
+                {loadingMore === 'sessions' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <History className="h-4 w-4" />
+                )}
+                Load earlier workouts
+              </Button>
+              <p className="text-muted-foreground text-[11px]">
+                Long histories load in pages — older workouts stay in your account until you do.
+              </p>
+              {pageError && <p className="text-destructive text-xs">{pageError}</p>}
+            </div>
+          )}
         </CardContent>
       </Card>
 

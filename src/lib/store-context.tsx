@@ -38,10 +38,15 @@ import {
   ensureUserProfile,
   importState,
   loadUserState,
+  loadMoreSessions,
+  loadMoreBodyLogs,
   saveProfile,
   upsertItem,
   deleteItem,
+  replaceCollection,
   wipeUserData,
+  INITIAL_SESSION_LIMIT,
+  PAGE_SIZE,
   type CollectionName,
 } from './firebase/repo';
 import { WriteQueue, type SyncStatus } from './firebase/write-queue';
@@ -85,13 +90,31 @@ function readLocal(owner: string | null): FitnessState | null {
   }
 }
 
-function writeLocal(owner: string | null, state: FitnessState) {
-  if (typeof window === 'undefined') return;
+/** Returns false when the write failed (quota / storage disabled). */
+function writeLocal(owner: string | null, serialized: string): boolean {
+  if (typeof window === 'undefined') return true;
   try {
-    window.localStorage.setItem(storageKeyFor(owner), JSON.stringify(state));
+    window.localStorage.setItem(storageKeyFor(owner), serialized);
+    return true;
   } catch {
-    /* storage full / unavailable — the app keeps working in memory */
+    return false;
   }
+}
+
+/** Merge two descending-by-date session lists, de-duplicating by id. */
+function mergeSessionsDesc(a: WorkoutSession[], b: WorkoutSession[]): WorkoutSession[] {
+  const seen = new Set(a.map((s) => s.id));
+  return [...a, ...b.filter((s) => !seen.has(s.id))].sort((x, y) =>
+    x.date === y.date ? y.createdAt - x.createdAt : x.date < y.date ? 1 : -1,
+  );
+}
+
+/** Merge two descending-by-date body-log lists, de-duplicating by id. */
+function mergeBodyLogsDesc(a: BodyLog[], b: BodyLog[]): BodyLog[] {
+  const seen = new Set(a.map((l) => l.id));
+  return [...a, ...b.filter((l) => !seen.has(l.id))].sort((x, y) =>
+    x.date === y.date ? y.createdAt - x.createdAt : x.date < y.date ? 1 : -1,
+  );
 }
 
 function clearLocal(owner: string | null) {
@@ -114,6 +137,23 @@ interface StoreContextValue {
   syncError: string | null;
   retrySync: () => void;
 
+  /**
+   * True when the cloud account holds more history than the initial bounded
+   * load fetched — the log can page further back on demand.
+   */
+  hasMoreSessions: boolean;
+  hasMoreBodyLogs: boolean;
+  /** Which paged fetch (if any) is in flight, for button spinners. */
+  loadingMore: 'sessions' | 'body' | null;
+  loadEarlierSessions: () => Promise<void>;
+  loadEarlierBodyLogs: () => Promise<void>;
+  /** Full state including any un-loaded history pages (used by JSON export). */
+  collectFullState: () => Promise<FitnessState>;
+
+  /** Set when the on-device mirror could not be written (quota exceeded). */
+  storageFull: boolean;
+  dismissStorageWarning: () => void;
+
   /** Local data awaiting import into a freshly created cloud account. */
   pendingMigration: PendingMigration | null;
   importLocalData: () => Promise<void>;
@@ -127,6 +167,8 @@ interface StoreContextValue {
   addSchedule: (s: Omit<ScheduledWorkout, 'id' | 'createdAt'>) => void;
   updateSchedule: (id: string, patch: Partial<ScheduledWorkout>) => void;
   deleteSchedule: (id: string) => void;
+  /** Swap the whole scheduled week in one operation (suggested-program import). */
+  replaceSchedule: (items: Omit<ScheduledWorkout, 'id' | 'createdAt'>[]) => void;
   // goals
   addGoal: (g: Omit<FitnessGoal, 'id' | 'createdAt'>) => void;
   updateGoal: (id: string, patch: Partial<FitnessGoal>) => void;
@@ -159,10 +201,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [pendingMigration, setPendingMigration] = useState<PendingMigration | null>(null);
   const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [hasMoreSessions, setHasMoreSessions] = useState(false);
+  const [hasMoreBodyLogs, setHasMoreBodyLogs] = useState(false);
+  const [loadingMore, setLoadingMore] = useState<'sessions' | 'body' | null>(null);
+  const [storageFull, setStorageFull] = useState(false);
 
   const queueRef = useRef<WriteQueue | null>(null);
   if (queueRef.current === null) queueRef.current = new WriteQueue();
   const queue = queueRef.current;
+
+  /**
+   * Last serialisation this tab wrote (or adopted). The persistence effect
+   * skips re-writing identical content, which is also what stops two tabs from
+   * ping-ponging storage events at each other after a cross-tab adoption.
+   */
+  const lastSerialized = useRef<string | null>(null);
+  const snapshotRef = useRef(snapshot);
+  snapshotRef.current = snapshot;
 
   useEffect(() => {
     const unsub = queue.subscribe((status, _pending, error) => {
@@ -184,6 +239,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // until the new snapshot is ready.
     setSnapshot(BLANK);
     setPendingMigration(null);
+    setHasMoreSessions(false);
+    setHasMoreBodyLogs(false);
+    setLoadingMore(null);
+    setStorageFull(false);
+    lastSerialized.current = null;
     queue.clear();
 
     // In cloud mode, wait for auth to resolve before deciding what to load —
@@ -222,12 +282,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setSnapshot({ owner, ready: true, state: decision.state });
         // Offered, never applied automatically — a new account starts clean.
         setPendingMigration(decision.migration);
+        // A full initial window means the server-side query hit its limit, so
+        // there is very likely older history to page through on demand.
+        setHasMoreSessions(decision.state.sessions.length >= INITIAL_SESSION_LIMIT);
+        setHasMoreBodyLogs(decision.state.bodyLogs.length >= PAGE_SIZE);
       } catch {
         // Offline or Firestore unreachable: fall back to this account's
         // cached copy so the app is usable rather than stuck or empty.
         if (cancelled) return;
         const cached = readLocal(owner);
         setSnapshot({ owner, ready: true, state: cached ?? freshState() });
+        // The cache mirrors whatever was loaded before, so it can also be a
+        // truncated window. Offer paging when it looks like one; a fetch that
+        // comes back empty simply clears the flag.
+        setHasMoreSessions((cached?.sessions.length ?? 0) >= INITIAL_SESSION_LIMIT);
+        setHasMoreBodyLogs((cached?.bodyLogs.length ?? 0) >= PAGE_SIZE);
       }
     }
 
@@ -242,11 +311,54 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // ── Persistence ──────────────────────────────────────────────────────
   // Writes to the key that belongs to `snapshot.owner`, so cloud data is
-  // mirrored per-account and on-device data keeps the shared key.
+  // mirrored per-account and on-device data keeps the shared key. Identical
+  // content is never rewritten: that keeps the mirror cheap and is the guard
+  // that makes cross-tab adoption (below) converge instead of ping-ponging.
   useEffect(() => {
     if (!snapshot.ready) return;
-    writeLocal(snapshot.owner, snapshot.state);
+    const serialized = JSON.stringify(snapshot.state);
+    if (serialized === lastSerialized.current) return;
+    lastSerialized.current = serialized;
+    if (!writeLocal(snapshot.owner, serialized)) {
+      // Quota exceeded / storage disabled — the app keeps working in memory,
+      // but the user should know the offline mirror is gone.
+      setStorageFull(true);
+    }
   }, [snapshot]);
+
+  // ── Cross-tab adoption ───────────────────────────────────────────────
+  // Another tab writing to the same key means the same person edited the same
+  // data. Adopt its snapshot when this tab is idle (ready, no queued writes),
+  // so two open tabs converge instead of diverging until reload.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const owner = snapshot.owner;
+    const key = storageKeyFor(owner);
+
+    function onStorage(e: StorageEvent) {
+      if (e.key !== key || !e.newValue) return;
+      if (e.newValue === lastSerialized.current) return;
+      const cur = snapshotRef.current;
+      if (!cur.ready || cur.owner !== owner || queue.pending > 0) return;
+      let next: FitnessState | null = null;
+      try {
+        next = parseStateJSON(e.newValue);
+      } catch {
+        return;
+      }
+      if (!next) return;
+      // Remember our own serialisation of the adopted state (not the raw
+      // event value) so the persistence effect sees "already written" and
+      // adoption can never bounce back to the other tab.
+      lastSerialized.current = JSON.stringify(next);
+      setSnapshot((prev) =>
+        prev.ready && prev.owner === owner ? { ...prev, state: next! } : prev,
+      );
+    }
+
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [snapshot.owner, queue]);
 
   const enqueue = useCallback(
     (owner: string | null, key: string, run: () => Promise<void>) => {
@@ -325,6 +437,128 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       syncError,
       retrySync: () => queue.retry(),
 
+      hasMoreSessions,
+      hasMoreBodyLogs,
+      loadingMore,
+      dismissStorageWarning: () => setStorageFull(false),
+      storageFull,
+
+      loadEarlierSessions: async () => {
+        if (!owner || loadingMore) return;
+        const oldest = state.sessions[state.sessions.length - 1];
+        if (!oldest) {
+          setHasMoreSessions(false);
+          return;
+        }
+        setLoadingMore('sessions');
+        try {
+          const more = await loadMoreSessions(owner, {
+            date: oldest.date,
+            createdAt: oldest.createdAt,
+          });
+          setSnapshot((prev) =>
+            prev.owner === owner && prev.ready
+              ? {
+                  ...prev,
+                  state: {
+                    ...prev.state,
+                    sessions: mergeSessionsDesc(prev.state.sessions, more),
+                  },
+                }
+              : prev,
+          );
+          // A short page means we reached the beginning of the history.
+          setHasMoreSessions(more.length >= PAGE_SIZE);
+        } catch (err) {
+          // Let the caller surface it — a failed page fetch must not look
+          // like a successful end of history.
+          throw new Error('Could not load older workouts. Check your connection.', {
+            cause: err,
+          });
+        } finally {
+          setLoadingMore(null);
+        }
+      },
+
+      loadEarlierBodyLogs: async () => {
+        if (!owner || loadingMore) return;
+        const oldest = state.bodyLogs[state.bodyLogs.length - 1];
+        if (!oldest) {
+          setHasMoreBodyLogs(false);
+          return;
+        }
+        setLoadingMore('body');
+        try {
+          const more = await loadMoreBodyLogs(owner, {
+            date: oldest.date,
+            createdAt: oldest.createdAt,
+          });
+          setSnapshot((prev) =>
+            prev.owner === owner && prev.ready
+              ? {
+                  ...prev,
+                  state: { ...prev.state, bodyLogs: mergeBodyLogsDesc(prev.state.bodyLogs, more) },
+                }
+              : prev,
+          );
+          setHasMoreBodyLogs(more.length >= PAGE_SIZE);
+        } catch (err) {
+          throw new Error('Could not load older measurements. Check your connection.', {
+            cause: err,
+          });
+        } finally {
+          setLoadingMore(null);
+        }
+      },
+
+      collectFullState: async () => {
+        if (!owner) return state;
+        let sessions = state.sessions;
+        let bodyLogs = state.bodyLogs;
+        try {
+          // Page to the very beginning so the export/backup is complete,
+          // even for histories far beyond the initial bounded window.
+          for (let i = 0; i < 200 && sessions.length; i++) {
+            const cursor = sessions[sessions.length - 1];
+            const more = await loadMoreSessions(owner, {
+              date: cursor.date,
+              createdAt: cursor.createdAt,
+            });
+            if (!more.length) break;
+            const merged = mergeSessionsDesc(sessions, more);
+            const grew = merged.length > sessions.length;
+            sessions = merged;
+            if (!grew || more.length < PAGE_SIZE) break;
+          }
+          for (let i = 0; i < 200 && bodyLogs.length; i++) {
+            const cursor = bodyLogs[bodyLogs.length - 1];
+            const more = await loadMoreBodyLogs(owner, {
+              date: cursor.date,
+              createdAt: cursor.createdAt,
+            });
+            if (!more.length) break;
+            const merged = mergeBodyLogsDesc(bodyLogs, more);
+            const grew = merged.length > bodyLogs.length;
+            bodyLogs = merged;
+            if (!grew || more.length < PAGE_SIZE) break;
+          }
+        } catch {
+          // Export what is loaded rather than failing the whole download;
+          // the flags stay untouched so paging can still be retried.
+          return { ...state, sessions, bodyLogs };
+        }
+        if (sessions !== state.sessions || bodyLogs !== state.bodyLogs) {
+          setHasMoreSessions(false);
+          setHasMoreBodyLogs(false);
+          setSnapshot((prev) =>
+            prev.owner === owner && prev.ready
+              ? { ...prev, state: { ...prev.state, sessions, bodyLogs } }
+              : prev,
+          );
+        }
+        return { ...state, sessions, bodyLogs };
+      },
+
       pendingMigration,
       importLocalData: async () => {
         if (!pendingMigration || !owner) return;
@@ -342,6 +576,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         await importState(owner, merged);
         clearLocal(null); // it now lives in the cloud account
         setPendingMigration(null);
+        // The imported history is fully in memory now — nothing left to page.
+        setHasMoreSessions(false);
+        setHasMoreBodyLogs(false);
         setSnapshot((prev) => (prev.owner === owner ? { ...prev, state: merged } : prev));
       },
       /**
@@ -388,6 +625,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         mutate(
           (prev) => ({ ...prev, schedule: [...prev.schedule, item] }),
           upsert('schedule', item),
+        );
+      },
+      replaceSchedule: (items) => {
+        const now = Date.now();
+        const next: ScheduledWorkout[] = items.map((s, i) => ({
+          ...s,
+          id: uid('sch'),
+          createdAt: now + i,
+        }));
+        mutate(
+          (prev) => ({ ...prev, schedule: next }),
+          (fresh, owner) => ({
+            key: 'schedule:replace',
+            run: () => replaceCollection(owner, 'schedule', fresh.schedule),
+          }),
         );
       },
       updateSchedule: (id, patch) => {
@@ -484,6 +736,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         } else {
           clearLocal(null);
         }
+        lastSerialized.current = null;
+        setHasMoreSessions(false);
+        setHasMoreBodyLogs(false);
         setSnapshot({ owner, ready: true, state: blank });
       },
 
@@ -497,7 +752,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       replaceState: async (next) => {
         const clean = parseState(next);
-        if (owner) await importState(owner, clean);
+        if (owner) {
+          // A true replace: wipe the remote tree before uploading the backup.
+          // A set-only import would leave every cloud document the file does
+          // not contain in place, and they would resurface on the next reload
+          // — the opposite of what the confirm dialog promises.
+          await wipeUserData(owner);
+          await importState(owner, clean);
+          clearLocal(owner);
+        }
+        lastSerialized.current = null;
+        setHasMoreSessions(false);
+        setHasMoreBodyLogs(false);
         setSnapshot((prev) => ({ ...prev, state: clean, ready: true }));
       },
 
@@ -510,6 +776,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     owner,
     syncStatus,
     syncError,
+    hasMoreSessions,
+    hasMoreBodyLogs,
+    loadingMore,
+    storageFull,
     pendingMigration,
     mutate,
     upsert,

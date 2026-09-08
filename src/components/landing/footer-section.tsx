@@ -79,7 +79,7 @@ export function FooterSection() {
               </Link>
               <p className="max-w-xs leading-relaxed text-[color:var(--muted-foreground)]">
                 The free, private workout tracker. Plan, log and understand your training — no
-                wearables, no subscriptions, no data leaving your device.
+                wearables, no subscriptions, no trackers, no ads.
               </p>
               <p className="mt-4 text-xs leading-relaxed text-[color:var(--muted-foreground)]">
                 SmartFit is a tracker, not a medical device — train within your limits.

@@ -105,7 +105,7 @@ export function OverviewScreen() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       {/* ── Center / left column ─────────────────────────────── */}
-      <div className="bg-card rounded-[2rem] p-6 shadow-sm sm:p-8 lg:p-10">
+      <div className="bg-card rounded-[2rem] p-6 shadow-sm sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="font-display text-[2rem] leading-[1.05] font-extrabold tracking-tight sm:text-4xl lg:text-[2.75rem]">
             {firstName ? `Let's go,` : `Let's start`}
@@ -127,10 +127,7 @@ export function OverviewScreen() {
             <button
               onClick={() => openModal('workout')}
               aria-label="Log workout"
-              className="bg-primary relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-90"
-              style={{
-                boxShadow: '0 0 0 6px rgba(224,94,54,0.18), 0 10px 24px -6px rgba(224,94,54,0.65)',
-              }}
+              className="zap-glow bg-primary relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-90"
             >
               <Zap className="h-6 w-6" strokeWidth={2.6} fill="currentColor" />
             </button>
@@ -329,7 +326,7 @@ export function OverviewScreen() {
                     Recent activity
                   </h3>
                   <Link
-                    href="/dashboard/progress"
+                    href="/dashboard/plan"
                     className="text-primary flex items-center gap-0.5 text-xs font-semibold hover:underline"
                   >
                     See all <ChevronRight className="h-3.5 w-3.5" />
@@ -368,9 +365,13 @@ export function OverviewScreen() {
         </div>
       </div>
 
-      {/* ── Right column: coach (desktop) ────────────────────── */}
-      <div className="hidden lg:block">
-        <CoachPanel />
+      {/* ── Right column: coach (desktop) ──────────────────────
+          Sticky + viewport-capped: the panel follows the scroll and keeps a
+          chat-sized height instead of stretching the full feed height.
+          self-start is required for sticky to have travel inside the grid
+          area; the height overrides CoachPanel's h-full via tailwind-merge. */}
+      <div className="hidden lg:sticky lg:top-5 lg:block lg:self-start">
+        <CoachPanel className="h-[min(760px,calc(100dvh-2.5rem))]" />
       </div>
     </div>
   );

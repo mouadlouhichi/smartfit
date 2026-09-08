@@ -38,4 +38,15 @@ export const env = {
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID?.trim() ?? '',
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID?.trim() ?? '',
   },
+  /**
+   * Optional AI coach. Any OpenAI-compatible chat-completions endpoint works
+   * (Gemini's OpenAI layer, Groq, OpenRouter, Pollinations, a self-hosted
+   * proxy…). Unset means the on-device rule-based coach answers everything —
+   * nothing is ever sent anywhere by default.
+   */
+  ai: {
+    endpoint: process.env.NEXT_PUBLIC_AI_ENDPOINT?.trim() ?? '',
+    apiKey: process.env.NEXT_PUBLIC_AI_API_KEY?.trim() ?? '',
+    model: process.env.NEXT_PUBLIC_AI_MODEL?.trim() ?? '',
+  },
 } as const;

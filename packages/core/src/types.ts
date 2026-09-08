@@ -101,6 +101,13 @@ export interface BodyLog {
 
 export type PlanId = 'ppl' | 'upper-lower' | 'full-body' | 'cardio-focus';
 
+/** Subscription stamp for the paid tier (see `pro.ts`); receipt checks happen in the billing adapter. */
+export interface ProStatus {
+  plan: 'monthly' | 'yearly';
+  /** Epoch ms of activation. */
+  since: number;
+}
+
 export interface Plan {
   id: PlanId;
   name: string;
@@ -119,6 +126,19 @@ export interface UserProfile {
   weekStartsOn: WeekStart;
   planId: PlanId;
   onboardingDone: boolean;
+  /**
+   * Optional target body weight in canonical kg. Drives the suggested
+   * program mix (burn-heavy while far away, maintenance once reached).
+   */
+  targetWeightKg?: number;
+  /**
+   * Optional selected gym program id (see GYM_PROGRAMS, e.g. 'zone-fight').
+   * When set, the app proposes a weekly program built from that gym's real
+   * class timetable.
+   */
+  gymId?: string;
+  /** SmartFit Pro subscription stamp (absent = free tier). */
+  pro?: ProStatus;
 }
 
 export interface FitnessState {
