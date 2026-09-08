@@ -77,6 +77,13 @@ export interface ScheduledWorkout {
   intensity: Intensity;
   active: boolean;
   createdAt: number;
+  /**
+   * The routine this slot runs — its exercise list, with target sets.
+   * Optional and backwards-compatible: a slot without one still works as a
+   * reminder, and the guided runner simply starts from an empty list.
+   * This is what turns a schedule entry into a real *workout template*.
+   */
+  exercises?: WorkoutExercise[];
 }
 
 export interface FitnessGoal {
@@ -103,7 +110,12 @@ export type PlanId = 'ppl' | 'upper-lower' | 'full-body' | 'cardio-focus';
 
 /** Subscription stamp for the paid tier (see `pro.ts`); receipt checks happen in the billing adapter. */
 export interface ProStatus {
-  plan: 'monthly' | 'yearly';
+  /**
+   * `trial` is issued locally by the sandbox billing adapter for the free
+   * trial and expires after `PRO_TRIAL_DAYS`; `monthly`/`yearly` come from a
+   * real receipt and never expire client-side.
+   */
+  plan: 'monthly' | 'yearly' | 'trial';
   /** Epoch ms of activation. */
   since: number;
 }

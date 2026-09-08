@@ -155,8 +155,8 @@ function parseProfile(v: unknown): UserProfile {
   // Optional Pro stamp: only a well-formed {plan, since} pair is kept.
   if (isObj(v.pro)) {
     const rawPlan = v.pro.plan;
-    const plan: 'monthly' | 'yearly' | null =
-      rawPlan === 'monthly' || rawPlan === 'yearly' ? rawPlan : null;
+    const plan: 'monthly' | 'yearly' | 'trial' | null =
+      rawPlan === 'monthly' || rawPlan === 'yearly' || rawPlan === 'trial' ? rawPlan : null;
     const since = num(v.pro.since, 0);
     if (plan && since > 0) profile.pro = { plan, since };
   }
@@ -203,7 +203,7 @@ function parseSchedule(v: unknown): ScheduledWorkout | null {
   const id = str(v.id).trim();
   if (!id) return null;
   const time = str(v.timeOfDay, '07:00');
-  return {
+  const slot: ScheduledWorkout = {
     id,
     title: str(v.title, 'Scheduled session'),
     categoryId: str(v.categoryId, 'cat-strength'),
@@ -214,6 +214,11 @@ function parseSchedule(v: unknown): ScheduledWorkout | null {
     active: bool(v.active, true),
     createdAt: num(v.createdAt, Date.now()),
   };
+  // Optional routine: only kept when it parses to a non-empty list, so a
+  // plain reminder stays keyless rather than carrying `exercises: []`.
+  const routine = exercises(v.exercises);
+  if (routine.length > 0) slot.exercises = routine;
+  return slot;
 }
 
 function parseGoal(v: unknown): FitnessGoal | null {

@@ -19,6 +19,33 @@ export function formatCalories(kcal: number): string {
 }
 
 /**
+ * Tonnage: kg under the bar × reps, rendered in the athlete's weight unit.
+ * Rolls up to tonnes above 1,000 kg so long histories stay readable
+ * ("12.4 t" rather than "12,400 kg").
+ */
+export function formatVolume(kg: number, unit: WeightUnit = 'kg'): string {
+  const display = fromKg(kg, unit);
+  // Roll up to tonnes only in metric — "2.2 t" is meaningless to a lb user,
+  // who gets a plain grouped number instead.
+  if (unit === 'kg' && display >= 1000) return `${formatNumber(display / 1000)} t`;
+  return `${formatNumber(Math.round(display), 0)} ${unit}`;
+}
+
+/** A single set, the way the runner writes it: "8 × 60 kg" / "45s" / "2 km". */
+export function formatSet(
+  set: { reps?: number; weight?: number; distance?: number; duration?: number },
+  unit: WeightUnit = 'kg',
+): string {
+  if ((set.weight ?? 0) > 0 && (set.reps ?? 0) > 0) {
+    return `${set.reps} × ${formatWeight(set.weight!, unit)}`;
+  }
+  if ((set.reps ?? 0) > 0) return `${set.reps} reps`;
+  if ((set.distance ?? 0) > 0) return formatDistance(set.distance!, 'km');
+  if ((set.duration ?? 0) > 0) return formatMinutes(set.duration!);
+  return '—';
+}
+
+/**
  * Distance is stored in kilometres and rendered in the athlete's unit.
  * Pass the profile's `distanceUnit` at every call site — the default only
  * exists so the canonical value can be shown in unit-agnostic contexts.

@@ -7,17 +7,23 @@ import {
   ArrowUpRight,
   BarChart3,
   CalendarDays,
+  Dumbbell as DumbbellIcon,
   Flame,
   Footprints,
   Lock,
+  Medal,
   Timer,
   TrendingUp,
+  Trophy,
 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useStore } from '@/lib/store-context';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Ring } from '../ring';
 import { EmptyState } from '../empty-state';
+import { ConsistencyHeatmap } from '../consistency-heatmap';
+import { AchievementWall } from '../achievement-wall';
 import { cn } from '@/lib/utils';
 import { INTENSITY_META } from '@smartfit/core';
 import {
@@ -28,10 +34,24 @@ import {
   weeklySeries,
   targetsForDays,
   currentStreak,
-  isPro,
+  hasProAccess,
+  consistencyHeatmap,
+  heatmapActiveDays,
+  personalRecords,
+  computeAchievements,
+  muscleVolume,
+  FREE_RECORDS,
+  FREE_ACHIEVEMENTS,
 } from '@smartfit/core';
 import { useModals } from '../modal-context';
-import { formatCalories, formatDistance, formatMinutes } from '@smartfit/core';
+import {
+  formatCalories,
+  formatDistance,
+  formatMinutes,
+  formatWeight,
+  formatVolume,
+  relativeDay,
+} from '@smartfit/core';
 
 type Range = 'daily' | 'weekly' | 'monthly' | 'quarter' | 'year';
 const RANGES: { key: Range; label: string; days: number; pro?: boolean }[] = [
@@ -55,7 +75,7 @@ function rangeDaysSessions(state: ReturnType<typeof useStore>['state'], days: nu
 export function ProgressScreen() {
   const { state } = useStore();
   const { openWith } = useModals();
-  const pro = isPro(state);
+  const pro = hasProAccess(state);
   const [range, setRange] = useState<Range>('weekly');
   const days = RANGES.find((r) => r.key === range)!.days;
 
@@ -85,6 +105,13 @@ export function ProgressScreen() {
   }, [state, days]);
 
   const streak = useMemo(() => currentStreak(state), [state]);
+
+  // New engine surfaces: consistency grid, records, achievements, muscle mix.
+  const heatmap = useMemo(() => consistencyHeatmap(state, 18), [state]);
+  const heatDays = useMemo(() => heatmapActiveDays(heatmap), [heatmap]);
+  const records = useMemo(() => personalRecords(state), [state]);
+  const achievements = useMemo(() => computeAchievements(state), [state]);
+  const muscles = useMemo(() => muscleVolume(state, days), [state, days]);
 
   // Targets come from the user's goals (falling back to their plan) — the same
   // source the overview uses. Calories and distance rings only fill when the
@@ -291,6 +318,143 @@ export function ProgressScreen() {
           </div>
         )}
       </Card>
+
+      {/* ── Consistency heatmap (the retention grid) ─────────────────── */}
+      <Card className="p-5">
+        <p className="font-display mb-4 flex items-center gap-2 text-sm font-bold">
+          <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
+            <CalendarDays className="h-4 w-4" aria-hidden />
+          </span>
+          Consistency
+        </p>
+        {state.sessions.length === 0 ? (
+          <EmptyState
+            icon={CalendarDays}
+            title="No days trained yet"
+            body="Your training grid fills in as you log sessions — a visual streak to protect."
+          />
+        ) : (
+          <ConsistencyHeatmap
+            weeks={heatmap}
+            activeDays={heatDays}
+            weekStartsOn={state.profile.weekStartsOn}
+          />
+        )}
+      </Card>
+
+      {/* ── Personal records & 1RM (Pro shows the full history) ──────── */}
+      <Card className="p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="font-display flex items-center gap-2 text-sm font-bold">
+            <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
+              <Trophy className="h-4 w-4" aria-hidden />
+            </span>
+            Personal records
+          </p>
+          {!pro && records.length > FREE_RECORDS && (
+            <Button size="sm" onClick={() => openWith({ kind: 'pro' })}>
+              <Lock className="h-3.5 w-3.5" /> Unlock all {records.length}
+            </Button>
+          )}
+        </div>
+        {records.length === 0 ? (
+          <EmptyState
+            icon={Trophy}
+            title="No records yet"
+            body="Log a set with a weight and rep count and SmartFit scores your one-rep max."
+          />
+        ) : (
+          <ul className="grid gap-2">
+            {(pro ? records : records.slice(0, FREE_RECORDS)).map((r, i) => (
+              <li
+                key={r.name}
+                className="bg-secondary/60 flex items-center gap-3 rounded-xl px-3 py-2.5"
+              >
+                <span className="bg-primary/10 text-primary w-6 text-center text-sm font-extrabold tabular-nums">
+                  {i + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">{r.name}</p>
+                  <p className="text-muted-foreground text-xs tabular-nums">
+                    {r.bestReps} × {formatWeight(r.bestWeight, state.profile.weightUnit)} ·{' '}
+                    {relativeDay(r.date)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-display text-base font-extrabold tabular-nums">
+                    {formatWeight(r.bestE1rm, state.profile.weightUnit)}
+                  </p>
+                  <p className="text-muted-foreground text-[10px] tracking-wide uppercase">e1RM</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        {!pro && records.length > FREE_RECORDS && (
+          <button
+            onClick={() => openWith({ kind: 'pro' })}
+            className="bg-secondary/70 hover:bg-secondary mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold"
+          >
+            <Lock className="h-4 w-4" aria-hidden /> {records.length - FREE_RECORDS} more records
+            are a Pro feature
+          </button>
+        )}
+      </Card>
+
+      {/* ── Achievements wall (Pro unlocks the full wall) ────────────── */}
+      <Card className="p-5">
+        <p className="font-display mb-4 flex items-center gap-2 text-sm font-bold">
+          <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
+            <Medal className="h-4 w-4" aria-hidden />
+          </span>
+          Achievements
+        </p>
+        <AchievementWall
+          achievements={pro ? achievements : achievements.slice(0, FREE_ACHIEVEMENTS)}
+          lockedNote="Pro"
+        />
+        {!pro && achievements.length > FREE_ACHIEVEMENTS && (
+          <button
+            onClick={() => openWith({ kind: 'pro' })}
+            className="bg-secondary/70 hover:bg-secondary mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold"
+          >
+            <Lock className="h-4 w-4" aria-hidden /> Unlock all {achievements.length} badges
+          </button>
+        )}
+      </Card>
+
+      {/* ── Muscle-group volume ──────────────────────────────────────── */}
+      {muscles.length > 0 && (
+        <Card className="p-5">
+          <p className="font-display mb-4 flex items-center gap-2 text-sm font-bold">
+            <span className="bg-chart-4/10 text-chart-4 flex h-8 w-8 items-center justify-center rounded-xl">
+              <DumbbellIcon className="h-4 w-4" aria-hidden />
+            </span>
+            Volume by muscle · last {days} days
+          </p>
+          <ul className="grid gap-2.5">
+            {muscles.slice(0, 8).map((m) => {
+              const max = muscles[0]?.volume ?? 1;
+              return (
+                <li key={m.muscle} className="grid gap-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-semibold">{m.label}</span>
+                    <span className="text-muted-foreground tabular-nums">
+                      {formatVolume(m.volume, state.profile.weightUnit)} · {m.sets} sets
+                    </span>
+                  </div>
+                  <div className="bg-secondary h-2 overflow-hidden rounded-full">
+                    <div
+                      className="bg-chart-4 h-full rounded-full"
+                      style={{ width: `${Math.max(4, Math.round((m.volume / max) * 100))}%` }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-2">
         {/* ── Activity mix ─────────────────────────────────────────────── */}

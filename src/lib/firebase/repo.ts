@@ -238,7 +238,8 @@ export async function replaceCollection<T extends { id: string }>(
   for (let i = 0; i < ops.length; i += 400) {
     const batch = writeBatch(db);
     for (const op of ops.slice(i, i + 400)) {
-      if (op.item) batch.set(op.ref, op.item);
+      // Same shape as a single upsert: no `id` field, no nested `undefined`.
+      if (op.item) batch.set(op.ref, stripId(op.item));
       else batch.delete(op.ref);
     }
     await batch.commit();
@@ -269,7 +270,7 @@ export async function importState(uid: string, state: FitnessState): Promise<voi
     if (i === 0) {
       batch.set(
         doc(db, userDoc(uid)),
-        { profile: state.profile, updatedAt: Date.now() },
+        { profile: sanitize(state.profile), updatedAt: Date.now() },
         { merge: true },
       );
     }
@@ -307,9 +308,23 @@ export async function wipeUserData(uid: string): Promise<void> {
 
 function stripId<T extends { id?: string }>(item: T): Omit<T, 'id'> {
   const { id: _id, ...rest } = item;
-  // Firestore rejects `undefined`; drop those keys rather than failing the write.
-  return Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)) as Omit<
-    T,
-    'id'
-  >;
+  return sanitize(rest) as Omit<T, 'id'>;
+}
+
+/**
+ * Firestore rejects explicit `undefined` at *any* depth — a set logged as
+ * `{reps: 8, weight: undefined}` (the shape `parseState` produces for a
+ * bodyweight set) throws on write. Strip undefined keys recursively so a
+ * nested optional field can never fail an otherwise valid document.
+ */
+export function sanitize<T>(value: T): T {
+  if (Array.isArray(value)) return value.map((v) => sanitize(v)) as T;
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k, sanitize(v)]),
+    ) as T;
+  }
+  return value;
 }

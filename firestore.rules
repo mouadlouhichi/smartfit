@@ -63,7 +63,7 @@ service cloud.firestore {
                 && request.resource.data.exercises.size() <= 100);
       }
 
-      // ── recurring schedule ─────────────────────────────────────────────
+      // ── recurring schedule (a slot doubles as a workout template) ──────
       match /schedule/{docId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId)
@@ -74,7 +74,11 @@ service cloud.firestore {
           && isIntensity(request.resource.data.intensity)
           && numBetween(request.resource.data.durationMin, 0, 100000)
           && request.resource.data.active is bool
-          && request.resource.data.size() <= 10;
+          && request.resource.data.size() <= 10
+          // Optional routine (exercise list with target sets) — bounded like
+          // the one on a logged session.
+          && (!('exercises' in request.resource.data) || request.resource.data.exercises is list
+                && request.resource.data.exercises.size() <= 100);
       }
 
       // ── goals ──────────────────────────────────────────────────────────

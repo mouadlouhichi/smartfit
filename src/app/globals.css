@@ -665,3 +665,236 @@ input[type='number'] {
     width: 100%;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PREMIUM / PRO surfaces — the paid tier has to *look* paid for.
+   Deep warm-charcoal with an ember-to-gold wash, a slow sheen sweep and a
+   fine grain so the surface reads as material rather than a flat div.
+   Ink inside is ivory (#f7f2ea); muted copy sits at 72% (≥5:1 on the
+   darkest stop) so it stays AA-legible under gym lighting.
+   ═══════════════════════════════════════════════════════════════════════ */
+.pro-surface {
+  position: relative;
+  overflow: hidden;
+  color: #f7f2ea;
+  background:
+    radial-gradient(120% 140% at 85% -20%, rgba(224, 94, 54, 0.5) 0%, rgba(224, 94, 54, 0) 52%),
+    radial-gradient(90% 100% at 8% 110%, rgba(200, 241, 53, 0.12) 0%, rgba(200, 241, 53, 0) 60%),
+    linear-gradient(150deg, #1a1716 0%, #2a2422 46%, #3a2f28 100%);
+}
+.pro-surface::after {
+  /* Fine grain: breaks up the gradient so large dark areas do not band. */
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+.pro-surface .pro-muted {
+  color: rgba(247, 242, 234, 0.72);
+}
+.pro-surface .pro-tile {
+  background: rgba(247, 242, 234, 0.07);
+  border: 1px solid rgba(247, 242, 234, 0.14);
+}
+
+/* Slow diagonal sheen — the "premium" tell on the paywall hero and the
+   Pro plan card. Two stops so the highlight reads as light, not a stripe. */
+@keyframes sheen-sweep {
+  0% {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  60%,
+  100% {
+    transform: translateX(220%) skewX(-18deg);
+  }
+}
+.sheen::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  bottom: -40%;
+  left: 0;
+  width: 38%;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.16) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: sheen-sweep 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheen::before {
+    animation: none;
+    opacity: 0;
+  }
+}
+
+/* Gold foil edge for the featured plan card. */
+.gold-edge {
+  box-shadow:
+    inset 0 0 0 1px rgba(240, 200, 130, 0.5),
+    0 12px 30px -18px rgba(240, 190, 110, 0.55);
+}
+
+/* Frosted glass — used over imagery (runner header, paywall hero). */
+.glass {
+  background: rgba(20, 17, 16, 0.55);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(247, 242, 234, 0.12);
+}
+
+/* Tactile press: scales on active so a sweaty thumb gets confirmation
+   even when the visual state change is subtle. */
+.press {
+  transition:
+    transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease,
+    background-color 0.2s ease;
+}
+.press:active {
+  transform: scale(0.955);
+}
+
+/* Consistency heatmap ramp — five steps of the ember accent over the
+   secondary surface. Level 0 is the empty tile, so it must stay visible
+   as a "day exists but was rested" marker, not vanish. */
+.heat-0 {
+  background: color-mix(in oklab, var(--secondary) 100%, transparent);
+}
+.heat-1 {
+  background: color-mix(in oklab, var(--chart-1) 22%, var(--secondary));
+}
+.heat-2 {
+  background: color-mix(in oklab, var(--chart-1) 44%, var(--secondary));
+}
+.heat-3 {
+  background: color-mix(in oklab, var(--chart-1) 70%, var(--secondary));
+}
+.heat-4 {
+  background: var(--chart-1);
+}
+
+/* A badge that is earned but not yet hovered should still read as metal. */
+@keyframes medal-pop {
+  0% {
+    transform: scale(0.6) rotate(-12deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08) rotate(3deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+.medal-pop {
+  animation: medal-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* New personal record: the row flashes once, then settles. Deliberately
+   short — a celebration that lingers becomes noise on the third PR. */
+@keyframes pr-flash {
+  0% {
+    background-color: color-mix(in oklab, var(--chart-1) 42%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.pr-flash {
+  animation: pr-flash 1.1s ease-out both;
+}
+
+/* Rest-timer countdown pulse, timed to the last ten seconds. */
+@keyframes rest-beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+.rest-beat {
+  animation: rest-beat 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .medal-pop,
+  .pr-flash,
+  .rest-beat {
+    animation: none;
+  }
+}
+
+/* Horizontal chip rails (rest presets, exercise thumbnails) scroll without
+   showing a bar — the rail is a control, not a document. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LIVE SESSION — the full-screen guided workout. Always dark (a gym screen
+   at arm's length, often in poor light) regardless of the app theme.
+   ═══════════════════════════════════════════════════════════════════════ */
+.session-shell {
+  background:
+    radial-gradient(130% 90% at 50% -20%, rgba(224, 94, 54, 0.28) 0%, rgba(224, 94, 54, 0) 58%),
+    linear-gradient(180deg, #141110 0%, #1b1716 55%, #141110 100%);
+  color: #f7f2ea;
+}
+.session-shell .session-muted {
+  color: rgba(247, 242, 234, 0.62);
+}
+.session-shell .session-tile {
+  background: rgba(247, 242, 234, 0.06);
+  border: 1px solid rgba(247, 242, 234, 0.1);
+}
+/* Numeric fields inside the runner are always light-on-dark, so they get
+   their own surface instead of inheriting the app's input tokens. */
+.session-input {
+  background: rgba(247, 242, 234, 0.07);
+  border: 1px solid rgba(247, 242, 234, 0.14);
+  color: #f7f2ea;
+  border-radius: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  font-weight: 700;
+}
+.session-input:focus-visible {
+  outline: none;
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 35%, transparent);
+}
+
+/* Slide between exercises in the runner. */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translate3d(2.5rem, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+.slide-in-right {
+  animation: slide-in-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide-in-right {
+    animation-duration: 0.01ms;
+  }
+}
