@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useStore } from '@/lib/store-context';
 
@@ -168,16 +169,14 @@ export default function LoginPage() {
 
           <form onSubmit={handleEmail} className="mt-5 grid gap-4">
             {isSignUp && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="name">Name</Label>
+              <Field id="name" label="Name">
                 <Input
-                  id="name"
                   placeholder="What should we call you?"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   autoComplete="name"
                 />
-              </div>
+              </Field>
             )}
 
             <div className="grid gap-1.5">

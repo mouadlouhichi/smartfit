@@ -17,6 +17,7 @@ import {
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { useConfirm } from '../confirm-context';
+import { useToast } from '@/components/ui/toast';
 import { EmptyState } from '../empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -60,6 +61,7 @@ export function PlanScreen() {
   } = useStore();
   const { openModal, openWith } = useModals();
   const confirm = useConfirm();
+  const toast = useToast();
   const [filter, setFilter] = useState('all');
   const [pageError, setPageError] = useState<string | null>(null);
 
@@ -82,7 +84,10 @@ export function PlanScreen() {
       confirmLabel: 'Replace my week',
       destructive: true,
     });
-    if (ok) replaceSchedule(suggestedToSchedule(suggested));
+    if (ok) {
+      replaceSchedule(suggestedToSchedule(suggested));
+      toast(`Week imported — ${suggested.length} sessions scheduled`);
+    }
   }
 
   async function loadMore() {

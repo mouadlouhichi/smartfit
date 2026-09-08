@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useStore } from '@/lib/store-context';
@@ -34,6 +34,7 @@ export function ScheduleModal() {
   const [weekday, setWeekday] = useState<Weekday>(1);
   const [time, setTime] = useState('07:00');
   const [duration, setDuration] = useState('45');
+  const [durationError, setDurationError] = useState<string | null>(null);
   const [intensity, setIntensity] = useState<Intensity>('moderate');
   const [active, setActive] = useState(true);
 
@@ -50,12 +51,18 @@ export function ScheduleModal() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
+    const mins = Number(duration);
+    if (!Number.isFinite(mins) || mins <= 0) {
+      setDurationError('Enter how long the session should be.');
+      return;
+    }
+    setDurationError(null);
     const record = {
       title: title.trim() || 'Scheduled session',
       categoryId,
       weekday,
       timeOfDay: time,
-      durationMin: Math.max(5, Number(duration) || 45),
+      durationMin: Math.max(5, Math.round(mins)),
       intensity,
       active,
     };
@@ -90,36 +97,27 @@ export function ScheduleModal() {
           </DialogHeader>
 
           <div className="mt-4 grid gap-4">
-            <div className="grid gap-1.5">
-              <Label htmlFor="s-title">Title</Label>
+            <Field id="s-title" label="Title">
               <Input
-                id="s-title"
                 placeholder="e.g. Upper body"
                 value={title}
                 maxLength={120}
                 onChange={(e) => setTitle(e.target.value)}
               />
-            </div>
+            </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="s-cat">Type</Label>
-                <Select
-                  id="s-cat"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                >
+              <Field id="s-cat" label="Type">
+                <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                   {state.categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
                 </Select>
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="s-day">Day</Label>
+              </Field>
+              <Field id="s-day" label="Day">
                 <Select
-                  id="s-day"
                   value={weekday}
                   onChange={(e) => setWeekday(Number(e.target.value) as Weekday)}
                 >
@@ -129,33 +127,26 @@ export function ScheduleModal() {
                     </option>
                   ))}
                 </Select>
-              </div>
+              </Field>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="s-time">Time</Label>
+              <Field id="s-time" label="Time">
+                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+              </Field>
+              <Field id="s-dur" label="Minutes" error={durationError}>
                 <Input
-                  id="s-time"
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="s-dur">Minutes</Label>
-                <Input
-                  id="s-dur"
                   type="number"
                   min={5}
                   value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
+                  onChange={(e) => {
+                    setDuration(e.target.value);
+                    setDurationError(null);
+                  }}
                 />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="s-int">Intensity</Label>
+              </Field>
+              <Field id="s-int" label="Intensity">
                 <Select
-                  id="s-int"
                   value={intensity}
                   onChange={(e) => setIntensity(e.target.value as Intensity)}
                 >
@@ -165,7 +156,7 @@ export function ScheduleModal() {
                     </option>
                   ))}
                 </Select>
-              </div>
+              </Field>
             </div>
 
             <label className="border-border flex items-center justify-between rounded-xl border px-3 py-2.5">

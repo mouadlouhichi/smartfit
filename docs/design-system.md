@@ -55,6 +55,7 @@ screens       components/dashboard/screens/*, auth, onboarding, landing
 | `Tabs` | `ui/tabs.tsx` | in-page views | body screen measurement families |
 | `Progress` | `ui/progress.tsx` | goal/completion bars | pair with a numeric label |
 | `Skeleton` | `ui/skeleton.tsx` | loading placeholders | hydration shells |
+| `Toast` (`ToastProvider` / `useToast`) | `ui/toast.tsx` | transient action feedback | floating charcoal pill, bottom-center (above mobile nav, left of the desktop CTA); ≤3 stacked, auto-dismiss 3.6 s, `role="status"` + `aria-live="polite"` |
 
 ## 4. `Field` — the form-field system
 
@@ -130,13 +131,22 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
 
 ## 8. Adoption status
 
-- **Migrated to `Field`:** Profile screen (all 8 settings incl. target-weight
-  validation), Plan screen strategy picker.
-- **Conforming, migration pending (mechanical, zero visual change):** the six
-  dashboard modals (`WorkoutModal` ×9 fields, `ScheduleModal` ×6, `GoalModal` ×4,
-  `BodyModal` ×4, `CategoryModal` ×3, `SessionDetailModal` ×1), onboarding,
-  auth screens. They already use `Label htmlFor` + stable ids, so they satisfy
-  the a11y contract; adopting `Field` adds `aria-describedby`/error slots.
+- **Migrated to `Field`:** Profile (8 settings + target-weight range error),
+  Plan (strategy picker), all dashboard modals — `WorkoutModal` (date/type/
+  title/minutes/intensity/distance/notes + minutes range error),
+  `ScheduleModal` (title/type/day/time/minutes/intensity + minutes error),
+  `GoalModal` (name/track/reset/target + target error), `BodyModal` (date/
+  measurement/name/value + value error), `CategoryModal` (name + name error),
+  onboarding (about-you incl. optional target weight, strategy incl. optional
+  gym, goal target), login (Name).
+- **Deliberate exceptions (bespoke rows, still a11y-conformant via `Label htmlFor`):**
+  login email/password (leading icon, "Forgot password?" inline action),
+  profile password-confirm (label carries helper copy, input sits in a button
+  row), `CategoryModal` icon/color pickers and `SessionDetailModal` notes
+  (group labels / read-only, not single controls), the two read-only kcal
+  displays in `WorkoutModal`.
+- **Error-state rule now enforced everywhere:** forms never silently coerce
+  (`|| 1`, quiet `return`) — invalid input sets the `Field` error and stays put.
 
 ## 9. Adding a new component — checklist
 

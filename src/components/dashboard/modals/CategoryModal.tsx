@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
 import { useConfirm } from '../confirm-context';
@@ -29,12 +30,17 @@ export function CategoryModal() {
   const confirmDialog = useConfirm();
   const open = usePayload('category') !== null;
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
   const [icon, setIcon] = useState<string>('activity');
   const [color, setColor] = useState<string>(CATEGORY_COLOR_OPTIONS[0]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setNameError('Give the activity type a name.');
+      return;
+    }
+    setNameError(null);
     addCategory({ name: name.trim(), icon, color });
     setName('');
   }
@@ -91,16 +97,17 @@ export function CategoryModal() {
           </div>
 
           <form onSubmit={submit} className="border-border mt-2 grid gap-3 rounded-xl border p-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="c-name">New type</Label>
+            <Field id="c-name" label="New type" error={nameError}>
               <Input
-                id="c-name"
                 placeholder="e.g. Climbing"
                 value={name}
                 maxLength={40}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setNameError(null);
+                }}
               />
-            </div>
+            </Field>
             <div className="grid gap-1.5">
               <Label>Icon</Label>
               <div className="flex flex-wrap gap-1.5">

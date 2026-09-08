@@ -48,6 +48,7 @@ import {
 import type { WeekStart } from '@smartfit/core';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
+import { useToast } from '@/components/ui/toast';
 
 /** Initials for the hero avatar — falls back to an icon when nameless. */
 function initials(name: string): string {
@@ -74,6 +75,7 @@ export function ProfileScreen() {
   const { user, mode, deleteAccount, reauthenticate, resendVerification, authError } = useAuth();
   const { openModal } = useModals();
   const confirmDialog = useConfirm();
+  const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<null | 'delete' | 'import' | 'export'>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -130,7 +132,10 @@ export function ProfileScreen() {
       confirmLabel: 'Replace my week',
       destructive: true,
     });
-    if (ok) replaceSchedule(suggestedToSchedule(suggested));
+    if (ok) {
+      replaceSchedule(suggestedToSchedule(suggested));
+      toast(`Week imported — ${suggested.length} sessions scheduled`);
+    }
   }
 
   const counts = {

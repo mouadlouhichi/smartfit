@@ -12,6 +12,7 @@ import { DashboardHeader } from './dashboard-header';
 import { DashboardModals } from './dashboard-modals';
 import { ModalProvider, useModals } from './modal-context';
 import { ConfirmProvider } from './confirm-context';
+import { ToastProvider } from '@/components/ui/toast';
 import { MigrationPrompt, StorageWarningBanner, SyncBanner } from './sync-banner';
 import { InstallPrompt } from '@/components/pwa-install';
 
@@ -26,78 +27,80 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <ConfirmProvider>
       <ModalProvider>
-        {/* Desktop layout: canvas-flushed content with a floating pill rail */}
-        <div className="mx-auto flex min-h-dvh w-full max-w-[1500px] gap-0 p-0">
-          {/* Dark rail (desktop) — floating rounded pill, per the reference */}
-          <aside className="bg-charcoal sticky top-3 ml-3 hidden h-[calc(100dvh-1.5rem)] w-24 shrink-0 flex-col items-center rounded-[2.75rem] px-2 py-5 lg:flex">
-            <Link
-              href="/"
-              aria-label="SmartFit home"
-              className="mb-7 rounded-full transition-transform hover:scale-105"
-            >
-              <Logo size={46} className="rounded-full" />
-            </Link>
+        <ToastProvider>
+          {/* Desktop layout: canvas-flushed content with a floating pill rail */}
+          <div className="mx-auto flex min-h-dvh w-full max-w-[1500px] gap-0 p-0">
+            {/* Dark rail (desktop) — floating rounded pill, per the reference */}
+            <aside className="bg-charcoal sticky top-3 ml-3 hidden h-[calc(100dvh-1.5rem)] w-24 shrink-0 flex-col items-center rounded-[2.75rem] px-2 py-5 lg:flex">
+              <Link
+                href="/"
+                aria-label="SmartFit home"
+                className="mb-7 rounded-full transition-transform hover:scale-105"
+              >
+                <Logo size={46} className="rounded-full" />
+              </Link>
 
-            <nav className="flex flex-1 flex-col items-center gap-4">
-              {RAIL_ITEMS.map((item) => {
-                const active = isActive(pathname, item.href);
-                return (
-                  <Link
-                    key={`${item.label}-${item.href}`}
-                    href={item.href}
-                    className="group flex flex-col items-center gap-1.5"
-                  >
-                    <span
-                      className={cn(
-                        'flex h-12 w-12 items-center justify-center rounded-full transition-all',
-                        active
-                          ? 'text-primary bg-white shadow-lg shadow-black/20'
-                          : 'text-white/55 hover:bg-white/10 hover:text-white',
-                      )}
+              <nav className="flex flex-1 flex-col items-center gap-4">
+                {RAIL_ITEMS.map((item) => {
+                  const active = isActive(pathname, item.href);
+                  return (
+                    <Link
+                      key={`${item.label}-${item.href}`}
+                      href={item.href}
+                      className="group flex flex-col items-center gap-1.5"
                     >
-                      <item.icon
-                        style={{ width: 21, height: 21 }}
-                        strokeWidth={active ? 2.5 : 2.1}
-                      />
-                    </span>
-                    <span
-                      className={cn(
-                        'text-[10px] leading-none font-medium transition-colors',
-                        active ? 'text-white' : 'text-white/60 group-hover:text-white/90',
-                      )}
-                    >
-                      {item.label}
-                    </span>
-                  </Link>
-                );
-              })}
-            </nav>
+                      <span
+                        className={cn(
+                          'flex h-12 w-12 items-center justify-center rounded-full transition-all',
+                          active
+                            ? 'text-primary bg-white shadow-lg shadow-black/20'
+                            : 'text-white/55 hover:bg-white/10 hover:text-white',
+                        )}
+                      >
+                        <item.icon
+                          style={{ width: 21, height: 21 }}
+                          strokeWidth={active ? 2.5 : 2.1}
+                        />
+                      </span>
+                      <span
+                        className={cn(
+                          'text-[10px] leading-none font-medium transition-colors',
+                          active ? 'text-white' : 'text-white/60 group-hover:text-white/90',
+                        )}
+                      >
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </nav>
 
-            <div className="mt-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
-              <ThemeToggleDark />
-            </div>
-          </aside>
-
-          {/* Main */}
-          <div className="flex min-w-0 flex-1 flex-col pb-28 lg:pb-0">
-            <DashboardHeader />
-            <MigrationPrompt />
-            <SyncBanner />
-            <StorageWarningBanner />
-            <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-6 lg:pt-5">
-              <div key={pathname} className="animate-page-in mx-auto w-full max-w-[1300px]">
-                {children}
+              <div className="mt-4 flex h-11 w-11 items-center justify-center rounded-full bg-white/10">
+                <ThemeToggleDark />
               </div>
-            </main>
+            </aside>
+
+            {/* Main */}
+            <div className="flex min-w-0 flex-1 flex-col pb-28 lg:pb-0">
+              <DashboardHeader />
+              <MigrationPrompt />
+              <SyncBanner />
+              <StorageWarningBanner />
+              <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-6 lg:pt-5">
+                <div key={pathname} className="animate-page-in mx-auto w-full max-w-[1300px]">
+                  {children}
+                </div>
+              </main>
+            </div>
+
+            {/* Mobile nav — same dark rail, expands on tap */}
+            <MobileNav />
+
+            <GlobalLogCta />
+            <DashboardModals />
+            <InstallPrompt />
           </div>
-
-          {/* Mobile nav — same dark rail, expands on tap */}
-          <MobileNav />
-
-          <GlobalLogCta />
-          <DashboardModals />
-          <InstallPrompt />
-        </div>
+        </ToastProvider>
       </ModalProvider>
     </ConfirmProvider>
   );

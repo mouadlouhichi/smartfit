@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
@@ -42,6 +42,7 @@ export function BodyModal() {
   const [date, setDate] = useState(toISODate(new Date()));
   const [unit, setUnit] = useState<BodyUnit>('weight');
   const [value, setValue] = useState('');
+  const [valueError, setValueError] = useState<string | null>(null);
   const [label, setLabel] = useState('');
 
   useEffect(() => {
@@ -63,7 +64,12 @@ export function BodyModal() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!value) return;
+    const typed = Number(value);
+    if (!value.trim() || !Number.isFinite(typed) || typed <= 0) {
+      setValueError('Enter the measured value.');
+      return;
+    }
+    setValueError(null);
     // Editing a measurement replaces it: body logs are immutable points in time.
     if (editing) deleteBodyLog(editing.id);
     addBodyLog({
@@ -103,60 +109,50 @@ export function BodyModal() {
 
           <div className="mt-4 grid gap-4">
             <div className="grid grid-cols-2 gap-3">
-              <div className="grid gap-1.5">
-                <Label htmlFor="b-date">Date</Label>
-                <Input
-                  id="b-date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                />
-              </div>
-              <div className="grid gap-1.5">
-                <Label htmlFor="b-unit">Measurement</Label>
-                <Select
-                  id="b-unit"
-                  value={unit}
-                  onChange={(e) => setUnit(e.target.value as BodyUnit)}
-                >
+              <Field id="b-date" label="Date">
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              </Field>
+              <Field id="b-unit" label="Measurement">
+                <Select value={unit} onChange={(e) => setUnit(e.target.value as BodyUnit)}>
                   {Object.entries(BODY_UNIT_META).map(([k, m]) => (
                     <option key={k} value={k}>
                       {m.label}
                     </option>
                   ))}
                 </Select>
-              </div>
+              </Field>
             </div>
 
             {unit === 'custom' && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="b-label">Name</Label>
+              <Field id="b-label" label="Name">
                 <Input
-                  id="b-label"
                   placeholder="e.g. Thigh"
                   value={label}
                   maxLength={40}
                   onChange={(e) => setLabel(e.target.value)}
                 />
-              </div>
+              </Field>
             )}
 
-            <div className="grid gap-1.5">
-              <Label htmlFor="b-val">
-                Value {displayUnit ? `(${displayUnit})` : meta.unit ? `(${meta.unit})` : ''}
-              </Label>
+            <Field
+              id="b-val"
+              label={`Value ${displayUnit ? `(${displayUnit})` : meta.unit ? `(${meta.unit})` : ''}`}
+              error={valueError}
+            >
               <Input
-                id="b-val"
                 type="number"
                 // step="any": 0.1 rejected values like 79.95 kg / 88.88 cm.
                 step="any"
                 autoFocus
                 placeholder="0.0"
                 value={value}
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(e) => {
+                  setValue(e.target.value);
+                  setValueError(null);
+                }}
                 required
               />
-            </div>
+            </Field>
           </div>
 
           <DialogFooter className="mt-6 sm:justify-between">
