@@ -199,7 +199,8 @@ export function WorkoutModal() {
                   <Input
                     id="w-dist"
                     type="number"
-                    step="0.1"
+                    // step="any": 0.1 rejected splits like 5.25 km.
+                    step="any"
                     min={0}
                     value={distance}
                     onChange={(e) => setDistance(e.target.value)}

@@ -233,7 +233,9 @@ export default function OnboardingPage() {
                 id="ob-target"
                 type="number"
                 min={1}
-                step={GOAL_METRIC_META[goalMetric].step}
+                // step="any": the metric step ladders (e.g. 30 min from min=1)
+                // invalidated the prefilled target and blocked progression.
+                step="any"
                 value={goalTarget}
                 onChange={(e) => setGoalTarget(e.target.value)}
               />

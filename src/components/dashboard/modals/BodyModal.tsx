@@ -148,7 +148,8 @@ export function BodyModal() {
               <Input
                 id="b-val"
                 type="number"
-                step="0.1"
+                // step="any": 0.1 rejected values like 79.95 kg / 88.88 cm.
+                step="any"
                 autoFocus
                 placeholder="0.0"
                 value={value}

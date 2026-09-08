@@ -139,7 +139,10 @@ export function GoalModal() {
                 id="g-target"
                 type="number"
                 min={1}
-                step={meta.step}
+                // step="any": metric steps (30 min, 250 kcal, 5 km) made the
+                // browser reject perfectly sane targets — even the prefilled
+                // default — and silently block the submit.
+                step="any"
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
               />
