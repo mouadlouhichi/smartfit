@@ -41,6 +41,7 @@ import { formatCalories, formatDateLabel, formatDistance, formatMinutes } from '
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { ScheduledWorkout } from '@smartfit/core';
+import { ExerciseLibrary } from '../exercise-library';
 
 /** Small neutral metadata pill used across rows. */
 function MetaChip({ children }: { children: React.ReactNode }) {
@@ -126,7 +127,7 @@ export function PlanScreen() {
         <div>
           <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Training plan</h1>
           <p className="text-muted-foreground text-sm">
-            Your weekly structure and complete workout log.
+            Your weekly structure, exercise library and complete workout log.
           </p>
         </div>
         <Button onClick={() => openModal('schedule')}>
@@ -418,6 +419,9 @@ export function PlanScreen() {
           })}
         </div>
       </div>
+
+      {/* ── Exercise library — browse what to do, with how-to steps ───── */}
+      <ExerciseLibrary />
 
       {/* ── Training log ───────────────────────────────────────────────── */}
       <Card>

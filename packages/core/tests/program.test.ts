@@ -141,13 +141,16 @@ test('profile gymId survives parsing and junk is dropped', () => {
   const withGym = parseStateJSON(
     JSON.stringify({ profile: { gymId: 'zone-fight', targetWeightKg: 78 } }),
   );
+  assert.ok(withGym, 'valid state parses');
   assert.equal(withGym.profile.gymId, 'zone-fight');
   assert.equal(withGym.profile.targetWeightKg, 78);
 
   const junk = parseStateJSON(JSON.stringify({ profile: { gymId: '   ' } }));
+  assert.ok(junk, 'state still parses');
   assert.equal('gymId' in junk.profile, false);
 
   const plain = parseStateJSON(JSON.stringify({ profile: {} }));
+  assert.ok(plain, 'state still parses');
   assert.equal('gymId' in plain.profile, false);
   assert.equal('targetWeightKg' in plain.profile, false);
 });

@@ -331,6 +331,52 @@ input[type='number'] {
   animation: pulse-soft 2s ease-in-out infinite;
 }
 
+/*
+ * Exercise demo previews — the open exercise dataset ships two frames per
+ * movement (start & end position). Crossfading them on a loop gives the
+ * logged-exercise rows a GIF-style demonstration. Both frames stack; the
+ * second stays hidden when animation is off (or reduced motion is set).
+ */
+@keyframes exercise-demo-a {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  95% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes exercise-demo-b {
+  0%,
+  45% {
+    opacity: 0;
+  }
+  50%,
+  95% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.exercise-demo-a {
+  animation: exercise-demo-a 2.8s ease-in-out infinite;
+}
+.exercise-demo-b {
+  opacity: 0;
+  animation: exercise-demo-b 2.8s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .exercise-demo-a,
+  .exercise-demo-b {
+    animation: none;
+  }
+}
+
 /* Breathing ember glow — the weekly-goal energy button and the desktop
    global CTA pulse their box-shadow: the ember ring expands and the drop
    glow intensifies, like the button is focussing attention on itself. */

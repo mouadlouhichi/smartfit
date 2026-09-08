@@ -34,7 +34,42 @@ shared domain package — but applies them to **training** instead of money.
 ### Training
 
 - **Log workouts** — strength, cardio, HIIT, mobility, sport & active rest, with
-  duration, intensity, estimated calories, distance and (web) exercises.
+  duration, intensity, estimated calories, distance and exercises on both apps.
+- **Illustrated exercise library** — a curated catalog of 100+ common movements
+  (muscles, equipment, aliases, browse groups) in `@smartfit/core`, with
+  two-frame demonstration images streamed from the open
+  [free-exercise-db](https://github.com/yuhonas/free-exercise-db) dataset
+  (Unlicense) and crossfaded into a GIF-style loop. The **Plan tab** has a
+  browsable library — grouped by body section (Chest, Back, Legs…), with
+  search and hover-animated demos. Logging suggests matches as you type;
+  free-typed names and old logs are matched to the catalog so history gets
+  illustrations too. A "how to do it" sheet with step-by-step instructions
+  (lazily fetched from the same dataset, session-cached) is one tap away
+  from the library, the picker and any logged exercise.
+- **Animated GIF demos** — most of the catalog (92/103 exercises) is mapped to
+  ExerciseDB-style animated demonstrations (illustrated figure, target muscle
+  highlighted in red) mirrored on jsDelivr via
+  [ExerciseGymGifsDB](https://github.com/JahelCuadrado/ExerciseGymGifsDB):
+  light 128px animated WebP thumbs in grids, pickers and session rows, and the
+  full-size GIF in the "how to do it" sheet. Exercises without a curated GIF
+  (or if the CDN is unreachable) fall back to the two-frame photo loop above.
+  Note: those GIFs are ExerciseDB artwork — fine for personal use, but
+  commercial redistribution requires an exercisedb.com license.
+- **Full 1,323-exercise catalog at runtime** — on top of the curated 103, the
+  apps fetch ExerciseGymGifsDB's full library index once per session (a
+  ~600KB CORS-open JSON from the same pinned jsDelivr release) and merge it
+  into matching, search, the browsing library and the logging picker: every
+  movement gets its animated GIF demo and a step-by-step how-to. The curated
+  catalog stays bundled for instant, offline-friendly startup and keeps
+  priority for popular defaults, aliases and photo fallbacks; if the CDN is
+  unreachable the apps simply run on the curated 103 and retry later.
+- **Faceted exercise browsing** — the library filters combine freely: body
+  section (Chest, Back, Legs…), muscle focus within a section (Back → Lats,
+  Traps…; Legs → Quads, Hamstrings…), equipment (Barbell, Dumbbell, Cable,
+  Machine, Bodyweight…), full-text search and Recommended/A–Z ordering.
+  Every chip shows a live count of what the other filters leave behind, the
+  catalog's first sync is surfaced with a subtle progress indicator, and
+  active filters can be cleared individually or all at once.
 - **Training plans** — four proven splits: **Push/Pull/Legs**, **Upper/Lower**,
   **Full Body 3×**, and **Cardio & Conditioning**. Pick one and the weekly split
   lights up on both apps.

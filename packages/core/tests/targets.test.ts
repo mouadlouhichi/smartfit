@@ -7,7 +7,7 @@ import {
   ASSUMED_SESSION_MIN,
   getPlan,
 } from '../src/index.ts';
-import type { FitnessGoal, FitnessState } from '../src/index.ts';
+import type { FitnessGoal, FitnessState, PlanId } from '../src/index.ts';
 
 function goal(partial: Partial<FitnessGoal>): FitnessGoal {
   return {
@@ -22,7 +22,7 @@ function goal(partial: Partial<FitnessGoal>): FitnessGoal {
   };
 }
 
-function withGoals(goals: FitnessGoal[], planId = 'full-body'): FitnessState {
+function withGoals(goals: FitnessGoal[], planId: PlanId = 'full-body'): FitnessState {
   const s = emptyState();
   return { ...s, profile: { ...s.profile, planId }, goals };
 }

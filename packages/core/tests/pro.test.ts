@@ -33,12 +33,15 @@ test('pro stamp survives parsing; junk is dropped', () => {
   const ok = parseStateJSON(
     JSON.stringify({ profile: { pro: { plan: 'monthly', since: 1717171717 } } }),
   );
+  assert.ok(ok, 'valid state parses');
   assert.deepEqual(ok.profile.pro, { plan: 'monthly', since: 1717171717 });
 
   const junk = parseStateJSON(JSON.stringify({ profile: { pro: { plan: 'lifetime', since: 5 } } }));
+  assert.ok(junk, 'state still parses');
   assert.equal('pro' in junk.profile, false);
 
   const none = parseStateJSON(JSON.stringify({ profile: {} }));
+  assert.ok(none, 'state still parses');
   assert.equal('pro' in none.profile, false);
 });
 
