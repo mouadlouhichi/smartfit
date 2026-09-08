@@ -9,6 +9,7 @@ import {
   CalendarDays,
   Flame,
   Footprints,
+  Lock,
   Timer,
   TrendingUp,
 } from 'lucide-react';
@@ -27,14 +28,18 @@ import {
   weeklySeries,
   targetsForDays,
   currentStreak,
+  isPro,
 } from '@smartfit/core';
+import { useModals } from '../modal-context';
 import { formatCalories, formatDistance, formatMinutes } from '@smartfit/core';
 
-type Range = 'daily' | 'weekly' | 'monthly';
-const RANGES: { key: Range; label: string; days: number }[] = [
+type Range = 'daily' | 'weekly' | 'monthly' | 'quarter' | 'year';
+const RANGES: { key: Range; label: string; days: number; pro?: boolean }[] = [
   { key: 'daily', label: 'Daily', days: 1 },
   { key: 'weekly', label: 'Weekly', days: 7 },
   { key: 'monthly', label: 'Monthly', days: 30 },
+  { key: 'quarter', label: 'Quarter', days: 90, pro: true },
+  { key: 'year', label: 'Year', days: 364, pro: true },
 ];
 
 /** Sessions in the `days`-long window ending today. */
@@ -49,6 +54,8 @@ function rangeDaysSessions(state: ReturnType<typeof useStore>['state'], days: nu
 
 export function ProgressScreen() {
   const { state } = useStore();
+  const { openWith } = useModals();
+  const pro = isPro(state);
   const [range, setRange] = useState<Range>('weekly');
   const days = RANGES.find((r) => r.key === range)!.days;
 
@@ -114,22 +121,26 @@ export function ProgressScreen() {
           role="tablist"
           aria-label="Stats range"
         >
-          {RANGES.map((r) => (
-            <button
-              key={r.key}
-              role="tab"
-              aria-selected={range === r.key}
-              onClick={() => setRange(r.key)}
-              className={cn(
-                'flex-1 rounded-full px-5 py-2 text-sm font-bold transition-all sm:flex-none',
-                range === r.key
-                  ? 'bg-card text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {r.label}
-            </button>
-          ))}
+          {RANGES.map((r) => {
+            const locked = !!r.pro && !pro;
+            return (
+              <button
+                key={r.key}
+                role="tab"
+                aria-selected={range === r.key}
+                onClick={() => (locked ? openWith({ kind: 'pro' }) : setRange(r.key))}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1 rounded-full px-4 py-2 text-sm font-bold transition-all sm:flex-none',
+                  range === r.key
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {locked && <Lock className="h-3 w-3" aria-hidden />}
+                {r.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

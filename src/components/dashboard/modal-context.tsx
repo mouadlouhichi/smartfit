@@ -10,7 +10,8 @@ import type { BodyLog, FitnessGoal, ScheduledWorkout, WorkoutSession } from '@sm
  * and "edit" — previously every modal was create-only, which is why logged
  * sessions, goals and scheduled slots could never be corrected.
  */
-export type ModalKind = 'workout' | 'schedule' | 'goal' | 'body' | 'category' | 'session-detail';
+export type ModalKind =
+  'workout' | 'schedule' | 'goal' | 'body' | 'category' | 'session-detail' | 'pro' | 'runner';
 
 export type ModalPayload =
   | { kind: 'workout'; session?: WorkoutSession; prefill?: Partial<WorkoutSession> }
@@ -18,7 +19,15 @@ export type ModalPayload =
   | { kind: 'goal'; goal?: FitnessGoal }
   | { kind: 'body'; log?: BodyLog }
   | { kind: 'category' }
-  | { kind: 'session-detail'; session: WorkoutSession };
+  | { kind: 'session-detail'; session: WorkoutSession }
+  | { kind: 'pro' }
+  | {
+      kind: 'runner';
+      title: string;
+      categoryId: string;
+      intensity: WorkoutSession['intensity'];
+      scheduleId?: string;
+    };
 
 interface ModalContextValue {
   open: ModalKind | null;

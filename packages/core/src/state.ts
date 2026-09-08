@@ -152,6 +152,14 @@ function parseProfile(v: unknown): UserProfile {
   // the UI resolves it against the known catalog (unknown → no suggestions).
   const gymId = str(v.gymId, '').trim();
   if (gymId && gymId.length <= 64) profile.gymId = gymId;
+  // Optional Pro stamp: only a well-formed {plan, since} pair is kept.
+  if (isObj(v.pro)) {
+    const rawPlan = v.pro.plan;
+    const plan: 'monthly' | 'yearly' | null =
+      rawPlan === 'monthly' || rawPlan === 'yearly' ? rawPlan : null;
+    const since = num(v.pro.since, 0);
+    if (plan && since > 0) profile.pro = { plan, since };
+  }
   return profile;
 }
 

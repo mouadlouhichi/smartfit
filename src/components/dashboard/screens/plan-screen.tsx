@@ -10,6 +10,7 @@ import {
   Loader2,
   Moon,
   Pencil,
+  Play,
   Plus,
   Sparkles,
   Tag,
@@ -18,6 +19,7 @@ import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
+import { categoryArt } from '@/lib/category-art';
 import { EmptyState } from '../empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -343,15 +345,25 @@ export function PlanScreen() {
                             !s.active && 'opacity-60',
                           )}
                         >
-                          <span
-                            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                            style={{
-                              backgroundColor: `${cat?.color ?? '#bd4220'}1f`,
-                              color: cat?.color ?? 'var(--primary)',
-                            }}
-                          >
-                            <CategoryIcon name={cat?.icon ?? 'activity'} size={16} />
-                          </span>
+                          {categoryArt(s.categoryId) ? (
+                            /* eslint-disable-next-line @next/next/no-img-element -- static export */
+                            <img
+                              src={categoryArt(s.categoryId) ?? ''}
+                              alt=""
+                              aria-hidden
+                              className="h-10 w-10 shrink-0 rounded-lg object-cover shadow-sm"
+                            />
+                          ) : (
+                            <span
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                              style={{
+                                backgroundColor: `${cat?.color ?? '#bd4220'}1f`,
+                                color: cat?.color ?? 'var(--primary)',
+                              }}
+                            >
+                              <CategoryIcon name={cat?.icon ?? 'activity'} size={16} />
+                            </span>
+                          )}
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-bold">{s.title}</p>
                             <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs">
@@ -369,6 +381,21 @@ export function PlanScreen() {
                               </span>
                             </p>
                           </div>
+                          <button
+                            onClick={() =>
+                              openWith({
+                                kind: 'runner',
+                                title: s.title,
+                                categoryId: s.categoryId,
+                                intensity: s.intensity,
+                                scheduleId: s.id,
+                              })
+                            }
+                            className="bg-primary text-primary-foreground shadow-primary/25 flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95"
+                            aria-label={`Start ${s.title}`}
+                          >
+                            <Play className="ml-0.5 h-4 w-4" />
+                          </button>
                           <Switch
                             checked={s.active}
                             onCheckedChange={(v) => updateSchedule(s.id, { active: v })}

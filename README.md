@@ -45,6 +45,15 @@ shared domain package — but applies them to **training** instead of money.
   settings: set a target weight and the mix of classes (HIIT/cardio/combat vs
   strength vs recovery) adapts to how far away you are, then import the whole
   week into your schedule with one click — from Profile or the Plan tab.
+- **Live session runner** — press **Start** on any scheduled session: a big
+  glanceable clock, a rest timer, exercise + set tickers, and finishing logs
+  the session with its real duration and the sets you completed. Category art
+  tiles (generated, in `public/images/`) anchor each session visually.
+- **SmartFit Pro** — a paid tier with a real paywall: plan cards (monthly /
+  yearly), Stripe Payment Link checkout when configured (otherwise a clearly
+  labelled sandbox checkout), restore & cancel. Gates: unlimited AI coach
+  replies (free = 6/day), quarter & year analytics ranges, Pro badge. The free
+  tier stays fully usable for training, logging and trends.
 - **Goals** — weekly & monthly targets for workouts, active minutes, calories or
   distance, with live progress bars that reset each period.
 - **Streaks & momentum** — a consecutive-day training streak.
@@ -191,7 +200,7 @@ smartfit/
 │     │  ├─ seed.ts                 #   demo generator (subpath: @smartfit/core/seed)
 │     │  ├─ utils.ts                #   uid / clamp / round
 │     │  └─ index.ts                #   barrel export (deliberately omits seed.ts)
-│     └─ tests/                     # 70 domain unit tests (node:test)
+│     └─ tests/                     # 74 domain unit tests (node:test)
 ├─ e2e/                             # Playwright smoke suite (local-mode product journey)
 ├─ tests/                           # web lib unit tests + tests/rules (Firestore rules, emulator)
 ├─ docs/                            # design-system.md · firebase.md · ops-runbook.md · audits
@@ -264,7 +273,7 @@ credentials permanently. See [`/privacy`](src/app/privacy/page.tsx).
 Four layers, all running in CI (Node's built-in test runner + Playwright — no
 heavy frameworks):
 
-**Domain (`packages/core/tests/`, 70 tests)** — pure logic:
+**Domain (`packages/core/tests/`, 74 tests)** — pure logic:
 
 | Suite | Covers |
 | --- | --- |
@@ -275,6 +284,7 @@ heavy frameworks):
 | `coach.test.ts`   | coach intents and the numbers behind every answer |
 | `targets.test.ts` | activity targets derived from goals, falling back to the plan |
 | `program.test.ts` | the Zone Fight timetable, the target-driven weekly mix and suggested-program import |
+| `pro.test.ts`     | the Pro stamp: parsing, validity, plan catalog |
 
 **Web lib (`tests/`, 40 tests)** — the decisions that used to be untestable
 inside React: `hydration.test.ts` (what every identity/mode combination sees),

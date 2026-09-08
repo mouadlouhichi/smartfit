@@ -1,11 +1,20 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import { Crown, Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/lib/store-context';
-import { answerCoach, coachGreeting, COACH_QUICK_REPLIES, type CoachChip } from '@smartfit/core';
+import { useModals } from './modal-context';
+import {
+  FREE_COACH_REPLIES_PER_DAY,
+  answerCoach,
+  coachGreeting,
+  isPro,
+  toISODate,
+  COACH_QUICK_REPLIES,
+  type CoachChip,
+} from '@smartfit/core';
 import { aiCoachEnabled, aiHost, askAiCoach } from '@/lib/ai-coach';
 import { Ring } from './ring';
 import { cn } from '@/lib/utils';
@@ -27,6 +36,28 @@ const now = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '
 /** Where the athlete's AI-answers preference lives (opt-in, per browser). */
 const AI_PREF_KEY = 'smartfit.aiCoach';
 
+/** Free-tier AI reply counter (per calendar day, per browser). Pro = unlimited. */
+const AI_USE_KEY = 'smartfit.coach.aiUses';
+
+function readAiUses(): number {
+  try {
+    const raw = localStorage.getItem(AI_USE_KEY);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as { d?: string; n?: number };
+    return parsed.d === toISODate(new Date()) ? (parsed.n ?? 0) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function writeAiUse(count: number) {
+  try {
+    localStorage.setItem(AI_USE_KEY, JSON.stringify({ d: toISODate(new Date()), n: count }));
+  } catch {
+    /* storage unavailable — the cap simply stays soft */
+  }
+}
+
 /**
  * Shared conversation state for every coach surface.
  *
@@ -45,6 +76,15 @@ export function useCoachConversation() {
   const aiAvailable = useMemo(() => aiCoachEnabled(), []);
   const aiHost_ = useMemo(() => (aiAvailable ? aiHost() : ''), [aiAvailable]);
   const [aiOn, setAiOn] = useState(false);
+  const pro = isPro(state);
+  const [aiUses, setAiUses] = useState(readAiUses);
+  const capped = !pro && aiUses >= FREE_COACH_REPLIES_PER_DAY;
+
+  function recordAiUse() {
+    const next = readAiUses() + 1;
+    writeAiUse(next);
+    setAiUses(next);
+  }
 
   useEffect(() => {
     setMessages([
@@ -83,15 +123,16 @@ export function useCoachConversation() {
     const stamp = now();
     setMessages((m) => [...m, { id: idRef.current++, role: 'user', text: question, time: stamp }]);
 
-    if (aiAvailable && aiOn) {
+    if (aiAvailable && aiOn && !capped) {
       setThinking(true);
       void askAiCoach(question, state)
-        .then((answer) =>
+        .then((answer) => {
+          recordAiUse();
           setMessages((m) => [
             ...m,
             { id: idRef.current++, role: 'coach', text: answer, time: now(), ai: true },
-          ]),
-        )
+          ]);
+        })
         .catch(() => {
           // The on-device engine never fails — degrade with an honest note.
           const local = answerCoach(question, state);
@@ -126,8 +167,25 @@ export function useCoachConversation() {
     aiOn,
     aiHost: aiHost_,
     toggleAi,
+    capped,
     quickReplies: useMemo(() => [...COACH_QUICK_REPLIES], []),
   };
+}
+
+/** Free-tier limit notice with the Pro upsell — sits above the composer. */
+export function CoachFreeLimitNotice({ show }: { show: boolean }) {
+  const { openWith } = useModals();
+  if (!show) return null;
+  return (
+    <div className="bg-secondary mb-2 flex items-center justify-between gap-2 rounded-xl px-3 py-2">
+      <p className="text-xs font-medium">
+        Free AI replies used for today ({FREE_COACH_REPLIES_PER_DAY}). Pro is unlimited.
+      </p>
+      <Button size="sm" variant="outline" onClick={() => openWith({ kind: 'pro' })}>
+        <Crown className="h-3.5 w-3.5" /> Go Pro
+      </Button>
+    </div>
+  );
 }
 
 /** Opt-in switch for AI answers, shown only when an endpoint is configured. */
@@ -348,7 +406,7 @@ export function CoachQuickReplies({
 
 /** Compact coach used in the dashboard's right-hand column. */
 export function CoachPanel({ className }: { className?: string }) {
-  const { messages, send, thinking, aiAvailable, aiOn, aiHost, toggleAi, quickReplies } =
+  const { messages, send, thinking, aiAvailable, aiOn, aiHost, toggleAi, quickReplies, capped } =
     useCoachConversation();
 
   return (
@@ -374,6 +432,7 @@ export function CoachPanel({ className }: { className?: string }) {
       </div>
 
       <div className="p-4 pt-1">
+        <CoachFreeLimitNotice show={capped && aiOn && aiAvailable} />
         <CoachComposer onSend={send} placeholder="Type something…" disabled={thinking} />
       </div>
     </div>

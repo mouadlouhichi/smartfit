@@ -4,6 +4,7 @@ import { Sparkles } from 'lucide-react';
 import {
   CoachAiToggle,
   CoachComposer,
+  CoachFreeLimitNotice,
   CoachMessages,
   CoachQuickReplies,
   useCoachConversation,
@@ -17,7 +18,7 @@ import {
  * can opt in to AI answers here; the on-device engine stays the fallback.
  */
 export default function CoachPage() {
-  const { messages, send, thinking, aiAvailable, aiOn, aiHost, toggleAi, quickReplies } =
+  const { messages, send, thinking, aiAvailable, aiOn, aiHost, toggleAi, quickReplies, capped } =
     useCoachConversation();
 
   return (
@@ -58,6 +59,7 @@ export default function CoachPage() {
       </div>
 
       <div className="mt-2">
+        <CoachFreeLimitNotice show={capped && aiOn && aiAvailable} />
         <CoachComposer onSend={send} disabled={thinking} />
       </div>
     </div>

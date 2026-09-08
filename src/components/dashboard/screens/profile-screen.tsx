@@ -14,6 +14,7 @@ import {
   CalendarCheck2,
   Cloud,
   CloudOff,
+  Crown,
   Database,
   Download,
   Flame,
@@ -36,16 +37,20 @@ import {
   PLANS,
   WEEKDAYS,
   currentStreak,
+  formatDateLabel,
   formatWeight,
   fromKg,
   getGymProgram,
+  isPro,
   parseStateJSON,
+  toISODate,
   suggestProgram,
   suggestedToSchedule,
   suggestSummary,
   toKg,
 } from '@smartfit/core';
 import type { WeekStart } from '@smartfit/core';
+import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
@@ -73,7 +78,7 @@ export function ProfileScreen() {
     collectFullState,
   } = useStore();
   const { user, mode, deleteAccount, reauthenticate, resendVerification, authError } = useAuth();
-  const { openModal } = useModals();
+  const { openModal, openWith } = useModals();
   const confirmDialog = useConfirm();
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -138,6 +143,7 @@ export function ProfileScreen() {
     }
   }
 
+  const pro = isPro(state);
   const counts = {
     workouts: state.sessions.length,
     scheduled: state.schedule.length,
@@ -648,6 +654,39 @@ export function ProfileScreen() {
             </div>
           )}
         </CardContent>
+      </Card>
+
+      {/* SmartFit Pro — membership status & paywall entry */}
+      <Card className="overflow-hidden">
+        <div className="relative flex flex-wrap items-center gap-4 p-5">
+          {/* eslint-disable-next-line @next/next/no-img-element -- static export */}
+          <img
+            src="/images/pro-hero.jpg"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/60" />
+          <span className="bg-primary relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-lg shadow-black/30">
+            <Crown className="h-5 w-5 text-white" aria-hidden />
+          </span>
+          <div className="relative min-w-0 flex-1">
+            <p className="text-sm font-bold text-white">SmartFit Pro</p>
+            <p className="truncate text-xs text-white/75">
+              {pro
+                ? `Member since ${formatDateLabel(toISODate(new Date(state.profile.pro?.since ?? Date.now())))} — thanks for supporting SmartFit.`
+                : 'Unlimited AI coach, quarter & year analytics, Pro badge.'}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant={pro ? 'outline' : 'default'}
+            className={cn('relative', !pro && 'shadow-primary/40 shadow-lg')}
+            onClick={() => openWith({ kind: 'pro' })}
+          >
+            {pro ? 'Manage' : 'Upgrade'}
+          </Button>
+        </div>
       </Card>
 
       <Card>

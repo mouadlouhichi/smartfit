@@ -101,6 +101,13 @@ export interface BodyLog {
 
 export type PlanId = 'ppl' | 'upper-lower' | 'full-body' | 'cardio-focus';
 
+/** Subscription stamp for the paid tier (see `pro.ts`); receipt checks happen in the billing adapter. */
+export interface ProStatus {
+  plan: 'monthly' | 'yearly';
+  /** Epoch ms of activation. */
+  since: number;
+}
+
 export interface Plan {
   id: PlanId;
   name: string;
@@ -130,6 +137,8 @@ export interface UserProfile {
    * class timetable.
    */
   gymId?: string;
+  /** SmartFit Pro subscription stamp (absent = free tier). */
+  pro?: ProStatus;
 }
 
 export interface FitnessState {
