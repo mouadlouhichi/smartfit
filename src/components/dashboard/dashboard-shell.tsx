@@ -112,6 +112,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
  */
 function GlobalLogCta() {
   const { openModal } = useModals();
+  const pathname = usePathname();
+  // The overview presents its own CTA — the glowing bolt in the weekly-goal
+  // card — and both coach surfaces own the bottom-right corner with their
+  // composer's Send button, so the floating pill yields there. Every other
+  // screen keeps the global CTA.
+  if (pathname === '/dashboard' || pathname === '/dashboard/coach') return null;
   return (
     <button
       onClick={() => openModal('workout')}
