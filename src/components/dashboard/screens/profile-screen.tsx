@@ -28,7 +28,7 @@ import {
   Upload,
   UserRound,
 } from 'lucide-react';
-import { PLANS, currentStreak, parseStateJSON } from '@smartfit/core';
+import { PLANS, currentStreak, fromKg, parseStateJSON, toKg } from '@smartfit/core';
 import type { WeekStart } from '@smartfit/core';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
@@ -63,6 +63,30 @@ export function ProfileScreen() {
   const [needPassword, setNeedPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [verifySent, setVerifySent] = useState(false);
+  // Target weight is stored canonically in kg but edited in the athlete's
+  // display unit; the raw field keeps the typed value until it commits.
+  const [targetInput, setTargetInput] = useState(() =>
+    state.profile.targetWeightKg != null
+      ? String(Number(fromKg(state.profile.targetWeightKg, state.profile.weightUnit).toFixed(1)))
+      : '',
+  );
+
+  function commitTargetWeight() {
+    const trimmed = targetInput.trim();
+    if (trimmed === '') {
+      if (state.profile.targetWeightKg !== undefined) {
+        updateProfile({ targetWeightKg: undefined });
+      }
+      return;
+    }
+    const n = Number(trimmed);
+    if (!Number.isFinite(n)) return;
+    const kg = Math.min(400, Math.max(20, toKg(n, state.profile.weightUnit)));
+    updateProfile({ targetWeightKg: Math.round(kg * 10) / 10 });
+    setTargetInput(
+      String(Number(fromKg(Math.round(kg * 10) / 10, state.profile.weightUnit).toFixed(1))),
+    );
+  }
 
   const counts = {
     workouts: state.sessions.length,
@@ -437,6 +461,25 @@ export function ProfileScreen() {
             </Select>
             <p className="text-muted-foreground text-xs">
               Body measurements follow this: {state.profile.weightUnit === 'kg' ? 'cm' : 'inches'}.
+            </p>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="p-target-weight">Target weight ({state.profile.weightUnit})</Label>
+            <Input
+              id="p-target-weight"
+              type="number"
+              min={20}
+              max={400}
+              step="0.5"
+              inputMode="decimal"
+              value={targetInput}
+              onChange={(e) => setTargetInput(e.target.value)}
+              onBlur={commitTargetWeight}
+              placeholder="e.g. 78"
+            />
+            <p className="text-muted-foreground text-xs">
+              Drives the suggested program mix on the Plan tab — closer target means more
+              maintenance, further means more burn. Clear to disable.
             </p>
           </div>
           <div className="grid gap-1.5">

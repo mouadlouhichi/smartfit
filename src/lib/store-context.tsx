@@ -43,6 +43,7 @@ import {
   saveProfile,
   upsertItem,
   deleteItem,
+  replaceCollection,
   wipeUserData,
   INITIAL_SESSION_LIMIT,
   PAGE_SIZE,
@@ -166,6 +167,8 @@ interface StoreContextValue {
   addSchedule: (s: Omit<ScheduledWorkout, 'id' | 'createdAt'>) => void;
   updateSchedule: (id: string, patch: Partial<ScheduledWorkout>) => void;
   deleteSchedule: (id: string) => void;
+  /** Swap the whole scheduled week in one operation (suggested-program import). */
+  replaceSchedule: (items: Omit<ScheduledWorkout, 'id' | 'createdAt'>[]) => void;
   // goals
   addGoal: (g: Omit<FitnessGoal, 'id' | 'createdAt'>) => void;
   updateGoal: (id: string, patch: Partial<FitnessGoal>) => void;
@@ -622,6 +625,21 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         mutate(
           (prev) => ({ ...prev, schedule: [...prev.schedule, item] }),
           upsert('schedule', item),
+        );
+      },
+      replaceSchedule: (items) => {
+        const now = Date.now();
+        const next: ScheduledWorkout[] = items.map((s, i) => ({
+          ...s,
+          id: uid('sch'),
+          createdAt: now + i,
+        }));
+        mutate(
+          (prev) => ({ ...prev, schedule: next }),
+          (fresh, owner) => ({
+            key: 'schedule:replace',
+            run: () => replaceCollection(owner, 'schedule', fresh.schedule),
+          }),
         );
       },
       updateSchedule: (id, patch) => {

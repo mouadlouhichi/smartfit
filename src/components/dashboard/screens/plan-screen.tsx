@@ -5,15 +5,18 @@ import {
   CalendarCheck2,
   ChevronRight,
   Clock,
+  Download,
   History,
   Loader2,
   Moon,
   Pencil,
   Plus,
+  Sparkles,
   Tag,
 } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
+import { useConfirm } from '../confirm-context';
 import { EmptyState } from '../empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,9 +24,21 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
 import { CategoryIcon } from '@/components/category-icon';
-import { INTENSITY_META, PLANS, WEEKDAYS, WEEKDAYS_LONG } from '@smartfit/core';
-import { categoryById, getPlan } from '@smartfit/core';
-import { formatCalories, formatDateLabel, formatDistance, formatMinutes } from '@smartfit/core';
+import { INTENSITY_META, PLANS, WEEKDAYS, WEEKDAYS_LONG, ZONE_FIGHT } from '@smartfit/core';
+import {
+  categoryById,
+  getPlan,
+  kgToTarget,
+  suggestProgram,
+  suggestedToSchedule,
+} from '@smartfit/core';
+import {
+  formatCalories,
+  formatDateLabel,
+  formatDistance,
+  formatMinutes,
+  formatWeight,
+} from '@smartfit/core';
 import { cn } from '@/lib/utils';
 import type { ScheduledWorkout } from '@smartfit/core';
 
@@ -41,13 +56,39 @@ export function PlanScreen() {
     state,
     updateProfile,
     updateSchedule,
+    replaceSchedule,
     hasMoreSessions,
     loadingMore,
     loadEarlierSessions,
   } = useStore();
   const { openModal, openWith } = useModals();
+  const confirm = useConfirm();
   const [filter, setFilter] = useState('all');
   const [pageError, setPageError] = useState<string | null>(null);
+
+  // Suggested week from the Zone Fight timetable — recomputed whenever the
+  // strategy, latest weight log or target weight changes.
+  const kgLeft = useMemo(() => kgToTarget(state), [state]);
+  const suggested = useMemo(() => suggestProgram(state), [state]);
+  const targetKg = state.profile.targetWeightKg;
+  const mixLine =
+    kgLeft == null
+      ? 'Set a target weight in Profile and log your weight — the mix then adapts automatically. This is a balanced starting week.'
+      : kgLeft > 0
+        ? `${formatWeight(kgLeft, state.profile.weightUnit)} to your ${
+            targetKg != null ? formatWeight(targetKg, state.profile.weightUnit) : 'target'
+          } — burn-focused mix (HIIT · cardio · combat).`
+        : 'Target reached — maintenance mix keeps strength high and recovery light.';
+
+  async function importSuggestion() {
+    const ok = await confirm({
+      title: 'Import suggested week?',
+      body: 'Your current scheduled sessions are replaced with the Zone Fight classes shown here.',
+      confirmLabel: 'Replace my week',
+      destructive: true,
+    });
+    if (ok) replaceSchedule(suggestedToSchedule(suggested));
+  }
 
   async function loadMore() {
     setPageError(null);
@@ -148,6 +189,73 @@ export function PlanScreen() {
             <p className="text-muted-foreground text-xs">
               Coloured days follow the strategy&rsquo;s focus — hover a day to see it.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Suggested program (Zone Fight gym) ─────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex flex-wrap items-center gap-2.5 text-base">
+            <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+              <Sparkles className="h-4.5 w-4.5" aria-hidden />
+            </span>
+            Suggested program
+            <Badge variant="accent">{ZONE_FIGHT.name}</Badge>
+          </CardTitle>
+          <p className="text-muted-foreground text-xs">{mixLine}</p>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          {suggested.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              No matching classes on your training days — try another strategy or add sessions
+              manually.
+            </p>
+          ) : (
+            <ul className="grid gap-1.5">
+              {suggested.map((s) => {
+                const meta = INTENSITY_META[s.gymClass.intensity];
+                return (
+                  <li
+                    key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
+                    className="bg-secondary/50 flex items-center gap-3 rounded-xl px-3 py-2"
+                  >
+                    <span className="w-11 text-xs font-bold tabular-nums">
+                      {WEEKDAYS_LONG[s.weekday]}
+                    </span>
+                    <span className="text-muted-foreground w-11 text-xs font-semibold tabular-nums">
+                      {s.time}
+                    </span>
+                    <span className="flex-1 truncate text-sm font-semibold">{s.gymClass.name}</span>
+                    <span className="text-muted-foreground hidden text-xs tabular-nums sm:inline">
+                      {formatMinutes(s.gymClass.minutes)}
+                    </span>
+                    <span
+                      className="flex items-center gap-1.5 text-xs font-bold whitespace-nowrap"
+                      style={{ color: meta.color }}
+                    >
+                      <span
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: meta.color }}
+                        aria-hidden
+                      />
+                      {meta.label}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-muted-foreground text-xs">{ZONE_FIGHT.hours}</p>
+            <Button
+              size="sm"
+              onClick={importSuggestion}
+              disabled={suggested.length === 0}
+              data-testid="import-suggested-week"
+            >
+              <Download className="h-4 w-4" /> Import into my plan
+            </Button>
           </div>
         </CardContent>
       </Card>

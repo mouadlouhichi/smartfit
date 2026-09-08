@@ -10,7 +10,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { History, Loader2, Pencil, Plus, Ruler, TrendingDown, TrendingUp } from 'lucide-react';
+import {
+  History,
+  Loader2,
+  Pencil,
+  Plus,
+  Ruler,
+  Target,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +32,8 @@ import {
   bodyLabel,
   bodyValueToDisplay,
   formatDateLabel,
+  fromKg,
+  kgToTarget,
   round,
 } from '@smartfit/core';
 import type { BodyUnit } from '@smartfit/core';
@@ -79,6 +90,9 @@ export function BodyScreen() {
   const first = points[0]?.value;
   const delta = latest != null && first != null ? Math.round((latest - first) * 10) / 10 : null;
   const trendDown = delta != null && delta < 0;
+  // Signed gap (canonical kg) between the latest weight log and the profile
+  // target — shown as a chip only while viewing the weight trend.
+  const toTarget = activeUnit === 'weight' ? kgToTarget(state) : null;
 
   return (
     <div className="grid gap-5">
@@ -155,6 +169,20 @@ export function BodyScreen() {
                       )}
                       {trendDown ? '−' : '+'}
                       {Math.abs(delta)} {displayUnit}
+                    </span>
+                  )}
+                  {toTarget != null && (
+                    <span
+                      className={`mb-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums ${
+                        toTarget <= 0
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-secondary text-secondary-foreground'
+                      }`}
+                    >
+                      <Target className="h-3.5 w-3.5" aria-hidden />
+                      {toTarget <= 0
+                        ? 'Target reached'
+                        : `${round(fromKg(toTarget, state.profile.weightUnit), 1)} ${displayUnit} to target`}
                     </span>
                   )}
                 </div>

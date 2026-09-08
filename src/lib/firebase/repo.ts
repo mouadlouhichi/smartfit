@@ -174,8 +174,19 @@ export async function ensureUserProfile(
 /** Persist a profile patch (whole-profile writes are cheap and simple). */
 export async function saveProfile(uid: string, profile: UserProfile): Promise<void> {
   const { db } = await requireServices();
-  const { doc, setDoc } = await import('firebase/firestore');
-  await setDoc(doc(db, userDoc(uid)), { profile, updatedAt: Date.now() }, { merge: true });
+  const { doc, setDoc, updateDoc, deleteField } = await import('firebase/firestore');
+  const ref = doc(db, userDoc(uid));
+  // Firestore rejects explicit `undefined`s — persist only defined keys.
+  const clean = Object.fromEntries(
+    Object.entries(profile).filter(([, value]) => value !== undefined),
+  );
+  await setDoc(ref, { profile: clean, updatedAt: Date.now() }, { merge: true });
+  // Clearing the optional target weight has to remove the persisted field.
+  if (profile.targetWeightKg === undefined && 'targetWeightKg' in profile) {
+    await updateDoc(ref, { 'profile.targetWeightKg': deleteField() }).catch(() => {
+      /* field was not stored — nothing to delete */
+    });
+  }
 }
 
 /** Upsert a single item into a sub-collection. */
@@ -194,6 +205,36 @@ export async function deleteItem(uid: string, name: CollectionName, id: string):
   const { db } = await requireServices();
   const { doc, deleteDoc } = await import('firebase/firestore');
   await deleteDoc(doc(db, colPath(uid, name), id));
+}
+
+/**
+ * Replace an entire sub-collection with the given rows in one pass
+ * (used by "import suggested week" — deletes docs no longer present and
+ * writes the new set). Batched in chunks to stay under Firestore's limits.
+ */
+export async function replaceCollection<T extends { id: string }>(
+  uid: string,
+  name: CollectionName,
+  items: T[],
+): Promise<void> {
+  const { db } = await requireServices();
+  const { doc, getDocs, writeBatch, collection } = await import('firebase/firestore');
+  const colRef = collection(db, colPath(uid, name));
+  const snap = await getDocs(colRef);
+  const keep = new Set(items.map((i) => i.id));
+  const ops: Array<{ ref: ReturnType<typeof doc>; item?: T }> = [];
+  snap.docs.forEach((d) => {
+    if (!keep.has(d.id)) ops.push({ ref: doc(db, colPath(uid, name), d.id) });
+  });
+  items.forEach((item) => ops.push({ ref: doc(db, colPath(uid, name), item.id), item }));
+  for (let i = 0; i < ops.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const op of ops.slice(i, i + 400)) {
+      if (op.item) batch.set(op.ref, op.item);
+      else batch.delete(op.ref);
+    }
+    await batch.commit();
+  }
 }
 
 /**

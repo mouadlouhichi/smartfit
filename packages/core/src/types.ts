@@ -119,6 +119,11 @@ export interface UserProfile {
   weekStartsOn: WeekStart;
   planId: PlanId;
   onboardingDone: boolean;
+  /**
+   * Optional target body weight in canonical kg. Drives the suggested
+   * program mix (burn-heavy while far away, maintenance once reached).
+   */
+  targetWeightKg?: number;
 }
 
 export interface FitnessState {

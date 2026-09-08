@@ -40,6 +40,10 @@ shared domain package — but applies them to **training** instead of money.
   lights up on both apps.
 - **Recurring schedule** — drop sessions into the week (day/time/duration),
   toggle them active, or delete them.
+- **Suggested program** — a dynamic weekly plan built from the **Zone Fight**
+  gym timetable: set a target weight in Profile and the mix of classes
+  (HIIT/cardio/combat vs strength vs recovery) adapts to how far away you are,
+  then import the whole week into your schedule with one click.
 - **Goals** — weekly & monthly targets for workouts, active minutes, calories or
   distance, with live progress bars that reset each period.
 - **Streaks & momentum** — a consecutive-day training streak.
@@ -186,7 +190,7 @@ smartfit/
 │     │  ├─ seed.ts                 #   demo generator (subpath: @smartfit/core/seed)
 │     │  ├─ utils.ts                #   uid / clamp / round
 │     │  └─ index.ts                #   barrel export (deliberately omits seed.ts)
-│     └─ tests/                     # 57 domain unit tests (node:test)
+│     └─ tests/                     # 67 domain unit tests (node:test)
 ├─ e2e/                             # Playwright smoke suite (local-mode product journey)
 ├─ tests/                           # web lib unit tests + tests/rules (Firestore rules, emulator)
 ├─ docs/                            # firebase.md · ops-runbook.md · audits
@@ -259,7 +263,7 @@ credentials permanently. See [`/privacy`](src/app/privacy/page.tsx).
 Four layers, all running in CI (Node's built-in test runner + Playwright — no
 heavy frameworks):
 
-**Domain (`packages/core/tests/`, 57 tests)** — pure logic:
+**Domain (`packages/core/tests/`, 67 tests)** — pure logic:
 
 | Suite | Covers |
 | --- | --- |
@@ -269,6 +273,7 @@ heavy frameworks):
 | `units.test.ts`   | kg·lb, km·mi, cm·in conversion at the display boundary |
 | `coach.test.ts`   | coach intents and the numbers behind every answer |
 | `targets.test.ts` | activity targets derived from goals, falling back to the plan |
+| `program.test.ts` | the Zone Fight timetable, the target-driven weekly mix and suggested-program import |
 
 **Web lib (`tests/`, 40 tests)** — the decisions that used to be untestable
 inside React: `hydration.test.ts` (what every identity/mode combination sees),
