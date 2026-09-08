@@ -13,6 +13,7 @@ import type {
   BodyUnit,
   Category,
   FitnessGoal,
+  GeoPoint,
   FitnessState,
   GoalCadence,
   GoalMetric,
@@ -194,8 +195,31 @@ function parseSession(v: unknown): WorkoutSession | null {
     exercises: exercises(v.exercises),
     notes: str(v.notes) || undefined,
     scheduleId: str(v.scheduleId) || undefined,
+    route: parseRoute(v.route),
     createdAt: num(v.createdAt, Date.now()),
   };
+}
+
+/**
+ * A GPS trace is untrusted like everything else: drop non-finite fixes and
+ * cap the length so a malformed or oversized route can never bloat storage.
+ * Returns undefined unless at least two sane points survive (a route needs a
+ * line, not a dot).
+ */
+function parseRoute(v: unknown): GeoPoint[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out: GeoPoint[] = [];
+  for (const raw of v) {
+    if (!isObj(raw)) continue;
+    const lat = num(raw.lat, NaN);
+    const lng = num(raw.lng, NaN);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) continue;
+    const t = optNum(raw.t);
+    out.push(t !== undefined ? { lat, lng, t } : { lat, lng });
+    if (out.length >= 1000) break;
+  }
+  return out.length >= 2 ? out : undefined;
 }
 
 function parseSchedule(v: unknown): ScheduledWorkout | null {

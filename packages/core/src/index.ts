@@ -21,6 +21,7 @@ export * from './units';
 export * from './state';
 export * from './fitness';
 export * from './training';
+export * from './geo';
 export * from './program';
 export * from './pro';
 export * from './format';

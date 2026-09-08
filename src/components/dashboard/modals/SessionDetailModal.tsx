@@ -21,11 +21,14 @@ import {
   formatDistance,
   formatMinutes,
 } from '@smartfit/core';
-import { Clock, Flame, Info, Pencil, Route, StickyNote } from 'lucide-react';
+import { Clock, Flame, Info, Pencil, Route, Share2, StickyNote } from 'lucide-react';
 import { ExerciseImage } from '@/components/exercise-image';
 import { ExerciseDetailDialog } from '@/components/exercise-detail';
-import { matchExercise } from '@smartfit/core';
+import { matchExercise, toISODate } from '@smartfit/core';
 import { useExtendedCatalog } from '@/lib/use-extended-catalog';
+import { RouteMap } from '../route-map';
+import { renderRoutePng, shareOrDownloadPng } from '@/lib/route-art';
+import { useToast } from '@/components/ui/toast';
 
 /**
  * Read-only detail for a logged session.
@@ -44,6 +47,26 @@ export function SessionDetailModal() {
   useExtendedCatalog();
   const session = payload?.session;
   const [detailName, setDetailName] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
+  const toast = useToast();
+
+  async function shareMap() {
+    if (!session?.route || session.route.length < 2) return;
+    setSharing(true);
+    try {
+      const blob = await renderRoutePng(session.route, {
+        title: session.title,
+        durationMin: session.durationMin,
+        distanceKm: session.distanceKm,
+      });
+      const result = await shareOrDownloadPng(blob, `smartfit-route-${session.date}.png`);
+      toast(result === 'shared' ? 'Route shared' : 'Route saved to downloads');
+    } catch {
+      toast('Could not render the route map', 'info');
+    } finally {
+      setSharing(false);
+    }
+  }
 
   if (!session) {
     return <Dialog open={false} onOpenChange={() => undefined} />;
@@ -98,6 +121,24 @@ export function SessionDetailModal() {
             <p className="text-muted-foreground text-xs">
               Intensity: <span className="text-foreground font-medium">{intensity.label}</span>
             </p>
+          )}
+
+          {/* The saved GPS trace, redrawn, with a Strava-style transparent share. */}
+          {(session.route?.length ?? 0) >= 2 && (
+            <div className="bg-secondary/60 flex items-center gap-4 rounded-2xl p-3">
+              <div className="bg-card h-24 w-24 shrink-0 overflow-hidden rounded-xl shadow-sm">
+                <RouteMap route={session.route!} className="h-full w-full" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold">Route map</p>
+                <p className="text-muted-foreground text-xs">
+                  Transparent PNG — layer it over a photo for Instagram.
+                </p>
+              </div>
+              <Button size="sm" onClick={() => void shareMap()} disabled={sharing}>
+                <Share2 className="h-4 w-4" /> {sharing ? 'Rendering…' : 'Share'}
+              </Button>
+            </div>
           )}
 
           {exercises.length > 0 && (

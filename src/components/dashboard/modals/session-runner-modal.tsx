@@ -10,9 +10,11 @@ import {
   Flag,
   Flame,
   History,
+  Navigation,
   Pause,
   Play,
   Plus,
+  Share2,
   Sparkles,
   Timer,
   Trophy,
@@ -31,14 +33,20 @@ import {
   estimatedOneRepMax,
   formatSet,
   formatVolume,
+  haversineMeters,
   isPersonalRecord,
   lastPerformance,
+  routeDistanceKm,
+  simplifyRoute,
   suggestedExercisesForCategory,
   suggestedRestSeconds,
   summariseLiveSession,
+  type GeoPoint,
   type LastPerformance,
   type SessionSummary,
 } from '@smartfit/core';
+import { renderRoutePng, shareOrDownloadPng } from '@/lib/route-art';
+import { RouteMap } from '../route-map';
 import { cn } from '@/lib/utils';
 
 /* ── helpers ───────────────────────────────────────────────────────────── */
@@ -138,6 +146,13 @@ export function SessionRunnerModal() {
   const [screen, setScreen] = useState<'live' | 'summary'>('live');
   const nextId = useRef(1);
 
+  // GPS walk tracking
+  const [tracking, setTracking] = useState(false);
+  const [distanceKm, setDistanceKm] = useState(0);
+  const [geoError, setGeoError] = useState<string | null>(null);
+  const routeRef = useRef<GeoPoint[]>([]);
+  const watchIdRef = useRef<number | null>(null);
+
   // Reset to a fresh session every time the runner opens.
   useEffect(() => {
     if (!isOpen || !payload || payload.kind !== 'runner') return;
@@ -148,6 +163,10 @@ export function SessionRunnerModal() {
     setActiveIndex(0);
     setDraft('');
     setScreen('live');
+    routeRef.current = [];
+    setDistanceKm(0);
+    setGeoError(null);
+    setTracking(false);
 
     const template = payload.exercises ?? [];
     const initial: LiveExercise[] = template.map((entry) => {
@@ -182,6 +201,66 @@ export function SessionRunnerModal() {
       setRestTotal(0); // so it only fires once per countdown
     }
   }, [restLeft, restTotal]);
+
+  // Always release the GPS watch when the runner closes or unmounts.
+  useEffect(() => stopTracking, []);
+
+  function stopTracking() {
+    if (watchIdRef.current !== null && typeof navigator !== 'undefined') {
+      navigator.geolocation?.clearWatch(watchIdRef.current);
+    }
+    watchIdRef.current = null;
+    setTracking(false);
+  }
+
+  function toggleTracking() {
+    if (tracking) {
+      stopTracking();
+      return;
+    }
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoError('GPS is not available on this device.');
+      return;
+    }
+    setGeoError(null);
+    setTracking(true);
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        // Ignore low-confidence fixes (indoor / cold start).
+        if (!Number.isFinite(accuracy) || accuracy > 50) return;
+        const last = routeRef.current[routeRef.current.length - 1];
+        const point: GeoPoint = { lat: latitude, lng: longitude, t: pos.timestamp };
+        // Only record real movement (~5 m) so a standing start doesn't jitter.
+        if (last && haversineMeters(last, point) < 5) return;
+        routeRef.current = [...routeRef.current, point];
+        setDistanceKm(routeDistanceKm(routeRef.current));
+      },
+      (err) => {
+        setTracking(false);
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? 'Location permission denied — enable it to track your route.'
+            : 'Could not get a GPS fix.',
+        );
+      },
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
+    );
+  }
+
+  async function shareMap() {
+    try {
+      const blob = await renderRoutePng(routeRef.current, {
+        title: run.title,
+        durationMin: Math.max(1, Math.round(seconds / 60)),
+        distanceKm,
+      });
+      const result = await shareOrDownloadPng(blob, `smartfit-route-${toISODate(new Date())}.png`);
+      toast(result === 'shared' ? 'Route shared' : 'Route saved to downloads');
+    } catch {
+      toast('Could not render the route map', 'info');
+    }
+  }
 
   if (!isOpen || !payload || payload.kind !== 'runner') return null;
   const run = payload;
@@ -274,12 +353,14 @@ export function SessionRunnerModal() {
 
   function finishToSummary() {
     setRunning(false);
+    stopTracking(); // freeze the GPS trace before the summary renders it
     setScreen('summary');
   }
 
   function saveSession() {
     const durationMin = Math.max(1, Math.round(seconds / 60));
     const core = exercises.map(toCoreExercise).filter((x) => x.sets.length > 0);
+    const route = routeRef.current.length >= 2 ? simplifyRoute(routeRef.current, 500) : undefined;
     addSession({
       date: toISODate(new Date()),
       categoryId: run.categoryId,
@@ -289,6 +370,8 @@ export function SessionRunnerModal() {
       calories: estimateSessionCalories(durationMin, run.intensity),
       exercises: core,
       scheduleId: run.scheduleId,
+      distanceKm: route ? Math.round(routeDistanceKm(route) * 100) / 100 : undefined,
+      route,
     });
     setRunning(false);
     closeModal();
@@ -348,11 +431,59 @@ export function SessionRunnerModal() {
         </div>
       </header>
 
+      {/* ── GPS walk-tracking chip (live screen only) ────────────────── */}
+      {screen === 'live' && (
+        <div className="px-4 pb-3">
+          <button
+            onClick={toggleTracking}
+            className={cn(
+              'press flex w-full items-center gap-3 rounded-2xl border p-3 text-left',
+              tracking ? 'border-transparent' : 'session-tile border-transparent',
+            )}
+            style={tracking ? { background: 'rgba(200,241,53,0.12)' } : undefined}
+            aria-pressed={tracking}
+          >
+            <span
+              className={cn(
+                'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
+                tracking && 'animate-pulse-soft',
+              )}
+              style={{
+                background: tracking ? 'rgba(200,241,53,0.2)' : 'rgba(247,242,234,0.07)',
+                color: tracking ? '#c8f135' : 'rgba(247,242,234,0.6)',
+              }}
+            >
+              <Navigation className="h-5 w-5" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold">
+                {tracking ? 'Tracking your route' : 'Track walk / route'}
+              </span>
+              <span className="session-muted block text-xs tabular-nums">
+                {geoError ??
+                  (distanceKm > 0
+                    ? `${distanceKm.toFixed(2)} km recorded`
+                    : 'GPS maps your route for sharing')}
+              </span>
+            </span>
+            <span
+              className="text-sm font-extrabold tabular-nums"
+              style={{ color: tracking ? '#c8f135' : 'rgba(247,242,234,0.7)' }}
+            >
+              {distanceKm.toFixed(2)} km
+            </span>
+          </button>
+        </div>
+      )}
+
       {screen === 'summary' && summary ? (
         <SummaryScreen
           summary={summary}
           durationMin={Math.max(1, Math.round(seconds / 60))}
           weightUnit={state.profile.weightUnit}
+          route={routeRef.current}
+          distanceKm={distanceKm}
+          onShare={shareMap}
           onSave={saveSession}
           onBack={() => setScreen('live')}
         />
@@ -781,15 +912,22 @@ function SummaryScreen({
   summary,
   durationMin,
   weightUnit,
+  route,
+  distanceKm,
+  onShare,
   onSave,
   onBack,
 }: {
   summary: SessionSummary;
   durationMin: number;
   weightUnit: 'kg' | 'lb';
+  route: GeoPoint[];
+  distanceKm: number;
+  onShare: () => void;
   onSave: () => void;
   onBack: () => void;
 }) {
+  const hasRoute = route.length >= 2;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
@@ -813,6 +951,27 @@ function SummaryScreen({
           <StatTile icon={Flame} label="Volume" value={formatVolume(summary.volume, weightUnit)} />
           <StatTile icon={Timer} label="Exercises" value={`${summary.exercises}`} />
         </div>
+
+        {hasRoute && (
+          <div className="session-tile mt-4 flex items-center gap-4 rounded-2xl p-4">
+            <div className="bg-card relative h-28 w-28 shrink-0 overflow-hidden rounded-xl">
+              <RouteMap route={route} className="h-full w-full" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold">Your route</p>
+              <p className="session-muted text-xs tabular-nums">
+                {distanceKm.toFixed(2)} km · {durationMin} min
+              </p>
+            </div>
+            <button
+              onClick={onShare}
+              className="press flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold"
+              style={{ background: 'var(--chart-1)', color: '#fff' }}
+            >
+              <Share2 className="h-4 w-4" aria-hidden /> Share
+            </button>
+          </div>
+        )}
 
         {summary.personalRecords.length > 0 && (
           <div className="session-tile mt-4 rounded-2xl p-4">

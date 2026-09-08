@@ -44,6 +44,14 @@ export interface WorkoutSet {
   duration?: number; // minutes
 }
 
+/** One GPS fix captured by the walk tracker. */
+export interface GeoPoint {
+  lat: number;
+  lng: number;
+  /** Epoch ms of the fix (for pace); optional and dropped when absent. */
+  t?: number;
+}
+
 export interface WorkoutExercise {
   name: string;
   sets: WorkoutSet[];
@@ -62,6 +70,8 @@ export interface WorkoutSession {
   notes?: string;
   /** Set when this session was logged from a scheduled slot. */
   scheduleId?: string;
+  /** GPS trace captured by the walk tracker (drives the shareable route map). */
+  route?: GeoPoint[];
   createdAt: number;
 }
 

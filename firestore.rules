@@ -60,7 +60,10 @@ service cloud.firestore {
           && (!('notes' in request.resource.data) || strAtMost(request.resource.data.notes, 5000))
           && (!('distanceKm' in request.resource.data) || numBetween(request.resource.data.distanceKm, 0, 100000))
           && (!('exercises' in request.resource.data) || request.resource.data.exercises is list
-                && request.resource.data.exercises.size() <= 100);
+                && request.resource.data.exercises.size() <= 100)
+          // Optional GPS trace for the walk-tracker share map.
+          && (!('route' in request.resource.data) || request.resource.data.route is list
+                && request.resource.data.route.size() <= 1000);
       }
 
       // ── recurring schedule (a slot doubles as a workout template) ──────
@@ -78,7 +81,10 @@ service cloud.firestore {
           // Optional routine (exercise list with target sets) — bounded like
           // the one on a logged session.
           && (!('exercises' in request.resource.data) || request.resource.data.exercises is list
-                && request.resource.data.exercises.size() <= 100);
+                && request.resource.data.exercises.size() <= 100)
+          // Optional GPS trace for the walk-tracker share map.
+          && (!('route' in request.resource.data) || request.resource.data.route is list
+                && request.resource.data.route.size() <= 1000);
       }
 
       // ── goals ──────────────────────────────────────────────────────────

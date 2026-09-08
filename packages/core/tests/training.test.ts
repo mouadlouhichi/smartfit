@@ -465,3 +465,70 @@ test('suggestedExercisesForCategory returns a balanced, curated starter', async 
   const fallback = suggestedExercisesForCategory('cat-unknown', 4);
   assert.ok(fallback.length > 0, 'unknown category still yields suggestions');
 });
+
+// ── GPS / route maths ───────────────────────────────────────────────────
+
+test('haversine and route distance are sane for a known walk', async () => {
+  const { haversineMeters, routeDistanceKm, paceMinPerKm, formatPace } =
+    await import('../src/geo.ts');
+  // ~111.19 km per degree of latitude; a 0.01° step ≈ 1.112 km.
+  const a = { lat: 0, lng: 0 };
+  const b = { lat: 0.01, lng: 0 };
+  const m = haversineMeters(a, b);
+  assert.ok(m > 1100 && m < 1130, `expected ~1112m, got ${m}`);
+
+  const route = [
+    { lat: 0, lng: 0 },
+    { lat: 0.01, lng: 0 },
+    { lat: 0.01, lng: 0.01 },
+  ];
+  const km = routeDistanceKm(route);
+  assert.ok(km > 2.2 && km < 2.24, `expected ~2.22km, got ${km}`);
+
+  assert.equal(paceMinPerKm(10, 0), 0);
+  assert.equal(formatPace(0), '—');
+  assert.equal(formatPace(7.5), '7:30 /km');
+});
+
+test('simplifyRoute keeps endpoints and bounds the point count', async () => {
+  const { simplifyRoute, projectRoute } = await import('../src/geo.ts');
+  const many = Array.from({ length: 1200 }, (_, i) => ({ lat: i * 0.0001, lng: i * 0.0001 }));
+  const simple = simplifyRoute(many, 500);
+  assert.ok(simple.length <= 500, 'bounded');
+  assert.deepEqual(simple[0], many[0], 'keeps first fix');
+  assert.deepEqual(simple[simple.length - 1], many[many.length - 1], 'keeps last fix');
+
+  // Projection stays inside the box and inverts latitude (north up).
+  const { line } = projectRoute(many, 100, 8);
+  assert.ok(
+    line.every((p) => p.x >= 0 && p.x <= 100 && p.y >= 0 && p.y <= 100),
+    'inside box',
+  );
+});
+
+test('parseState keeps a valid route and drops junk fixes', () => {
+  const parsed = parseStateJSON(
+    JSON.stringify({
+      sessions: [
+        {
+          id: 's1',
+          date: '2026-01-05',
+          title: 'Walk',
+          categoryId: 'cat-cardio',
+          durationMin: 30,
+          intensity: 'low',
+          calories: 100,
+          createdAt: 1,
+          route: [
+            { lat: 33.5, lng: -7.6 },
+            { lat: 33.51, lng: -7.61 },
+            { lat: 999, lng: 0 }, // out of range — dropped
+            { lat: 'x', lng: 1 }, // non-finite — dropped
+          ],
+        },
+      ],
+    }),
+  );
+  assert.ok(parsed);
+  assert.equal(parsed.sessions[0].route?.length, 2, 'only the two sane fixes survive');
+});
