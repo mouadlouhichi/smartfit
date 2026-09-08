@@ -1,10 +1,102 @@
-import React from 'react';
-import { ScrollView, Switch, Text, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { formatMinutes, INTENSITY_META, WEEKDAYS_LONG } from '@smartfit/core';
+import {
+  EXERCISES,
+  EXERCISE_EQUIPMENT_LABELS,
+  EXERCISE_GROUPS,
+  EXERCISE_MUSCLE_LABELS,
+  formatMinutes,
+  INTENSITY_META,
+  WEEKDAYS_LONG,
+  type ExerciseGroup,
+} from '@smartfit/core';
 import { useStore } from '@/lib/store';
-import { Card } from '@/components/ui';
+import { Card, SectionTitle } from '@/components/ui';
 import { CategoryIcon } from '@/components/CategoryIcon';
+import { ExerciseDemo } from '@/components/ExerciseDemo';
+import { ExerciseDetailModal } from '@/components/ExerciseDetailModal';
+
+/** Tiles rendered per group — keeps image loads light while scrolling. */
+const GROUP_LIMIT = 12;
+
+/**
+ * The browsable exercise library on the plan tab: the shared catalog grouped
+ * by body section, with demos and the how-to sheet one tap away.
+ */
+function ExerciseLibrary() {
+  const [group, setGroup] = useState<ExerciseGroup | 'all'>('all');
+  const [detailName, setDetailName] = useState<string | null>(null);
+
+  const list = useMemo(
+    () =>
+      group === 'all'
+        ? EXERCISES.filter((e) => e.popular)
+        : EXERCISES.filter((e) => e.group === group),
+    [group],
+  );
+
+  return (
+    <View className="gap-2">
+      <SectionTitle>Exercise library</SectionTitle>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="gap-2"
+      >
+        {[{ id: 'all' as const, label: 'Popular' }, ...EXERCISE_GROUPS].map((g) => {
+          const active = group === g.id;
+          return (
+            <Pressable
+              key={g.id}
+              onPress={() => setGroup(g.id)}
+              className="rounded-full border px-3 py-2"
+              style={{
+                borderColor: active ? '#D6532F' : '#E7E2DB',
+                backgroundColor: active ? '#D6532F14' : 'transparent',
+              }}
+            >
+              <Text
+                className="text-sm font-medium"
+                style={{ color: active ? '#D6532F' : '#857D75' }}
+              >
+                {g.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      <Card className="flex-row flex-wrap gap-3">
+        {list.slice(0, GROUP_LIMIT).map((entry) => (
+          <Pressable
+            key={entry.id}
+            accessibilityLabel={`How to do ${entry.name}`}
+            onPress={() => setDetailName(entry.name)}
+            className="active:bg-muted w-[31%] items-center gap-1 rounded-xl p-1"
+          >
+            <ExerciseDemo name={entry.name} size={72} radius={12} animated={false} />
+            <Text
+              className="text-foreground w-full text-center text-xs font-semibold"
+              numberOfLines={2}
+            >
+              {entry.name}
+            </Text>
+            <Text
+              className="text-muted-foreground w-full text-center text-[11px]"
+              numberOfLines={1}
+            >
+              {EXERCISE_MUSCLE_LABELS[entry.muscles[0]]}
+            </Text>
+          </Pressable>
+        ))}
+      </Card>
+
+      <ExerciseDetailModal name={detailName} onClose={() => setDetailName(null)} />
+    </View>
+  );
+}
 
 export default function PlanScreen() {
   const { state, updateSchedule } = useStore();
@@ -28,6 +120,8 @@ export default function PlanScreen() {
             a day.
           </Text>
         </View>
+
+        <ExerciseLibrary />
 
         {WEEKDAYS_LONG.map((day, i) => {
           const items = (byDay.get(i) ?? []).sort((a, b) => a.timeOfDay.localeCompare(b.timeOfDay));

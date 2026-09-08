@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   EXERCISES,
   EXERCISE_EQUIPMENT_LABELS,
+  EXERCISE_GROUPS,
   EXERCISE_IMAGE_BASE,
   EXERCISE_MUSCLE_LABELS,
   exerciseImages,
@@ -10,6 +11,7 @@ import {
   matchExercise,
   searchExercises,
   type ExerciseEquipment,
+  type ExerciseGroup,
   type ExerciseMuscle,
 } from '../src/exercises.ts';
 
@@ -23,6 +25,7 @@ import {
 
 const MUSCLES = new Set(Object.keys(EXERCISE_MUSCLE_LABELS));
 const EQUIPMENT = new Set(Object.keys(EXERCISE_EQUIPMENT_LABELS));
+const GROUPS = new Set(EXERCISE_GROUPS.map((g) => g.id));
 
 test('the catalog is internally consistent', () => {
   assert.ok(EXERCISES.length >= 100, 'a useful picker needs a full menu');
@@ -45,6 +48,18 @@ test('the catalog is internally consistent', () => {
     assert.ok(
       EQUIPMENT.has(entry.equipment as ExerciseEquipment),
       `${entry.id} has unknown equipment: ${entry.equipment}`,
+    );
+    assert.ok(
+      GROUPS.has(entry.group as ExerciseGroup),
+      `${entry.id} has unknown group: ${entry.group}`,
+    );
+  }
+
+  // Every browse group is populated — an empty chip would be a dead end.
+  for (const g of GROUPS) {
+    assert.ok(
+      EXERCISES.some((e) => e.group === g),
+      `group "${g}" has no exercises`,
     );
   }
 });

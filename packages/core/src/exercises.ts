@@ -52,6 +52,8 @@ export interface ExerciseCatalogEntry {
   equipment: ExerciseEquipment;
   /** Marquee lifts surfaced when the picker is opened without a query. */
   popular?: boolean;
+  /** Browse section in the exercise library (chips on /plan, mobile plan tab). */
+  group: ExerciseGroup;
 }
 
 /** CDN base for the demonstration frames (jsDelivr mirrors the GitHub repo). */
@@ -97,6 +99,21 @@ export const EXERCISE_MUSCLE_LABELS: Record<ExerciseMuscle, string> = {
   calves: 'Calves',
 };
 
+/** Browse grouping used by the exercise library UIs (web & mobile). */
+export type ExerciseGroup =
+  'chest' | 'back' | 'shoulders' | 'arms' | 'legs' | 'core' | 'conditioning' | 'mobility';
+
+export const EXERCISE_GROUPS: { id: ExerciseGroup; label: string }[] = [
+  { id: 'chest', label: 'Chest' },
+  { id: 'back', label: 'Back' },
+  { id: 'shoulders', label: 'Shoulders' },
+  { id: 'arms', label: 'Arms' },
+  { id: 'legs', label: 'Legs' },
+  { id: 'core', label: 'Core' },
+  { id: 'conditioning', label: 'Conditioning' },
+  { id: 'mobility', label: 'Mobility' },
+];
+
 export const EXERCISE_EQUIPMENT_LABELS: Record<ExerciseEquipment, string> = {
   barbell: 'Barbell',
   dumbbell: 'Dumbbell',
@@ -118,6 +135,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Chest ────────────────────────────────────────────────────────────────
   {
     id: 'Barbell_Bench_Press_-_Medium_Grip',
+    group: 'chest',
     name: 'Barbell Bench Press',
     aliases: ['bench press', 'flat bench press', 'barbell bench'],
     muscles: ['chest', 'triceps', 'shoulders'],
@@ -126,6 +144,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Dumbbell_Bench_Press',
+    group: 'chest',
     name: 'Dumbbell Bench Press',
     aliases: ['db bench press'],
     muscles: ['chest', 'triceps', 'shoulders'],
@@ -134,6 +153,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Incline_Dumbbell_Press',
+    group: 'chest',
     name: 'Incline Dumbbell Press',
     aliases: ['incline db press', 'incline dumbbell bench press'],
     muscles: ['chest', 'shoulders', 'triceps'],
@@ -141,6 +161,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Barbell_Incline_Bench_Press_-_Medium_Grip',
+    group: 'chest',
     name: 'Incline Barbell Bench Press',
     aliases: ['incline bench press'],
     muscles: ['chest', 'shoulders', 'triceps'],
@@ -148,6 +169,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Decline_Barbell_Bench_Press',
+    group: 'chest',
     name: 'Decline Barbell Bench Press',
     aliases: ['decline bench press'],
     muscles: ['chest', 'triceps'],
@@ -155,6 +177,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Dumbbell_Flyes',
+    group: 'chest',
     name: 'Dumbbell Flyes',
     aliases: ['dumbbell fly', 'db flyes', 'flat dumbbell flyes'],
     muscles: ['chest'],
@@ -162,6 +185,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Incline_Dumbbell_Flyes',
+    group: 'chest',
     name: 'Incline Dumbbell Flyes',
     aliases: ['incline flyes'],
     muscles: ['chest'],
@@ -169,6 +193,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Cable_Crossover',
+    group: 'chest',
     name: 'Cable Crossover',
     aliases: ['cable cross over', 'cable flyes'],
     muscles: ['chest'],
@@ -176,6 +201,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Machine_Bench_Press',
+    group: 'chest',
     name: 'Machine Bench Press',
     aliases: ['chest press machine', 'seated chest press'],
     muscles: ['chest', 'triceps'],
@@ -183,6 +209,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Dips_-_Chest_Version',
+    group: 'chest',
     name: 'Chest Dips',
     aliases: ['dips', 'dips chest version', 'gymnastic dips'],
     muscles: ['chest', 'triceps'],
@@ -191,6 +218,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Pushups',
+    group: 'chest',
     name: 'Pushups',
     aliases: ['push-up', 'push up', 'press up', 'press-ups'],
     muscles: ['chest', 'triceps'],
@@ -199,6 +227,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Bodyweight_Flyes',
+    group: 'chest',
     name: 'Bodyweight Flyes',
     muscles: ['chest'],
     equipment: 'body',
@@ -207,6 +236,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Back ─────────────────────────────────────────────────────────────────
   {
     id: 'Barbell_Deadlift',
+    group: 'back',
     name: 'Deadlift',
     aliases: ['barbell deadlift', 'conventional deadlift', 'deadlifts'],
     muscles: ['lower back', 'hamstrings', 'glutes', 'traps'],
@@ -215,6 +245,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Romanian_Deadlift',
+    group: 'back',
     name: 'Romanian Deadlift',
     aliases: ['rdl', 'rumanian deadlift'],
     muscles: ['hamstrings', 'glutes', 'lower back'],
@@ -223,18 +254,21 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Sumo_Deadlift',
+    group: 'back',
     name: 'Sumo Deadlift',
     muscles: ['lower back', 'glutes', 'quadriceps'],
     equipment: 'barbell',
   },
   {
     id: 'Good_Morning',
+    group: 'back',
     name: 'Good Morning',
     muscles: ['lower back', 'hamstrings', 'glutes'],
     equipment: 'barbell',
   },
   {
     id: 'Pullups',
+    group: 'back',
     name: 'Pull-Ups',
     aliases: ['pull-up', 'pull up', 'pullups', 'pull ups'],
     muscles: ['lats', 'biceps', 'middle back'],
@@ -243,6 +277,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Chin-Up',
+    group: 'back',
     name: 'Chin-Ups',
     aliases: ['chin up', 'chin ups', 'chinups'],
     muscles: ['lats', 'biceps'],
@@ -250,6 +285,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Band_Assisted_Pull-Up',
+    group: 'back',
     name: 'Band-Assisted Pull-Up',
     aliases: ['assisted pull-up', 'assisted pull up'],
     muscles: ['lats', 'biceps'],
@@ -257,6 +293,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Close-Grip_Front_Lat_Pulldown',
+    group: 'back',
     name: 'Lat Pulldown',
     aliases: ['close grip lat pulldown', 'front lat pulldown', 'lat pull down'],
     muscles: ['lats', 'biceps'],
@@ -265,6 +302,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Wide-Grip_Lat_Pulldown',
+    group: 'back',
     name: 'Wide-Grip Lat Pulldown',
     aliases: ['wide lat pulldown'],
     muscles: ['lats', 'biceps'],
@@ -272,18 +310,21 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'V-Bar_Pulldown',
+    group: 'back',
     name: 'V-Bar Pulldown',
     muscles: ['lats', 'biceps'],
     equipment: 'cable',
   },
   {
     id: 'Straight-Arm_Pulldown',
+    group: 'back',
     name: 'Straight-Arm Pulldown',
     muscles: ['lats'],
     equipment: 'cable',
   },
   {
     id: 'Bent_Over_Barbell_Row',
+    group: 'back',
     name: 'Barbell Row',
     aliases: ['bent over row', 'bent over barbell row', 'barbell bent over row'],
     muscles: ['middle back', 'lats', 'biceps'],
@@ -292,6 +333,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Bent_Over_Two-Dumbbell_Row',
+    group: 'back',
     name: 'Dumbbell Row',
     aliases: ['bent over dumbbell row', 'two dumbbell row', 'db row'],
     muscles: ['middle back', 'lats', 'biceps'],
@@ -299,6 +341,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'One-Arm_Dumbbell_Row',
+    group: 'back',
     name: 'One-Arm Dumbbell Row',
     aliases: ['single arm dumbbell row', 'one arm row'],
     muscles: ['lats', 'middle back', 'biceps'],
@@ -306,6 +349,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Seated_Cable_Rows',
+    group: 'back',
     name: 'Seated Cable Row',
     aliases: ['seated row', 'cable row', 'seated cable rows'],
     muscles: ['middle back', 'lats', 'biceps'],
@@ -313,6 +357,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Bent-Arm_Dumbbell_Pullover',
+    group: 'back',
     name: 'Dumbbell Pullover',
     aliases: ['db pullover', 'bent arm dumbbell pullover'],
     muscles: ['chest', 'lats'],
@@ -320,6 +365,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Face_Pull',
+    group: 'back',
     name: 'Face Pull',
     muscles: ['shoulders', 'traps'],
     equipment: 'cable',
@@ -328,6 +374,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Quads & legs ─────────────────────────────────────────────────────────
   {
     id: 'Barbell_Squat',
+    group: 'legs',
     name: 'Barbell Squat',
     aliases: ['squat', 'back squat', 'barbell back squat', 'squats'],
     muscles: ['quadriceps', 'glutes', 'hamstrings'],
@@ -336,6 +383,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Barbell_Full_Squat',
+    group: 'legs',
     name: 'Full Squat',
     aliases: ['olympic squat', 'deep squat'],
     muscles: ['quadriceps', 'glutes'],
@@ -343,30 +391,35 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Goblet_Squat',
+    group: 'legs',
     name: 'Goblet Squat',
     muscles: ['quadriceps', 'glutes'],
     equipment: 'dumbbell',
   },
   {
     id: 'Hack_Squat',
+    group: 'legs',
     name: 'Hack Squat',
     muscles: ['quadriceps'],
     equipment: 'machine',
   },
   {
     id: 'Barbell_Hack_Squat',
+    group: 'legs',
     name: 'Barbell Hack Squat',
     muscles: ['quadriceps'],
     equipment: 'barbell',
   },
   {
     id: 'Leg_Press',
+    group: 'legs',
     name: 'Leg Press',
     muscles: ['quadriceps', 'glutes'],
     equipment: 'machine',
   },
   {
     id: 'Leg_Extensions',
+    group: 'legs',
     name: 'Leg Extension',
     aliases: ['leg extensions', 'leg extensions machine'],
     muscles: ['quadriceps'],
@@ -374,6 +427,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Barbell_Lunge',
+    group: 'legs',
     name: 'Barbell Lunge',
     aliases: ['lunge', 'lunges', 'barbell lunges'],
     muscles: ['quadriceps', 'glutes', 'hamstrings'],
@@ -381,6 +435,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Dumbbell_Lunges',
+    group: 'legs',
     name: 'Dumbbell Lunge',
     aliases: ['dumbbell lunges', 'db lunge'],
     muscles: ['quadriceps', 'glutes', 'hamstrings'],
@@ -388,6 +443,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Barbell_Walking_Lunge',
+    group: 'legs',
     name: 'Barbell Walking Lunge',
     aliases: ['walking lunge', 'walking lunges'],
     muscles: ['quadriceps', 'glutes'],
@@ -395,12 +451,14 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Bodyweight_Walking_Lunge',
+    group: 'legs',
     name: 'Bodyweight Walking Lunge',
     muscles: ['quadriceps', 'glutes'],
     equipment: 'body',
   },
   {
     id: 'Bodyweight_Squat',
+    group: 'legs',
     name: 'Bodyweight Squat',
     aliases: ['air squat', 'air squats', 'bw squat'],
     muscles: ['quadriceps', 'glutes'],
@@ -408,6 +466,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Barbell_Step_Ups',
+    group: 'legs',
     name: 'Barbell Step-Ups',
     aliases: ['barbell step up', 'step ups barbell'],
     muscles: ['quadriceps', 'glutes'],
@@ -415,6 +474,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Dumbbell_Step_Ups',
+    group: 'legs',
     name: 'Dumbbell Step-Ups',
     aliases: ['dumbbell step up', 'step ups'],
     muscles: ['quadriceps', 'glutes'],
@@ -424,6 +484,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Hamstrings, glutes & calves ──────────────────────────────────────────
   {
     id: 'Lying_Leg_Curls',
+    group: 'legs',
     name: 'Lying Leg Curl',
     aliases: ['lying leg curls', 'leg curl', 'hamstring curl'],
     muscles: ['hamstrings'],
@@ -431,12 +492,14 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Seated_Leg_Curl',
+    group: 'legs',
     name: 'Seated Leg Curl',
     muscles: ['hamstrings'],
     equipment: 'machine',
   },
   {
     id: 'Barbell_Glute_Bridge',
+    group: 'legs',
     name: 'Barbell Glute Bridge',
     aliases: ['glute bridge', 'barbell bridge'],
     muscles: ['glutes', 'hamstrings'],
@@ -444,6 +507,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Barbell_Hip_Thrust',
+    group: 'legs',
     name: 'Hip Thrust',
     aliases: ['barbell hip thrust', 'hip thrusts'],
     muscles: ['glutes', 'hamstrings'],
@@ -451,6 +515,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Glute_Kickback',
+    group: 'legs',
     name: 'Cable Glute Kickback',
     aliases: ['glute kickback', 'cable kickback'],
     muscles: ['glutes'],
@@ -458,6 +523,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Standing_Calf_Raises',
+    group: 'legs',
     name: 'Standing Calf Raise',
     aliases: ['standing calf raises', 'calf raise', 'calf raises'],
     muscles: ['calves'],
@@ -465,18 +531,21 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Seated_Calf_Raise',
+    group: 'legs',
     name: 'Seated Calf Raise',
     muscles: ['calves'],
     equipment: 'machine',
   },
   {
     id: 'Barbell_Seated_Calf_Raise',
+    group: 'legs',
     name: 'Barbell Seated Calf Raise',
     muscles: ['calves'],
     equipment: 'barbell',
   },
   {
     id: 'Calf_Press',
+    group: 'legs',
     name: 'Calf Press',
     aliases: ['calf press on leg press'],
     muscles: ['calves'],
@@ -486,6 +555,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Shoulders & traps ────────────────────────────────────────────────────
   {
     id: 'Barbell_Shoulder_Press',
+    group: 'shoulders',
     name: 'Barbell Shoulder Press',
     aliases: ['overhead press', 'ohp', 'standing barbell press'],
     muscles: ['shoulders', 'triceps'],
@@ -494,6 +564,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Standing_Military_Press',
+    group: 'shoulders',
     name: 'Military Press',
     aliases: ['standing military press', 'strict press'],
     muscles: ['shoulders', 'triceps'],
@@ -501,6 +572,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Dumbbell_Shoulder_Press',
+    group: 'shoulders',
     name: 'Dumbbell Shoulder Press',
     aliases: ['db shoulder press', 'seated dumbbell press'],
     muscles: ['shoulders', 'triceps'],
@@ -509,12 +581,14 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Standing_Dumbbell_Press',
+    group: 'shoulders',
     name: 'Standing Dumbbell Press',
     muscles: ['shoulders', 'triceps'],
     equipment: 'dumbbell',
   },
   {
     id: 'Arnold_Dumbbell_Press',
+    group: 'shoulders',
     name: 'Arnold Press',
     aliases: ['arnold dumbbell press'],
     muscles: ['shoulders'],
@@ -522,6 +596,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Side_Lateral_Raise',
+    group: 'shoulders',
     name: 'Lateral Raise',
     aliases: ['side lateral raise', 'dumbbell lateral raise', 'lat raise'],
     muscles: ['shoulders'],
@@ -530,6 +605,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Front_Dumbbell_Raise',
+    group: 'shoulders',
     name: 'Front Raise',
     aliases: ['front dumbbell raise', 'dumbbell front raise'],
     muscles: ['shoulders'],
@@ -537,6 +613,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Reverse_Flyes',
+    group: 'shoulders',
     name: 'Reverse Flyes',
     aliases: ['rear delt fly', 'rear delt flyes', 'reverse fly'],
     muscles: ['shoulders', 'middle back'],
@@ -544,6 +621,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Barbell_Shrug',
+    group: 'shoulders',
     name: 'Barbell Shrug',
     aliases: ['shrug', 'shrugs', 'barbell shrugs'],
     muscles: ['traps'],
@@ -551,6 +629,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Dumbbell_Shrug',
+    group: 'shoulders',
     name: 'Dumbbell Shrug',
     aliases: ['dumbbell shrugs', 'db shrug'],
     muscles: ['traps'],
@@ -560,6 +639,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Biceps & forearms ────────────────────────────────────────────────────
   {
     id: 'Barbell_Curl',
+    group: 'arms',
     name: 'Barbell Curl',
     aliases: ['barbell bicep curl', 'standing barbell curl', 'bicep curl'],
     muscles: ['biceps', 'forearms'],
@@ -568,6 +648,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'EZ-Bar_Curl',
+    group: 'arms',
     name: 'EZ-Bar Curl',
     aliases: ['ez bar curl', 'ez curl'],
     muscles: ['biceps', 'forearms'],
@@ -575,12 +656,14 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Wide-Grip_Standing_Barbell_Curl',
+    group: 'arms',
     name: 'Wide-Grip Barbell Curl',
     muscles: ['biceps'],
     equipment: 'barbell',
   },
   {
     id: 'Alternate_Dumbbell_Curl',
+    group: 'arms',
     name: 'Alternating Dumbbell Curl',
     aliases: ['alternate dumbbell curl', 'alternating db curl'],
     muscles: ['biceps'],
@@ -588,6 +671,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Seated_Dumbbell_Curl',
+    group: 'arms',
     name: 'Seated Dumbbell Curl',
     aliases: ['dumbbell curl', 'db curl', 'seated db curl'],
     muscles: ['biceps'],
@@ -595,12 +679,14 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Incline_Dumbbell_Curl',
+    group: 'arms',
     name: 'Incline Dumbbell Curl',
     muscles: ['biceps'],
     equipment: 'dumbbell',
   },
   {
     id: 'Alternate_Hammer_Curl',
+    group: 'arms',
     name: 'Hammer Curl',
     aliases: ['hammer curls', 'alternate hammer curl', 'neutral grip curl'],
     muscles: ['biceps', 'forearms'],
@@ -608,6 +694,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Preacher_Curl',
+    group: 'arms',
     name: 'Preacher Curl',
     aliases: ['preacher curls'],
     muscles: ['biceps'],
@@ -615,6 +702,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Concentration_Curls',
+    group: 'arms',
     name: 'Concentration Curl',
     aliases: ['concentration curls'],
     muscles: ['biceps'],
@@ -624,6 +712,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Triceps ──────────────────────────────────────────────────────────────
   {
     id: 'Close-Grip_Barbell_Bench_Press',
+    group: 'arms',
     name: 'Close-Grip Bench Press',
     aliases: ['close grip bench', 'close grip bench press', 'cg bench'],
     muscles: ['triceps', 'chest'],
@@ -631,6 +720,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Dips_-_Triceps_Version',
+    group: 'arms',
     name: 'Triceps Dips',
     aliases: ['tricep dips', 'dips triceps version'],
     muscles: ['triceps', 'chest'],
@@ -638,12 +728,14 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Bench_Dips',
+    group: 'arms',
     name: 'Bench Dips',
     muscles: ['triceps'],
     equipment: 'body',
   },
   {
     id: 'Triceps_Pushdown',
+    group: 'arms',
     name: 'Triceps Pushdown',
     aliases: ['tricep pushdown', 'cable pushdown', 'triceps pushdowns', 'pushdown'],
     muscles: ['triceps'],
@@ -652,6 +744,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'EZ-Bar_Skullcrusher',
+    group: 'arms',
     name: 'Skullcrusher',
     aliases: ['skull crusher', 'skull crushers', 'ez bar skullcrusher', 'lying extension'],
     muscles: ['triceps'],
@@ -659,6 +752,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Lying_Triceps_Press',
+    group: 'arms',
     name: 'Lying Triceps Extension',
     aliases: ['lying triceps press'],
     muscles: ['triceps'],
@@ -666,6 +760,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Standing_Overhead_Barbell_Triceps_Extension',
+    group: 'arms',
     name: 'Overhead Barbell Extension',
     aliases: ['standing overhead barbell triceps extension', 'french press'],
     muscles: ['triceps'],
@@ -673,6 +768,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Standing_Dumbbell_Triceps_Extension',
+    group: 'arms',
     name: 'Overhead Dumbbell Extension',
     aliases: [
       'standing dumbbell triceps extension',
@@ -684,6 +780,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Seated_Triceps_Press',
+    group: 'arms',
     name: 'Seated Triceps Press',
     muscles: ['triceps'],
     equipment: 'dumbbell',
@@ -692,6 +789,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Core ─────────────────────────────────────────────────────────────────
   {
     id: 'Plank',
+    group: 'core',
     name: 'Plank',
     aliases: ['front plank', 'planking'],
     muscles: ['abdominals'],
@@ -700,6 +798,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Crunches',
+    group: 'core',
     name: 'Crunches',
     aliases: ['crunch', 'ab crunch', 'sit up', 'sit-ups'],
     muscles: ['abdominals'],
@@ -707,6 +806,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Hanging_Leg_Raise',
+    group: 'core',
     name: 'Hanging Leg Raise',
     aliases: ['hanging leg raises', 'hanging knee raise'],
     muscles: ['abdominals'],
@@ -714,6 +814,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Russian_Twist',
+    group: 'core',
     name: 'Russian Twist',
     aliases: ['russian twists'],
     muscles: ['abdominals'],
@@ -721,6 +822,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Air_Bike',
+    group: 'core',
     name: 'Bicycle Crunch',
     aliases: ['air bike', 'bicycle crunches', 'criss cross'],
     muscles: ['abdominals'],
@@ -728,6 +830,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Cable_Crunch',
+    group: 'core',
     name: 'Cable Crunch',
     aliases: ['rope crunch', 'cable crunches'],
     muscles: ['abdominals'],
@@ -735,6 +838,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Exercise_Ball_Crunch',
+    group: 'core',
     name: 'Exercise Ball Crunch',
     aliases: ['swiss ball crunch', 'stability ball crunch'],
     muscles: ['abdominals'],
@@ -742,12 +846,14 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Ab_Crunch_Machine',
+    group: 'core',
     name: 'Ab Crunch Machine',
     muscles: ['abdominals'],
     equipment: 'machine',
   },
   {
     id: 'Ab_Roller',
+    group: 'core',
     name: 'Ab Roller',
     aliases: ['ab wheel', 'ab wheel rollout'],
     muscles: ['abdominals'],
@@ -755,6 +861,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Barbell_Ab_Rollout',
+    group: 'core',
     name: 'Barbell Ab Rollout',
     aliases: ['barbell rollout', 'ab rollout'],
     muscles: ['abdominals'],
@@ -762,6 +869,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: '3_4_Sit-Up',
+    group: 'core',
     name: '3/4 Sit-Up',
     aliases: ['sit up', 'situps'],
     muscles: ['abdominals'],
@@ -769,6 +877,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Barbell_Side_Bend',
+    group: 'core',
     name: 'Barbell Side Bend',
     aliases: ['side bend', 'side bends'],
     muscles: ['abdominals'],
@@ -778,6 +887,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Conditioning & machines ──────────────────────────────────────────────
   {
     id: 'Kettlebell_Swing',
+    group: 'conditioning',
     name: 'Kettlebell Swing',
     aliases: ['kb swing', 'kettlebell swings'],
     muscles: ['glutes', 'hamstrings', 'shoulders'],
@@ -786,6 +896,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Battling_Ropes',
+    group: 'conditioning',
     name: 'Battle Ropes',
     aliases: ['battling ropes', 'battle rope'],
     muscles: ['shoulders', 'abdominals'],
@@ -793,6 +904,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Mountain_Climbers',
+    group: 'conditioning',
     name: 'Mountain Climbers',
     aliases: ['mountain climber'],
     muscles: ['abdominals', 'quadriceps'],
@@ -800,6 +912,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Box_Jump_Multiple_Response',
+    group: 'conditioning',
     name: 'Box Jump',
     aliases: ['box jumps', 'box jump multiple response'],
     muscles: ['quadriceps', 'glutes'],
@@ -807,6 +920,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Clean_and_Jerk',
+    group: 'conditioning',
     name: 'Clean & Jerk',
     aliases: ['clean and jerk'],
     muscles: ['quadriceps', 'shoulders', 'lower back'],
@@ -814,6 +928,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Power_Clean',
+    group: 'conditioning',
     name: 'Power Clean',
     aliases: ['power cleans'],
     muscles: ['quadriceps', 'shoulders', 'lower back'],
@@ -821,6 +936,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Bicycling',
+    group: 'conditioning',
     name: 'Cycling',
     aliases: ['bicycling', 'bike', 'biking'],
     muscles: ['quadriceps'],
@@ -828,6 +944,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Bicycling_Stationary',
+    group: 'conditioning',
     name: 'Stationary Bike',
     aliases: ['bicycling stationary', 'exercise bike', 'spin bike'],
     muscles: ['quadriceps'],
@@ -835,6 +952,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Elliptical_Trainer',
+    group: 'conditioning',
     name: 'Elliptical',
     aliases: ['elliptical trainer', 'cross trainer'],
     muscles: ['quadriceps'],
@@ -842,6 +960,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   },
   {
     id: 'Stairmaster',
+    group: 'conditioning',
     name: 'Stairmaster',
     aliases: ['stair master', 'stair climber', 'stepper'],
     muscles: ['quadriceps', 'glutes'],
@@ -851,6 +970,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
   // ── Mobility ─────────────────────────────────────────────────────────────
   {
     id: 'Cat_Stretch',
+    group: 'mobility',
     name: 'Cat Stretch',
     aliases: ['cat cow', 'cat-camel stretch'],
     muscles: ['lower back'],

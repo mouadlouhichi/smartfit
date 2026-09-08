@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { exerciseImages, matchExercise } from '@smartfit/core';
@@ -19,14 +19,21 @@ export function ExerciseImage({
   name,
   className,
   animated = true,
+  animateOnHover = false,
 }: {
   /** Free-text exercise name from a workout log — matched against the catalog. */
   name: string;
   className?: string;
   /** Crossfade the two frames; set false for static (e.g. long lists). */
   animated?: boolean;
+  /**
+   * Animate only while the tile is hovered — the second frame is not even
+   * fetched until then, keeping large browse grids light.
+   */
+  animateOnHover?: boolean;
 }) {
   const entry = useMemo(() => matchExercise(name), [name]);
+  const [hovered, setHovered] = useState(false);
 
   if (!entry) {
     return (
@@ -43,12 +50,15 @@ export function ExerciseImage({
   }
 
   const [start, end] = exerciseImages(entry);
+  const loop = animateOnHover ? hovered : animated;
 
   return (
     <span
       className={cn('bg-secondary relative shrink-0 overflow-hidden', className)}
       role="img"
       aria-label={`${entry.name} demonstration`}
+      onMouseEnter={animateOnHover ? () => setHovered(true) : undefined}
+      onMouseLeave={animateOnHover ? () => setHovered(false) : undefined}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- remote demo photos, not part of the build */}
       <img
@@ -56,12 +66,9 @@ export function ExerciseImage({
         alt=""
         loading="lazy"
         decoding="async"
-        className={cn(
-          'absolute inset-0 h-full w-full object-contain',
-          animated && 'exercise-demo-a',
-        )}
+        className={cn('absolute inset-0 h-full w-full object-contain', loop && 'exercise-demo-a')}
       />
-      {animated && (
+      {loop && (
         /* eslint-disable-next-line @next/next/no-img-element -- remote demo photos, not part of the build */
         <img
           src={end}
