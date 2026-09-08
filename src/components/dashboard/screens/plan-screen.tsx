@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
+import { Field } from '@/components/ui/field';
 import { CategoryIcon } from '@/components/category-icon';
 import { INTENSITY_META, PLANS, WEEKDAYS, WEEKDAYS_LONG } from '@smartfit/core';
 import {
@@ -142,21 +143,18 @@ export function PlanScreen() {
               <p className="font-display text-lg font-extrabold tracking-tight">{plan.name}</p>
               <Badge variant="accent">{plan.sessionsPerWeek}×/week</Badge>
             </div>
-            <label htmlFor="plan-strategy" className="text-muted-foreground text-xs font-medium">
-              Training strategy
-            </label>
-            <Select
-              id="plan-strategy"
-              value={state.profile.planId}
-              onChange={(e) => updateProfile({ planId: e.target.value as typeof plan.id })}
-            >
-              {PLANS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} · {p.sessionsPerWeek}×/week
-                </option>
-              ))}
-            </Select>
-            <p className="text-muted-foreground text-xs">{plan.description}</p>
+            <Field id="plan-strategy" label="Training strategy" hint={plan.description}>
+              <Select
+                value={state.profile.planId}
+                onChange={(e) => updateProfile({ planId: e.target.value as typeof plan.id })}
+              >
+                {PLANS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {p.sessionsPerWeek}×/week
+                  </option>
+                ))}
+              </Select>
+            </Field>
           </div>
           <div className="grid gap-2">
             <span className="text-muted-foreground text-xs font-medium">Weekly split</span>

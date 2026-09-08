@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -35,6 +36,7 @@ import {
   PLANS,
   WEEKDAYS,
   currentStreak,
+  formatWeight,
   fromKg,
   getGymProgram,
   parseStateJSON,
@@ -85,22 +87,31 @@ export function ProfileScreen() {
       ? String(Number(fromKg(state.profile.targetWeightKg, state.profile.weightUnit).toFixed(1)))
       : '',
   );
+  const [targetError, setTargetError] = useState<string | null>(null);
 
   function commitTargetWeight() {
     const trimmed = targetInput.trim();
     if (trimmed === '') {
+      setTargetError(null);
       if (state.profile.targetWeightKg !== undefined) {
         updateProfile({ targetWeightKg: undefined });
       }
       return;
     }
     const n = Number(trimmed);
-    if (!Number.isFinite(n)) return;
-    const kg = Math.min(400, Math.max(20, toKg(n, state.profile.weightUnit)));
-    updateProfile({ targetWeightKg: Math.round(kg * 10) / 10 });
-    setTargetInput(
-      String(Number(fromKg(Math.round(kg * 10) / 10, state.profile.weightUnit).toFixed(1))),
-    );
+    const kg = toKg(n, state.profile.weightUnit);
+    // Surface the valid range instead of silently clamping what was typed.
+    if (!Number.isFinite(n) || kg < 20 || kg > 400) {
+      const unit = state.profile.weightUnit;
+      setTargetError(
+        `Enter a target between ${formatWeight(20, unit)} and ${formatWeight(400, unit)}.`,
+      );
+      return;
+    }
+    const rounded = Math.round(kg * 10) / 10;
+    setTargetError(null);
+    updateProfile({ targetWeightKg: rounded });
+    setTargetInput(String(Number(fromKg(rounded, state.profile.weightUnit).toFixed(1))));
   }
 
   // Gym-aware suggested week — this preview mirrors the Plan tab exactly.
@@ -457,20 +468,16 @@ export function ProfileScreen() {
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor="p-name">Name</Label>
+          <Field id="p-name" label="Name">
             <Input
-              id="p-name"
               value={state.profile.name}
               onChange={(e) => updateProfile({ name: e.target.value })}
               placeholder="Your name"
               maxLength={80}
             />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="p-plan">Default strategy</Label>
+          </Field>
+          <Field id="p-plan" label="Default strategy">
             <Select
-              id="p-plan"
               value={state.profile.planId}
               onChange={(e) =>
                 updateProfile({ planId: e.target.value as typeof state.profile.planId })
@@ -482,11 +489,13 @@ export function ProfileScreen() {
                 </option>
               ))}
             </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="p-gym">Gym program</Label>
+          </Field>
+          <Field
+            id="p-gym"
+            label="Gym program"
+            hint="Picking your gym unlocks a suggested week built from its real class timetable."
+          >
             <Select
-              id="p-gym"
               value={state.profile.gymId ?? ''}
               onChange={(e) => updateProfile({ gymId: e.target.value || undefined })}
             >
@@ -497,72 +506,71 @@ export function ProfileScreen() {
                 </option>
               ))}
             </Select>
-            <p className="text-muted-foreground text-xs">
-              Picking your gym unlocks a suggested week built from its real class timetable.
-            </p>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="p-weight">Weight unit</Label>
+          </Field>
+          <Field
+            id="p-weight"
+            label="Weight unit"
+            hint={`Body measurements follow this: ${
+              state.profile.weightUnit === 'kg' ? 'cm' : 'inches'
+            }.`}
+          >
             <Select
-              id="p-weight"
               value={state.profile.weightUnit}
               onChange={(e) => updateProfile({ weightUnit: e.target.value as 'kg' | 'lb' })}
             >
               <option value="kg">Kilograms (kg)</option>
               <option value="lb">Pounds (lb)</option>
             </Select>
-            <p className="text-muted-foreground text-xs">
-              Body measurements follow this: {state.profile.weightUnit === 'kg' ? 'cm' : 'inches'}.
-            </p>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="p-target-weight">Target weight ({state.profile.weightUnit})</Label>
+          </Field>
+          <Field
+            id="p-target-weight"
+            label={`Target weight (${state.profile.weightUnit})`}
+            hint="Drives the suggested program mix on the Plan tab — closer target means more maintenance, further means more burn. Clear to disable."
+            error={targetError}
+          >
             <Input
-              id="p-target-weight"
               type="number"
               min={20}
               max={400}
               step="0.5"
               inputMode="decimal"
               value={targetInput}
-              onChange={(e) => setTargetInput(e.target.value)}
+              onChange={(e) => {
+                setTargetInput(e.target.value);
+                setTargetError(null);
+              }}
               onBlur={commitTargetWeight}
               placeholder="e.g. 78"
             />
-            <p className="text-muted-foreground text-xs">
-              Drives the suggested program mix on the Plan tab — closer target means more
-              maintenance, further means more burn. Clear to disable.
-            </p>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="p-distance">Distance unit</Label>
+          </Field>
+          <Field id="p-distance" label="Distance unit">
             <Select
-              id="p-distance"
               value={state.profile.distanceUnit}
               onChange={(e) => updateProfile({ distanceUnit: e.target.value as 'km' | 'mi' })}
             >
               <option value="km">Kilometres (km)</option>
               <option value="mi">Miles (mi)</option>
             </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="p-weekstart">Week starts on</Label>
+          </Field>
+          <Field
+            id="p-weekstart"
+            label="Week starts on"
+            hint='Used for weekly goals, streaks and every "this week" total.'
+          >
             <Select
-              id="p-weekstart"
               value={state.profile.weekStartsOn ?? 1}
               onChange={(e) => updateProfile({ weekStartsOn: Number(e.target.value) as WeekStart })}
             >
               <option value={1}>Monday</option>
               <option value={0}>Sunday</option>
             </Select>
-            <p className="text-muted-foreground text-xs">
-              Used for weekly goals, streaks and every &quot;this week&quot; total.
-            </p>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="p-rest">Rest days / week</Label>
+          </Field>
+          <Field
+            id="p-rest"
+            label="Rest days / week"
+            hint="Your streak survives this many untrained days a week."
+          >
             <Select
-              id="p-rest"
               value={state.profile.weeklyRestDays}
               onChange={(e) => updateProfile({ weeklyRestDays: Number(e.target.value) })}
             >
@@ -572,10 +580,7 @@ export function ProfileScreen() {
                 </option>
               ))}
             </Select>
-            <p className="text-muted-foreground text-xs">
-              Your streak survives this many untrained days a week.
-            </p>
-          </div>
+          </Field>
 
           {/* Live suggested-week preview — appears the moment a gym is picked */}
           {gymProgram && (

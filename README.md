@@ -194,7 +194,7 @@ smartfit/
 │     └─ tests/                     # 70 domain unit tests (node:test)
 ├─ e2e/                             # Playwright smoke suite (local-mode product journey)
 ├─ tests/                           # web lib unit tests + tests/rules (Firestore rules, emulator)
-├─ docs/                            # firebase.md · ops-runbook.md · audits
+├─ docs/                            # design-system.md · firebase.md · ops-runbook.md · audits
 ├─ public/                          # icons, manifest.webmanifest, og.png, sw.js
 ├─ scripts/                         # seed-firestore.mjs · seed.sql
 ├─ firebase.json                    # Firestore rules/indexes deploy config + emulator ports
