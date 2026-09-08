@@ -27,6 +27,7 @@ export function ExerciseImage({
   animated = true,
   animateOnHover = false,
   variant = 'thumb',
+  badge,
 }: {
   /** Free-text exercise name from a workout log — matched against the catalog. */
   name: string;
@@ -41,6 +42,8 @@ export function ExerciseImage({
   animateOnHover?: boolean;
   /** GIF size: light animated WebP thumb for tiles, full GIF for the dialog. */
   variant?: 'thumb' | 'full';
+  /** Tiny uppercase label pinned to the tile's corner (e.g. equipment). */
+  badge?: string;
 }) {
   // Extended (runtime-loaded) entries can appear after mount — this
   // re-renders (and re-matches) once the catalog lands.
@@ -82,6 +85,7 @@ export function ExerciseImage({
           onError={() => setFailedGifFor(entry.id)}
           className="h-full w-full object-contain"
         />
+        {badge && <Badge label={badge} />}
       </span>
     );
   }
@@ -131,6 +135,16 @@ export function ExerciseImage({
           className="exercise-demo-b absolute inset-0 h-full w-full object-contain"
         />
       )}
+      {badge && <Badge label={badge} />}
+    </span>
+  );
+}
+
+/** Tiny uppercase corner label for demo tiles (equipment, group…). */
+function Badge({ label }: { label: string }) {
+  return (
+    <span className="bg-background/80 text-muted-foreground pointer-events-none absolute bottom-1 left-1 rounded px-1 py-px text-[9px] leading-tight font-semibold tracking-wide uppercase">
+      {label}
     </span>
   );
 }

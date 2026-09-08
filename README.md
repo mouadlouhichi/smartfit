@@ -63,6 +63,13 @@ shared domain package — but applies them to **training** instead of money.
   catalog stays bundled for instant, offline-friendly startup and keeps
   priority for popular defaults, aliases and photo fallbacks; if the CDN is
   unreachable the apps simply run on the curated 103 and retry later.
+- **Faceted exercise browsing** — the library filters combine freely: body
+  section (Chest, Back, Legs…), muscle focus within a section (Back → Lats,
+  Traps…; Legs → Quads, Hamstrings…), equipment (Barbell, Dumbbell, Cable,
+  Machine, Bodyweight…), full-text search and Recommended/A–Z ordering.
+  Every chip shows a live count of what the other filters leave behind, the
+  catalog's first sync is surfaced with a subtle progress indicator, and
+  active filters can be cleared individually or all at once.
 - **Training plans** — four proven splits: **Push/Pull/Legs**, **Upper/Lower**,
   **Full Body 3×**, and **Cardio & Conditioning**. Pick one and the weekly split
   lights up on both apps.

@@ -156,7 +156,20 @@ for (const entry of EXERCISES) {
 let extendedList: ExerciseCatalogEntry[] = [];
 let loaded = false;
 let loading: Promise<ExerciseCatalogEntry[]> | null = null;
+let status: ExtendedCatalogStatus = 'idle';
 const listeners = new Set<() => void>();
+
+/** Lifecycle of the runtime fetch — drives the library's sync indicator. */
+export type ExtendedCatalogStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+/** Current lifecycle state of the extended catalog load. */
+export function extendedCatalogStatus(): ExtendedCatalogStatus {
+  return status;
+}
+
+function notifyListeners(): void {
+  for (const listener of listeners) listener();
+}
 
 /**
  * Map gif-database items onto our catalog, drop anything the curated catalog
@@ -173,8 +186,9 @@ export function applyExtendedCatalog(items: GifDbItem[]): ExerciseCatalogEntry[]
   }
   extendedList = mapped;
   loaded = true;
+  status = 'ready';
   setExtendedExerciseEntries(mapped);
-  for (const listener of listeners) listener();
+  notifyListeners();
   return mapped;
 }
 
@@ -207,15 +221,21 @@ export function subscribeExtendedCatalog(listener: () => void): () => void {
  * retry (e.g. after regaining connectivity).
  */
 export function loadExtendedCatalog(): Promise<ExerciseCatalogEntry[]> {
-  loading ??= fetch(`${EXERCISE_GIF_BASE}/api/en/search.json`)
-    .then((response) => {
-      if (!response.ok) throw new Error(`ExerciseGymGifsDB responded ${response.status}`);
-      return response.json() as Promise<GifDbSearchFile>;
-    })
-    .then((data) => applyExtendedCatalog(data.items ?? []))
-    .catch((error: unknown) => {
-      loading = null; // allow a retry on the next call
-      throw error;
-    });
+  if (!loading) {
+    status = 'loading';
+    notifyListeners();
+    loading = fetch(`${EXERCISE_GIF_BASE}/api/en/search.json`)
+      .then((response) => {
+        if (!response.ok) throw new Error(`ExerciseGymGifsDB responded ${response.status}`);
+        return response.json() as Promise<GifDbSearchFile>;
+      })
+      .then((data) => applyExtendedCatalog(data.items ?? []))
+      .catch((error: unknown) => {
+        loading = null; // allow a retry on the next call
+        status = 'error';
+        notifyListeners();
+        throw error;
+      });
+  }
   return loading;
 }

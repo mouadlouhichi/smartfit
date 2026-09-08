@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   allExercises,
+  extendedCatalogStatus,
   loadExtendedCatalog,
   subscribeExtendedCatalog,
   type ExerciseCatalogEntry,
+  type ExtendedCatalogStatus,
 } from '@smartfit/core';
 
 /**
@@ -45,4 +47,25 @@ export function useAllExercises(): ExerciseCatalogEntry[] {
   // The `version >= 0` guard references the counter so the array refreshes
   // whenever the extended catalog updates.
   return useMemo(() => (version >= 0 ? allExercises() : []), [version]);
+}
+
+/**
+ * Reactive lifecycle of the extended catalog fetch — drives the library's
+ * "syncing full library" / "curated only" indicator.
+ */
+export function useExtendedCatalogStatus(): ExtendedCatalogStatus {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    let alive = true;
+    const unsubscribe = subscribeExtendedCatalog(() => {
+      if (alive) bump((v) => v + 1);
+    });
+    // Catalog state may have settled before mount — bump once to re-read it.
+    if (alive) bump((v) => v + 1);
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, []);
+  return extendedCatalogStatus();
 }

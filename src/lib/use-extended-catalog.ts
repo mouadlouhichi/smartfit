@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import {
   allExercises,
+  extendedCatalogStatus,
   extendedExerciseCount,
   loadExtendedCatalog,
   subscribeExtendedCatalog,
   type ExerciseCatalogEntry,
+  type ExtendedCatalogStatus,
 } from '@smartfit/core';
 
 /**
@@ -38,4 +40,12 @@ export function useAllExercises(): ExerciseCatalogEntry[] {
   // The `count >= 0` guard references the snapshot so the array refreshes
   // whenever the extended catalog updates.
   return useMemo(() => (count >= 0 ? allExercises() : []), [count]);
+}
+
+/**
+ * Reactive lifecycle of the extended catalog fetch — drives the library's
+ * "syncing full library" / "curated only" indicator.
+ */
+export function useExtendedCatalogStatus(): ExtendedCatalogStatus {
+  return useSyncExternalStore(subscribeExtendedCatalog, extendedCatalogStatus, () => 'idle');
 }
