@@ -67,6 +67,8 @@ export interface ExerciseCatalogEntry {
    * the two-frame demo photos.
    */
   gif?: { muscle: string; slug: string };
+  /** True for runtime-loaded entries from the full ExerciseGymGifsDB catalog. */
+  extended?: true;
 }
 
 /** CDN base for the demonstration frames (jsDelivr mirrors the GitHub repo). */
@@ -85,13 +87,20 @@ export interface ExerciseUpstream {
   secondaryMuscles?: string[];
 }
 
-/** URL of the upstream per-exercise JSON (instructions, level, muscles…). */
+/**
+ * URL of the upstream per-exercise JSON (instructions, level, muscles…).
+ * Extended entries are documented by the gif database itself.
+ */
 export function exerciseInstructionsUrl(entry: ExerciseCatalogEntry): string {
+  if (entry.extended && entry.gif) {
+    return `${EXERCISE_GIF_BASE}/api/en/exercises/${entry.gif.muscle}/${entry.gif.slug}.json`;
+  }
   return `${EXERCISE_IMAGE_BASE}/${entry.id}.json`;
 }
 
-/** Demo frame URLs for an entry: [start, end] — crossfade them for a loop. */
-export function exerciseImages(entry: ExerciseCatalogEntry): [string, string] {
+/** Demo frame URLs for an entry: [start, end] — null for extended entries. */
+export function exerciseImages(entry: ExerciseCatalogEntry): [string, string] | null {
+  if (entry.extended) return null; // gif-database entries have no photo frames
   return [`${EXERCISE_IMAGE_BASE}/${entry.id}/0.jpg`, `${EXERCISE_IMAGE_BASE}/${entry.id}/1.jpg`];
 }
 
@@ -1136,6 +1145,30 @@ for (const entry of EXERCISES) {
   }
 }
 
+// ── Extended (runtime-loaded) catalog ─────────────────────────────────────────
+
+/**
+ * Entries loaded at runtime from the full ExerciseGymGifsDB catalog (1,323
+ * exercises). They join matching and search behind the curated catalog but
+ * never replace it. Registered by ./extended-catalog.ts once fetched.
+ */
+let extendedEntries: ExerciseCatalogEntry[] = [];
+let extendedByName = new Map<string, ExerciseCatalogEntry>();
+
+/**
+ * Replace the runtime-loaded extended entries and rebuild their name index.
+ * Only meant to be called by the extended catalog loader.
+ */
+export function setExtendedExerciseEntries(entries: ExerciseCatalogEntry[]): void {
+  extendedEntries = entries;
+  extendedByName = new Map(entries.map((entry) => [normalize(entry.name), entry]));
+}
+
+/** The curated catalog plus any runtime-loaded extended entries. */
+export function allExercises(): ExerciseCatalogEntry[] {
+  return [...EXERCISES, ...extendedEntries];
+}
+
 /**
  * Resolve a free-text exercise name (from an old log or quick typing) to a
  * catalog entry. Exact name/alias wins, then tolerant prefix and token
@@ -1153,6 +1186,14 @@ export function matchExercise(input: string): ExerciseCatalogEntry | null {
   const c = compact(input);
   for (const [key, hit] of byName) {
     if (compact(key) === c) return hit.entry;
+  }
+
+  // Extended entries get exact and compact matches only, so close typos still
+  // land on hand-curated movements rather than an arbitrary dataset entry.
+  const extendedExact = extendedByName.get(n);
+  if (extendedExact) return extendedExact;
+  for (const [key, hit] of extendedByName) {
+    if (compact(key) === c) return hit;
   }
 
   // Prefix / containment on names and aliases (≥ 4 chars, so "row" or "ohp"
@@ -1191,8 +1232,9 @@ export function searchExercises(query: string, limit = 8): ExerciseCatalogEntry[
   }
 
   const scored: { entry: ExerciseCatalogEntry; index: number; score: number }[] = [];
-  for (let index = 0; index < EXERCISES.length; index++) {
-    const entry = EXERCISES[index];
+  const catalog = allExercises();
+  for (let index = 0; index < catalog.length; index++) {
+    const entry = catalog[index];
     let score = scoreCandidate(entry.name, q);
     for (const alias of entry.aliases ?? []) {
       score = Math.max(score, scoreCandidate(alias, q) - 5);

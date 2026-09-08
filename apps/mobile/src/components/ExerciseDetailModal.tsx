@@ -10,6 +10,7 @@ import {
 import { loadExerciseUpstream } from '@/lib/exercise-instructions';
 import { Card } from './ui';
 import { ExerciseDemo } from './ExerciseDemo';
+import { useExtendedCatalog } from '@/lib/use-extended-catalog';
 
 /**
  * "How do I do this?" sheet for any catalog exercise: the looping demo,
@@ -23,6 +24,9 @@ export function ExerciseDetailModal({
   name: string | null;
   onClose: () => void;
 }) {
+  // Re-match when the extended (runtime) catalog lands — the how-to URL for
+  // extended entries comes from the gif database instead of free-exercise-db.
+  useExtendedCatalog();
   const entry = name ? matchExercise(name) : null;
   const [data, setData] = useState<ExerciseUpstream | null>(null);
   const [failed, setFailed] = useState(false);

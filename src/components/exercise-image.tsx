@@ -1,9 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Dumbbell } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { exerciseGifUrl, exerciseImages, matchExercise } from '@smartfit/core';
+import { useExtendedCatalog } from '@/lib/use-extended-catalog';
 
 /**
  * Demonstration image for a logged exercise.
@@ -41,7 +42,10 @@ export function ExerciseImage({
   /** GIF size: light animated WebP thumb for tiles, full GIF for the dialog. */
   variant?: 'thumb' | 'full';
 }) {
-  const entry = useMemo(() => matchExercise(name), [name]);
+  // Extended (runtime-loaded) entries can appear after mount — this
+  // re-renders (and re-matches) once the catalog lands.
+  useExtendedCatalog();
+  const entry = matchExercise(name);
   const [hovered, setHovered] = useState(false);
   /** Id of the entry whose GIF failed to load — falls back to its photos. */
   const [failedGifFor, setFailedGifFor] = useState<string | null>(null);
@@ -82,7 +86,23 @@ export function ExerciseImage({
     );
   }
 
-  const [start, end] = exerciseImages(entry);
+  // Extended catalog entries have no photo frames — keep the dumbbell tile.
+  const frames = exerciseImages(entry);
+  if (!frames) {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn(
+          'bg-secondary text-muted-foreground flex shrink-0 items-center justify-center',
+          className,
+        )}
+      >
+        <Dumbbell className="h-1/2 w-1/2" strokeWidth={1.75} />
+      </span>
+    );
+  }
+
+  const [start, end] = frames;
   const loop = animateOnHover ? hovered : animated;
 
   return (

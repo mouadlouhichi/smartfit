@@ -17,6 +17,7 @@ import {
   matchExercise,
   type ExerciseUpstream,
 } from '@smartfit/core';
+import { useExtendedCatalog } from '@/lib/use-extended-catalog';
 
 /**
  * "How do I do this?" for any catalog exercise.
@@ -86,6 +87,9 @@ export function ExerciseDetailDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  // Re-match when the extended (runtime) catalog lands — the how-to URL for
+  // extended entries comes from the gif database instead of free-exercise-db.
+  useExtendedCatalog();
   const entry = name ? matchExercise(name) : null;
   const { data, error, retry } = useExerciseUpstream(
     entry && open ? entry.id : null,

@@ -1,13 +1,15 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Search } from 'lucide-react-native';
 import {
-  EXERCISES,
   EXERCISE_EQUIPMENT_LABELS,
   EXERCISE_GROUPS,
   EXERCISE_MUSCLE_LABELS,
+  allExercises,
   formatMinutes,
   INTENSITY_META,
+  searchExercises,
   WEEKDAYS_LONG,
   type ExerciseGroup,
 } from '@smartfit/core';
@@ -16,9 +18,10 @@ import { Card, SectionTitle } from '@/components/ui';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { ExerciseDemo } from '@/components/ExerciseDemo';
 import { ExerciseDetailModal } from '@/components/ExerciseDetailModal';
+import { useAllExercises } from '@/lib/use-extended-catalog';
 
-/** Tiles rendered per group — keeps image loads light while scrolling. */
-const GROUP_LIMIT = 12;
+/** Tiles rendered before "Show more" — keeps image loads light. */
+const PAGE_SIZE = 24;
 
 /**
  * The browsable exercise library on the plan tab: the shared catalog grouped
@@ -26,19 +29,49 @@ const GROUP_LIMIT = 12;
  */
 function ExerciseLibrary() {
   const [group, setGroup] = useState<ExerciseGroup | 'all'>('all');
+  const [query, setQuery] = useState('');
+  const [visible, setVisible] = useState(PAGE_SIZE);
   const [detailName, setDetailName] = useState<string | null>(null);
 
-  const list = useMemo(
-    () =>
-      group === 'all'
-        ? EXERCISES.filter((e) => e.popular)
-        : EXERCISES.filter((e) => e.group === group),
-    [group],
-  );
+  // The full 1,323-exercise catalog arrives at runtime; the shelf refreshes
+  // when it lands. Until then this shows the curated 103.
+  const catalog = useAllExercises();
+
+  const list = useMemo(() => {
+    const q = query.trim();
+    if (q) {
+      const found = searchExercises(q, catalog.length);
+      return group === 'all' ? found : found.filter((e) => e.group === group);
+    }
+    if (group === 'all') return catalog.filter((e) => e.popular);
+    return catalog.filter((e) => e.group === group);
+  }, [group, query, catalog]);
+
+  const shown = list.slice(0, visible);
+
+  function selectGroup(next: ExerciseGroup | 'all') {
+    setGroup(next);
+    setVisible(PAGE_SIZE);
+  }
 
   return (
     <View className="gap-2">
       <SectionTitle>Exercise library</SectionTitle>
+
+      <View className="border-border bg-card flex-row items-center gap-2 rounded-xl border px-3">
+        <Search color="#857D75" size={16} />
+        <TextInput
+          accessibilityLabel="Search exercises"
+          placeholder="Search 1,300+ exercises…"
+          placeholderTextColor="#857D75"
+          className="text-foreground flex-1 py-2.5 text-sm"
+          value={query}
+          onChangeText={(text) => {
+            setQuery(text);
+            setVisible(PAGE_SIZE);
+          }}
+        />
+      </View>
 
       <ScrollView
         horizontal
@@ -50,7 +83,7 @@ function ExerciseLibrary() {
           return (
             <Pressable
               key={g.id}
-              onPress={() => setGroup(g.id)}
+              onPress={() => selectGroup(g.id)}
               className="rounded-full border px-3 py-2"
               style={{
                 borderColor: active ? '#D6532F' : '#E7E2DB',
@@ -69,7 +102,7 @@ function ExerciseLibrary() {
       </ScrollView>
 
       <Card className="flex-row flex-wrap gap-3">
-        {list.slice(0, GROUP_LIMIT).map((entry) => (
+        {shown.map((entry) => (
           <Pressable
             key={entry.id}
             accessibilityLabel={`How to do ${entry.name}`}
@@ -92,6 +125,18 @@ function ExerciseLibrary() {
           </Pressable>
         ))}
       </Card>
+
+      {list.length > visible && (
+        <Pressable
+          accessibilityLabel="Show more exercises"
+          onPress={() => setVisible((v) => v + PAGE_SIZE)}
+          className="border-border bg-card items-center rounded-xl border py-2.5"
+        >
+          <Text className="text-sm font-medium" style={{ color: '#D6532F' }}>
+            Show more · {list.length - visible} left
+          </Text>
+        </Pressable>
+      )}
 
       <ExerciseDetailModal name={detailName} onClose={() => setDetailName(null)} />
     </View>

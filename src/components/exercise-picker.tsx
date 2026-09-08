@@ -11,6 +11,7 @@ import {
 } from '@smartfit/core';
 import { ExerciseImage } from './exercise-image';
 import { ExerciseDetailDialog } from './exercise-detail';
+import { useExtendedCatalog } from '@/lib/use-extended-catalog';
 
 /**
  * Exercise name field with a searchable, illustrated suggestions list.
@@ -37,8 +38,12 @@ export function ExercisePicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
 
-  const suggestions = useMemo(() => searchExercises(value, 8), [value]);
-  const matched = useMemo(() => matchExercise(value), [value]);
+  // Once the extended (runtime) catalog lands, suggestions and the matched
+  // badge cover the full 1,323-exercise library, not just the curated 103.
+  const extendedCount = useExtendedCatalog();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- searchExercises also reads the runtime-loaded extended catalog
+  const suggestions = useMemo(() => searchExercises(value, 8), [value, extendedCount]);
+  const matched = matchExercise(value);
 
   // Keep the highlighted row in range whenever the query changes.
   useEffect(() => {

@@ -7,15 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
-  EXERCISES,
-  EXERCISE_EQUIPMENT_LABELS,
   EXERCISE_GROUPS,
+  EXERCISE_EQUIPMENT_LABELS,
   EXERCISE_MUSCLE_LABELS,
   searchExercises,
   type ExerciseGroup,
 } from '@smartfit/core';
 import { ExerciseImage } from '@/components/exercise-image';
 import { ExerciseDetailDialog } from '@/components/exercise-detail';
+import { useAllExercises } from '@/lib/use-extended-catalog';
 
 /** Tiles rendered before "Show more" — keeps the grid's image loads light. */
 const PAGE_SIZE = 24;
@@ -32,16 +32,20 @@ export function ExerciseLibrary() {
   const [visible, setVisible] = useState(PAGE_SIZE);
   const [detailName, setDetailName] = useState<string | null>(null);
 
+  // The full 1,323-exercise catalog arrives at runtime; counts and results
+  // refresh when it lands. Until then this shows the curated 103.
+  const catalog = useAllExercises();
+
   const counts = useMemo(() => {
     const map = new Map<string, number>();
-    for (const e of EXERCISES) map.set(e.group, (map.get(e.group) ?? 0) + 1);
+    for (const e of catalog) map.set(e.group, (map.get(e.group) ?? 0) + 1);
     return map;
-  }, []);
+  }, [catalog]);
 
   const results = useMemo(() => {
-    const base = query.trim() ? searchExercises(query, EXERCISES.length) : EXERCISES;
+    const base = query.trim() ? searchExercises(query, catalog.length) : catalog;
     return group === 'all' ? base : base.filter((e) => e.group === group);
-  }, [group, query]);
+  }, [group, query, catalog]);
 
   const shown = results.slice(0, visible);
 
@@ -76,7 +80,7 @@ export function ExerciseLibrary() {
       <CardContent className="grid gap-3">
         <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Exercise groups">
           <Chip active={group === 'all'} onClick={() => selectGroup('all')}>
-            All <span className="opacity-60">{EXERCISES.length}</span>
+            All <span className="opacity-60">{catalog.length}</span>
           </Chip>
           {EXERCISE_GROUPS.map((g) => (
             <Chip key={g.id} active={group === g.id} onClick={() => selectGroup(g.id)}>

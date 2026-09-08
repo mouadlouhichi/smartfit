@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Image, View } from 'react-native';
 import { Dumbbell } from 'lucide-react-native';
 import { exerciseGifUrl, exerciseImages, matchExercise } from '@smartfit/core';
+import { useExtendedCatalog } from '@/lib/use-extended-catalog';
 
 /**
  * Demonstration thumbnail for a (free-text) exercise name.
@@ -31,7 +32,10 @@ export function ExerciseDemo({
   /** GIF size: light animated thumb for tiles, full GIF for the how-to sheet. */
   variant?: 'thumb' | 'full';
 }) {
-  const entry = useMemo(() => matchExercise(name), [name]);
+  // Extended (runtime-loaded) entries can appear after mount — this
+  // re-renders (and re-matches) once the catalog lands.
+  useExtendedCatalog();
+  const entry = matchExercise(name);
   const [failedGifFor, setFailedGifFor] = useState<string | null>(null);
   const progress = useRef(new Animated.Value(0)).current;
 
@@ -96,7 +100,27 @@ export function ExerciseDemo({
     );
   }
 
-  const [start, end] = exerciseImages(entry);
+  // Extended catalog entries have no photo frames — keep the dumbbell tile.
+  const frames = exerciseImages(entry);
+  if (!frames) {
+    return (
+      <View
+        accessibilityElementsHidden
+        style={{
+          width: size,
+          height: size,
+          borderRadius: radius,
+          backgroundColor: '#ECEAE6',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Dumbbell color="#857D75" size={size * 0.5} strokeWidth={1.75} />
+      </View>
+    );
+  }
+
+  const [start, end] = frames;
   const frameStyle = {
     position: 'absolute' as const,
     width: size,

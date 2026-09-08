@@ -55,6 +55,14 @@ shared domain package — but applies them to **training** instead of money.
   (or if the CDN is unreachable) fall back to the two-frame photo loop above.
   Note: those GIFs are ExerciseDB artwork — fine for personal use, but
   commercial redistribution requires an exercisedb.com license.
+- **Full 1,323-exercise catalog at runtime** — on top of the curated 103, the
+  apps fetch ExerciseGymGifsDB's full library index once per session (a
+  ~600KB CORS-open JSON from the same pinned jsDelivr release) and merge it
+  into matching, search, the browsing library and the logging picker: every
+  movement gets its animated GIF demo and a step-by-step how-to. The curated
+  catalog stays bundled for instant, offline-friendly startup and keeps
+  priority for popular defaults, aliases and photo fallbacks; if the CDN is
+  unreachable the apps simply run on the curated 103 and retry later.
 - **Training plans** — four proven splits: **Push/Pull/Legs**, **Upper/Lower**,
   **Full Body 3×**, and **Cardio & Conditioning**. Pick one and the weekly split
   lights up on both apps.

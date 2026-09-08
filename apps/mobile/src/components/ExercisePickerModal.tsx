@@ -9,6 +9,7 @@ import {
 } from '@smartfit/core';
 import { ExerciseDemo } from './ExerciseDemo';
 import { ExerciseDetailModal } from './ExerciseDetailModal';
+import { useExtendedCatalog } from '@/lib/use-extended-catalog';
 
 /**
  * Searchable exercise library. Typing filters the shared catalog — pick a
@@ -27,7 +28,11 @@ export function ExercisePickerModal({
 }) {
   const [query, setQuery] = useState('');
   const [detailName, setDetailName] = useState<string | null>(null);
-  const results = useMemo(() => searchExercises(query, 24), [query]);
+  // Once the extended (runtime) catalog lands, search covers the full
+  // 1,323-exercise library, not just the curated 103.
+  const extendedCount = useExtendedCatalog();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- searchExercises also reads the runtime-loaded extended catalog
+  const results = useMemo(() => searchExercises(query, 24), [query, extendedCount]);
 
   function pick(entry: ExerciseCatalogEntry) {
     onPick(entry.name);

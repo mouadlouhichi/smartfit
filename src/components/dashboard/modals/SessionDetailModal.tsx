@@ -25,6 +25,7 @@ import { Clock, Flame, Info, Pencil, Route, StickyNote } from 'lucide-react';
 import { ExerciseImage } from '@/components/exercise-image';
 import { ExerciseDetailDialog } from '@/components/exercise-detail';
 import { matchExercise } from '@smartfit/core';
+import { useExtendedCatalog } from '@/lib/use-extended-catalog';
 
 /**
  * Read-only detail for a logged session.
@@ -38,6 +39,9 @@ export function SessionDetailModal() {
   const { closeModal, openWith } = useModals();
   const payload = usePayload('session-detail');
   const open = payload !== null;
+  // More logged names become "known" (info + how-to) once the extended
+  // runtime catalog loads — re-evaluate on that update.
+  useExtendedCatalog();
   const session = payload?.session;
   const [detailName, setDetailName] = useState<string | null>(null);
 

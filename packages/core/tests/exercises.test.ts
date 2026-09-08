@@ -10,12 +10,21 @@ import {
   exerciseGifUrl,
   exerciseImages,
   exerciseInstructionsUrl,
+  allExercises,
   matchExercise,
   searchExercises,
   type ExerciseEquipment,
   type ExerciseGroup,
   type ExerciseMuscle,
 } from '../src/exercises.ts';
+import {
+  applyExtendedCatalog,
+  extendedExerciseCount,
+  extendedExercises,
+  isExtendedCatalogLoaded,
+  subscribeExtendedCatalog,
+  type GifDbItem,
+} from '../src/extended-catalog.ts';
 
 /**
  * The exercise catalog backs two user-facing promises:
@@ -69,7 +78,7 @@ test('the catalog is internally consistent', () => {
 test('demo image URLs point at the CDN with both frames', () => {
   const squat = matchExercise('Barbell Squat');
   assert.ok(squat);
-  const [start, end] = exerciseImages(squat);
+  const [start, end] = exerciseImages(squat) ?? [];
   assert.equal(start, `${EXERCISE_IMAGE_BASE}/Barbell_Squat/0.jpg`);
   assert.equal(end, `${EXERCISE_IMAGE_BASE}/Barbell_Squat/1.jpg`);
 });
@@ -180,4 +189,111 @@ test('curated gif references build valid ExerciseGymGifsDB urls', () => {
   assert.ok(without, 'catalog should contain at least one photo-only entry');
   assert.equal(exerciseGifUrl(without!, 'full'), null);
   assert.equal(exerciseGifUrl(without!, 'thumb'), null);
+});
+
+test('extended catalog maps gifdb items, dedupes, and joins matching + search', () => {
+  const before = allExercises().length;
+  const items: GifDbItem[] = [
+    {
+      id: 'abs/dead-bug',
+      slug: 'dead-bug',
+      name: 'Dead Bug',
+      muscle: 'abs',
+      bodyPart: 'core',
+      equipment: 'bodyweight',
+      category: 'strength',
+      secondaryMuscles: [],
+    },
+    {
+      id: 'hamstrings/runners-stretch',
+      slug: 'runners-stretch',
+      name: 'Runners Stretch',
+      muscle: 'hamstrings',
+      equipment: 'bodyweight',
+      category: 'stretching',
+    },
+    {
+      id: 'cardio/jump-rope',
+      slug: 'jump-rope',
+      name: 'Jump Rope',
+      muscle: 'cardio',
+      equipment: 'bodyweight',
+      category: 'cardio',
+      secondaryMuscles: ['calves'],
+    },
+    {
+      // Same gif as the curated entry → skipped.
+      id: 'quads/lever-leg-extension',
+      slug: 'lever-leg-extension',
+      name: 'Lever Leg Extension',
+      muscle: 'quads',
+      equipment: 'lever',
+      category: 'strength',
+    },
+    {
+      // Same name as a curated exercise → skipped.
+      id: 'biceps/barbell-curl',
+      slug: 'barbell-curl',
+      name: 'Barbell Curl',
+      muscle: 'biceps',
+      equipment: 'barbell',
+      category: 'strength',
+    },
+  ];
+
+  const added = applyExtendedCatalog(items);
+  assert.equal(added.length, 3, 'curated duplicates must be dropped');
+  assert.equal(allExercises().length, before + 3);
+  assert.equal(extendedExercises(), added);
+  assert.ok(isExtendedCatalogLoaded());
+
+  // Taxonomy mapping: group, equipment, muscles, gif reference.
+  const deadBug = added.find((e) => e.id === 'abs/dead-bug')!;
+  assert.equal(deadBug.group, 'core');
+  assert.equal(deadBug.equipment, 'body');
+  assert.deepEqual(deadBug.muscles, ['abdominals']);
+  assert.ok(deadBug.extended);
+  assert.equal(exerciseGifUrl(deadBug, 'full'), `${EXERCISE_GIF_BASE}/abs/dead-bug.gif`);
+  assert.equal(
+    added.find((e) => e.name === 'Runners Stretch')!.group,
+    'mobility',
+    'stretching category overrides the muscle group',
+  );
+  const jumpRope = added.find((e) => e.name === 'Jump Rope')!;
+  assert.equal(jumpRope.group, 'conditioning');
+  assert.deepEqual(jumpRope.muscles, ['quadriceps', 'calves'], 'secondary muscles mapped on');
+
+  // Matching and search cover extended entries, curated names still win.
+  assert.equal(matchExercise('Dead Bug')?.id, 'abs/dead-bug');
+  assert.equal(matchExercise('deadbug')?.id, 'abs/dead-bug', 'compact match');
+  assert.ok(searchExercises('dead bug', 10).some((e) => e.id === 'abs/dead-bug'));
+  assert.ok(searchExercises('stretch', 10).some((e) => e.id === 'hamstrings/runners-stretch'));
+  assert.equal(
+    matchExercise('Barbell Curl')?.id,
+    'Barbell_Curl',
+    'curated beats extended on names',
+  );
+  assert.equal(matchExercise('Lever Leg Extension'), null, 'deduped item is not registered');
+
+  // Extended entries: no photo frames, how-tos come from the gif database.
+  assert.equal(exerciseImages(deadBug), null);
+  assert.equal(
+    exerciseInstructionsUrl(deadBug),
+    `${EXERCISE_GIF_BASE}/api/en/exercises/abs/dead-bug.json`,
+  );
+});
+
+test('extended catalog subscriptions fire and can unsubscribe', () => {
+  let calls = 0;
+  const unsubscribe = subscribeExtendedCatalog(() => {
+    calls += 1;
+  });
+  applyExtendedCatalog([]);
+  assert.equal(calls, 1);
+  applyExtendedCatalog([]);
+  assert.equal(calls, 2);
+  unsubscribe();
+  applyExtendedCatalog([]);
+  assert.equal(calls, 2, 'no notifications after unsubscribe');
+  assert.equal(extendedExerciseCount(), 0);
 });
