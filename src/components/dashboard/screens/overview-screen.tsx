@@ -132,7 +132,7 @@ export function OverviewScreen() {
   const firstName = state.profile.name?.trim().split(' ')[0];
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+    <div className="grid min-w-0 max-w-full gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       {/* ── Center / left column ─────────────────────────────── */}
       <div className="bg-card rounded-[2rem] p-4 shadow-sm min-[420px]:p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
