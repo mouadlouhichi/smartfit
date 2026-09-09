@@ -29,6 +29,8 @@ export type ExerciseEquipment =
   | 'kettlebell'
   | 'band'
   | 'ez-bar'
+  | 'pool'
+  | 'running'
   | 'other';
 
 export type ExerciseMuscle =
@@ -57,6 +59,12 @@ export interface ExerciseCatalogEntry {
   /** Primary muscle first, then synergists. */
   muscles: ExerciseMuscle[];
   equipment: ExerciseEquipment;
+  /**
+   * What a set of this movement logs: load × reps (default) or a distance
+   * in metres (pool + running). The runner swaps its weight input for a
+   * metres input when `exerciseMeasure` resolves to 'distance'.
+   */
+  measure?: 'weight' | 'distance';
   /** Marquee lifts surfaced when the picker is opened without a query. */
   popular?: boolean;
   /** Browse section in the exercise library (chips on /plan, mobile plan tab). */
@@ -67,6 +75,12 @@ export interface ExerciseCatalogEntry {
    * the two-frame demo photos.
    */
   gif?: { muscle: string; slug: string };
+  /**
+   * Curated step-by-step how-to, preferred over fetching the upstream
+   * dataset — covers movements with no upstream page (pool/running) and
+   * works offline.
+   */
+  instructions?: string[];
   /** True for runtime-loaded entries from the full ExerciseGymGifsDB catalog. */
   extended?: true;
 }
@@ -174,6 +188,8 @@ export const EXERCISE_EQUIPMENT_LABELS: Record<ExerciseEquipment, string> = {
   kettlebell: 'Kettlebell',
   band: 'Band',
   'ez-bar': 'EZ-Bar',
+  pool: 'Pool',
+  running: 'Running',
   other: 'Other',
 };
 
@@ -1110,6 +1126,133 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
     equipment: 'machine',
   },
 
+  // ── Pool & running: distance-measured conditioning ────────────────────────
+  // These have no upstream photo pages, so each carries curated instructions
+  // and the tiles fall back to the neutral dumbbell artwork.
+  {
+    id: 'pool-freestyle-swim',
+    group: 'conditioning',
+    name: 'Freestyle Swim',
+    aliases: ['front crawl', 'swimming', 'freestyle swimming', 'piscine'],
+    muscles: ['lats', 'shoulders'],
+    equipment: 'pool',
+    measure: 'distance',
+    popular: true,
+    instructions: [
+      'Push off the wall face-down, body long and level with the surface.',
+      'Alternate long arm strokes, rotating your hips and shoulders with each pull.',
+      'Turn your head to the side to breathe every 2–3 strokes; exhale steadily underwater.',
+      'Kick a light flutter from the hips — ankles loose, feet just breaking the surface.',
+      'Count lengths and log the total metres for the set.',
+    ],
+  },
+  {
+    id: 'pool-breaststroke-swim',
+    group: 'conditioning',
+    name: 'Breaststroke Swim',
+    aliases: ['breaststroke', 'breast stroke swimming'],
+    muscles: ['chest', 'quadriceps'],
+    equipment: 'pool',
+    measure: 'distance',
+    instructions: [
+      'Glide face-down with arms extended and legs together.',
+      'Sweep your hands out and around in a heart shape while lifting your head to breathe.',
+      'Snap into a frog kick — heels to hips, then whip the legs back together.',
+      'Glide for a beat before the next stroke; the glide is the free speed.',
+    ],
+  },
+  {
+    id: 'pool-backstroke-swim',
+    group: 'conditioning',
+    name: 'Backstroke Swim',
+    aliases: ['backstroke', 'back crawl'],
+    muscles: ['lats', 'shoulders'],
+    equipment: 'pool',
+    measure: 'distance',
+    instructions: [
+      'Float on your back with hips high and ears in the water.',
+      'Alternate straight-arm pulls past your hips while flutter-kicking steadily.',
+      'Keep your head still and breathe rhythmically — one breath per arm cycle.',
+      'Spot the ceiling markers so you swim straight without stopping.',
+    ],
+  },
+  {
+    id: 'pool-aqua-jogging',
+    group: 'conditioning',
+    name: 'Aqua Jogging',
+    aliases: ['aqua jogging', 'water running', 'pool running'],
+    muscles: ['quadriceps', 'glutes'],
+    equipment: 'pool',
+    measure: 'distance',
+    instructions: [
+      'Wear a flotation belt in the deep end so your feet cannot touch.',
+      'Mimic your land running form — high knees, quick cadence, pumping arms.',
+      'Stay vertical with a slight forward lean; never bicycle the legs.',
+      'Log equivalent metres by time or pool crossings.',
+    ],
+  },
+  {
+    id: 'run-easy-run',
+    group: 'conditioning',
+    name: 'Easy Run',
+    aliases: ['running', 'easy run', 'jogging', 'jog'],
+    muscles: ['quadriceps', 'calves'],
+    equipment: 'running',
+    measure: 'distance',
+    popular: true,
+    instructions: [
+      'Warm up with 5 minutes of brisk walking first.',
+      'Run at a conversational pace — you should be able to speak full sentences.',
+      'Land softly under your hips with a quick, light cadence.',
+      'Log the total metres; add no more than 10% per week.',
+    ],
+  },
+  {
+    id: 'run-interval-run',
+    group: 'conditioning',
+    name: 'Interval Run',
+    aliases: ['intervals', 'interval running', 'sprint intervals'],
+    muscles: ['quadriceps', 'glutes'],
+    equipment: 'running',
+    measure: 'distance',
+    instructions: [
+      'Warm up with 10 minutes of easy jogging.',
+      'Run hard for the interval distance, then walk or jog until breathing settles.',
+      'Repeat for the planned number of reps, keeping the last one as fast as the first.',
+      'Cool down with 5 minutes of easy jogging and log each interval’s metres.',
+    ],
+  },
+  {
+    id: 'run-treadmill-walk',
+    group: 'conditioning',
+    name: 'Treadmill Walk',
+    aliases: ['treadmill', 'treadmill walking', 'incline walk'],
+    muscles: ['quadriceps', 'calves'],
+    equipment: 'running',
+    measure: 'distance',
+    instructions: [
+      'Set a brisk pace you could hold for 30 minutes.',
+      'Add a small incline (2–4%) for glute and calf work without impact.',
+      'Pump your arms naturally; never hold the rails.',
+      'Log the belt distance in metres at the end.',
+    ],
+  },
+  {
+    id: 'run-trail-run',
+    group: 'conditioning',
+    name: 'Trail Run',
+    aliases: ['trail running', 'off-road run'],
+    muscles: ['quadriceps', 'glutes'],
+    equipment: 'running',
+    measure: 'distance',
+    instructions: [
+      'Shorten your stride and lift your feet to clear roots and rocks.',
+      'Walk the steep climbs — running them gains little and risks a fall.',
+      'Look 3–4 metres ahead, not at your feet.',
+      'Log the route distance in metres.',
+    ],
+  },
+
   // ── Mobility ─────────────────────────────────────────────────────────────
   {
     id: 'Cat_Stretch',
@@ -1310,4 +1453,21 @@ export function suggestedExercisesForCategory(
     i += 1;
   }
   return picked.slice(0, limit);
+}
+
+/**
+ * Set-logging mode for an entry: load × reps, or a distance in metres.
+ * Explicit `measure` wins; pool + running equipment implies distance.
+ */
+export function exerciseMeasure(entry: ExerciseCatalogEntry): 'weight' | 'distance' {
+  return (
+    entry.measure ??
+    (entry.equipment === 'pool' || entry.equipment === 'running' ? 'distance' : 'weight')
+  );
+}
+
+/** `exerciseMeasure` for a free-text log name; unknown names log weight. */
+export function measureForExerciseName(name: string): 'weight' | 'distance' {
+  const entry = matchExercise(name);
+  return entry ? exerciseMeasure(entry) : 'weight';
 }

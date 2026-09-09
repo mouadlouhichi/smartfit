@@ -643,6 +643,8 @@ export interface SessionSummary {
   sets: number;
   exercises: number;
   volume: number;
+  /** Total set distance logged (pool/running), canonical km. */
+  distance: number;
   /** Exercises where at least one set beat the previous best. */
   personalRecords: string[];
   /** Heaviest single set moved. */
@@ -661,6 +663,7 @@ export function summariseLiveSession(
 ): SessionSummary {
   let sets = 0;
   let volume = 0;
+  let distance = 0;
   let heaviest = 0;
   let mostReps = 0;
   const prs: string[] = [];
@@ -670,6 +673,7 @@ export function summariseLiveSession(
     for (const set of entry.sets) {
       sets += 1;
       volume += setVolume(set);
+      distance += set.distance ?? 0;
       heaviest = Math.max(heaviest, set.weight ?? 0);
       mostReps = Math.max(mostReps, set.reps ?? 0);
       if (isLoadedSet(set) && isPersonalRecord(state, entry.name, set.weight ?? 0, set.reps ?? 0)) {
@@ -683,6 +687,7 @@ export function summariseLiveSession(
     sets,
     exercises: exercises.filter((e) => e.sets.length > 0).length,
     volume: Math.round(volume),
+    distance: Math.round(distance * 100) / 100,
     personalRecords: prs,
     heaviest,
     mostReps,

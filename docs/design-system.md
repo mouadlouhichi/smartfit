@@ -157,5 +157,7 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
    form control).
 5. A11y: label strategy, `aria-describedby`, keyboard path, reduced-motion.
 6. Add a row to §3 (and §7 if it carries ids/copy E2E touches).
-7. Verify: `pnpm typecheck && pnpm lint && pnpm exec prettier --check . && pnpm build`,
+7. Custom classes in `globals.css` are unlayered and beat Tailwind utilities —
+   never set `position`/`display` there; call sites add their own utilities.
+8. Verify: `pnpm typecheck && pnpm lint && pnpm exec prettier --check . && pnpm build`,
    then CI (E2E smoke runs the real flows).

@@ -685,7 +685,10 @@ input[type='number'] {
    darkest stop) so it stays AA-legible under gym lighting.
    ═══════════════════════════════════════════════════════════════════════ */
 .pro-surface {
-  position: relative;
+  /* No `position` here on purpose: this file is unlayered CSS, so any
+     position would beat Tailwind's `fixed`/`absolute` utilities and the Pro
+     paywall would render in-flow at the page bottom. Call sites that need a
+     positioning context for the sheen/grain add `relative` themselves. */
   overflow: hidden;
   color: #f7f2ea;
   background:
@@ -929,13 +932,16 @@ input[type='number'] {
   }
 }
 @keyframes dialog-in {
+  /* Scale + fade only: the `scale` property composes with the centering
+     translate however Tailwind implements it, so the enter never un-centres
+     the dialog for a frame. */
   from {
     opacity: 0;
-    transform: translateY(0.5rem) scale(0.98);
+    scale: 0.96;
   }
   to {
     opacity: 1;
-    transform: none;
+    scale: 1;
   }
 }
 @media (max-width: 639.98px) {

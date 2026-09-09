@@ -53,6 +53,9 @@ export function ExerciseImage({
   /** Id of the entry whose GIF failed to load — falls back to its photos. */
   const [failedGifFor, setFailedGifFor] = useState<string | null>(null);
 
+  /** Photo frames 404 (e.g. pool/running entries with no upstream page, or a CDN hiccup). */
+  const [failedPhoto, setFailedPhoto] = useState(false);
+
   const gif = entry && failedGifFor !== entry.id ? exerciseGifUrl(entry, variant) : null;
 
   if (!entry) {
@@ -91,7 +94,8 @@ export function ExerciseImage({
   }
 
   // Extended catalog entries have no photo frames — keep the dumbbell tile.
-  const frames = exerciseImages(entry);
+  // Same fallback when the frames 404 (pool/running entries, CDN hiccups).
+  const frames = failedPhoto ? null : exerciseImages(entry);
   if (!frames) {
     return (
       <span
@@ -123,6 +127,7 @@ export function ExerciseImage({
         alt=""
         loading="lazy"
         decoding="async"
+        onError={() => setFailedPhoto(true)}
         className={cn('absolute inset-0 h-full w-full object-contain', loop && 'exercise-demo-a')}
       />
       {loop && (

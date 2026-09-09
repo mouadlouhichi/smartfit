@@ -21,10 +21,12 @@ import {
   Flame,
   Sparkles,
   HardDrive,
+  Info,
   Loader2,
   Lock,
   LogOut,
   Mail,
+  Play,
   RefreshCw,
   SlidersHorizontal,
   Tag,
@@ -38,9 +40,11 @@ import {
   INTENSITY_META,
   PLANS,
   WEEKDAYS,
+  categoryIdForSuggestion,
   currentStreak,
   formatDateLabel,
   formatWeight,
+  exerciseMeasure,
   fromKg,
   getGymProgram,
   hasProAccess,
@@ -48,15 +52,18 @@ import {
   toISODate,
   suggestProgram,
   suggestedToSchedule,
+  suggestExercises,
   suggestSummary,
   toKg,
 } from '@smartfit/core';
-import type { WeekStart } from '@smartfit/core';
+import type { ExerciseCatalogEntry, WeekStart } from '@smartfit/core';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
 import { ProBadge } from '../pro-badge';
+import { ExerciseImage } from '@/components/exercise-image';
+import { ExerciseDetailDialog } from '@/components/exercise-detail';
 
 /** Initials for the hero avatar — falls back to an icon when nameless. */
 function initials(name: string): string {
@@ -146,6 +153,19 @@ export function ProfileScreen() {
     }
   }
 
+  const [suggestDetail, setSuggestDetail] = useState<string | null>(null);
+  const suggestions = useMemo(() => suggestExercises(state), [state]);
+
+  function startSuggestion(entry: ExerciseCatalogEntry) {
+    openWith({
+      kind: 'runner',
+      title: entry.name,
+      categoryId: categoryIdForSuggestion(state, entry.equipment),
+      intensity: 'moderate',
+      exercises: [{ name: entry.name, sets: [{}, {}, {}] }],
+    });
+  }
+
   const pro = hasProAccess(state);
   const counts = {
     workouts: state.sessions.length,
@@ -191,7 +211,7 @@ export function ProfileScreen() {
     try {
       const full = await collectFullState();
       const rows = [
-        'date,title,category,exercise,set,reps,weight_kg,duration_min,intensity,calories',
+        'date,title,category,exercise,set,reps,weight_kg,distance_km,duration_min,intensity,calories',
       ];
       for (const s of full.sessions) {
         const cat = full.categories.find((c) => c.id === s.categoryId)?.name ?? s.categoryId;
@@ -211,6 +231,7 @@ export function ProfileScreen() {
                   i + 1,
                   set.reps ?? '',
                   set.weight ?? '',
+                  set.distance ?? '',
                   s.durationMin,
                   s.intensity,
                   s.calories,
@@ -726,6 +747,71 @@ export function ProfileScreen() {
           )}
         </CardContent>
       </Card>
+
+      {/* Suggested exercises — driven by body-composition signals */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2.5 text-base">
+            <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+              <Sparkles className="h-4.5 w-4.5" aria-hidden />
+            </span>
+            Suggested for you
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-2.5">
+          <p className="text-muted-foreground text-xs">
+            Picked from your weight, body fat and recent training — log InBody-style measurements on
+            the Body tab and these adapt.
+          </p>
+          {suggestions.map((s) => (
+            <div
+              key={s.entry.name}
+              className="border-border flex items-center gap-3 rounded-2xl border p-3"
+            >
+              <ExerciseImage
+                name={s.entry.name}
+                className="h-14 w-14 shrink-0 rounded-xl"
+                animated={false}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <p className="truncate text-sm font-bold">{s.entry.name}</p>
+                  <Badge variant="secondary">
+                    {s.entry.equipment === 'pool'
+                      ? 'Pool'
+                      : s.entry.equipment === 'running'
+                        ? 'Running'
+                        : 'Gym'}
+                  </Badge>
+                  <Badge variant="outline">
+                    {exerciseMeasure(s.entry) === 'distance' ? 'metres' : 'kg × reps'}
+                  </Badge>
+                </div>
+                <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{s.reason}</p>
+              </div>
+              <div className="flex shrink-0 flex-col gap-1.5">
+                <Button size="sm" onClick={() => startSuggestion(s.entry)}>
+                  <Play className="h-3.5 w-3.5" /> Start
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setSuggestDetail(s.entry.name)}
+                  aria-label={`How to do ${s.entry.name}`}
+                >
+                  <Info className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <ExerciseDetailDialog
+        name={suggestDetail}
+        open={!!suggestDetail}
+        onOpenChange={(o) => !o && setSuggestDetail(null)}
+      />
 
       {/* SmartFit Pro — membership status & paywall entry */}
       <Card className="overflow-hidden">

@@ -1,30 +1,38 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Play } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ExerciseImage } from './exercise-image';
 import {
   EXERCISE_EQUIPMENT_LABELS,
   EXERCISE_MUSCLE_LABELS,
+  categoryIdForSuggestion,
   exerciseInstructionsUrl,
   matchExercise,
+  type ExerciseCatalogEntry,
   type ExerciseUpstream,
 } from '@smartfit/core';
 import { useExtendedCatalog } from '@/lib/use-extended-catalog';
+import { useStore } from '@/lib/store-context';
+import { useModals } from './dashboard/modal-context';
 
 /**
  * "How do I do this?" for any catalog exercise.
  *
  * Step-by-step instructions (plus level & mechanic) are fetched lazily from
  * the same open dataset that provides the demo frames, then cached for the
- * session — unknown custom names simply never open this dialog.
+ * session — unknown custom names simply never open this dialog. Entries with
+ * curated `instructions` (pool/running) skip the fetch and work offline.
  */
 
 const cache = new Map<string, Promise<ExerciseUpstream>>();
@@ -81,22 +89,30 @@ export function ExerciseDetailDialog({
   name,
   open,
   onOpenChange,
+  allowStart = false,
 }: {
   /** Catalog exercise name (already resolved — call sites use matchExercise). */
   name: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * Show a "Start workout" footer that opens the guided runner with this
+   * exercise. Only for top-level call sites (library) — never inside another
+   * modal, where starting would discard the draft underneath.
+   */
+  allowStart?: boolean;
 }) {
   // Re-match when the extended (runtime) catalog lands — the how-to URL for
   // extended entries comes from the gif database instead of free-exercise-db.
   useExtendedCatalog();
   const entry = name ? matchExercise(name) : null;
+  const curated = entry?.instructions;
   const { data, error, retry } = useExerciseUpstream(
-    entry && open ? entry.id : null,
-    entry ? exerciseInstructionsUrl(entry) : null,
+    entry && open && !curated ? entry.id : null,
+    entry && !curated ? exerciseInstructionsUrl(entry) : null,
   );
 
-  const steps = data?.instructions ?? [];
+  const steps = curated ?? data?.instructions ?? [];
   const level = typeof data?.level === 'string' ? data.level : null;
   const mechanic = typeof data?.mechanic === 'string' ? data.mechanic : null;
 
@@ -142,12 +158,12 @@ export function ExerciseDetailDialog({
                   ))}
                 </ol>
               )}
-              {!data && !error && (
+              {!curated && !data && !error && (
                 <p className="text-muted-foreground animate-pulse-soft text-sm">
                   Loading instructions…
                 </p>
               )}
-              {error && (
+              {!curated && error && (
                 <div className="grid gap-2">
                   <p className="text-muted-foreground text-sm">
                     Couldn’t load the instructions — check your connection.
@@ -161,7 +177,7 @@ export function ExerciseDetailDialog({
                   </button>
                 </div>
               )}
-              {data && steps.length === 0 && (
+              {!curated && data && steps.length === 0 && (
                 <p className="text-muted-foreground text-sm">
                   No step-by-step guide recorded for this exercise.
                 </p>
@@ -169,29 +185,72 @@ export function ExerciseDetailDialog({
             </div>
 
             <p className="text-muted-foreground text-center text-xs">
-              Demo GIFs: ExerciseDB artwork mirrored by{' '}
-              <a
-                href="https://github.com/JahelCuadrado/ExerciseGymGifsDB"
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-2"
-              >
-                ExerciseGymGifsDB
-              </a>{' '}
-              (personal use). Steps &amp; photo fallbacks from{' '}
-              <a
-                href="https://github.com/yuhonas/free-exercise-db"
-                target="_blank"
-                rel="noreferrer"
-                className="underline underline-offset-2"
-              >
-                free-exercise-db
-              </a>{' '}
-              (Unlicense).
+              {curated ? (
+                'Coaching steps written by the SmartFit team for pool & running work.'
+              ) : (
+                <>
+                  Demo GIFs: ExerciseDB artwork mirrored by{' '}
+                  <a
+                    href="https://github.com/JahelCuadrado/ExerciseGymGifsDB"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-2"
+                  >
+                    ExerciseGymGifsDB
+                  </a>{' '}
+                  (personal use). Steps &amp; photo fallbacks from{' '}
+                  <a
+                    href="https://github.com/yuhonas/free-exercise-db"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline underline-offset-2"
+                  >
+                    free-exercise-db
+                  </a>{' '}
+                  (Unlicense).
+                </>
+              )}
             </p>
+
+            {allowStart && <StartWorkoutButton entry={entry} onStart={() => onOpenChange(false)} />}
           </>
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/**
+ * Split out so the dialog itself stays usable outside the dashboard
+ * providers — this button (store + modal hooks) only mounts for top-level
+ * call sites that pass `allowStart`.
+ */
+function StartWorkoutButton({
+  entry,
+  onStart,
+}: {
+  entry: ExerciseCatalogEntry;
+  onStart: () => void;
+}) {
+  const { state } = useStore();
+  const { openWith } = useModals();
+  return (
+    <DialogFooter>
+      <Button
+        className="w-full sm:w-auto"
+        onClick={() => {
+          onStart();
+          openWith({
+            kind: 'runner',
+            title: entry.name,
+            categoryId: categoryIdForSuggestion(state, entry.equipment),
+            intensity: 'moderate',
+            exercises: [{ name: entry.name, sets: [{}, {}, {}] }],
+          });
+        }}
+      >
+        <Play className="h-4 w-4" /> Start workout
+      </Button>
+    </DialogFooter>
   );
 }
