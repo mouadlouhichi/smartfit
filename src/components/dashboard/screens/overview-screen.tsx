@@ -134,9 +134,9 @@ export function OverviewScreen() {
   return (
     <div className="grid max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       {/* ── Center / left column ───────────────────────────────
-          Separate surfaces: the white card covers only the opening block
-          (greeting → quick actions); today's plan and the summary live
-          outside it as their own sections instead of one page-long card. */}
+          Separate surfaces: the white card covers only the greeting and
+          weekly progress; start workout, today rings, plan, and summary
+          live outside it as their own sections. */}
       <div className="grid max-w-full min-w-0 content-start gap-6">
         <div className="bg-card rounded-[2rem] p-4 shadow-sm min-[420px]:p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -186,15 +186,16 @@ export function OverviewScreen() {
               </span>
             </div>
           </div>
+        </div>
 
-          {/* ── Start today's workout (the "start exercise" entry point) ── */}
-          <div
-            className="pro-surface sheen press relative mt-5 overflow-hidden rounded-3xl"
-            role="button"
-            tabIndex={0}
-            onClick={startToday}
-            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && startToday()}
-          >
+        {/* ── Start today's workout (the "start exercise" entry point) ── */}
+        <div
+          className="pro-surface sheen press relative overflow-hidden rounded-3xl"
+          role="button"
+          tabIndex={0}
+          onClick={startToday}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && startToday()}
+        >
             {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
             <img
               src="/images/start-workout.jpg"
@@ -234,11 +235,11 @@ export function OverviewScreen() {
             </div>
           </div>
 
-          {/* ── Today's closing rings ─────────────────────────────────────
+        {/* ── Today's closing rings ─────────────────────────────────────
             Dark ember hero: gradients + halo need the dark stage, and the
             legend reads in hero tones. Stacked on phones, side by side
             once there is room. */}
-          <div className="card-hero mt-5 p-5 sm:p-6">
+        <div className="card-hero p-5 sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
                 <p className="font-display text-lg font-extrabold tracking-tight">Today</p>
@@ -280,32 +281,29 @@ export function OverviewScreen() {
             </div>
           </div>
 
-          {/* Quick actions — fluid circles that fill their column instead of
-            fixed 56px discs: five fixed discs plus gaps are wider than a
-            320–360px card and used to push the dashboard past the viewport. */}
-          <div className="mt-7 grid grid-cols-5 gap-2 sm:gap-3">
-            {quickActions.map((a) => {
-              const inner = (
-                <div className="group flex flex-col items-center gap-2 sm:gap-2.5">
-                  <span className="bg-secondary text-clay group-hover:bg-primary mx-auto flex aspect-square w-full max-w-14 items-center justify-center rounded-full shadow-sm transition-colors group-hover:text-white sm:aspect-auto sm:h-16 sm:w-16 sm:max-w-none">
-                    <a.icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2} />
-                  </span>
-                  <span className="text-clay text-center text-[10px] leading-tight font-semibold sm:text-xs">
-                    {a.label}
-                  </span>
-                </div>
-              );
-              return a.href ? (
-                <Link key={a.label} href={a.href} className="group min-w-0">
-                  {inner}
-                </Link>
-              ) : (
-                <button key={a.label} onClick={a.onClick} className="group min-w-0">
-                  {inner}
-                </button>
-              );
-            })}
-          </div>
+        {/* Quick actions */}
+        <div className="grid grid-cols-5 gap-2 sm:gap-3">
+          {quickActions.map((a) => {
+            const inner = (
+              <div className="group flex flex-col items-center gap-2 sm:gap-2.5">
+                <span className="bg-secondary text-clay group-hover:bg-primary mx-auto flex aspect-square w-full max-w-14 items-center justify-center rounded-full shadow-sm transition-colors group-hover:text-white sm:aspect-auto sm:h-16 sm:w-16 sm:max-w-none">
+                  <a.icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2} />
+                </span>
+                <span className="text-clay text-center text-[10px] leading-tight font-semibold sm:text-xs">
+                  {a.label}
+                </span>
+              </div>
+            );
+            return a.href ? (
+              <Link key={a.label} href={a.href} className="group min-w-0">
+                {inner}
+              </Link>
+            ) : (
+              <button key={a.label} onClick={a.onClick} className="group min-w-0">
+                {inner}
+              </button>
+            );
+          })}
         </div>
 
         {/* Today's plan — the bridge between the schedule and the log.
