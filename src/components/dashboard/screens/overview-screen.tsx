@@ -229,20 +229,43 @@ export function OverviewScreen() {
         </div>
 
         {/* ── Today's closing rings ─────────────────────────────────────
-            Stacked on phones (the 160px dial plus its legend never fits a
-            ~300px card side by side); side by side once there is room. */}
-        <div className="bg-secondary/70 mt-5 rounded-3xl p-4 min-[420px]:p-5">
-          <div className="flex flex-col items-stretch gap-4 min-[480px]:flex-row min-[480px]:items-center min-[480px]:gap-5">
-            <div className="mx-auto shrink-0 min-[480px]:mx-0">
-              <div className="bg-card relative flex h-40 w-40 items-center justify-center rounded-3xl shadow-sm">
-                <ActivityRingsGraphic rings={rings} size={150} />
-              </div>
+            Dark ember hero: gradients + halo need the dark stage, and the
+            legend reads in hero tones. Stacked on phones, side by side
+            once there is room. */}
+        <div className="card-hero mt-5 p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-display text-lg font-extrabold tracking-tight">Today</p>
+              <p className="hero-muted text-xs">
+                {new Date().toLocaleDateString(undefined, {
+                  weekday: 'long',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </p>
+            </div>
+            {rings.closed && (
+              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+                <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--chart-3)' }} aria-hidden />
+                All rings closed
+              </span>
+            )}
+          </div>
+          <div className="mt-4 flex flex-col items-center gap-5 min-[480px]:flex-row min-[480px]:gap-6">
+            <div className="shrink-0">
+              <ActivityRingsGraphic rings={rings} size={168}>
+                <p className="font-display text-2xl font-extrabold tabular-nums">
+                  {rings.calories.target > 0
+                    ? Math.round(rings.calories.value)
+                    : rings.minutes.value}
+                </p>
+                <p className="hero-muted text-[10px] font-bold tracking-widest uppercase">
+                  {rings.calories.target > 0 ? 'kcal' : 'min'}
+                </p>
+              </ActivityRingsGraphic>
             </div>
             <div className="w-full min-w-0 flex-1">
-              <p className="font-display mb-3 text-center text-lg font-extrabold tracking-tight min-[480px]:text-left">
-                Today
-              </p>
-              <ActivityRingsLegend rings={rings} />
+              <ActivityRingsLegend rings={rings} tone="onDark" />
             </div>
           </div>
         </div>
