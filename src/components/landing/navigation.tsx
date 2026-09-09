@@ -131,7 +131,7 @@ export function Navigation() {
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className={`font-display text-5xl text-[color:var(--foreground)] transition-all duration-500 hover:text-[color:var(--muted-foreground)] ${
+                className={`font-display text-4xl text-[color:var(--foreground)] transition-all duration-500 hover:text-[color:var(--muted-foreground)] min-[400px]:text-5xl ${
                   isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
                 }`}
                 style={{ transitionDelay: isMobileMenuOpen ? `${i * 75}ms` : '0ms' }}

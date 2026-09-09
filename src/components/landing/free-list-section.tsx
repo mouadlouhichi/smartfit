@@ -40,17 +40,17 @@ export function FreeListSection() {
               design — there is no premium tier and nothing to upsell.
             </p>
 
-            <div className="grid grid-cols-3 gap-8">
+            <div className="grid grid-cols-3 gap-4 sm:gap-8">
               <div>
-                <div className="font-display mb-2 text-4xl lg:text-5xl">$0</div>
+                <div className="font-display mb-2 text-3xl sm:text-4xl lg:text-5xl">$0</div>
                 <div className="text-sm text-[color:var(--muted-foreground)]">Forever, no card</div>
               </div>
               <div>
-                <div className="font-display mb-2 text-4xl lg:text-5xl">4</div>
+                <div className="font-display mb-2 text-3xl sm:text-4xl lg:text-5xl">4</div>
                 <div className="text-sm text-[color:var(--muted-foreground)]">Training styles</div>
               </div>
               <div>
-                <div className="font-display mb-2 text-4xl lg:text-5xl">100%</div>
+                <div className="font-display mb-2 text-3xl sm:text-4xl lg:text-5xl">100%</div>
                 <div className="text-sm text-[color:var(--muted-foreground)]">On-device</div>
               </div>
             </div>

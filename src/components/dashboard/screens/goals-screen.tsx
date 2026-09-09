@@ -108,19 +108,23 @@ export function GoalsScreen() {
               key={g.id}
               className={p.done ? 'border-primary/40 bg-accent/40' : 'hover:shadow-md'}
             >
-              <CardContent className="flex items-center gap-4 p-5">
+              {/* Ring on top on phones (side by side it leaves ~40px for the
+                  goal name); side by side once the card has room. */}
+              <CardContent className="flex flex-col gap-3 p-5 min-[480px]:flex-row min-[480px]:items-center min-[480px]:gap-4">
                 {/* Radial progress — the number IS the decoration */}
-                <Ring pct={p.pct} size={84} stroke={9} color={style.ring}>
-                  {p.done ? (
-                    <CheckCircle2 className="text-primary h-7 w-7" aria-hidden />
-                  ) : (
-                    <span className="text-sm font-extrabold tabular-nums">
-                      {Math.round(p.pct)}%
-                    </span>
-                  )}
-                </Ring>
+                <div className="mx-auto shrink-0 min-[480px]:mx-0">
+                  <Ring pct={p.pct} size={84} stroke={9} color={style.ring}>
+                    {p.done ? (
+                      <CheckCircle2 className="text-primary h-7 w-7" aria-hidden />
+                    ) : (
+                      <span className="text-sm font-extrabold tabular-nums">
+                        {Math.round(p.pct)}%
+                      </span>
+                    )}
+                  </Ring>
+                </div>
 
-                <div className="min-w-0 flex-1">
+                <div className="w-full min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2.5">
                       <span

@@ -34,7 +34,10 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'border-border bg-card data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 fixed top-1/2 left-1/2 z-50 grid w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-2xl border p-6 shadow-2xl duration-200 sm:max-h-[90vh]',
+        // max-h applies on every viewport (not just sm+): without it a tall
+        // dialog grows past the phone screen and its top — and its save
+        // button — become unreachable behind the scroll lock.
+        'border-border bg-card data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 fixed top-1/2 left-1/2 z-50 grid max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 overflow-y-auto rounded-2xl border p-4 shadow-2xl duration-200 sm:p-6',
         className,
       )}
       {...props}

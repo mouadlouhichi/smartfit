@@ -81,7 +81,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </aside>
 
             {/* Main */}
-            <div className="flex min-w-0 flex-1 flex-col pb-28 lg:pb-0">
+            <div className="flex min-w-0 flex-1 flex-col overflow-x-clip pb-28 lg:pb-0">
               <DashboardHeader />
               <MigrationPrompt />
               <SyncBanner />

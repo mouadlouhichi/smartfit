@@ -167,7 +167,9 @@ export function WorkoutModal() {
               />
             </Field>
 
-            <div className="grid grid-cols-3 gap-3">
+            {/* Two columns on phones (the third field goes full-width below):
+                three ~70px selects clip their own labels on a 320px dialog. */}
+            <div className="grid grid-cols-2 gap-2 min-[430px]:grid-cols-3 sm:gap-3">
               <Field id="w-dur" label="Minutes" error={durationError}>
                 <Input
                   type="number"
@@ -193,7 +195,11 @@ export function WorkoutModal() {
                 </Select>
               </Field>
               {isCardio ? (
-                <Field id="w-dist" label={`Distance (${distanceUnit})`}>
+                <Field
+                  id="w-dist"
+                  label={`Distance (${distanceUnit})`}
+                  className="col-span-2 min-[430px]:col-span-1"
+                >
                   <Input
                     type="number"
                     // step="any": 0.1 rejected splits like 5.25 km.
@@ -204,7 +210,7 @@ export function WorkoutModal() {
                   />
                 </Field>
               ) : (
-                <div className="grid gap-1.5">
+                <div className="col-span-2 grid gap-1.5 min-[430px]:col-span-1">
                   <Label htmlFor="w-cal">Est. kcal</Label>
                   <div
                     id="w-cal"
@@ -254,7 +260,7 @@ export function WorkoutModal() {
                     />
                     <Input
                       aria-label={`Exercise ${i + 1} sets`}
-                      className="w-20"
+                      className="w-16 shrink-0 min-[430px]:w-20"
                       type="number"
                       placeholder="sets"
                       value={ex.sets.length}

@@ -171,6 +171,17 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * Mobile overflow guard: no page may ever scroll sideways, whatever a
+ * deeply-nested flex row tries to do. `clip` (unlike `hidden`) creates no
+ * scroll container, so sticky headers and `position: fixed` children keep
+ * working exactly as before.
+ */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);

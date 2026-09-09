@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
 import { CategoryIcon } from '@/components/category-icon';
@@ -110,9 +109,16 @@ export function SessionDetailModal() {
               </Stat>
             ) : (
               <Stat label="Intensity">
-                <Badge variant="secondary" className="font-semibold">
+                {/* A dot + label instead of a Badge: the pill is wider than
+                    an ~80px stat cell on phones. */}
+                <span className="inline-flex items-center gap-1.5">
+                  <span
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: intensity.color }}
+                    aria-hidden
+                  />
                   {intensity.label}
-                </Badge>
+                </span>
               </Stat>
             )}
           </div>
@@ -125,8 +131,8 @@ export function SessionDetailModal() {
 
           {/* The saved GPS trace, redrawn, with a Strava-style transparent share. */}
           {(session.route?.length ?? 0) >= 2 && (
-            <div className="bg-secondary/60 flex items-center gap-4 rounded-2xl p-3">
-              <div className="bg-card h-24 w-24 shrink-0 overflow-hidden rounded-xl shadow-sm">
+            <div className="bg-secondary/60 flex items-center gap-3 rounded-2xl p-3 min-[430px]:gap-4">
+              <div className="bg-card h-20 w-20 shrink-0 overflow-hidden rounded-xl shadow-sm min-[430px]:h-24 min-[430px]:w-24">
                 <RouteMap route={session.route!} className="h-full w-full" />
               </div>
               <div className="min-w-0 flex-1">
@@ -171,7 +177,9 @@ export function SessionDetailModal() {
                           <span className="truncate text-sm font-medium">{ex.name}</span>
                         </span>
                       )}
-                      <span className="text-muted-foreground text-xs">{describeSets(ex.sets)}</span>
+                      <span className="text-muted-foreground shrink-0 text-right text-xs">
+                        {describeSets(ex.sets)}
+                      </span>
                     </li>
                   );
                 })}
@@ -234,12 +242,14 @@ function Stat({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-border rounded-xl border px-3 py-2.5">
-      <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-medium tracking-wide uppercase">
-        {icon}
-        {label}
+    <div className="border-border min-w-0 rounded-xl border px-2 py-2.5 min-[430px]:px-3">
+      <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-wide uppercase min-[430px]:text-[11px]">
+        {icon && <span className="hidden shrink-0 min-[430px]:inline-flex">{icon}</span>}
+        <span className="truncate">{label}</span>
       </span>
-      <span className="mt-1 block text-sm font-bold">{children}</span>
+      <span className="mt-1 block truncate text-xs font-bold tabular-nums min-[430px]:text-sm">
+        {children}
+      </span>
     </div>
   );
 }

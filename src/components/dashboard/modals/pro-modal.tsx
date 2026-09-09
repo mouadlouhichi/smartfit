@@ -152,7 +152,7 @@ export function ProModal() {
           </div>
         </div>
 
-        <div className="max-h-[62dvh] overflow-y-auto p-5 pt-4">
+        <div className="max-h-[62dvh] overflow-y-auto p-4 pt-4 min-[430px]:p-5">
           {pro ? (
             <ManageView
               paid={paid}
@@ -181,7 +181,7 @@ export function ProModal() {
 function ComparisonTable() {
   return (
     <div className="pro-tile overflow-hidden rounded-2xl">
-      <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-[rgba(247,242,234,0.12)] px-4 py-2.5 text-[11px] font-bold tracking-wide uppercase">
+      <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-[rgba(247,242,234,0.12)] px-3 py-2.5 text-[11px] font-bold tracking-wide uppercase min-[430px]:px-4">
         <span className="pro-muted">Feature</span>
         <span className="pro-muted text-center">Free</span>
         <span className="text-center" style={{ color: '#f0c882' }}>
@@ -195,11 +195,14 @@ function ComparisonTable() {
             <li
               key={g.label}
               className={cn(
-                'grid grid-cols-[1.4fr_1fr_1fr] items-center gap-2 px-4 py-2.5',
+                'grid grid-cols-[1.4fr_1fr_1fr] items-center gap-1.5 px-3 py-2.5 min-[430px]:gap-2 min-[430px]:px-4',
                 i > 0 && 'border-t border-[rgba(247,242,234,0.08)]',
               )}
             >
-              <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+              {/* Long single words ("Achievements", "spreadsheets") are wider
+                  than these ~60px columns on phones — break them instead of
+                  letting them poke into the next column. */}
+              <span className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold [overflow-wrap:anywhere] min-[430px]:gap-2 min-[430px]:text-sm">
                 <Icon
                   className="h-4 w-4 shrink-0"
                   style={{ color: 'var(--chart-1)' }}
@@ -207,9 +210,11 @@ function ComparisonTable() {
                 />
                 {g.label}
               </span>
-              <span className="pro-muted text-center text-xs font-medium">{g.free}</span>
-              <span className="flex items-center justify-center gap-1 text-center text-xs font-bold text-[#f7f2ea]">
-                <Check className="h-3.5 w-3.5" style={{ color: '#f0c882' }} aria-hidden />
+              <span className="pro-muted min-w-0 text-center text-[11px] font-medium [overflow-wrap:anywhere] min-[430px]:text-xs">
+                {g.free}
+              </span>
+              <span className="flex min-w-0 items-center justify-center gap-1 text-center text-[11px] font-bold [overflow-wrap:anywhere] text-[#f7f2ea] min-[430px]:text-xs">
+                <Check className="h-3.5 w-3.5 shrink-0" style={{ color: '#f0c882' }} aria-hidden />
                 {g.pro}
               </span>
             </li>

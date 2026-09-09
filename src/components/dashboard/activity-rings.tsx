@@ -144,7 +144,7 @@ export function ActivityRingsLegend({ rings }: { rings: ActivityRings }) {
               <span className="text-muted-foreground font-medium"> / {row.target}</span>
             </p>
           </div>
-          <span className="text-sm font-bold tabular-nums" style={{ color: row.color }}>
+          <span className="shrink-0 text-sm font-bold tabular-nums" style={{ color: row.color }}>
             {Math.min(100, ringPct(row.label, rings))}%
           </span>
         </li>

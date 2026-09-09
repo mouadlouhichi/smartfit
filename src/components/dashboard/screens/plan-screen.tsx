@@ -239,26 +239,30 @@ export function PlanScreen() {
                   return (
                     <li
                       key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
-                      className="bg-secondary/50 flex items-center gap-3 rounded-xl px-3 py-2"
+                      className="bg-secondary/50 flex items-center gap-2.5 rounded-xl px-3 py-2 min-[480px]:gap-3"
                     >
-                      <span className="w-11 text-xs font-bold tabular-nums">
-                        {WEEKDAYS_LONG[s.weekday]}
+                      {/* Day + time share one compact rail: full weekday names
+                          ("Wednesday") never fit the old 44px day column. */}
+                      <span className="w-[4.25rem] shrink-0">
+                        <span className="block truncate text-xs font-bold tabular-nums">
+                          {WEEKDAYS_LONG[s.weekday]}
+                        </span>
+                        <span className="text-muted-foreground block text-[11px] font-semibold tabular-nums">
+                          {s.time}
+                        </span>
                       </span>
-                      <span className="text-muted-foreground w-11 text-xs font-semibold tabular-nums">
-                        {s.time}
-                      </span>
-                      <span className="flex-1 truncate text-sm font-semibold">
+                      <span className="min-w-0 flex-1 truncate text-sm font-semibold">
                         {s.gymClass.name}
                       </span>
-                      <span className="text-muted-foreground hidden text-xs tabular-nums sm:inline">
+                      <span className="text-muted-foreground hidden shrink-0 text-xs tabular-nums sm:inline">
                         {formatMinutes(s.gymClass.minutes)}
                       </span>
                       <span
-                        className="flex items-center gap-1.5 text-xs font-bold whitespace-nowrap"
+                        className="flex shrink-0 items-center gap-1.5 text-xs font-bold whitespace-nowrap"
                         style={{ color: meta.color }}
                       >
                         <span
-                          className="h-1.5 w-1.5 rounded-full"
+                          className="h-1.5 w-1.5 shrink-0 rounded-full"
                           style={{ backgroundColor: meta.color }}
                           aria-hidden
                         />
@@ -342,7 +346,7 @@ export function PlanScreen() {
                         <div
                           key={s.id}
                           className={cn(
-                            'bg-secondary/60 flex items-center gap-3 rounded-xl p-2.5',
+                            'bg-secondary/60 flex items-center gap-2 rounded-xl p-2.5 min-[480px]:gap-3',
                             !s.active && 'opacity-60',
                           )}
                         >
@@ -401,7 +405,7 @@ export function PlanScreen() {
                                 exercises: s.exercises,
                               })
                             }
-                            className="bg-primary text-primary-foreground shadow-primary/25 flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95"
+                            className="bg-primary text-primary-foreground shadow-primary/25 flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95 min-[480px]:h-9 min-[480px]:w-9"
                             aria-label={`Start ${s.title}`}
                           >
                             <Play className="ml-0.5 h-4 w-4" />
@@ -413,7 +417,7 @@ export function PlanScreen() {
                           />
                           <button
                             onClick={() => openWith({ kind: 'schedule', schedule: s })}
-                            className="text-muted-foreground hover:text-primary transition-colors"
+                            className="text-muted-foreground hover:text-primary shrink-0 transition-colors"
                             aria-label={`Edit ${s.title}`}
                           >
                             <Pencil className="h-4 w-4" />
@@ -434,9 +438,9 @@ export function PlanScreen() {
 
       {/* ── Training log ───────────────────────────────────────────────── */}
       <Card>
-        <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardHeader className="gap-3 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between min-[480px]:space-y-0">
           <CardTitle className="flex items-center gap-2.5 text-base">
-            <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+            <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
               <Clock className="h-4.5 w-4.5" aria-hidden />
             </span>
             Workout log
@@ -449,7 +453,7 @@ export function PlanScreen() {
             aria-label="Filter workout log by activity type"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="h-9 w-40"
+            className="h-9 w-full min-[480px]:w-40"
           >
             <option value="all">All types</option>
             {state.categories.map((c) => (
