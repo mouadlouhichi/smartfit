@@ -79,3 +79,32 @@ test('suggestion categories follow the equipment', () => {
   assert.equal(categoryIdForSuggestion(s, 'running'), 'cat-cardio');
   assert.equal(categoryIdForSuggestion(s, 'barbell'), 'cat-strength');
 });
+
+test('the 10-08 InBody sheet drives a muscle-sparing cut', () => {
+  // 29M, 175cm: 87.2 kg, 26.5% fat, 99.7 cm waist, InBody target 75.4 kg.
+  const s = stateWith({
+    profile: { ...emptyState().profile, targetWeightKg: 75.4 },
+    bodyLogs: [
+      { id: 'b1', date: '2026-08-10', unit: 'weight', value: 87.2, createdAt: 1 },
+      { id: 'b2', date: '2026-08-10', unit: 'bodyfat', value: 26.5, createdAt: 2 },
+      { id: 'b3', date: '2026-08-10', unit: 'waist', value: 99.7, createdAt: 3 },
+    ],
+  });
+  assert.equal(suggestionGoal(s), 'cut');
+  const out = suggestExercises(s);
+  assert.equal(out.length, 4);
+  const equip = out.map((x) => x.entry.equipment);
+  assert.ok(equip.includes('pool'));
+  assert.ok(equip.includes('running'));
+  assert.ok(out[0].reason.includes('27')); // rounded 26.5%
+  assert.ok(out.some((x) => /compound|metabolism/i.test(x.reason)));
+});
+
+test('a high waist alone tilts to conditioning and says so', () => {
+  const s = stateWith({
+    bodyLogs: [{ id: 'b1', date: '2026-09-01', unit: 'waist', value: 99.7, createdAt: 1 }],
+  });
+  assert.equal(suggestionGoal(s), 'cut');
+  const out = suggestExercises(s);
+  assert.ok(out[0].reason.includes('99.7'));
+});

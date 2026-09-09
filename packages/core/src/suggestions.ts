@@ -24,6 +24,8 @@ const DAY_MS = 86_400_000;
 const RECENT_DAYS = 10;
 /** Body-fat % above which conditioning leads the mix (InBody "high" band). */
 const HIGH_BODY_FAT = 24;
+/** Waist (canonical cm) at/above which trunk fat leads the mix. */
+const HIGH_WAIST_CM = 95;
 
 function latestBodyValue(state: FitnessState, unit: BodyUnit): number | null {
   let best: { date: string; value: number } | null = null;
@@ -55,8 +57,10 @@ export type SuggestionGoal = 'cut' | 'build' | 'maintain';
 export function suggestionGoal(state: FitnessState): SuggestionGoal {
   const weight = latestBodyValue(state, 'weight');
   const bodyfat = latestBodyValue(state, 'bodyfat');
+  const waist = latestBodyValue(state, 'waist');
   const target = state.profile.targetWeightKg;
   if (bodyfat != null && bodyfat > HIGH_BODY_FAT) return 'cut';
+  if (waist != null && waist >= HIGH_WAIST_CM) return 'cut';
   if (weight != null && target != null) {
     if (target < weight - 0.5) return 'cut';
     if (target > weight + 0.5) return 'build';
@@ -94,6 +98,7 @@ export function suggestExercises(state: FitnessState, limit = 4): ExerciseSugges
   const recent = recentExerciseNames(state);
   const goal = suggestionGoal(state);
   const bodyfat = latestBodyValue(state, 'bodyfat');
+  const waist = latestBodyValue(state, 'waist');
   const out: ExerciseSuggestion[] = [];
 
   const pool = resolve(firstFresh(POOL_ORDER, recent));
@@ -104,7 +109,9 @@ export function suggestExercises(state: FitnessState, limit = 4): ExerciseSugges
         goal === 'cut'
           ? bodyfat != null
             ? `Body fat ${Math.round(bodyfat)}% — low-impact laps burn without joint stress`
-            : 'Low-impact laps that burn while your joints recover'
+            : waist != null && waist >= HIGH_WAIST_CM
+              ? `Waist ${Math.round(waist * 10) / 10} cm — trunk fat responds to steady conditioning`
+              : 'Low-impact laps that burn while your joints recover'
           : 'Full-body cardio that spares your joints for lifting days',
     });
   }

@@ -760,8 +760,8 @@ export function ProfileScreen() {
         </CardHeader>
         <CardContent className="grid gap-2.5">
           <p className="text-muted-foreground text-xs">
-            Picked from your weight, body fat and recent training — log InBody-style measurements on
-            the Body tab and these adapt.
+            Picked from your weight, body fat, waist and recent training — log your InBody
+            measurements on the Body tab and these adapt.
           </p>
           {suggestions.map((s) => (
             <div
