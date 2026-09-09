@@ -16,10 +16,11 @@ const buttonVariants = cva(
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-10 px-5 py-2',
-        sm: 'h-8 px-3 text-xs',
+        // Mobile-first touch targets: 44px base, compacted on sm and up.
+        default: 'h-11 px-5 py-2 sm:h-10',
+        sm: 'h-9 px-3.5 text-xs sm:h-8 sm:px-3',
         lg: 'h-12 px-7 text-base',
-        icon: 'h-10 w-10',
+        icon: 'h-11 w-11 sm:h-10 sm:w-10',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },

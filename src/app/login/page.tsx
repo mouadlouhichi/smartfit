@@ -308,8 +308,8 @@ export default function LoginPage() {
         </CardContent>
       </Card>
 
-      <p className="text-muted-foreground mt-6 flex max-w-sm items-center justify-center gap-1.5 text-center text-xs">
-        <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+      <p className="text-muted-foreground mt-6 max-w-sm px-4 text-center text-xs">
+        <ShieldCheck className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
         Your training data is private to your account. See our{' '}
         <Link href="/privacy" className="hover:text-foreground underline underline-offset-2">
           privacy policy

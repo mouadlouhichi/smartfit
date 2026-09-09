@@ -54,12 +54,12 @@ import {
 } from '@smartfit/core';
 
 type Range = 'daily' | 'weekly' | 'monthly' | 'quarter' | 'year';
-const RANGES: { key: Range; label: string; days: number; pro?: boolean }[] = [
-  { key: 'daily', label: 'Daily', days: 1 },
-  { key: 'weekly', label: 'Weekly', days: 7 },
-  { key: 'monthly', label: 'Monthly', days: 30 },
-  { key: 'quarter', label: 'Quarter', days: 90, pro: true },
-  { key: 'year', label: 'Year', days: 364, pro: true },
+const RANGES: { key: Range; label: string; short: string; days: number; pro?: boolean }[] = [
+  { key: 'daily', label: 'Daily', short: 'Day', days: 1 },
+  { key: 'weekly', label: 'Weekly', short: 'Week', days: 7 },
+  { key: 'monthly', label: 'Monthly', short: 'Month', days: 30 },
+  { key: 'quarter', label: 'Quarter', short: 'Qtr', days: 90, pro: true },
+  { key: 'year', label: 'Year', short: 'Year', days: 364, pro: true },
 ];
 
 /** Sessions in the `days`-long window ending today. */
@@ -142,9 +142,11 @@ export function ProgressScreen() {
           </p>
         </div>
 
-        {/* Segmented control */}
+        {/* Segmented control — five full labels never fit a phone, so
+            narrow screens get compact short labels (Day/Week/Month/Qtr/Year)
+            with a hidden-scrollbar swipe row as the backstop. */}
         <div
-          className="bg-secondary flex w-full max-w-sm rounded-full p-1 sm:w-auto sm:flex-none"
+          className="bg-secondary no-scrollbar flex w-full max-w-sm overflow-x-auto rounded-full p-1 sm:w-auto sm:flex-none sm:overflow-visible"
           role="tablist"
           aria-label="Stats range"
         >
@@ -157,14 +159,15 @@ export function ProgressScreen() {
                 aria-selected={range === r.key}
                 onClick={() => (locked ? openWith({ kind: 'pro' }) : setRange(r.key))}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-1 rounded-full px-4 py-2 text-sm font-bold transition-all sm:flex-none',
+                  'flex flex-1 shrink-0 items-center justify-center gap-1 rounded-full px-2.5 py-2 text-xs font-bold whitespace-nowrap transition-all sm:flex-none sm:px-4 sm:text-sm',
                   range === r.key
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
-                {locked && <Lock className="h-3 w-3" aria-hidden />}
-                {r.label}
+                {locked && <Lock className="h-3 w-3 shrink-0" aria-hidden />}
+                <span className="sm:hidden">{r.short}</span>
+                <span className="hidden sm:inline">{r.label}</span>
               </button>
             );
           })}
@@ -172,8 +175,8 @@ export function ProgressScreen() {
       </div>
 
       {/* ── Hero: goal rings on warm charcoal with an ember glow ─────────── */}
-      <section className="card-hero p-6 sm:p-8" aria-label="Goal rings">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <section className="card-hero p-4 min-[420px]:p-6 sm:p-8" aria-label="Goal rings">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
           <p className="eyebrow hero-muted">
             Last {days} day{days === 1 ? '' : 's'}
           </p>
@@ -184,7 +187,9 @@ export function ProgressScreen() {
             </span>
           )}
         </div>
-        <div className="flex items-center justify-around gap-2">
+        {/* Three rings plus their value captions must share ~240px on a
+            320px phone — compact dials and one-line captions keep them in. */}
+        <div className="flex items-start justify-between gap-1 sm:gap-2">
           <RingStat
             pct={minPct}
             label="Exercise"
@@ -467,8 +472,8 @@ export function ProgressScreen() {
               body="Your activity mix will appear here."
             />
           ) : (
-            <div className="flex items-center gap-5">
-              <div className="relative h-36 w-36 shrink-0">
+            <div className="flex flex-col gap-4 min-[480px]:flex-row min-[480px]:items-center min-[480px]:gap-5">
+              <div className="relative mx-auto h-36 w-36 shrink-0 min-[480px]:mx-0">
                 <Donut
                   data={breakdown.map((b) => ({ value: b.minutes, color: b.category.color }))}
                 />
@@ -481,7 +486,7 @@ export function ProgressScreen() {
                   </span>
                 </div>
               </div>
-              <div className="grid flex-1 gap-2.5">
+              <div className="grid w-full min-w-0 flex-1 gap-2.5">
                 {breakdown.map((b) => (
                   <div key={b.category.id} className="grid gap-1">
                     <div className="flex items-center gap-2 text-sm">
@@ -588,11 +593,11 @@ function RingStat({
   big?: boolean;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2">
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center sm:gap-2">
       <Ring
         pct={pct}
-        size={big ? 104 : 76}
-        stroke={big ? 10 : 7}
+        size={big ? 88 : 64}
+        stroke={big ? 9 : 7}
         color={color}
         track="rgba(247,242,234,0.14)"
       >
@@ -602,11 +607,11 @@ function RingStat({
             <span className="mt-0.5 block text-sm font-extrabold tabular-nums">{pct}%</span>
           </span>
         ) : (
-          <Icon className="h-5 w-5" style={{ color }} aria-hidden />
+          <Icon className="h-4 w-4" style={{ color }} aria-hidden />
         )}
       </Ring>
       <p className="text-xs font-bold">{label}</p>
-      <p className="hero-muted text-xs tabular-nums">{value}</p>
+      <p className="hero-muted text-[11px] whitespace-nowrap tabular-nums sm:text-xs">{value}</p>
     </div>
   );
 }

@@ -86,7 +86,7 @@ export function CategoryModal() {
                   <button
                     type="button"
                     onClick={() => remove(c.id, c.name)}
-                    className="text-muted-foreground hover:text-destructive ml-1"
+                    className="text-muted-foreground hover:text-destructive -my-2 -mr-2 ml-1 p-2"
                     aria-label={`Delete ${c.name}`}
                   >
                     ×
@@ -117,7 +117,7 @@ export function CategoryModal() {
                     type="button"
                     onClick={() => setIcon(ic)}
                     className={cn(
-                      'flex h-9 w-9 items-center justify-center rounded-lg border transition-colors',
+                      'flex h-11 w-11 items-center justify-center rounded-lg border transition-colors sm:h-9 sm:w-9',
                       icon === ic
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border text-muted-foreground',

@@ -10,7 +10,9 @@ import {
   EXERCISE_GROUPS,
   EXERCISE_EQUIPMENT_LABELS,
   EXERCISE_MUSCLE_LABELS,
+  exerciseMeasure,
   searchExercises,
+  suggestExercises,
   type ExerciseEquipment,
   type ExerciseGroup,
   type ExerciseMuscle,
@@ -18,12 +20,13 @@ import {
 import { ExerciseImage } from '@/components/exercise-image';
 import { ExerciseDetailDialog } from '@/components/exercise-detail';
 import { useAllExercises, useExtendedCatalogStatus } from '@/lib/use-extended-catalog';
+import { useStore } from '@/lib/store-context';
 
 /** Tiles rendered before "Show more" — keeps the grid's image loads light. */
 const PAGE_SIZE = 24;
 
-/** Browse sections; "all" and "popular" are pseudo-sections. */
-type GroupFilter = ExerciseGroup | 'all' | 'popular';
+/** Browse sections; "all", "popular" and "suggested" are pseudo-sections. */
+type GroupFilter = ExerciseGroup | 'all' | 'popular' | 'suggested';
 /** Result order: curated-first (default) or alphabetical. */
 type SortMode = 'recommended' | 'az';
 
@@ -37,12 +40,19 @@ const EQUIPMENT_ORDER: ExerciseEquipment[] = [
   'kettlebell',
   'band',
   'ez-bar',
+  'running',
+  'pool',
   'other',
 ];
 
-function inGroup(entry: { group: ExerciseGroup; popular?: boolean }, group: GroupFilter): boolean {
+function inGroup(
+  entry: { group: ExerciseGroup; popular?: boolean; name: string },
+  group: GroupFilter,
+  suggested: Set<string>,
+): boolean {
   if (group === 'all') return true;
   if (group === 'popular') return !!entry.popular;
+  if (group === 'suggested') return suggested.has(entry.name);
   return entry.group === group;
 }
 
@@ -65,6 +75,12 @@ export function ExerciseLibrary() {
   // refresh when it lands. Until then this shows the curated 103.
   const catalog = useAllExercises();
   const status = useExtendedCatalogStatus();
+  const { state } = useStore();
+  // "For you" pseudo-section — the same engine as the profile suggestions.
+  const suggestedNames = useMemo(
+    () => new Set(suggestExercises(state).map((s) => s.entry.name)),
+    [state],
+  );
 
   // Search once; every filter below composes on top of the ranked matches,
   // so the chip counts stay meaningful while searching.
@@ -76,12 +92,12 @@ export function ExerciseLibrary() {
   const results = useMemo(() => {
     const filtered = searched.filter(
       (e) =>
-        inGroup(e, group) &&
+        inGroup(e, group, suggestedNames) &&
         (!muscle || e.muscles.includes(muscle)) &&
         (!equipment || e.equipment === equipment),
     );
     return sort === 'az' ? [...filtered].sort((a, b) => a.name.localeCompare(b.name)) : filtered;
-  }, [searched, group, muscle, equipment, sort]);
+  }, [searched, group, muscle, equipment, sort, suggestedNames]);
 
   // Facet counts: each row counts what the *other* filters leave behind, so
   // the chips narrate "12 barbell chest moves" as filters stack up.
@@ -92,9 +108,10 @@ export function ExerciseLibrary() {
       if (equipment && e.equipment !== equipment) continue;
       map.set(e.group, (map.get(e.group) ?? 0) + 1);
       if (e.popular) map.set('popular', (map.get('popular') ?? 0) + 1);
+      if (suggestedNames.has(e.name)) map.set('suggested', (map.get('suggested') ?? 0) + 1);
     }
     return map;
-  }, [searched, muscle, equipment]);
+  }, [searched, muscle, equipment, suggestedNames]);
 
   const allCount = useMemo(
     () => EXERCISE_GROUPS.reduce((sum, g) => sum + (groupCounts.get(g.id) ?? 0), 0),
@@ -104,17 +121,17 @@ export function ExerciseLibrary() {
   const equipmentCounts = useMemo(() => {
     const map = new Map<ExerciseEquipment, number>();
     for (const e of searched) {
-      if (!inGroup(e, group)) continue;
+      if (!inGroup(e, group, suggestedNames)) continue;
       if (muscle && !e.muscles.includes(muscle)) continue;
       map.set(e.equipment, (map.get(e.equipment) ?? 0) + 1);
     }
     return map;
-  }, [searched, group, muscle]);
+  }, [searched, group, muscle, suggestedNames]);
 
   // Muscle focus chips appear when a section is selected and splits into
   // more than one muscle (Back → Lats/Traps/…, Legs → Quads/Hamstrings/…).
   const muscleOptions = useMemo(() => {
-    if (group === 'all' || group === 'popular') return [];
+    if (group === 'all' || group === 'popular' || group === 'suggested') return [];
     const map = new Map<ExerciseMuscle, number>();
     for (const e of searched) {
       if (e.group !== group) continue;
@@ -161,7 +178,7 @@ export function ExerciseLibrary() {
           <Input
             aria-label="Search exercises"
             placeholder="Search exercises…"
-            className="h-9 pr-8 pl-9"
+            className="pr-8 pl-9 sm:h-9"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -184,6 +201,9 @@ export function ExerciseLibrary() {
           </Chip>
           <Chip active={group === 'popular'} onClick={() => selectGroup('popular')}>
             Popular <span className="opacity-60">{groupCounts.get('popular') ?? 0}</span>
+          </Chip>
+          <Chip active={group === 'suggested'} onClick={() => selectGroup('suggested')}>
+            For you <span className="opacity-60">{groupCounts.get('suggested') ?? 0}</span>
           </Chip>
           {EXERCISE_GROUPS.map((g) => (
             <Chip key={g.id} active={group === g.id} onClick={() => selectGroup(g.id)}>
@@ -265,7 +285,9 @@ export function ExerciseLibrary() {
                 label={
                   group === 'popular'
                     ? 'Popular'
-                    : (EXERCISE_GROUPS.find((g) => g.id === group)?.label ?? group)
+                    : group === 'suggested'
+                      ? 'For you'
+                      : (EXERCISE_GROUPS.find((g) => g.id === group)?.label ?? group)
                 }
                 onClear={() => selectGroup('all')}
               />
@@ -347,6 +369,7 @@ export function ExerciseLibrary() {
                 </span>
                 <span className="text-muted-foreground w-full truncate text-xs">
                   {EXERCISE_MUSCLE_LABELS[entry.muscles[0]]}
+                  {exerciseMeasure(entry) === 'distance' ? ' · metres' : ''}
                   {entry.extended ? ' · full library' : ''}
                 </span>
               </button>
@@ -369,6 +392,7 @@ export function ExerciseLibrary() {
         name={detailName}
         open={!!detailName}
         onOpenChange={(o) => !o && setDetailName(null)}
+        allowStart
       />
     </Card>
   );

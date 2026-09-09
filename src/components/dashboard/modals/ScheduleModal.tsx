@@ -183,7 +183,10 @@ export function ScheduleModal() {
               </Field>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            {/* Two columns on phones (intensity goes full-width below): a
+                time input needs more than the ~70px a 3-column phone row
+                gives it. */}
+            <div className="grid grid-cols-2 gap-2 min-[430px]:grid-cols-3 sm:gap-3">
               <Field id="s-time" label="Time">
                 <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
               </Field>
@@ -198,7 +201,7 @@ export function ScheduleModal() {
                   }}
                 />
               </Field>
-              <Field id="s-int" label="Intensity">
+              <Field id="s-int" label="Intensity" className="col-span-2 min-[430px]:col-span-1">
                 <Select
                   value={intensity}
                   onChange={(e) => setIntensity(e.target.value as Intensity)}
@@ -231,9 +234,12 @@ export function ScheduleModal() {
                       key={row.id}
                       className="bg-secondary flex items-center gap-2 rounded-xl p-2"
                     >
+                      {/* The picker renders its own thumbnail, so this preview
+                          tile is redundant on phones — hide it to give the
+                          name field room to breathe. */}
                       <ExerciseImage
                         name={row.name}
-                        className="h-9 w-9 shrink-0 rounded-lg"
+                        className="hidden h-9 w-9 shrink-0 rounded-lg min-[480px]:flex"
                         animated={false}
                       />
                       <div className="min-w-0 flex-1">
@@ -248,7 +254,7 @@ export function ScheduleModal() {
                           ariaLabel={`Routine exercise`}
                         />
                       </div>
-                      <label className="text-muted-foreground flex items-center gap-1 text-xs">
+                      <label className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
                         <input
                           type="number"
                           min={1}
@@ -266,10 +272,10 @@ export function ScheduleModal() {
                               ),
                             )
                           }
-                          className="border-input bg-background h-8 w-14 rounded-lg border text-center text-sm font-semibold"
+                          className="border-input bg-background h-8 w-12 rounded-lg border text-center text-sm font-semibold min-[480px]:w-14"
                           aria-label="Target sets"
                         />
-                        sets
+                        <span className="hidden min-[480px]:inline">sets</span>
                       </label>
                       <button
                         type="button"

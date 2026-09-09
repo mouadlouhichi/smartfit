@@ -56,7 +56,7 @@ export function GuidesSection() {
               key={guide.title}
               className="group flex flex-col border border-[color:var(--foreground)]/10 p-7 transition-colors hover:border-[color:var(--foreground)]/20 lg:p-8"
             >
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                 <span className="rounded-full bg-[color:var(--foreground)]/5 px-2.5 py-1 font-mono text-xs text-[color:var(--muted-foreground)]">
                   {guide.category}
                 </span>

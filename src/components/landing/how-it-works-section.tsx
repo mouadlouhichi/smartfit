@@ -180,17 +180,22 @@ export function HowItWorksSection() {
                   {STEPS[activeStep].snapshotLabel}
                 </span>
               </div>
-              <div className="flex min-h-[280px] flex-col justify-center gap-6 p-8">
+              <div className="flex min-h-[280px] flex-col justify-center gap-6 p-5 min-[400px]:p-8">
                 {STEPS[activeStep].lines.map((line, lineIndex) => (
                   <div
                     key={`${activeStep}-${lineIndex}`}
-                    className="snapshot-line-reveal flex items-baseline justify-between"
+                    className="snapshot-line-reveal flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
                     style={{ animationDelay: `${lineIndex * 120}ms` }}
                   >
-                    <span className="text-lg" style={{ color: 'rgba(248,250,247,0.6)' }}>
+                    <span
+                      className="text-base min-[400px]:text-lg"
+                      style={{ color: 'rgba(248,250,247,0.6)' }}
+                    >
                       {line.text}
                     </span>
-                    <span className="font-display text-2xl lg:text-3xl">{line.value}</span>
+                    <span className="font-display text-xl min-[400px]:text-2xl lg:text-3xl">
+                      {line.value}
+                    </span>
                   </div>
                 ))}
               </div>

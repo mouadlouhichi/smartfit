@@ -125,19 +125,19 @@ export function BodyScreen() {
       ) : (
         <>
           <Card>
-            <CardHeader className="flex-row items-center justify-between space-y-0">
+            <CardHeader className="gap-3 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between min-[480px]:space-y-0">
               <CardTitle className="flex items-center gap-2.5 text-base">
-                <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+                <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
                   <CategoryIcon name={meta?.icon ?? 'ruler'} size={17} />
                 </span>
-                {meta?.label ?? activeUnit} trend
+                <span className="min-w-0">{meta?.label ?? activeUnit} trend</span>
               </CardTitle>
               <Select
                 id="body-measurement"
                 aria-label="Choose which measurement to chart"
                 value={activeUnit}
                 onChange={(e) => setUnit(e.target.value as BodyUnit)}
-                className="h-9 w-40"
+                className="w-full min-[480px]:w-40"
               >
                 {unitsWithData.map((u) => (
                   <option key={u} value={u}>

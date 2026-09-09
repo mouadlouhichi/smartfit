@@ -43,15 +43,15 @@ screens       components/dashboard/screens/*, auth, onboarding, landing
 
 | Component | File | When to use | Notes |
 | --- | --- | --- | --- |
-| `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the ember pulse |
-| `Input` | `ui/input.tsx` | free text, numbers, dates | h-10, rounded-xl; `aria-invalid=true` → destructive border |
+| `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the ember pulse; mobile-first sizes — default h-11, sm h-9, icon 44px, compacted on sm+ |
+| `Input` | `ui/input.tsx` | free text, numbers, dates | h-11 + 16px type on mobile (no iOS focus zoom), h-10 + text-sm on sm+, rounded-xl; `aria-invalid=true` → destructive border |
 | `Select` | `ui/select.tsx` | closed choice sets | styled native `<select>` + chevron; same invalid styling; keep native picker on mobile |
 | `Field` | `ui/field.tsx` | **every** labelled control | label + control + hint + error with a11y wiring; see §4 |
 | `Label` | `ui/label.tsx` | standalone labels (rare — prefer `Field`) | Radix label; clicking focuses the control |
 | `Card` / `CardHeader` / `CardTitle` / `CardContent` | `ui/card.tsx` | grouped content | screen sections; `card-hero` class for heroes |
 | `Badge` | `ui/badge.tsx` | small status/meta | `variant="accent"` for highlights |
 | `Switch` | `ui/switch.tsx` | boolean toggles | Radix; needs its own visible label |
-| `Dialog` | `ui/dialog.tsx` | modals | via `modal-context` / `confirm-context` only |
+| `Dialog` | `ui/dialog.tsx` | modals | mobile bottom sheet (grabber + swipe-to-dismiss + sticky `DialogFooter` action bar), centered dialog on sm+; via `modal-context` / `confirm-context` only; bespoke dark sheets (Pro) use `hideHandle`/`hideClose` + `SheetHandle` + a pinned `DialogFooter` |
 | `Tabs` | `ui/tabs.tsx` | in-page views | body screen measurement families |
 | `Progress` | `ui/progress.tsx` | goal/completion bars | pair with a numeric label |
 | `Skeleton` | `ui/skeleton.tsx` | loading placeholders | hydration shells |
@@ -99,12 +99,12 @@ family as `MetaChip`/segmented controls), never as bordered browser defaults:
 
 | State | Treatment |
 | --- | --- |
-| default | `h-10 rounded-xl border-transparent bg-secondary text-sm font-medium` (no shadow) |
+| default | `h-11 rounded-xl border-transparent bg-secondary text-base font-medium sm:h-10 sm:text-sm` (no shadow) |
 | hover | `bg-secondary/70` |
 | focus-visible | surface lifts to `bg-background` + `border-ring` + 2px ring |
 | invalid | `aria-[invalid=true]:border-destructive bg-destructive/5` |
 | disabled | `opacity-50 cursor-not-allowed` |
-| size overrides | via `className` (twMerge wins, e.g. `h-9 w-40` on the body chart select) |
+| size overrides | via `className` (twMerge wins — the base now carries `sm:` resets, so pin both variants, e.g. `h-12 sm:h-12`) |
 
 Freeform multi-line entry (coach composer) mirrors the same fill:
 `bg-secondary rounded-2xl` textarea with the identical focus ring.
@@ -157,5 +157,7 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
    form control).
 5. A11y: label strategy, `aria-describedby`, keyboard path, reduced-motion.
 6. Add a row to §3 (and §7 if it carries ids/copy E2E touches).
-7. Verify: `pnpm typecheck && pnpm lint && pnpm exec prettier --check . && pnpm build`,
+7. Custom classes in `globals.css` are unlayered and beat Tailwind utilities —
+   never set `position`/`display` there; call sites add their own utilities.
+8. Verify: `pnpm typecheck && pnpm lint && pnpm exec prettier --check . && pnpm build`,
    then CI (E2E smoke runs the real flows).

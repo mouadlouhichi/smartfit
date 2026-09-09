@@ -87,7 +87,7 @@ export function FaqSection() {
                 {faq.q}
                 <span
                   aria-hidden="true"
-                  className="font-mono text-2xl font-normal text-[color:var(--muted-foreground)] transition-transform group-open:rotate-45"
+                  className="shrink-0 font-mono text-2xl font-normal text-[color:var(--muted-foreground)] transition-transform group-open:rotate-45"
                 >
                   +
                 </span>

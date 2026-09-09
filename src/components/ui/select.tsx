@@ -118,7 +118,8 @@ const Select = React.forwardRef<
         onClick={() => setOpen((o) => !o)}
         className={cn(
           'bg-secondary text-foreground hover:bg-secondary/70 focus-visible:ring-ring focus-visible:border-ring focus-visible:bg-background',
-          'flex h-10 w-full items-center justify-between gap-2 rounded-xl border border-transparent pr-3 pl-3 text-left text-sm font-medium transition-colors',
+          // Mobile-first: 44px trigger + 16px type; compact on sm+ (§5).
+          'flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-transparent pr-3 pl-3 text-left text-base font-medium transition-colors sm:h-10 sm:text-sm',
           'focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
           'aria-[invalid=true]:border-destructive aria-[invalid=true]:bg-destructive/5',
           className,
@@ -154,7 +155,8 @@ const Select = React.forwardRef<
                 onPointerEnter={() => setActive(i)}
                 onClick={() => commit(o)}
                 className={cn(
-                  'flex cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  // min-h-11: every option is a 44px touch target on mobile.
+                  'flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   i === active && 'bg-secondary',
                   o.disabled && 'text-muted-foreground cursor-not-allowed opacity-50',
                 )}

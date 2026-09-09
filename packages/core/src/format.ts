@@ -40,7 +40,7 @@ export function formatSet(
     return `${set.reps} × ${formatWeight(set.weight!, unit)}`;
   }
   if ((set.reps ?? 0) > 0) return `${set.reps} reps`;
-  if ((set.distance ?? 0) > 0) return formatDistance(set.distance!, 'km');
+  if ((set.distance ?? 0) > 0) return formatSetDistance(set.distance!);
   if ((set.duration ?? 0) > 0) return formatMinutes(set.duration!);
   return '—';
 }
@@ -52,6 +52,16 @@ export function formatSet(
  */
 export function formatDistance(km: number, unit: DistanceUnit = 'km'): string {
   return `${formatNumber(round1(fromKm(km, unit)))} ${unit}`;
+}
+
+/**
+ * Short, set-scale distances (canonical km) for logs: sub-kilometre efforts
+ * read in metres ("400 m"), longer ones in km. Session-level totals keep
+ * using `formatDistance` with the athlete's own unit.
+ */
+export function formatSetDistance(km: number): string {
+  if (km > 0 && km < 1) return `${formatNumber(Math.round(km * 1000), 0)} m`;
+  return `${formatNumber(round1(km))} km`;
 }
 
 /** Body mass is stored in kilograms and rendered in the athlete's unit. */

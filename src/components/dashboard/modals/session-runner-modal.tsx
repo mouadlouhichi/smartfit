@@ -32,10 +32,12 @@ import {
   REST_STEP_SECONDS,
   estimatedOneRepMax,
   formatSet,
+  formatSetDistance,
   formatVolume,
   haversineMeters,
   isPersonalRecord,
   lastPerformance,
+  measureForExerciseName,
   routeDistanceKm,
   simplifyRoute,
   suggestedExercisesForCategory,
@@ -100,6 +102,8 @@ interface LiveSet {
   /** String-backed inputs; parsed at save time. */
   reps: string;
   weight: string;
+  /** Metres input for distance-measured exercises (pool/running). */
+  distanceM: string;
   done: boolean;
   isPR: boolean;
 }
@@ -277,6 +281,7 @@ export function SessionRunnerModal() {
       id: nextId.current++,
       reps: first?.reps != null ? String(first.reps) : '',
       weight: first?.weight != null ? String(first.weight) : '',
+      distanceM: first?.distance != null ? String(Math.round(first.distance * 1000)) : '',
       done: false,
       isPR: false,
     };
@@ -307,6 +312,7 @@ export function SessionRunnerModal() {
               id: nextId.current++,
               reps: prev?.reps ?? '',
               weight: prev?.weight ?? '',
+              distanceM: prev?.distanceM ?? '',
               done: false,
               isPR: false,
             },
@@ -342,7 +348,12 @@ export function SessionRunnerModal() {
     }
   }
 
-  function setRep(exId: number, setId: number, field: 'reps' | 'weight', value: string) {
+  function setRep(
+    exId: number,
+    setId: number,
+    field: 'reps' | 'weight' | 'distanceM',
+    value: string,
+  ) {
     updateSet(exId, setId, { [field]: value } as Partial<LiveSet>);
   }
 
@@ -516,10 +527,11 @@ export function SessionRunnerModal() {
     return {
       name: x.name,
       sets: x.sets
-        .filter((s) => s.reps !== '' || s.weight !== '' || s.done)
+        .filter((s) => s.reps !== '' || s.weight !== '' || s.distanceM !== '' || s.done)
         .map((s) => ({
           reps: s.reps !== '' ? Number(s.reps) : undefined,
           weight: s.weight !== '' ? Number(s.weight) : undefined,
+          distance: s.distanceM !== '' ? Number(s.distanceM) / 1000 : undefined,
         })),
     };
   }
@@ -543,7 +555,12 @@ interface LiveProps {
   setDraft: (s: string) => void;
   addExercise: (name: string) => void;
   addSet: (exId: number) => void;
-  setRep: (exId: number, setId: number, field: 'reps' | 'weight', value: string) => void;
+  setRep: (
+    exId: number,
+    setId: number,
+    field: 'reps' | 'weight' | 'distanceM',
+    value: string,
+  ) => void;
   completeSet: (ex: LiveExercise, set: LiveSet) => void;
   removeExercise: (exId: number) => void;
   restLeft: number;
@@ -621,7 +638,13 @@ function LiveScreen(p: LiveProps) {
                   {last ? (
                     <p className="session-muted mt-0.5 flex items-center gap-1.5 text-xs">
                       <History className="h-3.5 w-3.5" aria-hidden />
-                      Last: {last.bestReps} × {last.bestWeight} kg · {formatSet(last.sets[0])}
+                      {measureForExerciseName(p.active.name) === 'distance' ? (
+                        <>Last: {formatSet(last.sets[0])}</>
+                      ) : (
+                        <>
+                          Last: {last.bestReps} × {last.bestWeight} kg · {formatSet(last.sets[0])}
+                        </>
+                      )}
                     </p>
                   ) : (
                     <p className="session-muted mt-0.5 text-xs">First time logging this one.</p>
@@ -630,7 +653,7 @@ function LiveScreen(p: LiveProps) {
                 <button
                   onClick={() => p.removeExercise(p.active!.id)}
                   aria-label={`Remove ${p.active.name}`}
-                  className="press session-tile flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[rgba(247,242,234,0.6)]"
+                  className="press session-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[rgba(247,242,234,0.6)]"
                 >
                   <X className="h-4 w-4" aria-hidden />
                 </button>
@@ -641,7 +664,11 @@ function LiveScreen(p: LiveProps) {
                 <div className="mb-1 grid grid-cols-[2rem_1fr_1fr_3rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(247,242,234,0.55)] uppercase">
                   <span>Set</span>
                   <span className="text-center">Reps</span>
-                  <span className="text-center">Weight (kg)</span>
+                  <span className="text-center">
+                    {measureForExerciseName(p.active.name) === 'distance'
+                      ? 'Distance (m)'
+                      : 'Weight (kg)'}
+                  </span>
                   <span className="text-center">✓</span>
                 </div>
                 <div className="grid gap-2">
@@ -677,21 +704,39 @@ function LiveScreen(p: LiveProps) {
                           aria-label={`Reps, set ${idx + 1}`}
                           className="session-input h-11 w-full text-base"
                         />
-                        <input
-                          inputMode="decimal"
-                          value={s.weight}
-                          onChange={(e) =>
-                            p.setRep(
-                              p.active!.id,
-                              s.id,
-                              'weight',
-                              e.target.value.replace(/[^\d.]/g, ''),
-                            )
-                          }
-                          placeholder="60"
-                          aria-label={`Weight, set ${idx + 1}`}
-                          className="session-input h-11 w-full text-base"
-                        />
+                        {measureForExerciseName(p.active!.name) === 'distance' ? (
+                          <input
+                            inputMode="numeric"
+                            value={s.distanceM}
+                            onChange={(e) =>
+                              p.setRep(
+                                p.active!.id,
+                                s.id,
+                                'distanceM',
+                                e.target.value.replace(/[^\d]/g, ''),
+                              )
+                            }
+                            placeholder="400"
+                            aria-label={`Distance in metres, set ${idx + 1}`}
+                            className="session-input h-11 w-full text-base"
+                          />
+                        ) : (
+                          <input
+                            inputMode="decimal"
+                            value={s.weight}
+                            onChange={(e) =>
+                              p.setRep(
+                                p.active!.id,
+                                s.id,
+                                'weight',
+                                e.target.value.replace(/[^\d.]/g, ''),
+                              )
+                            }
+                            placeholder="60"
+                            aria-label={`Weight, set ${idx + 1}`}
+                            className="session-input h-11 w-full text-base"
+                          />
+                        )}
                         {s.done ? (
                           <span
                             className="flex items-center justify-center gap-0.5 text-[11px] font-bold"
@@ -706,7 +751,7 @@ function LiveScreen(p: LiveProps) {
                           <button
                             onClick={() => p.completeSet(p.active!, s)}
                             aria-label={`Complete set ${idx + 1}`}
-                            className="press mx-auto flex h-9 w-9 items-center justify-center rounded-full"
+                            className="press mx-auto flex h-11 w-11 items-center justify-center rounded-full"
                             style={{ background: 'var(--chart-1)' }}
                           >
                             <Check className="h-4 w-4 text-white" aria-hidden />
@@ -891,13 +936,13 @@ function RestTimerBar({
       <div className="flex flex-col gap-1.5">
         <button
           onClick={onAdd}
-          className="press session-tile rounded-full px-2.5 py-1 text-xs font-bold"
+          className="press session-tile min-h-11 rounded-full px-3 py-1 text-xs font-bold"
         >
           +{REST_STEP_SECONDS}s
         </button>
         <button
           onClick={onSkip}
-          className="press session-tile rounded-full px-2.5 py-1 text-xs font-bold"
+          className="press session-tile min-h-11 rounded-full px-3 py-1 text-xs font-bold"
         >
           Skip
         </button>
@@ -931,7 +976,7 @@ function SummaryScreen({
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-        <div className="pro-surface sheen rounded-3xl p-5 text-center">
+        <div className="pro-surface sheen relative rounded-3xl p-5 text-center">
           <p className="eyebrow pro-muted">Session complete</p>
           <p className="font-display mt-1 text-4xl font-extrabold tabular-nums">{durationMin}m</p>
           {summary.personalRecords.length > 0 && (
@@ -948,7 +993,15 @@ function SummaryScreen({
 
         <div className="mt-4 grid grid-cols-3 gap-3">
           <StatTile icon={Dumbbell} label="Sets" value={`${summary.sets}`} />
-          <StatTile icon={Flame} label="Volume" value={formatVolume(summary.volume, weightUnit)} />
+          {summary.distance > 0 && summary.volume === 0 ? (
+            <StatTile icon={Flame} label="Distance" value={formatSetDistance(summary.distance)} />
+          ) : (
+            <StatTile
+              icon={Flame}
+              label="Volume"
+              value={formatVolume(summary.volume, weightUnit)}
+            />
+          )}
           <StatTile icon={Timer} label="Exercises" value={`${summary.exercises}`} />
         </div>
 

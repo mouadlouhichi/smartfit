@@ -171,6 +171,17 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * Mobile overflow guard: no page may ever scroll sideways, whatever a
+ * deeply-nested flex row tries to do. `clip` (unlike `hidden`) creates no
+ * scroll container, so sticky headers and `position: fixed` children keep
+ * working exactly as before.
+ */
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -674,7 +685,10 @@ input[type='number'] {
    darkest stop) so it stays AA-legible under gym lighting.
    ═══════════════════════════════════════════════════════════════════════ */
 .pro-surface {
-  position: relative;
+  /* No `position` here on purpose: this file is unlayered CSS, so any
+     position would beat Tailwind's `fixed`/`absolute` utilities and the Pro
+     paywall would render in-flow at the page bottom. Call sites that need a
+     positioning context for the sheen/grain add `relative` themselves. */
   overflow: hidden;
   color: #f7f2ea;
   background:
@@ -897,4 +911,54 @@ input[type='number'] {
   .slide-in-right {
     animation-duration: 0.01ms;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile-first sheet system + touch defaults                         */
+/* ------------------------------------------------------------------ */
+
+/* Bottom-sheet + dialog enter motion. Each keyframe is gated by viewport
+   so only one animation ever applies; the global reduced-motion guard
+   above collapses both to ~instant. `backwards` fill (never `both`) so a
+   finished enter never pins `transform` over the swipe-drag `translate`. */
+@keyframes sheet-in {
+  from {
+    opacity: 0.35;
+    transform: translateY(2.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes dialog-in {
+  /* Scale + fade only: the `scale` property composes with the centering
+     translate however Tailwind implements it, so the enter never un-centres
+     the dialog for a frame. */
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@media (max-width: 639.98px) {
+  .sheet-in {
+    animation: sheet-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+}
+@media (min-width: 640px) {
+  .dialog-in {
+    animation: dialog-in 0.2s ease-out backwards;
+  }
+}
+
+/* Native-feeling taps: no gray flash, no double-tap-zoom delay. */
+button,
+[role='button'],
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }

@@ -115,7 +115,7 @@ export function ExercisePicker({
             role="combobox"
             aria-autocomplete="list"
             autoComplete="off"
-            className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring focus-visible:border-ring h-10 w-full rounded-xl border pr-3 pl-9 text-sm shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+            className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring focus-visible:border-ring h-11 w-full rounded-xl border pr-3 pl-9 text-base shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none sm:h-10 sm:text-sm"
             placeholder={placeholder}
             maxLength={maxLength}
             value={value}
@@ -190,7 +190,7 @@ export function ExercisePicker({
                     e.preventDefault();
                     setDetailName(entry.name);
                   }}
-                  className="text-muted-foreground hover:text-foreground mr-1 shrink-0 rounded-full p-1.5"
+                  className="text-muted-foreground hover:text-foreground mr-1 shrink-0 rounded-full p-2.5"
                 >
                   <Info className="h-4 w-4" />
                 </button>

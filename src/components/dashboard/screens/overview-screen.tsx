@@ -134,7 +134,7 @@ export function OverviewScreen() {
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       {/* ── Center / left column ─────────────────────────────── */}
-      <div className="bg-card rounded-[2rem] p-6 shadow-sm sm:p-8">
+      <div className="bg-card rounded-[2rem] p-4 shadow-sm min-[420px]:p-6 sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <h1 className="font-display text-[2rem] leading-[1.05] font-extrabold tracking-tight sm:text-4xl lg:text-[2.75rem]">
             {firstName ? `Let's go,` : `Let's start`}
@@ -161,7 +161,7 @@ export function OverviewScreen() {
               <Zap className="h-6 w-6" strokeWidth={2.6} fill="currentColor" />
             </button>
           </div>
-          <div className="mt-5 flex items-center gap-4">
+          <div className="mt-5 flex items-center gap-3 min-[420px]:gap-4">
             <div
               className="h-3.5 flex-1 overflow-hidden rounded-full bg-white/80"
               role="progressbar"
@@ -228,38 +228,69 @@ export function OverviewScreen() {
           </div>
         </div>
 
-        {/* ── Today's closing rings ───────────────────────────────────── */}
-        <div className="bg-secondary/70 mt-5 rounded-3xl p-5">
-          <div className="flex items-center gap-5">
-            <div className="shrink-0">
-              <div className="bg-card relative flex h-40 w-40 items-center justify-center rounded-3xl shadow-sm">
-                <ActivityRingsGraphic rings={rings} size={150} />
-              </div>
+        {/* ── Today's closing rings ─────────────────────────────────────
+            Dark ember hero: gradients + halo need the dark stage, and the
+            legend reads in hero tones. Stacked on phones, side by side
+            once there is room. */}
+        <div className="card-hero mt-5 p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-display text-lg font-extrabold tracking-tight">Today</p>
+              <p className="hero-muted text-xs">
+                {new Date().toLocaleDateString(undefined, {
+                  weekday: 'long',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </p>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-display mb-3 text-lg font-extrabold tracking-tight">Today</p>
-              <ActivityRingsLegend rings={rings} />
+            {rings.closed && (
+              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+                <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--chart-3)' }} aria-hidden />
+                All rings closed
+              </span>
+            )}
+          </div>
+          <div className="mt-4 flex flex-col items-center gap-5 min-[480px]:flex-row min-[480px]:gap-6">
+            <div className="shrink-0">
+              <ActivityRingsGraphic rings={rings} size={168}>
+                <p className="font-display text-2xl font-extrabold tabular-nums">
+                  {rings.calories.target > 0
+                    ? Math.round(rings.calories.value)
+                    : rings.minutes.value}
+                </p>
+                <p className="hero-muted text-[10px] font-bold tracking-widest uppercase">
+                  {rings.calories.target > 0 ? 'kcal' : 'min'}
+                </p>
+              </ActivityRingsGraphic>
+            </div>
+            <div className="w-full min-w-0 flex-1">
+              <ActivityRingsLegend rings={rings} tone="onDark" />
             </div>
           </div>
         </div>
 
-        {/* Quick actions */}
+        {/* Quick actions — fluid circles that fill their column instead of
+            fixed 56px discs: five fixed discs plus gaps are wider than a
+            320–360px card and used to push the dashboard past the viewport. */}
         <div className="mt-7 grid grid-cols-5 gap-2 sm:gap-3">
           {quickActions.map((a) => {
             const inner = (
-              <div className="group flex flex-col items-center gap-2.5">
-                <span className="bg-secondary text-clay group-hover:bg-primary flex h-14 w-14 items-center justify-center rounded-full shadow-sm transition-colors group-hover:text-white sm:h-16 sm:w-16">
-                  <a.icon className="h-6 w-6" strokeWidth={2} />
+              <div className="group flex flex-col items-center gap-2 sm:gap-2.5">
+                <span className="bg-secondary text-clay group-hover:bg-primary mx-auto flex aspect-square w-full max-w-14 items-center justify-center rounded-full shadow-sm transition-colors group-hover:text-white sm:aspect-auto sm:h-16 sm:w-16 sm:max-w-none">
+                  <a.icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2} />
                 </span>
-                <span className="text-clay text-[11px] font-semibold sm:text-xs">{a.label}</span>
+                <span className="text-clay text-center text-[10px] leading-tight font-semibold sm:text-xs">
+                  {a.label}
+                </span>
               </div>
             );
             return a.href ? (
-              <Link key={a.label} href={a.href} className="group">
+              <Link key={a.label} href={a.href} className="group min-w-0">
                 {inner}
               </Link>
             ) : (
-              <button key={a.label} onClick={a.onClick} className="group">
+              <button key={a.label} onClick={a.onClick} className="group min-w-0">
                 {inner}
               </button>
             );
@@ -479,7 +510,7 @@ function RangeToggle({ value, onChange }: { value: Range; onChange: (r: Range) =
           aria-selected={value === r}
           onClick={() => onChange(r)}
           className={cn(
-            'rounded-full px-5 py-2 text-sm font-semibold transition-all',
+            'rounded-full px-3 py-1.5 text-[13px] font-semibold transition-all min-[420px]:px-5 min-[420px]:py-2 min-[420px]:text-sm',
             value === r ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
           )}
         >

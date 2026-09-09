@@ -15,7 +15,14 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+  SheetHandle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
@@ -114,9 +121,18 @@ export function ProModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={(o) => !o && closeModal()}>
-      <DialogContent className="pro-surface sheen max-w-lg overflow-hidden border-transparent p-0">
+      {/* Flex column, not a scroller: `.pro-surface` pins overflow hidden, the
+          middle section below is the only scroll region, and the CTA footer
+          is a flex sibling pinned to the bottom edge — the upgrade actions
+          are always visible, never below the fold. */}
+      <DialogContent
+        hideHandle
+        hideClose
+        className="pro-surface sheen max-w-lg border-transparent p-0 pb-0"
+      >
         {/* ── Hero ────────────────────────────────────────────────────── */}
-        <div className="relative h-40">
+        <div className="relative h-32 shrink-0 sm:h-40">
+          <SheetHandle className="absolute inset-x-0 top-1 z-10 py-2" pillClassName="bg-white/30" />
           {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
           <img
             src="/images/pro-hero.jpg"
@@ -128,7 +144,7 @@ export function ProModal() {
           <button
             onClick={closeModal}
             aria-label="Close"
-            className="glass press absolute top-3 right-3 flex h-9 w-9 items-center justify-center rounded-full"
+            className="glass press absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-full"
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
@@ -152,25 +168,22 @@ export function ProModal() {
           </div>
         </div>
 
-        <div className="max-h-[62dvh] overflow-y-auto p-5 pt-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
           {pro ? (
-            <ManageView
-              paid={paid}
-              trialing={trialing}
-              state={state}
-              onCancel={cancelPro}
-              onDone={closeModal}
-            />
+            <ManageContent paid={paid} trialing={trialing} state={state} />
           ) : (
-            <UpgradeView
-              plan={plan}
-              setPlan={setPlan}
-              meta={meta}
-              onCheckout={() => checkout(false)}
-              onTrial={() => checkout(true)}
-            />
+            <UpgradeContent plan={plan} setPlan={setPlan} />
           )}
         </div>
+        {pro ? (
+          <ManageFooter onCancel={cancelPro} onDone={closeModal} />
+        ) : (
+          <UpgradeFooter
+            meta={meta}
+            onCheckout={() => checkout(false)}
+            onTrial={() => checkout(true)}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -181,7 +194,7 @@ export function ProModal() {
 function ComparisonTable() {
   return (
     <div className="pro-tile overflow-hidden rounded-2xl">
-      <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-[rgba(247,242,234,0.12)] px-4 py-2.5 text-[11px] font-bold tracking-wide uppercase">
+      <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-[rgba(247,242,234,0.12)] px-3 py-2.5 text-[11px] font-bold tracking-wide uppercase min-[430px]:px-4">
         <span className="pro-muted">Feature</span>
         <span className="pro-muted text-center">Free</span>
         <span className="text-center" style={{ color: '#f0c882' }}>
@@ -195,11 +208,14 @@ function ComparisonTable() {
             <li
               key={g.label}
               className={cn(
-                'grid grid-cols-[1.4fr_1fr_1fr] items-center gap-2 px-4 py-2.5',
+                'grid grid-cols-[1.4fr_1fr_1fr] items-center gap-1.5 px-3 py-2.5 min-[430px]:gap-2 min-[430px]:px-4',
                 i > 0 && 'border-t border-[rgba(247,242,234,0.08)]',
               )}
             >
-              <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+              {/* Long single words ("Achievements", "spreadsheets") are wider
+                  than these ~60px columns on phones — break them instead of
+                  letting them poke into the next column. */}
+              <span className="flex min-w-0 items-center gap-1.5 text-[13px] font-semibold [overflow-wrap:anywhere] min-[430px]:gap-2 min-[430px]:text-sm">
                 <Icon
                   className="h-4 w-4 shrink-0"
                   style={{ color: 'var(--chart-1)' }}
@@ -207,9 +223,11 @@ function ComparisonTable() {
                 />
                 {g.label}
               </span>
-              <span className="pro-muted text-center text-xs font-medium">{g.free}</span>
-              <span className="flex items-center justify-center gap-1 text-center text-xs font-bold text-[#f7f2ea]">
-                <Check className="h-3.5 w-3.5" style={{ color: '#f0c882' }} aria-hidden />
+              <span className="pro-muted min-w-0 text-center text-[11px] font-medium [overflow-wrap:anywhere] min-[430px]:text-xs">
+                {g.free}
+              </span>
+              <span className="flex min-w-0 items-center justify-center gap-1 text-center text-[11px] font-bold [overflow-wrap:anywhere] text-[#f7f2ea] min-[430px]:text-xs">
+                <Check className="h-3.5 w-3.5 shrink-0" style={{ color: '#f0c882' }} aria-hidden />
                 {g.pro}
               </span>
             </li>
@@ -220,21 +238,14 @@ function ComparisonTable() {
   );
 }
 
-/* ── upgrade view ──────────────────────────────────────────────────────── */
+/* Pinned action bar for the dark Pro sheet: a flex sibling (not sticky — the
+   sheet itself never scrolls) with an ember divider. On sm+ the base
+   DialogFooter resets apply (transparent, static, unpadded). */
+const PRO_FOOTER_BAR = 'static mx-0 mb-0 border-t-[rgba(247,242,234,0.12)] bg-black/45';
 
-function UpgradeView({
-  plan,
-  setPlan,
-  meta,
-  onCheckout,
-  onTrial,
-}: {
-  plan: ProPlan;
-  setPlan: (p: ProPlan) => void;
-  meta: (typeof PRO_PLANS)[number];
-  onCheckout: () => void;
-  onTrial: () => void;
-}) {
+/* ── upgrade content (scrolls) ─────────────────────────────────────────── */
+
+function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan) => void }) {
   const toast = useToast();
   return (
     <div className="grid gap-4">
@@ -283,27 +294,6 @@ function UpgradeView({
 
       <ComparisonTable />
 
-      <div className="grid gap-2">
-        <Button
-          onClick={onCheckout}
-          className="h-13 w-full rounded-2xl text-base font-extrabold"
-          style={{
-            background: 'linear-gradient(120deg,#e05e36,#c4451f)',
-            color: '#fff',
-            height: '3.25rem',
-          }}
-        >
-          <Crown className="h-4 w-4" /> Continue with {meta.name}
-        </Button>
-        <Button
-          onClick={onTrial}
-          variant="outline"
-          className="w-full rounded-2xl border-[rgba(247,242,234,0.25)] text-[rgba(247,242,234,0.9)]"
-        >
-          Try Pro free for {PRO_TRIAL_DAYS} days
-        </Button>
-      </div>
-
       <div className="flex items-center justify-between">
         <p className="pro-muted flex items-center gap-1.5 text-[11px]">
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
@@ -329,20 +319,51 @@ function UpgradeView({
   }
 }
 
-/* ── manage view ───────────────────────────────────────────────────────── */
+/* ── upgrade footer (pinned — always visible) ───────────────────────────── */
 
-function ManageView({
+function UpgradeFooter({
+  meta,
+  onCheckout,
+  onTrial,
+}: {
+  meta: (typeof PRO_PLANS)[number];
+  onCheckout: () => void;
+  onTrial: () => void;
+}) {
+  return (
+    <DialogFooter className={cn(PRO_FOOTER_BAR, 'flex-col sm:flex-col')}>
+      <Button
+        onClick={onCheckout}
+        className="w-full rounded-2xl text-base font-extrabold"
+        style={{
+          background: 'linear-gradient(120deg,#e05e36,#c4451f)',
+          color: '#fff',
+          height: '3.25rem',
+        }}
+      >
+        <Crown className="h-4 w-4" /> Continue with {meta.name}
+      </Button>
+      <Button
+        onClick={onTrial}
+        variant="outline"
+        className="w-full rounded-2xl border-[rgba(247,242,234,0.25)] bg-transparent text-[rgba(247,242,234,0.9)] hover:bg-[rgba(247,242,234,0.08)] hover:text-[#f7f2ea]"
+      >
+        Try Pro free for {PRO_TRIAL_DAYS} days
+      </Button>
+    </DialogFooter>
+  );
+}
+
+/* ── manage content (scrolls) ────────────────────────────────────────────── */
+
+function ManageContent({
   paid,
   trialing,
   state,
-  onCancel,
-  onDone,
 }: {
   paid: boolean;
   trialing: boolean;
   state: ReturnType<typeof useStore>['state'];
-  onCancel: () => void;
-  onDone: () => void;
 }) {
   const planName = PRO_PLANS.find((p) => p.id === state.profile.pro?.plan)?.name;
   return (
@@ -370,19 +391,25 @@ function ManageView({
       </div>
 
       <ComparisonTable />
-
-      <div className="flex gap-2">
-        <Button
-          onClick={onDone}
-          className="flex-1 rounded-2xl"
-          style={{ background: 'var(--chart-1)', color: '#fff' }}
-        >
-          Done
-        </Button>
-        <Button onClick={onCancel} variant="ghost" className="rounded-2xl text-[#f0817a]">
-          Cancel Pro
-        </Button>
-      </div>
     </div>
+  );
+}
+
+/* ── manage footer (pinned — always visible) ────────────────────────────── */
+
+function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () => void }) {
+  return (
+    <DialogFooter className={cn(PRO_FOOTER_BAR, 'flex-col')}>
+      <Button
+        onClick={onDone}
+        className="flex-1 rounded-2xl"
+        style={{ background: 'var(--chart-1)', color: '#fff' }}
+      >
+        Done
+      </Button>
+      <Button onClick={onCancel} variant="ghost" className="rounded-2xl text-[#f0817a]">
+        Cancel Pro
+      </Button>
+    </DialogFooter>
   );
 }
