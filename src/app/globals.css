@@ -164,7 +164,35 @@
 }
 
 * {
+  box-sizing: border-box;
   border-color: var(--border);
+}
+
+/* Dashboard surfaces must shrink with the viewport. In particular, flex/grid
+   children otherwise use their min-content width and get clipped by the
+   shell's horizontal overflow guard. */
+.dashboard-surface,
+.card-hero,
+[data-dashboard-card] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+button,
+a {
+  overflow-wrap: anywhere;
 }
 
 html {

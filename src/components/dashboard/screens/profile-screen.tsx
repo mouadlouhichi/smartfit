@@ -357,10 +357,10 @@ export function ProfileScreen() {
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 max-w-full gap-5">
       {/* ── Hero identity card ─────────────────────────────────────────── */}
-      <section className="card-hero p-6 sm:p-8" aria-label="Profile summary">
-        <div className="flex flex-wrap items-center gap-4">
+      <section className="card-hero min-w-0 max-w-full p-4 sm:p-8" aria-label="Profile summary">
+        <div className="flex min-w-0 flex-wrap items-center gap-4">
           <span
             className="hero-tile flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-extrabold"
             style={{ boxShadow: '0 0 0 4px rgba(224,94,54,0.25)' }}

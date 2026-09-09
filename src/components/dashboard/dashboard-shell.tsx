@@ -87,7 +87,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <SyncBanner />
               <StorageWarningBanner />
               <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-6 lg:pt-5">
-                <div key={pathname} className="animate-page-in mx-auto w-full max-w-[1300px]">
+                <div key={pathname} className="animate-page-in mx-auto min-w-0 w-full max-w-[1300px]">
                   {children}
                 </div>
               </main>
