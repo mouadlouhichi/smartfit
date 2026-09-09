@@ -380,6 +380,14 @@ export function PlanScreen() {
                                 />
                                 {meta.label}
                               </span>
+                              {(s.exercises?.length ?? 0) > 0 && (
+                                <>
+                                  <span aria-hidden>·</span>
+                                  <span className="bg-primary/10 text-primary rounded-full px-1.5 py-px text-[10px] font-bold">
+                                    {s.exercises!.length} exercises
+                                  </span>
+                                </>
+                              )}
                             </p>
                           </div>
                           <button
@@ -390,6 +398,7 @@ export function PlanScreen() {
                                 categoryId: s.categoryId,
                                 intensity: s.intensity,
                                 scheduleId: s.id,
+                                exercises: s.exercises,
                               })
                             }
                             className="bg-primary text-primary-foreground shadow-primary/25 flex h-9 w-9 shrink-0 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95"

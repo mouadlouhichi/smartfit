@@ -1,7 +1,13 @@
 'use client';
 
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import type { BodyLog, FitnessGoal, ScheduledWorkout, WorkoutSession } from '@smartfit/core';
+import type {
+  BodyLog,
+  FitnessGoal,
+  ScheduledWorkout,
+  WorkoutExercise,
+  WorkoutSession,
+} from '@smartfit/core';
 
 /**
  * Global modal coordinator.
@@ -27,6 +33,8 @@ export type ModalPayload =
       categoryId: string;
       intensity: WorkoutSession['intensity'];
       scheduleId?: string;
+      /** The routine's exercise list, pre-loaded into the guided runner. */
+      exercises?: WorkoutExercise[];
     };
 
 interface ModalContextValue {

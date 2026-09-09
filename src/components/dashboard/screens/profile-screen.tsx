@@ -17,10 +17,12 @@ import {
   Crown,
   Database,
   Download,
+  FileSpreadsheet,
   Flame,
   Sparkles,
   HardDrive,
   Loader2,
+  Lock,
   LogOut,
   Mail,
   RefreshCw,
@@ -41,7 +43,7 @@ import {
   formatWeight,
   fromKg,
   getGymProgram,
-  isPro,
+  hasProAccess,
   parseStateJSON,
   toISODate,
   suggestProgram,
@@ -54,6 +56,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
+import { ProBadge } from '../pro-badge';
 
 /** Initials for the hero avatar — falls back to an icon when nameless. */
 function initials(name: string): string {
@@ -143,7 +146,7 @@ export function ProfileScreen() {
     }
   }
 
-  const pro = isPro(state);
+  const pro = hasProAccess(state);
   const counts = {
     workouts: state.sessions.length,
     scheduled: state.schedule.length,
@@ -172,6 +175,71 @@ export function ProfileScreen() {
     } finally {
       setBusy(null);
     }
+  }
+
+  /**
+   * CSV export is the Pro data feature. Flattens every session into one row
+   * per exercise-set so it drops straight into a spreadsheet or a coaching
+   * tool. Free tier keeps the JSON backup; the CSV is a Pro unlock.
+   */
+  async function exportCsv() {
+    if (!pro) {
+      openWith({ kind: 'pro' });
+      return;
+    }
+    setBusy('export');
+    try {
+      const full = await collectFullState();
+      const rows = [
+        'date,title,category,exercise,set,reps,weight_kg,duration_min,intensity,calories',
+      ];
+      for (const s of full.sessions) {
+        const cat = full.categories.find((c) => c.id === s.categoryId)?.name ?? s.categoryId;
+        if (s.exercises.length === 0) {
+          rows.push(
+            csvRow([s.date, s.title, cat, '', '', '', '', s.durationMin, s.intensity, s.calories]),
+          );
+        } else {
+          for (const ex of s.exercises) {
+            ex.sets.forEach((set, i) => {
+              rows.push(
+                csvRow([
+                  s.date,
+                  s.title,
+                  cat,
+                  ex.name,
+                  i + 1,
+                  set.reps ?? '',
+                  set.weight ?? '',
+                  s.durationMin,
+                  s.intensity,
+                  s.calories,
+                ]),
+              );
+            });
+          }
+        }
+      }
+      const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `smartfit-sessions-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast('CSV downloaded');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  function csvRow(values: (string | number)[]): string {
+    return values
+      .map((v) => {
+        const s = String(v);
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      })
+      .join(',');
   }
 
   /** Import validates through the shared parser — never a raw JSON cast. */
@@ -280,9 +348,12 @@ export function ProfileScreen() {
             {avatar || <UserRound className="h-7 w-7" />}
           </span>
           <div className="min-w-0 flex-1">
-            <h1 className="font-display truncate text-xl font-extrabold tracking-tight sm:text-2xl">
-              {displayName || 'Profile & settings'}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display truncate text-xl font-extrabold tracking-tight sm:text-2xl">
+                {displayName || 'Profile & settings'}
+              </h1>
+              {pro && <ProBadge />}
+            </div>
             <p className="hero-muted mt-0.5 text-sm">
               {cloud
                 ? `Signed in${user?.email ? ` as ${user.email}` : ''} — your training syncs to the cloud.`
@@ -722,6 +793,16 @@ export function ProfileScreen() {
                 <Download className="h-4 w-4" />
               )}
               Export JSON
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy === 'export'}
+              onClick={() => void exportCsv()}
+              title={pro ? 'Download sessions as CSV' : 'CSV export is a Pro feature'}
+            >
+              {pro ? <FileSpreadsheet className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+              Export CSV
             </Button>
             <Button
               variant="outline"

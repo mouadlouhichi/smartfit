@@ -35,12 +35,25 @@ service cloud.firestore {
       return v in ['low', 'moderate', 'high'];
     }
 
+    // A Pro stamp, when present, must be a real plan + activation time so a
+    // scripted client cannot mint arbitrary tiers — the paywall is enforced at
+    // the database, not just in the app.
+    function validPro(profile) {
+      return !('pro' in profile)
+        || (profile.pro is map
+            && profile.pro.plan in ['monthly', 'yearly', 'trial']
+            && profile.pro.since is number
+            && profile.pro.since > 0
+            && profile.pro.size() <= 3);
+    }
+
     // ── account root ─────────────────────────────────────────────────────
     match /users/{userId} {
       allow read, delete: if isOwner(userId);
       // The root document carries the profile map and timestamps only.
       allow create, update: if isOwner(userId)
         && request.resource.data.profile is map
+        && validPro(request.resource.data.profile)
         && request.resource.data.size() <= 4;
 
       // ── logged workouts ────────────────────────────────────────────────
@@ -60,10 +73,13 @@ service cloud.firestore {
           && (!('notes' in request.resource.data) || strAtMost(request.resource.data.notes, 5000))
           && (!('distanceKm' in request.resource.data) || numBetween(request.resource.data.distanceKm, 0, 100000))
           && (!('exercises' in request.resource.data) || request.resource.data.exercises is list
-                && request.resource.data.exercises.size() <= 100);
+                && request.resource.data.exercises.size() <= 100)
+          // Optional GPS trace for the walk-tracker share map.
+          && (!('route' in request.resource.data) || request.resource.data.route is list
+                && request.resource.data.route.size() <= 1000);
       }
 
-      // ── recurring schedule ─────────────────────────────────────────────
+      // ── recurring schedule (a slot doubles as a workout template) ──────
       match /schedule/{docId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId)
@@ -74,7 +90,14 @@ service cloud.firestore {
           && isIntensity(request.resource.data.intensity)
           && numBetween(request.resource.data.durationMin, 0, 100000)
           && request.resource.data.active is bool
-          && request.resource.data.size() <= 10;
+          && request.resource.data.size() <= 10
+          // Optional routine (exercise list with target sets) — bounded like
+          // the one on a logged session.
+          && (!('exercises' in request.resource.data) || request.resource.data.exercises is list
+                && request.resource.data.exercises.size() <= 100)
+          // Optional GPS trace for the walk-tracker share map.
+          && (!('route' in request.resource.data) || request.resource.data.route is list
+                && request.resource.data.route.size() <= 1000);
       }
 
       // ── goals ──────────────────────────────────────────────────────────

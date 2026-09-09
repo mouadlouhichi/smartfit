@@ -13,6 +13,7 @@ import type {
   BodyUnit,
   Category,
   FitnessGoal,
+  GeoPoint,
   FitnessState,
   GoalCadence,
   GoalMetric,
@@ -155,8 +156,8 @@ function parseProfile(v: unknown): UserProfile {
   // Optional Pro stamp: only a well-formed {plan, since} pair is kept.
   if (isObj(v.pro)) {
     const rawPlan = v.pro.plan;
-    const plan: 'monthly' | 'yearly' | null =
-      rawPlan === 'monthly' || rawPlan === 'yearly' ? rawPlan : null;
+    const plan: 'monthly' | 'yearly' | 'trial' | null =
+      rawPlan === 'monthly' || rawPlan === 'yearly' || rawPlan === 'trial' ? rawPlan : null;
     const since = num(v.pro.since, 0);
     if (plan && since > 0) profile.pro = { plan, since };
   }
@@ -194,8 +195,31 @@ function parseSession(v: unknown): WorkoutSession | null {
     exercises: exercises(v.exercises),
     notes: str(v.notes) || undefined,
     scheduleId: str(v.scheduleId) || undefined,
+    route: parseRoute(v.route),
     createdAt: num(v.createdAt, Date.now()),
   };
+}
+
+/**
+ * A GPS trace is untrusted like everything else: drop non-finite fixes and
+ * cap the length so a malformed or oversized route can never bloat storage.
+ * Returns undefined unless at least two sane points survive (a route needs a
+ * line, not a dot).
+ */
+function parseRoute(v: unknown): GeoPoint[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out: GeoPoint[] = [];
+  for (const raw of v) {
+    if (!isObj(raw)) continue;
+    const lat = num(raw.lat, NaN);
+    const lng = num(raw.lng, NaN);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) continue;
+    const t = optNum(raw.t);
+    out.push(t !== undefined ? { lat, lng, t } : { lat, lng });
+    if (out.length >= 1000) break;
+  }
+  return out.length >= 2 ? out : undefined;
 }
 
 function parseSchedule(v: unknown): ScheduledWorkout | null {
@@ -203,7 +227,7 @@ function parseSchedule(v: unknown): ScheduledWorkout | null {
   const id = str(v.id).trim();
   if (!id) return null;
   const time = str(v.timeOfDay, '07:00');
-  return {
+  const slot: ScheduledWorkout = {
     id,
     title: str(v.title, 'Scheduled session'),
     categoryId: str(v.categoryId, 'cat-strength'),
@@ -214,6 +238,11 @@ function parseSchedule(v: unknown): ScheduledWorkout | null {
     active: bool(v.active, true),
     createdAt: num(v.createdAt, Date.now()),
   };
+  // Optional routine: only kept when it parses to a non-empty list, so a
+  // plain reminder stays keyless rather than carrying `exercises: []`.
+  const routine = exercises(v.exercises);
+  if (routine.length > 0) slot.exercises = routine;
+  return slot;
 }
 
 function parseGoal(v: unknown): FitnessGoal | null {

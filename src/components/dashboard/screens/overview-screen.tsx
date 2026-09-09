@@ -17,6 +17,8 @@ import { useModals } from '../modal-context';
 import { CoachPanel } from '../coach-panel';
 import { EmptyState } from '../empty-state';
 import { CategoryIcon } from '@/components/category-icon';
+import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
+import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   currentStreak,
@@ -31,6 +33,7 @@ import {
   categoryById,
   targetsForDays,
   toISODate,
+  activityRings,
   formatDistance,
   formatMinutes,
   relativeDay,
@@ -77,6 +80,32 @@ export function OverviewScreen() {
     100,
     Math.round((rangeAgg.workouts / Math.max(1, targets.workouts)) * 100),
   );
+
+  // Today's closing rings (Apple-style) from the athlete's own goals.
+  const rings = useMemo(() => activityRings(state, targetsForDays(state, 1)), [state]);
+
+  // Today's next un-done scheduled slot (falls back to the first) — the Start
+  // CTA opens it in the guided runner.
+  const todaysSlot = useMemo(() => {
+    const a = todaysAgenda(state);
+    return a.find((x) => !x.done) ?? a[0];
+  }, [state]);
+  const startToday = () =>
+    todaysSlot && !todaysSlot.done
+      ? openWith({
+          kind: 'runner',
+          title: todaysSlot.slot.title,
+          categoryId: todaysSlot.slot.categoryId,
+          intensity: todaysSlot.slot.intensity,
+          scheduleId: todaysSlot.slot.id,
+          exercises: todaysSlot.slot.exercises,
+        })
+      : openWith({
+          kind: 'runner',
+          title: focus ?? 'Today’s workout',
+          categoryId: 'cat-strength',
+          intensity: 'moderate',
+        });
 
   const quickActions = [
     { label: 'Workout', icon: Dumbbell, onClick: () => openModal('workout') },
@@ -149,6 +178,68 @@ export function OverviewScreen() {
             <span className="text-muted-foreground shrink-0 text-sm font-semibold">
               {week.workouts.toLocaleString()}/{weeklyTarget.toLocaleString()} workouts
             </span>
+          </div>
+        </div>
+
+        {/* ── Start today's workout (the "start exercise" entry point) ── */}
+        <div
+          className="pro-surface sheen press relative mt-5 overflow-hidden rounded-3xl"
+          role="button"
+          tabIndex={0}
+          onClick={startToday}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && startToday()}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
+          <img
+            src="/images/start-workout.jpg"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover opacity-60"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(20,17,16,0.92) 0%, rgba(20,17,16,0.55) 55%, rgba(20,17,16,0.15) 100%)',
+            }}
+          />
+          <div className="relative flex items-center gap-4 p-5">
+            <div className="min-w-0 flex-1">
+              <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#f0a37f' }}>
+                {todaysSlot ? 'On today’s plan' : 'Ready when you are'}
+              </p>
+              <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f7f2ea]">
+                {todaysSlot ? todaysSlot.slot.title : 'Start today’s workout'}
+              </p>
+              <p className="pro-muted mt-0.5 truncate text-xs">
+                {focus ?? 'Guided session with rest timer, demo clips and PR detection'}
+              </p>
+            </div>
+            <span
+              className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-white shadow-lg"
+              style={{
+                background: 'linear-gradient(120deg,#e05e36,#c4451f)',
+                width: '3.25rem',
+                height: '3.25rem',
+              }}
+            >
+              <Play className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden />
+            </span>
+          </div>
+        </div>
+
+        {/* ── Today's closing rings ───────────────────────────────────── */}
+        <div className="bg-secondary/70 mt-5 rounded-3xl p-5">
+          <div className="flex items-center gap-5">
+            <div className="shrink-0">
+              <div className="bg-card relative flex h-40 w-40 items-center justify-center rounded-3xl shadow-sm">
+                <ActivityRingsGraphic rings={rings} size={150} />
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-display mb-3 text-lg font-extrabold tracking-tight">Today</p>
+              <ActivityRingsLegend rings={rings} />
+            </div>
           </div>
         </div>
 
