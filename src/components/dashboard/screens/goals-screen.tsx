@@ -141,7 +141,7 @@ export function GoalsScreen() {
                     </div>
                     <button
                       onClick={() => openWith({ kind: 'goal', goal: g })}
-                      className="text-muted-foreground hover:text-primary shrink-0 transition-colors"
+                      className="text-muted-foreground hover:text-primary -m-2 shrink-0 p-2 transition-colors"
                       aria-label={`Edit ${g.name}`}
                     >
                       <Pencil className="h-4 w-4" />

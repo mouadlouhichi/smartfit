@@ -361,14 +361,14 @@ export function CoachComposer({
         onChange={(e) => setInput(e.target.value)}
         placeholder={placeholder}
         aria-label="Message your coach"
-        className="border-border bg-card h-12 flex-1 rounded-full pl-5 shadow-sm"
+        className="border-border bg-card h-12 flex-1 rounded-full pl-5 shadow-sm sm:h-12"
       />
       <Button
         type="submit"
         aria-label="Send"
         size="icon"
         disabled={disabled || !input.trim()}
-        className="shadow-primary/30 h-12 w-12 shrink-0 rounded-full shadow-md"
+        className="shadow-primary/30 h-12 w-12 shrink-0 rounded-full shadow-md sm:h-12 sm:w-12"
       >
         <Send className="h-5 w-5" />
       </Button>
@@ -392,7 +392,6 @@ export function CoachQuickReplies({
           key={q}
           type="button"
           variant="outline"
-          size="sm"
           disabled={disabled}
           onClick={() => onPick(q)}
           className="hover:border-primary hover:text-primary rounded-full text-xs font-semibold whitespace-nowrap"

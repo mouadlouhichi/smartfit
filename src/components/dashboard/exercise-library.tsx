@@ -161,7 +161,7 @@ export function ExerciseLibrary() {
           <Input
             aria-label="Search exercises"
             placeholder="Search exercises…"
-            className="h-9 pr-8 pl-9"
+            className="pr-8 pl-9 sm:h-9"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />

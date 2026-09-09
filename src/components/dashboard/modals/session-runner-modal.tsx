@@ -630,7 +630,7 @@ function LiveScreen(p: LiveProps) {
                 <button
                   onClick={() => p.removeExercise(p.active!.id)}
                   aria-label={`Remove ${p.active.name}`}
-                  className="press session-tile flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[rgba(247,242,234,0.6)]"
+                  className="press session-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[rgba(247,242,234,0.6)]"
                 >
                   <X className="h-4 w-4" aria-hidden />
                 </button>
@@ -706,7 +706,7 @@ function LiveScreen(p: LiveProps) {
                           <button
                             onClick={() => p.completeSet(p.active!, s)}
                             aria-label={`Complete set ${idx + 1}`}
-                            className="press mx-auto flex h-9 w-9 items-center justify-center rounded-full"
+                            className="press mx-auto flex h-11 w-11 items-center justify-center rounded-full"
                             style={{ background: 'var(--chart-1)' }}
                           >
                             <Check className="h-4 w-4 text-white" aria-hidden />
@@ -891,13 +891,13 @@ function RestTimerBar({
       <div className="flex flex-col gap-1.5">
         <button
           onClick={onAdd}
-          className="press session-tile rounded-full px-2.5 py-1 text-xs font-bold"
+          className="press session-tile min-h-11 rounded-full px-3 py-1 text-xs font-bold"
         >
           +{REST_STEP_SECONDS}s
         </button>
         <button
           onClick={onSkip}
-          className="press session-tile rounded-full px-2.5 py-1 text-xs font-bold"
+          className="press session-tile min-h-11 rounded-full px-3 py-1 text-xs font-bold"
         >
           Skip
         </button>

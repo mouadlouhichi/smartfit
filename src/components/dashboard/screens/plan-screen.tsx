@@ -405,7 +405,7 @@ export function PlanScreen() {
                                 exercises: s.exercises,
                               })
                             }
-                            className="bg-primary text-primary-foreground shadow-primary/25 flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95 min-[480px]:h-9 min-[480px]:w-9"
+                            className="bg-primary text-primary-foreground shadow-primary/25 flex h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-md transition-transform hover:scale-105 active:scale-95"
                             aria-label={`Start ${s.title}`}
                           >
                             <Play className="ml-0.5 h-4 w-4" />
@@ -414,10 +414,11 @@ export function PlanScreen() {
                             checked={s.active}
                             onCheckedChange={(v) => updateSchedule(s.id, { active: v })}
                             aria-label={`${s.title} active`}
+                            className="-m-2 p-2"
                           />
                           <button
                             onClick={() => openWith({ kind: 'schedule', schedule: s })}
-                            className="text-muted-foreground hover:text-primary shrink-0 transition-colors"
+                            className="text-muted-foreground hover:text-primary -m-2 shrink-0 p-2 transition-colors"
                             aria-label={`Edit ${s.title}`}
                           >
                             <Pencil className="h-4 w-4" />

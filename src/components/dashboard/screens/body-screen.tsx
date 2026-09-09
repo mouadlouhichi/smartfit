@@ -137,7 +137,7 @@ export function BodyScreen() {
                 aria-label="Choose which measurement to chart"
                 value={activeUnit}
                 onChange={(e) => setUnit(e.target.value as BodyUnit)}
-                className="h-9 w-full min-[480px]:w-40"
+                className="w-full min-[480px]:w-40"
               >
                 {unitsWithData.map((u) => (
                   <option key={u} value={u}>

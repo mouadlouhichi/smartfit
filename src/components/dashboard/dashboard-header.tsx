@@ -38,7 +38,7 @@ export function DashboardHeader() {
         <div className="flex shrink-0 items-center gap-2">
           <Button
             asChild
-            className="shadow-primary/30 h-9 rounded-full px-4 text-xs font-bold shadow-md sm:h-10 sm:px-5 sm:text-sm"
+            className="shadow-primary/30 h-10 rounded-full px-5 text-sm font-bold shadow-md"
           >
             <Link href="/dashboard/coach">
               <Sparkles className="h-4 w-4" /> Coach
