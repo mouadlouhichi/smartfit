@@ -12,6 +12,7 @@ import {
   exerciseInstructionsUrl,
   allExercises,
   matchExercise,
+  measureForExerciseName,
   searchExercises,
   type ExerciseEquipment,
   type ExerciseGroup,
@@ -296,4 +297,60 @@ test('extended catalog subscriptions fire and can unsubscribe', () => {
   applyExtendedCatalog([]);
   assert.equal(calls, 2, 'no notifications after unsubscribe');
   assert.equal(extendedExerciseCount(), 0);
+});
+
+test('search tolerates typos below exact matches', () => {
+  const bech = searchExercises('bech press');
+  assert.ok(
+    bech.some((e) => e.id === 'Barbell_Bench_Press_-_Medium_Grip'),
+    'bech press still finds the bench press',
+  );
+  const dumbel = searchExercises('dumbel curl');
+  assert.ok(
+    dumbel.some((e) => e.name.toLowerCase().includes('dumbbell')),
+    'dumbel curl finds a dumbbell curl',
+  );
+  // Exact text still outranks fuzzy text.
+  assert.equal(searchExercises('bench press')[0]?.id, 'Barbell_Bench_Press_-_Medium_Grip');
+});
+
+test('search understands gym slang and cross-field queries', () => {
+  const quads = searchExercises('quads');
+  assert.ok(quads.length > 0);
+  assert.ok(
+    quads.every((e) => e.muscles.includes('quadriceps' as ExerciseMuscle)),
+    'quads only returns quad movements',
+  );
+  const cardio = searchExercises('cardio', 20);
+  assert.ok(cardio.length > 0);
+  assert.ok(
+    cardio.every(
+      (e) => e.group === 'conditioning' || e.equipment === 'pool' || e.equipment === 'running',
+    ),
+    'cardio only returns conditioning movements',
+  );
+  const cross = searchExercises('dumbbell chest');
+  assert.ok(
+    cross.some((e) => e.id === 'Dumbbell_Bench_Press'),
+    'dumbbell chest finds the dumbbell bench press',
+  );
+});
+
+test('search leads with recent lifts when provided', () => {
+  const withRecents = searchExercises('', 8, { recentNames: ['Lat Pulldown', 'Deadlift'] });
+  assert.equal(withRecents[0]?.name, 'Lat Pulldown');
+  assert.equal(withRecents[1]?.name, 'Deadlift');
+  // Unknown recent names are skipped, not fatal.
+  const unknown = searchExercises('', 8, { recentNames: ['Not A Lift'] });
+  assert.ok(unknown.every((e) => e.popular));
+});
+
+test('cardio machines log distance, not load', () => {
+  assert.equal(measureForExerciseName('Cycling'), 'distance');
+  assert.equal(measureForExerciseName('Stationary Bike'), 'distance');
+  assert.equal(measureForExerciseName('Elliptical'), 'distance');
+  assert.equal(measureForExerciseName('Stairmaster'), 'distance');
+  assert.equal(measureForExerciseName('Morning run'), 'distance');
+  assert.equal(measureForExerciseName('Barbell Row'), 'weight');
+  assert.equal(measureForExerciseName("Farmer's Walk"), 'weight');
 });

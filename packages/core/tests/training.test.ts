@@ -12,8 +12,11 @@ import {
   isTrialing,
   hasProAccess,
   lastPerformance,
+  loadSeries,
   muscleVolume,
   personalRecords,
+  progressionTarget,
+  readiness,
   sessionVolume,
   summariseLiveSession,
   suggestedRestSeconds,
@@ -23,8 +26,6 @@ import {
   formatVolume,
   formatSet,
   PRO_TRIAL_DAYS,
-  FREE_RECORDS,
-  FREE_ACHIEVEMENTS,
   FREE_ROUTINE_TEMPLATES,
   parseStateJSON,
   type FitnessState,
@@ -34,7 +35,10 @@ import {
 /** Minimal session builder so the fixtures stay readable. */
 function session(
   date: string,
-  exercises: { name: string; sets: { reps?: number; weight?: number }[] }[],
+  exercises: {
+    name: string;
+    sets: { reps?: number; weight?: number; distance?: number; duration?: number }[];
+  }[],
   over: Partial<WorkoutSession> = {},
 ): WorkoutSession {
   return {
@@ -394,8 +398,6 @@ test('a trial grants access for PRO_TRIAL_DAYS and then lapses', () => {
 });
 
 test('free-tier limits are exported for the gates to read', () => {
-  assert.equal(FREE_RECORDS, 3);
-  assert.equal(FREE_ACHIEVEMENTS, 3);
   assert.equal(FREE_ROUTINE_TEMPLATES, 3);
 });
 
@@ -531,4 +533,84 @@ test('parseState keeps a valid route and drops junk fixes', () => {
   );
   assert.ok(parsed);
   assert.equal(parsed.sessions[0].route?.length, 2, 'only the two sane fixes survive');
+});
+
+// ── smart progression ───────────────────────────────────────────────────
+
+test('progression adds a rep until the top of the range, then load', () => {
+  const state = withSessions(
+    session('2026-01-05', [{ name: 'Bench Press', sets: [{ reps: 10, weight: 60 }] }]),
+  );
+  const addRep = progressionTarget(state, 'Bench Press');
+  assert.equal(addRep?.kind, 'reps');
+  assert.equal(addRep?.reps, 11);
+  assert.equal(addRep?.weight, 60);
+  assert.match(addRep?.rationale ?? '', /add a rep/);
+
+  const topped = withSessions(
+    session('2026-01-05', [{ name: 'Bench Press', sets: [{ reps: 12, weight: 60 }] }]),
+  );
+  const addLoad = progressionTarget(topped, 'Bench Press');
+  assert.equal(addLoad?.kind, 'load');
+  assert.equal(addLoad?.reps, 8);
+  assert.equal(addLoad?.weight, 62.5);
+});
+
+test('progression bumps distance work by 5% and returns null for new lifts', () => {
+  const state = withSessions(
+    session('2026-01-05', [{ name: 'Easy Run', sets: [{ distance: 5 }] }], {
+      categoryId: 'cat-cardio',
+    }),
+  );
+  const t = progressionTarget(state, 'Easy Run');
+  assert.equal(t?.kind, 'distance');
+  assert.equal(t?.distance, 5.25);
+  assert.equal(progressionTarget(state, 'Barbell Squat'), null);
+});
+
+// ── readiness ───────────────────────────────────────────────────────────
+
+test('readiness calibrates on three sessions and flags load spikes', () => {
+  assert.equal(readiness(emptyState()).score, null);
+  assert.equal(readiness(emptyState()).label, 'Calibrating');
+
+  // Three steady moderate weeks in the past: a calm baseline.
+  const calm = withSessions(
+    session('2026-01-05', [{ name: 'Bench Press', sets: [{ reps: 8, weight: 60 }] }]),
+    session('2026-01-12', [{ name: 'Bench Press', sets: [{ reps: 8, weight: 60 }] }]),
+    session('2026-01-19', [{ name: 'Bench Press', sets: [{ reps: 8, weight: 60 }] }]),
+  );
+  const baseline = readiness(calm, new Date('2026-02-01T12:00:00'));
+  assert.ok(baseline.score !== null && baseline.score >= 72, 'steady history reads Ready');
+  assert.equal(baseline.label, 'Ready');
+
+  // …then a monster week right before "today": the ratio spikes.
+  const spiked = withSessions(
+    ...calm.sessions,
+    session(
+      '2026-01-31',
+      [
+        {
+          name: 'Bench Press',
+          sets: Array.from({ length: 20 }, () => ({ reps: 10, weight: 100 })),
+        },
+      ],
+      { intensity: 'high' },
+    ),
+  );
+  const flag = readiness(spiked, new Date('2026-02-01T12:00:00'));
+  assert.ok(flag.ratio > 1.3, `expected a spike, got ${flag.ratio}`);
+  assert.ok(flag.score !== null && flag.score < (baseline.score ?? 99));
+  assert.ok(flag.factors.length > 0);
+});
+
+test('loadSeries returns one point per day, oldest first', () => {
+  const state = withSessions(
+    session('2026-01-31', [{ name: 'Bench Press', sets: [{ reps: 10, weight: 60 }] }]),
+  );
+  const series = loadSeries(state, 7, new Date('2026-02-01T12:00:00'));
+  assert.equal(series.length, 7);
+  assert.equal(series[0]?.date, '2026-01-26');
+  assert.equal(series[6]?.date, '2026-02-01');
+  assert.equal(series[5]?.volume, 600);
 });

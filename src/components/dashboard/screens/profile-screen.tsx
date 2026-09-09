@@ -23,7 +23,6 @@ import {
   HardDrive,
   Info,
   Loader2,
-  Lock,
   LogOut,
   Mail,
   Play,
@@ -198,15 +197,11 @@ export function ProfileScreen() {
   }
 
   /**
-   * CSV export is the Pro data feature. Flattens every session into one row
-   * per exercise-set so it drops straight into a spreadsheet or a coaching
-   * tool. Free tier keeps the JSON backup; the CSV is a Pro unlock.
+   * CSV export is free for everyone: one row per exercise-set so training
+   * drops straight into a spreadsheet or a coaching tool. Your own data is
+   * never held hostage — Pro sells intelligence, not access to your past.
    */
   async function exportCsv() {
-    if (!pro) {
-      openWith({ kind: 'pro' });
-      return;
-    }
     setBusy('export');
     try {
       const full = await collectFullState();
@@ -887,9 +882,9 @@ export function ProfileScreen() {
               size="sm"
               disabled={busy === 'export'}
               onClick={() => void exportCsv()}
-              title={pro ? 'Download sessions as CSV' : 'CSV export is a Pro feature'}
+              title="Download sessions as CSV"
             >
-              {pro ? <FileSpreadsheet className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+              <FileSpreadsheet className="h-4 w-4" />
               Export CSV
             </Button>
             <Button

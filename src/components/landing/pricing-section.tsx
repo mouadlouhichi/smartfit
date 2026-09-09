@@ -6,33 +6,34 @@ import { ArrowRight, Check } from 'lucide-react';
 const PLANS = [
   {
     name: 'Free',
-    description: 'Everything you need to train for real, with no time limit.',
+    description: 'The full training core, free forever. Log everything, keep everything.',
     price: '$0',
     period: '/ forever',
     cta: 'Start training free',
     popular: false,
     features: [
+      'Unlimited workout logging & history',
       'Choose from 4 training styles',
-      'Log strength, cardio, HIIT & sport',
       'Schedule your recurring week',
-      'Goals, streaks & body trends',
-      'Private, local-first storage',
+      'Goals, streaks, records & badges',
+      'Body trends & progress charts',
+      'JSON + CSV export, erase anytime',
     ],
   },
   {
-    name: 'Also free',
-    description: 'There is no premium tier — every advanced feature is included.',
-    price: '$0',
-    period: '/ forever',
-    cta: 'Open the app',
+    name: 'Pro',
+    description: 'Training intelligence: know what it means, know what to do next.',
+    price: '$4.17',
+    period: '/ mo, billed yearly ($49.99)',
+    cta: 'Start 14-day free trial',
     popular: true,
     features: [
       'Everything in Free',
-      'On-device coach, answers from your own data',
-      'Progress charts & activity breakdowns',
-      'Custom activity types',
-      'Export JSON / erase anytime',
-      'Installable PWA, works offline',
+      'Adaptive progression targets every set',
+      'Daily readiness score & load chart',
+      'Quarter, year & all-time analytics',
+      'Unlimited AI coach replies',
+      'Unlimited routines, no-watermark shares',
     ],
   },
 ];
@@ -51,11 +52,11 @@ export function PricingSection() {
           <h2 className="font-display mb-6 text-5xl tracking-tight md:text-6xl lg:text-7xl">
             Free to start.
             <br />
-            <span className="text-stroke">Free forever.</span>
+            <span className="text-stroke">Pro when ready.</span>
           </h2>
           <p className="max-w-xl text-lg text-[color:var(--muted-foreground)]">
-            Every feature is free, with no card and no trial that runs out. SmartFit is private and
-            local-first — there is nothing to upsell.
+            Free logs everything, forever, privately. Pro tells you what your training means and
+            what to do next — computed on your device, from your own data.
           </p>
         </div>
 
@@ -71,7 +72,7 @@ export function PricingSection() {
             >
               {planData.popular && (
                 <span className="absolute start-8 -top-3 bg-[color:var(--primary)] px-3 py-1 font-mono text-xs tracking-widest text-white uppercase">
-                  Everything included
+                  Most popular
                 </span>
               )}
 
@@ -120,7 +121,8 @@ export function PricingSection() {
         </div>
 
         <p className="mt-12 text-center text-sm text-[color:var(--muted-foreground)]">
-          Your training stays private. No card, no trial, no subscription — ever.
+          Prefer one payment? Lifetime Pro is $99 — pay once, train forever. Monthly is $6.99. Your
+          training stays private on every tier.
         </p>
       </div>
     </section>

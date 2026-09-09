@@ -41,6 +41,13 @@ export const PRO_PLANS: ProPlanMeta[] = [
     featured: true,
     savePct: 40,
   },
+  {
+    id: 'lifetime',
+    name: 'Lifetime',
+    price: '$99',
+    per: ' once',
+    note: 'Pay once, train forever',
+  },
 ];
 
 /** One row of the Free-vs-Pro comparison on the paywall. */
@@ -58,19 +65,38 @@ export interface ProGate {
 /**
  * The honest comparison table. Each row maps to a real gate in the app:
  *
- *  - AI coach      → `coach-panel.tsx` (`FREE_COACH_REPLIES_PER_DAY`)
+ *  - AI coach      → `coach-panel.tsx` (`FREE_COACH_REPLIES_PER_DAY`;
+ *                    on-device answers are always unlimited — the cap only
+ *                    covers replies from a configured AI provider)
+ *  - Progression   → `session-runner-modal.tsx` (`progressionTarget`)
+ *  - Readiness     → `overview-screen.tsx` (`readiness`: label free, score Pro)
  *  - Analytics     → `progress-screen.tsx` (`RANGES[].pro`)
- *  - Records/1RM   → `progress-screen.tsx` (Records section)
- *  - Achievements  → `progress-screen.tsx` (`FREE_ACHIEVEMENTS`)
- *  - Templates     → `plan-screen.tsx` (`FREE_ROUTINE_TEMPLATES`)
- *  - Export        → `profile-screen.tsx` (CSV)
+ *  - Templates     → `ScheduleModal.tsx` (`FREE_ROUTINE_TEMPLATES`)
+ *  - Share cards   → `session-runner-modal.tsx` + `route-art.ts` (watermark)
+ *
+ * Deliberately NOT gated: your own records, earned badges and data export
+ * (JSON + CSV) are free forever — the privacy brand cannot hold your own
+ * history hostage. Pro sells intelligence (what to do next, how ready you
+ * are), not access to your past.
  */
 export const PRO_GATES: ProGate[] = [
   {
     label: 'AI coach',
-    free: `${6} replies / day`,
+    free: `${6} AI replies / day`,
     pro: 'Unlimited',
     icon: 'sparkles',
+  },
+  {
+    label: 'Smart progression',
+    free: 'Last-session pre-fill',
+    pro: 'Adaptive targets every set',
+    icon: 'trending-up',
+  },
+  {
+    label: 'Readiness score',
+    free: 'Daily label',
+    pro: 'Score, drivers & load chart',
+    icon: 'activity',
   },
   {
     label: 'Analytics ranges',
@@ -79,28 +105,16 @@ export const PRO_GATES: ProGate[] = [
     icon: 'line-chart',
   },
   {
-    label: 'Personal records & 1RM',
-    free: 'Top 3 lifts',
-    pro: 'Every lift, full history',
-    icon: 'trophy',
-  },
-  {
-    label: 'Achievements wall',
-    free: `${3} badges`,
-    pro: 'All badges',
-    icon: 'medal',
-  },
-  {
     label: 'Workout templates',
     free: `${3} routines`,
     pro: 'Unlimited',
     icon: 'list-checks',
   },
   {
-    label: 'Data export',
-    free: 'JSON backup',
-    pro: 'JSON + CSV for spreadsheets',
-    icon: 'file-down',
+    label: 'Share cards',
+    free: 'Watermarked',
+    pro: 'No watermark',
+    icon: 'share',
   },
 ];
 
@@ -110,26 +124,27 @@ export const PRO_GATES: ProGate[] = [
  */
 export const PRO_FEATURES: readonly string[] = PRO_GATES.map((g) => `${g.label}: ${g.pro}`);
 
-/** Free-tier AI coach allowance, per calendar day, on this device. */
+/**
+ * Free-tier AI coach allowance, per calendar day, on this device. Only
+ * replies from a configured AI provider count — on-device answers are
+ * unlimited because they cost nothing to serve.
+ */
 export const FREE_COACH_REPLIES_PER_DAY = 6;
-
-/** Free tier shows the top N personal records; Pro shows all of them. */
-export const FREE_RECORDS = 3;
-
-/** Free tier shows the first N achievements; Pro shows the whole wall. */
-export const FREE_ACHIEVEMENTS = 3;
 
 /** Free tier can save N scheduled slots with an exercise list (templates). */
 export const FREE_ROUTINE_TEMPLATES = 3;
 
-/** Length of the trial offered on the paywall, in days. */
-export const PRO_TRIAL_DAYS = 7;
+/**
+ * Length of the trial offered on the paywall, in days. Two full weeks: one
+ * training week plus one rest week is the minimum to feel Pro's value.
+ */
+export const PRO_TRIAL_DAYS = 14;
 
 export function isPro(state: FitnessState): boolean {
   const pro = state.profile.pro;
   return (
     !!pro &&
-    (pro.plan === 'monthly' || pro.plan === 'yearly') &&
+    (pro.plan === 'monthly' || pro.plan === 'yearly' || pro.plan === 'lifetime') &&
     typeof pro.since === 'number' &&
     pro.since > 0
   );

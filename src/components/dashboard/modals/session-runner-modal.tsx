@@ -34,20 +34,23 @@ import {
   formatSet,
   formatSetDistance,
   formatVolume,
+  formatWeight,
+  hasProAccess,
   haversineMeters,
   isPersonalRecord,
   lastPerformance,
   measureForExerciseName,
+  progressionTarget,
   routeDistanceKm,
   simplifyRoute,
   suggestedExercisesForCategory,
   suggestedRestSeconds,
   summariseLiveSession,
   type GeoPoint,
-  type LastPerformance,
+  type ProgressionTarget,
   type SessionSummary,
 } from '@smartfit/core';
-import { renderRoutePng, shareOrDownloadPng } from '@/lib/route-art';
+import { renderRoutePng, renderWorkoutPng, shareOrDownloadPng } from '@/lib/route-art';
 import { RouteMap } from '../route-map';
 import { cn } from '@/lib/utils';
 
@@ -173,14 +176,11 @@ export function SessionRunnerModal() {
     setTracking(false);
 
     const template = payload.exercises ?? [];
-    const initial: LiveExercise[] = template.map((entry) => {
-      const last = lastPerformance(state, entry.name);
-      return {
-        id: nextId.current++,
-        name: entry.name,
-        sets: [blankSetFrom(last)],
-      };
-    });
+    const initial: LiveExercise[] = template.map((entry) => ({
+      id: nextId.current++,
+      name: entry.name,
+      sets: [blankSetFrom(entry.name)],
+    }));
     setExercises(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -266,6 +266,38 @@ export function SessionRunnerModal() {
     }
   }
 
+  /** Shareable "gym receipt" card — watermarked on free, clean on Pro. */
+  async function shareWorkout() {
+    if (screen !== 'summary' || !summary) return;
+    try {
+      const blob = await renderWorkoutPng(
+        {
+          title: run.title,
+          dateLabel: new Date().toLocaleDateString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }),
+          durationMin: Math.max(1, Math.round(seconds / 60)),
+          sets: summary.sets,
+          exercises: summary.exercises,
+          volume: summary.volume,
+          volumeUnit: state.profile.weightUnit,
+          distance: summary.distance,
+          personalRecords: summary.personalRecords,
+        },
+        { watermark: !hasProAccess(state) },
+      );
+      const result = await shareOrDownloadPng(
+        blob,
+        `smartfit-workout-${toISODate(new Date())}.png`,
+      );
+      toast(result === 'shared' ? 'Workout shared' : 'Workout card saved to downloads');
+    } catch {
+      toast('Could not render the workout card', 'info');
+    }
+  }
+
   if (!isOpen || !payload || payload.kind !== 'runner') return null;
   const run = payload;
 
@@ -274,14 +306,29 @@ export function SessionRunnerModal() {
   const summary: SessionSummary | null =
     screen === 'summary' ? summariseLiveSession(state, exercises.map(toCoreExercise)) : null;
 
-  function blankSetFrom(last: LastPerformance | null): LiveSet {
-    // Progressive overload: pre-fill the first set from your best last time.
+  function blankSetFrom(name: string): LiveSet {
+    // Progressive overload: Pro pre-fills the next adaptive target
+    // (progressionTarget); free pre-fills last session's numbers as-is.
+    const pro = hasProAccess(state);
+    const target = pro ? progressionTarget(state, name) : null;
+    const last = lastPerformance(state, name);
     const first = last?.sets[0];
     return {
       id: nextId.current++,
-      reps: first?.reps != null ? String(first.reps) : '',
-      weight: first?.weight != null ? String(first.weight) : '',
-      distanceM: first?.distance != null ? String(Math.round(first.distance * 1000)) : '',
+      reps:
+        target?.reps != null ? String(target.reps) : first?.reps != null ? String(first.reps) : '',
+      weight:
+        target?.weight != null
+          ? String(target.weight)
+          : first?.weight != null
+            ? String(first.weight)
+            : '',
+      distanceM:
+        target?.distance != null
+          ? String(Math.round(target.distance * 1000))
+          : first?.distance != null
+            ? String(Math.round(first.distance * 1000))
+            : '',
       done: false,
       isPR: false,
     };
@@ -290,10 +337,9 @@ export function SessionRunnerModal() {
   function addExercise(name: string) {
     const trimmed = name.trim();
     if (!trimmed) return;
-    const last = lastPerformance(state, trimmed);
     setExercises((xs) => [
       ...xs,
-      { id: nextId.current++, name: trimmed, sets: [blankSetFrom(last)] },
+      { id: nextId.current++, name: trimmed, sets: [blankSetFrom(trimmed)] },
     ]);
     setActiveIndex(exercises.length);
     setDraft('');
@@ -495,6 +541,7 @@ export function SessionRunnerModal() {
           route={routeRef.current}
           distanceKm={distanceKm}
           onShare={shareMap}
+          onShareWorkout={shareWorkout}
           onSave={saveSession}
           onBack={() => setScreen('live')}
         />
@@ -571,8 +618,16 @@ interface LiveProps {
 }
 
 function LiveScreen(p: LiveProps) {
+  const unit = p.state.profile.weightUnit;
   const last = useMemo(
     () => (p.active ? lastPerformance(p.state, p.active.name) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [p.active?.name],
+  );
+  // Pro members see the adaptive next target the first set was pre-filled
+  // with; free members see their last numbers only.
+  const target: ProgressionTarget | null = useMemo(
+    () => (p.active && hasProAccess(p.state) ? progressionTarget(p.state, p.active.name) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [p.active?.name],
   );
@@ -642,12 +697,22 @@ function LiveScreen(p: LiveProps) {
                         <>Last: {formatSet(last.sets[0])}</>
                       ) : (
                         <>
-                          Last: {last.bestReps} × {last.bestWeight} kg · {formatSet(last.sets[0])}
+                          Last: {last.bestReps} × {formatWeight(last.bestWeight, unit)} ·{' '}
+                          {formatSet(last.sets[0])}
                         </>
                       )}
                     </p>
                   ) : (
                     <p className="session-muted mt-0.5 text-xs">First time logging this one.</p>
+                  )}
+                  {target && target.kind !== 'repeat' && (
+                    <p
+                      className="mt-0.5 flex items-center gap-1.5 text-xs font-bold"
+                      style={{ color: '#c8f135' }}
+                    >
+                      <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span className="truncate">Pro target · {target.rationale}</span>
+                    </p>
                   )}
                 </div>
                 <button
@@ -667,7 +732,7 @@ function LiveScreen(p: LiveProps) {
                   <span className="text-center">
                     {measureForExerciseName(p.active.name) === 'distance'
                       ? 'Distance (m)'
-                      : 'Weight (kg)'}
+                      : `Weight (${unit})`}
                   </span>
                   <span className="text-center">✓</span>
                 </div>
@@ -759,7 +824,7 @@ function LiveScreen(p: LiveProps) {
                         )}
                         {e1rm > 0 && (
                           <span className="col-span-4 -mt-1 pb-0.5 text-right text-[10px] text-[rgba(247,242,234,0.5)]">
-                            e1RM ≈ {e1rm} kg
+                            e1RM ≈ {formatWeight(e1rm, unit)}
                           </span>
                         )}
                       </div>
@@ -960,6 +1025,7 @@ function SummaryScreen({
   route,
   distanceKm,
   onShare,
+  onShareWorkout,
   onSave,
   onBack,
 }: {
@@ -969,6 +1035,7 @@ function SummaryScreen({
   route: GeoPoint[];
   distanceKm: number;
   onShare: () => void;
+  onShareWorkout: () => void;
   onSave: () => void;
   onBack: () => void;
 }) {
@@ -1043,6 +1110,12 @@ function SummaryScreen({
       </div>
 
       <div className="grid gap-2 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <button
+          onClick={onShareWorkout}
+          className="press session-tile flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold"
+        >
+          <Share2 className="h-4 w-4" aria-hidden /> Share workout card
+        </button>
         <button
           onClick={onSave}
           className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-white shadow-lg"

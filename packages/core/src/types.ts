@@ -122,10 +122,10 @@ export type PlanId = 'ppl' | 'upper-lower' | 'full-body' | 'cardio-focus';
 export interface ProStatus {
   /**
    * `trial` is issued locally by the sandbox billing adapter for the free
-   * trial and expires after `PRO_TRIAL_DAYS`; `monthly`/`yearly` come from a
-   * real receipt and never expire client-side.
+   * trial and expires after `PRO_TRIAL_DAYS`; `monthly`/`yearly`/`lifetime`
+   * come from a real receipt and never expire client-side.
    */
-  plan: 'monthly' | 'yearly' | 'trial';
+  plan: 'monthly' | 'yearly' | 'lifetime' | 'trial';
   /** Epoch ms of activation. */
   since: number;
 }

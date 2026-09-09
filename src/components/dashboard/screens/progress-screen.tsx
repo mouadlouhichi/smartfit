@@ -40,8 +40,6 @@ import {
   personalRecords,
   computeAchievements,
   muscleVolume,
-  FREE_RECORDS,
-  FREE_ACHIEVEMENTS,
 } from '@smartfit/core';
 import { useModals } from '../modal-context';
 import {
@@ -347,7 +345,7 @@ export function ProgressScreen() {
         )}
       </Card>
 
-      {/* ── Personal records & 1RM (Pro shows the full history) ──────── */}
+      {/* ── Personal records & 1RM (always free — your history is yours) */}
       <Card className="p-5">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <p className="font-display flex items-center gap-2 text-sm font-bold">
@@ -356,11 +354,6 @@ export function ProgressScreen() {
             </span>
             Personal records
           </p>
-          {!pro && records.length > FREE_RECORDS && (
-            <Button size="sm" onClick={() => openWith({ kind: 'pro' })}>
-              <Lock className="h-3.5 w-3.5" /> Unlock all {records.length}
-            </Button>
-          )}
         </div>
         {records.length === 0 ? (
           <EmptyState
@@ -370,7 +363,7 @@ export function ProgressScreen() {
           />
         ) : (
           <ul className="grid gap-2">
-            {(pro ? records : records.slice(0, FREE_RECORDS)).map((r, i) => (
+            {records.map((r, i) => (
               <li
                 key={r.name}
                 className="bg-secondary/60 flex items-center gap-3 rounded-xl px-3 py-2.5"
@@ -395,18 +388,9 @@ export function ProgressScreen() {
             ))}
           </ul>
         )}
-        {!pro && records.length > FREE_RECORDS && (
-          <button
-            onClick={() => openWith({ kind: 'pro' })}
-            className="bg-secondary/70 hover:bg-secondary mt-2 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold"
-          >
-            <Lock className="h-4 w-4" aria-hidden /> {records.length - FREE_RECORDS} more records
-            are a Pro feature
-          </button>
-        )}
       </Card>
 
-      {/* ── Achievements wall (Pro unlocks the full wall) ────────────── */}
+      {/* ── Achievements wall (earned badges are always visible) ─────── */}
       <Card className="p-5">
         <p className="font-display mb-4 flex items-center gap-2 text-sm font-bold">
           <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
@@ -414,18 +398,7 @@ export function ProgressScreen() {
           </span>
           Achievements
         </p>
-        <AchievementWall
-          achievements={pro ? achievements : achievements.slice(0, FREE_ACHIEVEMENTS)}
-          lockedNote="Pro"
-        />
-        {!pro && achievements.length > FREE_ACHIEVEMENTS && (
-          <button
-            onClick={() => openWith({ kind: 'pro' })}
-            className="bg-secondary/70 hover:bg-secondary mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold"
-          >
-            <Lock className="h-4 w-4" aria-hidden /> Unlock all {achievements.length} badges
-          </button>
-        )}
+        <AchievementWall achievements={achievements} />
       </Card>
 
       {/* ── Muscle-group volume ──────────────────────────────────────── */}

@@ -693,3 +693,221 @@ export function summariseLiveSession(
     mostReps,
   };
 }
+
+// ── smart progression (Pro) ─────────────────────────────────────────────
+
+/**
+ * Double-progression defaults: add reps until the top of the range, then add
+ * load and drop back to the bottom. The same scheme Strong/Boostcamp teach —
+ * computed from the athlete's own last session, so it is always personal.
+ */
+export const PROGRESSION_REP_MIN = 8;
+export const PROGRESSION_REP_MAX = 12;
+/** Default load jump in kg when the top of the rep range is hit. */
+export const PROGRESSION_WEIGHT_STEP_KG = 2.5;
+/** Distance bump per session for distance-measured movements, as a ratio. */
+export const PROGRESSION_DISTANCE_RATIO = 0.05;
+
+export interface ProgressionTarget {
+  /** Suggested top-set reps (load-measured lifts). */
+  reps?: number;
+  /** Suggested top-set load in canonical kg (load-measured lifts). */
+  weight?: number;
+  /** Suggested distance in km (distance-measured movements). */
+  distance?: number;
+  /** Plain-language reason shown next to the target ("Last: 60 × 10 → …"). */
+  rationale: string;
+  /** What changed versus last time: a rep, load, or distance bump. */
+  kind: 'reps' | 'load' | 'distance' | 'repeat';
+}
+
+/**
+ * Next-session target for one exercise, derived from its last logged
+ * performance: +1 rep until 12, then +2.5 kg back at 8 (double progression);
+ * +5% distance for runs, rides and swims. Returns null when the movement was
+ * never logged — there is nothing to progress from.
+ *
+ * This is the engine behind the Pro "smart progression" gate: free pre-fills
+ * last session's numbers; Pro pre-fills the next step and explains why.
+ */
+export function progressionTarget(
+  state: FitnessState,
+  exerciseName: string,
+  now = new Date(),
+): ProgressionTarget | null {
+  const last = lastPerformance(state, exerciseName, now);
+  if (!last) return null;
+
+  const lastDistance = Math.max(0, ...last.sets.map((s) => s.distance ?? 0));
+  if (lastDistance > 0) {
+    const distance = Math.round(lastDistance * (1 + PROGRESSION_DISTANCE_RATIO) * 100) / 100;
+    return {
+      distance,
+      kind: 'distance',
+      rationale: `Last: ${formatTargetDistance(lastDistance)} → aim ${formatTargetDistance(distance)} (+5%)`,
+    };
+  }
+
+  const w = last.bestWeight;
+  const r = last.bestReps;
+  if (w > 0 && r > 0) {
+    if (r < PROGRESSION_REP_MAX) {
+      return {
+        reps: r + 1,
+        weight: w,
+        kind: 'reps',
+        rationale: `Last: ${r} × ${formatTargetWeight(w)} → add a rep`,
+      };
+    }
+    const weight = Math.round((w + PROGRESSION_WEIGHT_STEP_KG) * 2) / 2;
+    return {
+      reps: PROGRESSION_REP_MIN,
+      weight,
+      kind: 'load',
+      rationale: `Last: ${r} × ${formatTargetWeight(w)} → add ${PROGRESSION_WEIGHT_STEP_KG} kg`,
+    };
+  }
+
+  // Bodyweight / rep-only work: nudge the rep count when there is one.
+  if (r > 0) {
+    return {
+      reps: r + 1,
+      kind: 'reps',
+      rationale: `Last: ${r} reps → add a rep`,
+    };
+  }
+  return { kind: 'repeat', rationale: 'Repeat last session, then push the top set' };
+}
+
+function formatTargetWeight(kg: number): string {
+  return `${Math.round(kg * 10) / 10} kg`;
+}
+
+function formatTargetDistance(km: number): string {
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${Math.round(km * 100) / 100} km`;
+}
+
+// ── readiness & training load (Pro) ───────────────────────────────────────
+
+export interface Readiness {
+  /**
+   * 0–100 daily score, or null while calibrating (fewer than 3 logged
+   * sessions — there is no baseline to compare against yet).
+   */
+  score: number | null;
+  label: 'Ready' | 'Steady' | 'Easy day' | 'Calibrating';
+  /** Human-readable drivers, most important first (max 3). */
+  factors: string[];
+  /** Mean daily tonnage, last 7 days (acute load). */
+  acute: number;
+  /** Mean daily tonnage, last 28 days (chronic load / baseline). */
+  chronic: number;
+  /** Acute ÷ chronic; > 1.3 is the classic overreaching flag. */
+  ratio: number;
+}
+
+export interface LoadPoint {
+  date: string;
+  volume: number;
+}
+
+/**
+ * Daily readiness from training-derived load only (no wearables needed):
+ * an acute:chronic tonnage ratio over 7 vs 28 days, days since the last hard
+ * session, and whether the plan's rest days are being respected.
+ *
+ * Free sees the label; Pro sees the score, the drivers and the load chart.
+ */
+export function readiness(state: FitnessState, now = new Date()): Readiness {
+  const today = toISODate(now);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const isoDaysAgo = (n: number) => toISODate(new Date(now.getTime() - n * dayMs));
+
+  const sessions = state.sessions.filter((s) => s.date <= today);
+  const volumeOnOrAfter = (from: string) =>
+    sessions.filter((s) => s.date >= from).reduce((a, s) => a + sessionVolume(s), 0);
+
+  const acute = volumeOnOrAfter(isoDaysAgo(6)) / 7;
+  const chronic = volumeOnOrAfter(isoDaysAgo(27)) / 28;
+  const ratio = chronic > 0 ? acute / chronic : acute > 0 ? 1.5 : 1;
+
+  if (sessions.length < 3) {
+    return {
+      score: null,
+      label: 'Calibrating',
+      factors: [
+        sessions.length === 0
+          ? 'Log your first sessions to calibrate readiness'
+          : `${3 - sessions.length} more session${sessions.length === 2 ? '' : 's'} to calibrate`,
+      ],
+      acute: Math.round(acute),
+      chronic: Math.round(chronic),
+      ratio: Math.round(ratio * 100) / 100,
+    };
+  }
+
+  let score = 80;
+  const factors: string[] = [];
+
+  if (ratio > 1.5) {
+    score -= 25;
+    factors.push(`Volume spiked ${Math.round((ratio - 1) * 100)}% vs your 4-week average`);
+  } else if (ratio > 1.3) {
+    score -= 15;
+    factors.push('Training load is climbing fast — keep the next one moderate');
+  } else if (ratio > 1.15) {
+    score -= 5;
+    factors.push('Load is up slightly on your baseline');
+  } else if (ratio < 0.5) {
+    score += 5;
+    factors.push('Fresh legs — volume is well down on your baseline');
+  }
+
+  const lastHard = sessions.find((s) => s.intensity === 'high');
+  const daysSinceHard = lastHard
+    ? Math.round((now.getTime() - new Date(`${lastHard.date}T12:00:00`).getTime()) / dayMs)
+    : 99;
+  if (daysSinceHard <= 0) {
+    score -= 10;
+    factors.push('Hard session logged today — favour technique and volume');
+  } else if (daysSinceHard === 1) {
+    score -= 5;
+    factors.push('Hard session yesterday — see how the warm-up feels');
+  } else if (daysSinceHard >= 4) {
+    score += 5;
+    factors.push('No hard session in 4+ days — a good day to push');
+  }
+
+  const trainedDays = new Set(sessions.filter((s) => s.date >= isoDaysAgo(6)).map((s) => s.date));
+  const prescribedRest = state.profile.weeklyRestDays;
+  if (prescribedRest > 0 && trainedDays.size >= 7 - prescribedRest + 1 && daysSinceHard <= 1) {
+    score -= 5;
+    factors.push('You are past your planned training days — recovery counts too');
+  }
+
+  score = Math.max(5, Math.min(99, Math.round(score)));
+  const label = score >= 72 ? 'Ready' : score >= 52 ? 'Steady' : 'Easy day';
+  if (label === 'Ready' && factors.length === 0) factors.push('Load and recovery look balanced');
+  return {
+    score,
+    label,
+    factors: factors.slice(0, 3),
+    acute: Math.round(acute),
+    chronic: Math.round(chronic),
+    ratio: Math.round(ratio * 100) / 100,
+  };
+}
+
+/** Daily tonnage series for the load chart (oldest → newest). */
+export function loadSeries(state: FitnessState, days = 28, now = new Date()): LoadPoint[] {
+  const dayMs = 24 * 60 * 60 * 1000;
+  const out: LoadPoint[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const date = toISODate(new Date(now.getTime() - i * dayMs));
+    const volume = state.sessions
+      .filter((s) => s.date === date)
+      .reduce((a, s) => a + sessionVolume(s), 0);
+    out.push({ date, volume: Math.round(volume) });
+  }
+  return out;
+}
