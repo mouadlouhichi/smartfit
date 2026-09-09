@@ -357,10 +357,10 @@ export function ProfileScreen() {
   }
 
   return (
-    <div className="grid min-w-0 max-w-full gap-5">
+    <div className="grid max-w-full min-w-0 gap-5">
       {/* ── Hero identity card ─────────────────────────────────────────── */}
-      <section className="card-hero min-w-0 max-w-full p-4 sm:p-8" aria-label="Profile summary">
-        <div className="flex min-w-0 flex-wrap items-center gap-4">
+      <section className="card-hero max-w-full min-w-0 p-4 sm:p-8" aria-label="Profile summary">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3">
           <span
             className="hero-tile flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-extrabold"
             style={{ boxShadow: '0 0 0 4px rgba(224,94,54,0.25)' }}
@@ -368,12 +368,12 @@ export function ProfileScreen() {
           >
             {avatar || <UserRound className="h-7 w-7" />}
           </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h1 className="font-display truncate text-xl font-extrabold tracking-tight sm:text-2xl">
+          <div className="min-w-0 flex-1 basis-48">
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="font-display min-w-0 truncate text-xl font-extrabold tracking-tight sm:text-2xl">
                 {displayName || 'Profile & settings'}
               </h1>
-              {pro && <ProBadge />}
+              {pro && <ProBadge className="shrink-0" />}
             </div>
             <p className="hero-muted mt-0.5 text-sm">
               {cloud
@@ -381,7 +381,9 @@ export function ProfileScreen() {
                 : 'Your data stays on this device — no account needed.'}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          {/* The status chips get their own row on phones so they can never
+              crowd — or overlap — the name; on sm+ they sit to its right. */}
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
               {cloud ? (
                 <Cloud className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
@@ -406,12 +408,12 @@ export function ProfileScreen() {
             { label: 'Goals', value: counts.goals, icon: Target },
             { label: 'Measurements', value: counts.measurements, icon: SlidersHorizontal },
           ].map((t) => (
-            <div key={t.label} className="hero-tile rounded-2xl px-4 py-3">
+            <div key={t.label} className="hero-tile min-w-0 rounded-2xl px-4 py-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="hero-muted text-[11px] font-semibold tracking-wide uppercase">
+                <p className="hero-muted min-w-0 text-[11px] font-semibold tracking-wide uppercase">
                   {t.label}
                 </p>
-                <t.icon className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
+                <t.icon className="h-3.5 w-3.5 shrink-0 text-[#f0a37f]" aria-hidden />
               </div>
               <p className="font-display mt-1 text-xl font-extrabold tabular-nums">{t.value}</p>
             </div>

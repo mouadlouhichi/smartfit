@@ -132,174 +132,186 @@ export function OverviewScreen() {
   const firstName = state.profile.name?.trim().split(' ')[0];
 
   return (
-    <div className="grid min-w-0 max-w-full gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-      {/* ── Center / left column ─────────────────────────────── */}
-      <div className="bg-card rounded-[2rem] p-4 shadow-sm min-[420px]:p-6 sm:p-8">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <h1 className="font-display text-[2rem] leading-[1.05] font-extrabold tracking-tight sm:text-4xl lg:text-[2.75rem]">
-            {firstName ? `Let's go,` : `Let's start`}
-            <br />
-            {firstName ? `${firstName}!` : 'strong!'}
-          </h1>
-          <p className="eyebrow text-muted-foreground hidden sm:block">{plan.name}</p>
-        </div>
-
-        {/* Weekly goal card */}
-        <div className="bg-secondary/70 mt-8 rounded-3xl p-5 sm:p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="max-w-[16rem] text-base leading-snug font-bold sm:text-[17px]">
-                You&apos;re {goalPct}% to your weekly goal
-              </p>
-              <p className="text-muted-foreground mt-1 text-sm">{focus ?? 'Rest & recover day'}</p>
-            </div>
-            <button
-              onClick={() => openModal('workout')}
-              aria-label="Log workout"
-              className="zap-glow bg-primary relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-90"
-            >
-              <Zap className="h-6 w-6" strokeWidth={2.6} fill="currentColor" />
-            </button>
+    <div className="grid max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+      {/* ── Center / left column ───────────────────────────────
+          Separate surfaces: the white card covers only the opening block
+          (greeting → quick actions); today's plan and the summary live
+          outside it as their own sections instead of one page-long card. */}
+      <div className="grid max-w-full min-w-0 content-start gap-6">
+        <div className="bg-card rounded-[2rem] p-4 shadow-sm min-[420px]:p-6 sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <h1 className="font-display text-[2rem] leading-[1.05] font-extrabold tracking-tight sm:text-4xl lg:text-[2.75rem]">
+              {firstName ? `Let's go,` : `Let's start`}
+              <br />
+              {firstName ? `${firstName}!` : 'strong!'}
+            </h1>
+            <p className="eyebrow text-muted-foreground hidden sm:block">{plan.name}</p>
           </div>
-          <div className="mt-5 flex items-center gap-3 min-[420px]:gap-4">
-            <div
-              className="h-3.5 flex-1 overflow-hidden rounded-full bg-white/80"
-              role="progressbar"
-              aria-valuenow={goalPct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Weekly goal progress"
-            >
+
+          {/* Weekly goal card */}
+          <div className="bg-secondary/70 mt-8 rounded-3xl p-5 sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="max-w-[16rem] text-base leading-snug font-bold sm:text-[17px]">
+                  You&apos;re {goalPct}% to your weekly goal
+                </p>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  {focus ?? 'Rest & recover day'}
+                </p>
+              </div>
+              <button
+                onClick={() => openModal('workout')}
+                aria-label="Log workout"
+                className="zap-glow bg-primary relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-90"
+              >
+                <Zap className="h-6 w-6" strokeWidth={2.6} fill="currentColor" />
+              </button>
+            </div>
+            <div className="mt-5 flex items-center gap-3 min-[420px]:gap-4">
               <div
-                className="bg-foreground h-full rounded-full transition-all duration-700"
-                style={{ width: `${Math.max(4, goalPct)}%` }}
-              />
+                className="h-3.5 flex-1 overflow-hidden rounded-full bg-white/80"
+                role="progressbar"
+                aria-valuenow={goalPct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Weekly goal progress"
+              >
+                <div
+                  className="bg-foreground h-full rounded-full transition-all duration-700"
+                  style={{ width: `${Math.max(4, goalPct)}%` }}
+                />
+              </div>
+              <span className="text-muted-foreground shrink-0 text-sm font-semibold">
+                {week.workouts.toLocaleString()}/{weeklyTarget.toLocaleString()} workouts
+              </span>
             </div>
-            <span className="text-muted-foreground shrink-0 text-sm font-semibold">
-              {week.workouts.toLocaleString()}/{weeklyTarget.toLocaleString()} workouts
-            </span>
           </div>
-        </div>
 
-        {/* ── Start today's workout (the "start exercise" entry point) ── */}
-        <div
-          className="pro-surface sheen press relative mt-5 overflow-hidden rounded-3xl"
-          role="button"
-          tabIndex={0}
-          onClick={startToday}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && startToday()}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
-          <img
-            src="/images/start-workout.jpg"
-            alt=""
-            aria-hidden
-            className="absolute inset-0 h-full w-full object-cover opacity-60"
-          />
+          {/* ── Start today's workout (the "start exercise" entry point) ── */}
           <div
-            className="absolute inset-0"
-            style={{
-              background:
-                'linear-gradient(90deg, rgba(20,17,16,0.92) 0%, rgba(20,17,16,0.55) 55%, rgba(20,17,16,0.15) 100%)',
-            }}
-          />
-          <div className="relative flex items-center gap-4 p-5">
-            <div className="min-w-0 flex-1">
-              <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#f0a37f' }}>
-                {todaysSlot ? 'On today’s plan' : 'Ready when you are'}
-              </p>
-              <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f7f2ea]">
-                {todaysSlot ? todaysSlot.slot.title : 'Start today’s workout'}
-              </p>
-              <p className="pro-muted mt-0.5 truncate text-xs">
-                {focus ?? 'Guided session with rest timer, demo clips and PR detection'}
-              </p>
-            </div>
-            <span
-              className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-white shadow-lg"
+            className="pro-surface sheen press relative mt-5 overflow-hidden rounded-3xl"
+            role="button"
+            tabIndex={0}
+            onClick={startToday}
+            onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && startToday()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
+            <img
+              src="/images/start-workout.jpg"
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full object-cover opacity-60"
+            />
+            <div
+              className="absolute inset-0"
               style={{
-                background: 'linear-gradient(120deg,#e05e36,#c4451f)',
-                width: '3.25rem',
-                height: '3.25rem',
+                background:
+                  'linear-gradient(90deg, rgba(20,17,16,0.92) 0%, rgba(20,17,16,0.55) 55%, rgba(20,17,16,0.15) 100%)',
               }}
-            >
-              <Play className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden />
-            </span>
+            />
+            <div className="relative flex items-center gap-4 p-5">
+              <div className="min-w-0 flex-1">
+                <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#f0a37f' }}>
+                  {todaysSlot ? 'On today’s plan' : 'Ready when you are'}
+                </p>
+                <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f7f2ea]">
+                  {todaysSlot ? todaysSlot.slot.title : 'Start today’s workout'}
+                </p>
+                <p className="pro-muted mt-0.5 truncate text-xs">
+                  {focus ?? 'Guided session with rest timer, demo clips and PR detection'}
+                </p>
+              </div>
+              <span
+                className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-white shadow-lg"
+                style={{
+                  background: 'linear-gradient(120deg,#e05e36,#c4451f)',
+                  width: '3.25rem',
+                  height: '3.25rem',
+                }}
+              >
+                <Play className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden />
+              </span>
+            </div>
           </div>
-        </div>
 
-        {/* ── Today's closing rings ─────────────────────────────────────
+          {/* ── Today's closing rings ─────────────────────────────────────
             Dark ember hero: gradients + halo need the dark stage, and the
             legend reads in hero tones. Stacked on phones, side by side
             once there is room. */}
-        <div className="card-hero mt-5 p-5 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="font-display text-lg font-extrabold tracking-tight">Today</p>
-              <p className="hero-muted text-xs">
-                {new Date().toLocaleDateString(undefined, {
-                  weekday: 'long',
-                  month: 'short',
-                  day: 'numeric',
-                })}
-              </p>
-            </div>
-            {rings.closed && (
-              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-                <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--chart-3)' }} aria-hidden />
-                All rings closed
-              </span>
-            )}
-          </div>
-          <div className="mt-4 flex flex-col items-center gap-5 min-[480px]:flex-row min-[480px]:gap-6">
-            <div className="shrink-0">
-              <ActivityRingsGraphic rings={rings} size={168}>
-                <p className="font-display text-2xl font-extrabold tabular-nums">
-                  {rings.calories.target > 0
-                    ? Math.round(rings.calories.value)
-                    : rings.minutes.value}
+          <div className="card-hero mt-5 p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-display text-lg font-extrabold tracking-tight">Today</p>
+                <p className="hero-muted text-xs">
+                  {new Date().toLocaleDateString(undefined, {
+                    weekday: 'long',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
                 </p>
-                <p className="hero-muted text-[10px] font-bold tracking-widest uppercase">
-                  {rings.calories.target > 0 ? 'kcal' : 'min'}
-                </p>
-              </ActivityRingsGraphic>
+              </div>
+              {rings.closed && (
+                <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+                  <Sparkles
+                    className="h-3.5 w-3.5"
+                    style={{ color: 'var(--chart-3)' }}
+                    aria-hidden
+                  />
+                  All rings closed
+                </span>
+              )}
             </div>
-            <div className="w-full min-w-0 flex-1">
-              <ActivityRingsLegend rings={rings} tone="onDark" />
+            <div className="mt-4 flex flex-col items-center gap-5 min-[480px]:flex-row min-[480px]:gap-6">
+              <div className="shrink-0">
+                <ActivityRingsGraphic rings={rings} size={168}>
+                  <p className="font-display text-2xl font-extrabold tabular-nums">
+                    {rings.calories.target > 0
+                      ? Math.round(rings.calories.value)
+                      : rings.minutes.value}
+                  </p>
+                  <p className="hero-muted text-[10px] font-bold tracking-widest uppercase">
+                    {rings.calories.target > 0 ? 'kcal' : 'min'}
+                  </p>
+                </ActivityRingsGraphic>
+              </div>
+              <div className="w-full min-w-0 flex-1">
+                <ActivityRingsLegend rings={rings} tone="onDark" />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Quick actions — fluid circles that fill their column instead of
+          {/* Quick actions — fluid circles that fill their column instead of
             fixed 56px discs: five fixed discs plus gaps are wider than a
             320–360px card and used to push the dashboard past the viewport. */}
-        <div className="mt-7 grid grid-cols-5 gap-2 sm:gap-3">
-          {quickActions.map((a) => {
-            const inner = (
-              <div className="group flex flex-col items-center gap-2 sm:gap-2.5">
-                <span className="bg-secondary text-clay group-hover:bg-primary mx-auto flex aspect-square w-full max-w-14 items-center justify-center rounded-full shadow-sm transition-colors group-hover:text-white sm:aspect-auto sm:h-16 sm:w-16 sm:max-w-none">
-                  <a.icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2} />
-                </span>
-                <span className="text-clay text-center text-[10px] leading-tight font-semibold sm:text-xs">
-                  {a.label}
-                </span>
-              </div>
-            );
-            return a.href ? (
-              <Link key={a.label} href={a.href} className="group min-w-0">
-                {inner}
-              </Link>
-            ) : (
-              <button key={a.label} onClick={a.onClick} className="group min-w-0">
-                {inner}
-              </button>
-            );
-          })}
+          <div className="mt-7 grid grid-cols-5 gap-2 sm:gap-3">
+            {quickActions.map((a) => {
+              const inner = (
+                <div className="group flex flex-col items-center gap-2 sm:gap-2.5">
+                  <span className="bg-secondary text-clay group-hover:bg-primary mx-auto flex aspect-square w-full max-w-14 items-center justify-center rounded-full shadow-sm transition-colors group-hover:text-white sm:aspect-auto sm:h-16 sm:w-16 sm:max-w-none">
+                    <a.icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2} />
+                  </span>
+                  <span className="text-clay text-center text-[10px] leading-tight font-semibold sm:text-xs">
+                    {a.label}
+                  </span>
+                </div>
+              );
+              return a.href ? (
+                <Link key={a.label} href={a.href} className="group min-w-0">
+                  {inner}
+                </Link>
+              ) : (
+                <button key={a.label} onClick={a.onClick} className="group min-w-0">
+                  {inner}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Today's plan — the bridge between the schedule and the log. */}
+        {/* Today's plan — the bridge between the schedule and the log.
+            A standalone section now, separated from the card above. */}
         {agenda.length > 0 && (
-          <div className="mt-10">
+          <section aria-label="On today's plan">
             <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-[1.35rem]">
               On today&apos;s plan
             </h2>
@@ -361,11 +373,11 @@ export function OverviewScreen() {
                 );
               })}
             </ul>
-          </div>
+          </section>
         )}
 
-        {/* Summary */}
-        <div className="mt-10">
+        {/* Summary — its own section, separated from the plan items above. */}
+        <section aria-label="Summary">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-[1.35rem]">
               Summary
@@ -484,7 +496,7 @@ export function OverviewScreen() {
               </div>
             </>
           )}
-        </div>
+        </section>
       </div>
 
       {/* ── Right column: coach (desktop) ──────────────────────
