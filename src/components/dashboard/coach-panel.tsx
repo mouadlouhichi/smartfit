@@ -10,7 +10,7 @@ import {
   FREE_COACH_REPLIES_PER_DAY,
   answerCoach,
   coachGreeting,
-  isPro,
+  hasProAccess,
   toISODate,
   COACH_QUICK_REPLIES,
   type CoachChip,
@@ -76,7 +76,7 @@ export function useCoachConversation() {
   const aiAvailable = useMemo(() => aiCoachEnabled(), []);
   const aiHost_ = useMemo(() => (aiAvailable ? aiHost() : ''), [aiAvailable]);
   const [aiOn, setAiOn] = useState(false);
-  const pro = isPro(state);
+  const pro = hasProAccess(state);
   const [aiUses, setAiUses] = useState(readAiUses);
   const capped = !pro && aiUses >= FREE_COACH_REPLIES_PER_DAY;
 

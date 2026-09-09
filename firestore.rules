@@ -35,12 +35,25 @@ service cloud.firestore {
       return v in ['low', 'moderate', 'high'];
     }
 
+    // A Pro stamp, when present, must be a real plan + activation time so a
+    // scripted client cannot mint arbitrary tiers — the paywall is enforced at
+    // the database, not just in the app.
+    function validPro(profile) {
+      return !('pro' in profile)
+        || (profile.pro is map
+            && profile.pro.plan in ['monthly', 'yearly', 'trial']
+            && profile.pro.since is number
+            && profile.pro.since > 0
+            && profile.pro.size() <= 3);
+    }
+
     // ── account root ─────────────────────────────────────────────────────
     match /users/{userId} {
       allow read, delete: if isOwner(userId);
       // The root document carries the profile map and timestamps only.
       allow create, update: if isOwner(userId)
         && request.resource.data.profile is map
+        && validPro(request.resource.data.profile)
         && request.resource.data.size() <= 4;
 
       // ── logged workouts ────────────────────────────────────────────────
