@@ -1097,6 +1097,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
     aliases: ['bicycling', 'bike', 'biking'],
     muscles: ['quadriceps'],
     equipment: 'body',
+    measure: 'distance',
   },
   {
     id: 'Bicycling_Stationary',
@@ -1106,6 +1107,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
     aliases: ['bicycling stationary', 'exercise bike', 'spin bike'],
     muscles: ['quadriceps'],
     equipment: 'machine',
+    measure: 'distance',
   },
   {
     id: 'Elliptical_Trainer',
@@ -1115,6 +1117,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
     aliases: ['elliptical trainer', 'cross trainer'],
     muscles: ['quadriceps'],
     equipment: 'machine',
+    measure: 'distance',
   },
   {
     id: 'Stairmaster',
@@ -1124,6 +1127,7 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
     aliases: ['stair master', 'stair climber', 'stepper'],
     muscles: ['quadriceps', 'glutes'],
     equipment: 'machine',
+    measure: 'distance',
   },
 
   // ── Pool & running: distance-measured conditioning ────────────────────────
@@ -1266,10 +1270,12 @@ export const EXERCISES: ExerciseCatalogEntry[] = [
 
 // ── Matching & search ────────────────────────────────────────────────────────
 
-/** Lowercase, strip punctuation, collapse whitespace. */
+/** Lowercase, strip accents + punctuation, collapse whitespace. */
 function normalize(value: string): string {
   return value
     .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 }
@@ -1360,20 +1366,77 @@ export function matchExercise(input: string): ExerciseCatalogEntry | null {
 }
 
 /**
- * Ranked search for the picker. Empty queries return the popular lifts
- * first, then the rest of the catalog in order. Non-empty queries score
- * name/alias exact > prefix > whole-token > substring, with a popularity
- * bump so canonical lifts surface above niche names that merely start with
- * the same letters (typing "bench" wants the bench press, not bench dips).
+ * Gym slang → canonical muscle/equipment/group tokens, so "quads", "delts",
+ * "pecs" and "cardio" find the right movements instead of nothing.
  */
-export function searchExercises(query: string, limit = 8): ExerciseCatalogEntry[] {
+const SEARCH_SYNONYMS: Record<string, string> = {
+  quad: 'quadriceps',
+  quads: 'quadriceps',
+  hammie: 'hamstrings',
+  hammies: 'hamstrings',
+  hams: 'hamstrings',
+  hamstring: 'hamstrings',
+  glute: 'glutes',
+  calf: 'calves',
+  pec: 'chest',
+  pecs: 'chest',
+  delt: 'shoulders',
+  delts: 'shoulders',
+  lat: 'lats',
+  trap: 'traps',
+  bi: 'biceps',
+  bis: 'biceps',
+  tri: 'triceps',
+  tris: 'triceps',
+  forearm: 'forearms',
+  ab: 'abdominals',
+  abs: 'abdominals',
+  core: 'abdominals',
+  back: 'back',
+  cardio: 'cardio',
+  conditioning: 'conditioning',
+  db: 'dumbbell',
+  bb: 'barbell',
+  bw: 'body',
+  bodyweight: 'body',
+};
+
+export interface SearchExercisesOptions {
+  /**
+   * Recently-logged exercise names (most recent first). Empty queries lead
+   * with them; non-empty queries bump their score. Omitted = pure ranking.
+   */
+  recentNames?: readonly string[];
+}
+
+/**
+ * Ranked search for the picker and the library.
+ *
+ * Empty queries return recent lifts first (when provided), then the popular
+ * lifts. Non-empty queries score name/alias exact > prefix > whole-word >
+ * cross-field (name + muscle + equipment, so "dumbbell chest" works) >
+ * substring > typo-tolerant fuzzy, with a popularity bump so canonical lifts
+ * surface above niche names that merely start with the same letters (typing
+ * "bench" wants the bench press, not bench dips). Muscle/equipment keywords
+ * ("shoulders", "quads", "cable") intentionally score low so a name match
+ * always outranks a keyword match.
+ */
+export function searchExercises(
+  query: string,
+  limit = 8,
+  opts: SearchExercisesOptions = {},
+): ExerciseCatalogEntry[] {
   const q = normalize(query);
+  const recents = resolveRecents(opts.recentNames);
   if (!q) {
-    return [...EXERCISES]
+    const seen = new Set(recents.map((e) => e.id));
+    const popular = [...EXERCISES]
       .sort((a, b) => Number(b.popular ?? 0) - Number(a.popular ?? 0))
-      .slice(0, limit);
+      .filter((e) => !seen.has(e.id));
+    return [...recents, ...popular].slice(0, limit);
   }
 
+  const recentIds = new Set(recents.map((e) => e.id));
   const scored: { entry: ExerciseCatalogEntry; index: number; score: number }[] = [];
   const catalog = allExercises();
   for (let index = 0; index < catalog.length; index++) {
@@ -1382,12 +1445,16 @@ export function searchExercises(query: string, limit = 8): ExerciseCatalogEntry[
     for (const alias of entry.aliases ?? []) {
       score = Math.max(score, scoreCandidate(alias, q) - 5);
     }
+    if (score === 0) score = scoreCrossField(entry, q);
+    if (score === 0) score = scoreKeyword(entry, q);
     if (score === 0) {
-      const haystack = [...entry.muscles, entry.equipment].map(normalize).join(' ');
-      if (` ${haystack} `.includes(` ${q} `)) score = 12;
+      const fuzzy = scoreFuzzy(entry.name, q);
+      score = Math.max(fuzzy, ...(entry.aliases ?? []).map((a) => scoreFuzzy(a, q) - 5));
     }
     if (score > 0) {
-      scored.push({ entry, index, score: score + (entry.popular ? 15 : 0) });
+      if (recentIds.has(entry.id)) score += 10;
+      else if (entry.popular) score += 15;
+      scored.push({ entry, index, score });
     }
   }
 
@@ -1395,6 +1462,21 @@ export function searchExercises(query: string, limit = 8): ExerciseCatalogEntry[
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .slice(0, limit)
     .map((s) => s.entry);
+}
+
+/** Resolve recent names to catalog entries, deduped, most recent first. */
+function resolveRecents(recentNames: readonly string[] | undefined): ExerciseCatalogEntry[] {
+  if (!recentNames || recentNames.length === 0) return [];
+  const out: ExerciseCatalogEntry[] = [];
+  const seen = new Set<string>();
+  for (const name of recentNames) {
+    const entry = matchExercise(name);
+    if (entry && !seen.has(entry.id)) {
+      seen.add(entry.id);
+      out.push(entry);
+    }
+  }
+  return out;
 }
 
 /** Score one name/alias candidate against the query; 0 means no match. */
@@ -1407,6 +1489,87 @@ function scoreCandidate(candidate: string, q: string): number {
   if (q.split(' ').every((t) => tokens.some((tok) => tok.startsWith(t)))) return 55;
   if (c.includes(q)) return 45;
   return 0;
+}
+
+/**
+ * Cross-field match: every query token appears as a prefix of a name token,
+ * a muscle, the equipment or the group (synonyms expanded) — "dumbbell
+ * chest" and "cable back" resolve even though no single field holds both.
+ */
+function scoreCrossField(entry: ExerciseCatalogEntry, q: string): number {
+  // Note: the browse group is deliberately NOT in the pool — otherwise
+  // "shoulders" would match trap-only lifts filed under the Shoulders group.
+  const pool = [
+    ...normalize(entry.name).split(' '),
+    ...entry.muscles.flatMap((m) => normalize(m).split(' ')),
+    ...normalize(entry.equipment).split(' '),
+  ];
+  const tokens = q.split(' ').map((t) => SEARCH_SYNONYMS[t] ?? t);
+  // "cardio" is a concept, not a field: conditioning + pool/running gear.
+  const cardioOk =
+    !tokens.includes('cardio') ||
+    entry.group === 'conditioning' ||
+    entry.equipment === 'pool' ||
+    entry.equipment === 'running';
+  if (!cardioOk) return 0;
+  const rest = tokens.filter((t) => t !== 'cardio');
+  if (rest.length === 0) return 12;
+  return rest.every((t) => pool.some((tok) => tok.startsWith(t))) ? 40 : 0;
+}
+
+/**
+ * Low-score keyword fallback for single-token muscle/equipment queries
+ * ("shoulders", "quads", "cable") — deliberately below every name tier so a
+ * name match always wins. Whole-token only, so "tri" never steals "triceps"
+ * work from real names (those live in aliases).
+ */
+function scoreKeyword(entry: ExerciseCatalogEntry, q: string): number {
+  if (q.includes(' ')) return 0;
+  const token = SEARCH_SYNONYMS[q] ?? q;
+  if (token === 'cardio') {
+    return entry.group === 'conditioning' ||
+      entry.equipment === 'pool' ||
+      entry.equipment === 'running'
+      ? 12
+      : 0;
+  }
+  const haystack = [...entry.muscles, entry.equipment].map(normalize).join(' ');
+  if (` ${haystack} `.includes(` ${token} `)) return 12;
+  return 0;
+}
+
+/**
+ * Typo-tolerant tier: every query token (≥ 4 chars) lands within a small
+ * edit distance of a name token — "bech press" and "dumbel curl" still find
+ * their lift. Scores below substring so exact text always wins.
+ */
+function scoreFuzzy(candidate: string, q: string): number {
+  const tokens = normalize(candidate).split(' ');
+  const ok = q.split(' ').every((t) => {
+    if (t.length < 4) return tokens.some((tok) => tok.startsWith(t));
+    const allowance = t.length >= 6 ? 2 : 1;
+    return tokens.some((tok) => editDistanceBounded(tok, t, allowance) <= allowance);
+  });
+  return ok ? 30 : 0;
+}
+
+/** Levenshtein distance with an early exit past `limit` (queries are short). */
+function editDistanceBounded(a: string, b: string, limit: number): number {
+  if (Math.abs(a.length - b.length) > limit) return limit + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let rowMin = i;
+    const curr = [i];
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      const v = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+      curr.push(v);
+      if (v < rowMin) rowMin = v;
+    }
+    if (rowMin > limit) return limit + 1;
+    prev = curr;
+  }
+  return prev[b.length];
 }
 
 /**
@@ -1466,8 +1629,21 @@ export function exerciseMeasure(entry: ExerciseCatalogEntry): 'weight' | 'distan
   );
 }
 
-/** `exerciseMeasure` for a free-text log name; unknown names log weight. */
+/**
+ * Cardio verbs for free-typed names no catalog entry covers ("Morning run",
+ * "Evening ride"). Deliberately narrow — "row" would catch the barbell row
+ * and "walk" the weighted farmer's walk, so those stay load-measured.
+ */
+const FREE_TEXT_CARDIO_PATTERN =
+  /\b(run|runs|running|jog|jogging|sprint|sprinting|treadmill|cycle|cycling|bike|biking|swim|swimming|elliptical|stairmaster|marathon|triathlon)\b/i;
+
+/**
+ * `exerciseMeasure` for a free-text log name. Known movements resolve through
+ * the catalog; unknown names fall back to a cardio-verb check so a typed
+ * "Morning run" still logs metres instead of kilos.
+ */
 export function measureForExerciseName(name: string): 'weight' | 'distance' {
   const entry = matchExercise(name);
-  return entry ? exerciseMeasure(entry) : 'weight';
+  if (entry) return exerciseMeasure(entry);
+  return FREE_TEXT_CARDIO_PATTERN.test(name.trim()) ? 'distance' : 'weight';
 }

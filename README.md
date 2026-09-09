@@ -85,10 +85,14 @@ shared domain package — but applies them to **training** instead of money.
   the session with its real duration and the sets you completed. Category art
   tiles (generated, in `public/images/`) anchor each session visually.
 - **SmartFit Pro** — a paid tier with a real paywall: plan cards (monthly /
-  yearly), Stripe Payment Link checkout when configured (otherwise a clearly
-  labelled sandbox checkout), restore & cancel. Gates: unlimited AI coach
-  replies (free = 6/day), quarter & year analytics ranges, Pro badge. The free
-  tier stays fully usable for training, logging and trends.
+  yearly / lifetime), Stripe Payment Link checkout when configured (otherwise
+  a clearly labelled sandbox checkout), restore & cancel. Gates: adaptive
+  progression targets, readiness score + load chart, unlimited AI coach
+  replies (free = 6 AI replies/day; on-device answers are always unlimited),
+  quarter & year analytics ranges, unlimited routine templates, watermark-free
+  share cards, Pro badge. Records, earned badges and JSON+CSV export are free
+  forever. The billing layer is provider-based (`src/lib/billing/`, see
+  `docs/billing.md`) with CMI specified and ready for the finance setup.
 - **Goals** — weekly & monthly targets for workouts, active minutes, calories or
   distance, with live progress bars that reset each period.
 - **Streaks & momentum** — a consecutive-day training streak.

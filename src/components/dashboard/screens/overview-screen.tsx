@@ -18,6 +18,7 @@ import { CoachPanel } from '../coach-panel';
 import { EmptyState } from '../empty-state';
 import { CategoryIcon } from '@/components/category-icon';
 import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
+import { ReadinessCard } from '../readiness-card';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -196,90 +197,89 @@ export function OverviewScreen() {
           onClick={startToday}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && startToday()}
         >
-            {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
-            <img
-              src="/images/start-workout.jpg"
-              alt=""
-              aria-hidden
-              className="absolute inset-0 h-full w-full object-cover opacity-60"
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  'linear-gradient(90deg, rgba(20,17,16,0.92) 0%, rgba(20,17,16,0.55) 55%, rgba(20,17,16,0.15) 100%)',
-              }}
-            />
-            <div className="relative flex items-center gap-4 p-5">
-              <div className="min-w-0 flex-1">
-                <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#f0a37f' }}>
-                  {todaysSlot ? 'On today’s plan' : 'Ready when you are'}
-                </p>
-                <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f7f2ea]">
-                  {todaysSlot ? todaysSlot.slot.title : 'Start today’s workout'}
-                </p>
-                <p className="pro-muted mt-0.5 truncate text-xs">
-                  {focus ?? 'Guided session with rest timer, demo clips and PR detection'}
-                </p>
-              </div>
-              <span
-                className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-white shadow-lg"
-                style={{
-                  background: 'linear-gradient(120deg,#e05e36,#c4451f)',
-                  width: '3.25rem',
-                  height: '3.25rem',
-                }}
-              >
-                <Play className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden />
-              </span>
+          {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
+          <img
+            src="/images/start-workout.jpg"
+            alt=""
+            aria-hidden
+            className="absolute inset-0 h-full w-full object-cover opacity-60"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(90deg, rgba(20,17,16,0.92) 0%, rgba(20,17,16,0.55) 55%, rgba(20,17,16,0.15) 100%)',
+            }}
+          />
+          <div className="relative flex items-center gap-4 p-5">
+            <div className="min-w-0 flex-1">
+              <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#f0a37f' }}>
+                {todaysSlot ? 'On today’s plan' : 'Ready when you are'}
+              </p>
+              <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f7f2ea]">
+                {todaysSlot ? todaysSlot.slot.title : 'Start today’s workout'}
+              </p>
+              <p className="pro-muted mt-0.5 truncate text-xs">
+                {focus ?? 'Guided session with rest timer, demo clips and PR detection'}
+              </p>
             </div>
+            <span
+              className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-white shadow-lg"
+              style={{
+                background: 'linear-gradient(120deg,#e05e36,#c4451f)',
+                width: '3.25rem',
+                height: '3.25rem',
+              }}
+            >
+              <Play className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden />
+            </span>
           </div>
+        </div>
 
         {/* ── Today's closing rings ─────────────────────────────────────
             Dark ember hero: gradients + halo need the dark stage, and the
             legend reads in hero tones. Stacked on phones, side by side
             once there is room. */}
         <div className="card-hero p-5 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="font-display text-lg font-extrabold tracking-tight">Today</p>
-                <p className="hero-muted text-xs">
-                  {new Date().toLocaleDateString(undefined, {
-                    weekday: 'long',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
-              {rings.closed && (
-                <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-                  <Sparkles
-                    className="h-3.5 w-3.5"
-                    style={{ color: 'var(--chart-3)' }}
-                    aria-hidden
-                  />
-                  All rings closed
-                </span>
-              )}
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-display text-lg font-extrabold tracking-tight">Today</p>
+              <p className="hero-muted text-xs">
+                {new Date().toLocaleDateString(undefined, {
+                  weekday: 'long',
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </p>
             </div>
-            <div className="mt-4 flex flex-col items-center gap-5 min-[480px]:flex-row min-[480px]:gap-6">
-              <div className="shrink-0">
-                <ActivityRingsGraphic rings={rings} size={168}>
-                  <p className="font-display text-2xl font-extrabold tabular-nums">
-                    {rings.calories.target > 0
-                      ? Math.round(rings.calories.value)
-                      : rings.minutes.value}
-                  </p>
-                  <p className="hero-muted text-[10px] font-bold tracking-widest uppercase">
-                    {rings.calories.target > 0 ? 'kcal' : 'min'}
-                  </p>
-                </ActivityRingsGraphic>
-              </div>
-              <div className="w-full min-w-0 flex-1">
-                <ActivityRingsLegend rings={rings} tone="onDark" />
-              </div>
+            {rings.closed && (
+              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+                <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--chart-3)' }} aria-hidden />
+                All rings closed
+              </span>
+            )}
+          </div>
+          <div className="mt-4 flex flex-col items-center gap-5 min-[480px]:flex-row min-[480px]:gap-6">
+            <div className="shrink-0">
+              <ActivityRingsGraphic rings={rings} size={168}>
+                <p className="font-display text-2xl font-extrabold tabular-nums">
+                  {rings.calories.target > 0
+                    ? Math.round(rings.calories.value)
+                    : rings.minutes.value}
+                </p>
+                <p className="hero-muted text-[10px] font-bold tracking-widest uppercase">
+                  {rings.calories.target > 0 ? 'kcal' : 'min'}
+                </p>
+              </ActivityRingsGraphic>
+            </div>
+            <div className="w-full min-w-0 flex-1">
+              <ActivityRingsLegend rings={rings} tone="onDark" />
             </div>
           </div>
+        </div>
+
+        {/* Readiness — the Pro shop window sits right under the rings. */}
+        <ReadinessCard />
 
         {/* Quick actions */}
         <div className="grid grid-cols-5 gap-2 sm:gap-3">

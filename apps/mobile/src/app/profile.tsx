@@ -1,8 +1,17 @@
 import React, { useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Database, RefreshCw, UserRound, X } from 'lucide-react-native';
-import { BODY_UNIT_META, latestBodyValue, toISODate, PLANS } from '@smartfit/core';
+import { Crown, Database, RefreshCw, UserRound, X } from 'lucide-react-native';
+import {
+  BODY_UNIT_META,
+  PRO_PLANS,
+  hasProAccess,
+  isTrialing,
+  latestBodyValue,
+  toISODate,
+  trialDaysLeft,
+  PLANS,
+} from '@smartfit/core';
 import { useStore } from '@/lib/store';
 import { Button, Card, Input, Label } from '@/components/ui';
 
@@ -62,6 +71,54 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   );
 }
 
+/**
+ * Pro membership status. Checkout lives in the web app for now (native
+ * in-app purchase via RevenueCat is the follow-up) — but the stamp is read
+ * here so gates stay consistent the moment mobile enforces them, and members
+ * see their status instead of a second paywall.
+ */
+function ProCard() {
+  const { state } = useStore();
+  const pro = hasProAccess(state);
+  const trialing = isTrialing(state);
+  const planName = PRO_PLANS.find((p) => p.id === state.profile.pro?.plan)?.name;
+
+  if (pro) {
+    return (
+      <Card>
+        <View className="flex-row items-center gap-2">
+          <Crown color="#C4893A" size={18} />
+          <Text className="text-foreground font-semibold">
+            SmartFit Pro{trialing ? ' Trial' : planName ? ` · ${planName}` : ''}
+          </Text>
+        </View>
+        <Text className="text-muted-foreground mt-1 text-sm">
+          {trialing
+            ? `${trialDaysLeft(state)} day${trialDaysLeft(state) === 1 ? '' : 's'} left in your trial`
+            : 'Adaptive targets, readiness score and full analytics are unlocked.'}
+        </Text>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <View className="flex-row items-center gap-2">
+        <Crown color="#C4893A" size={18} />
+        <Text className="text-foreground font-semibold">SmartFit Pro</Text>
+      </View>
+      <Text className="text-muted-foreground mt-1 text-sm">
+        Adaptive progression targets, a daily readiness score, quarter & year analytics and
+        unlimited routines — from $4.17/mo.
+      </Text>
+      <Text className="text-muted-foreground mt-2 text-xs">
+        Subscriptions are managed in the SmartFit web app for now; your Pro status lights up here
+        automatically.
+      </Text>
+    </Card>
+  );
+}
+
 export default function ProfileScreen() {
   const { state, updateProfile, clearData } = useStore();
   const [bodyOpen, setBodyOpen] = useState(false);
@@ -94,6 +151,8 @@ export default function ProfileScreen() {
             </Text>
           </View>
         </Card>
+
+        <ProCard />
 
         <Card>
           <View className="mb-2 flex-row items-center gap-2">

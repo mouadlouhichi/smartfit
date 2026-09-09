@@ -45,8 +45,8 @@ export function CtaSection() {
                   how you&apos;re training?
                 </h2>
                 <p className="mb-12 max-w-xl text-xl leading-relaxed text-[color:var(--muted-foreground)]">
-                  Start free — every feature included, no card, no account. Your first logged
-                  session takes about thirty seconds.
+                  Start free — the full training core included, no card, no account. Your first
+                  logged session takes about thirty seconds.
                 </p>
                 <div className="flex flex-col items-start gap-4 sm:flex-row">
                   <Link href="/login" className="btn-primary group">

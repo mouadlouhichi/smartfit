@@ -33,11 +33,12 @@ export function FreeListSection() {
             <h2 className="mb-8 text-4xl tracking-tight lg:text-6xl">
               Start free.
               <br />
-              Stay free.
+              Go Pro when ready.
             </h2>
             <p className="mb-12 text-xl leading-relaxed text-[color:var(--muted-foreground)]">
-              Every core feature is free with no time limit and no card. SmartFit is private by
-              design — there is no premium tier and nothing to upsell.
+              The full training core is free with no time limit and no card. When you want to know
+              what to lift next and how ready you are, SmartFit Pro adds on-device training
+              intelligence.
             </p>
 
             <div className="grid grid-cols-3 gap-4 sm:gap-8">

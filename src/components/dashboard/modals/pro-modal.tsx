@@ -2,16 +2,16 @@
 
 import { useState } from 'react';
 import {
+  Activity,
   Check,
   Crown,
-  FileDown,
   LineChart,
   ListChecks,
-  Medal,
   RefreshCw,
+  Share2,
   ShieldCheck,
   Sparkles,
-  Trophy,
+  TrendingUp,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -28,7 +28,12 @@ import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
-import { BILLING_MODE, paymentLinkFor } from '@/lib/billing';
+import {
+  BILLING_MODE,
+  activeBillingProvider,
+  manageSubscriptionUrl,
+  paymentLinkFor,
+} from '@/lib/billing';
 import {
   PRO_GATES,
   PRO_PLANS,
@@ -46,11 +51,11 @@ import { cn } from '@/lib/utils';
 
 const GATE_ICONS: Record<string, LucideIcon> = {
   sparkles: Sparkles,
+  'trending-up': TrendingUp,
+  activity: Activity,
   'line-chart': LineChart,
-  trophy: Trophy,
-  medal: Medal,
   'list-checks': ListChecks,
-  'file-down': FileDown,
+  share: Share2,
 };
 
 /**
@@ -251,7 +256,7 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
     <div className="grid gap-4">
       {/* Plan cards */}
       <div className="grid grid-cols-2 gap-3">
-        {PRO_PLANS.map((p) => (
+        {PRO_PLANS.map((p, i) => (
           <button
             key={p.id}
             type="button"
@@ -259,6 +264,8 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
             aria-pressed={plan === p.id}
             className={cn(
               'press relative flex flex-col items-start gap-0.5 rounded-2xl border p-3.5 text-left transition-all',
+              // With an odd plan count the last card spans the row as a banner.
+              PRO_PLANS.length % 2 === 1 && i === PRO_PLANS.length - 1 && 'col-span-2',
               plan === p.id
                 ? 'gold-edge border-transparent bg-[rgba(240,200,130,0.1)]'
                 : 'pro-tile border-transparent',
@@ -278,7 +285,7 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
               <span className="pro-muted text-xs font-medium">{p.per}</span>
             </span>
             <span className="pro-muted text-xs font-semibold">
-              {p.effective ?? 'Billed monthly'}
+              {p.effective ?? (p.id === 'lifetime' ? 'One-time payment' : 'Billed monthly')}
             </span>
             {p.savePct && (
               <span
@@ -298,8 +305,8 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
         <p className="pro-muted flex items-center gap-1.5 text-[11px]">
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
           {BILLING_MODE === 'sandbox'
-            ? 'Sandbox — connect Stripe to charge for real.'
-            : 'Secured by Stripe. Cancel anytime.'}
+            ? 'Sandbox — connect a provider to charge for real.'
+            : `Secured by ${activeBillingProvider().label}. Cancel anytime.`}
         </p>
         <Button
           variant="ghost"
@@ -398,6 +405,7 @@ function ManageContent({
 /* ── manage footer (pinned — always visible) ────────────────────────────── */
 
 function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () => void }) {
+  const manageUrl = manageSubscriptionUrl();
   return (
     <DialogFooter className={cn(PRO_FOOTER_BAR, 'flex-col')}>
       <Button
@@ -407,6 +415,15 @@ function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () =
       >
         Done
       </Button>
+      {manageUrl && (
+        <Button
+          variant="outline"
+          className="rounded-2xl"
+          onClick={() => window.open(manageUrl, '_blank', 'noopener')}
+        >
+          Manage subscription
+        </Button>
+      )}
       <Button onClick={onCancel} variant="ghost" className="rounded-2xl text-[#f0817a]">
         Cancel Pro
       </Button>

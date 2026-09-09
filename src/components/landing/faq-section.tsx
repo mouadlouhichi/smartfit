@@ -5,7 +5,15 @@ import Link from 'next/link';
 const FAQS = [
   {
     q: 'Is SmartFit free?',
-    a: 'Yes — every feature is free with no time limit. There is no premium tier, no trial that runs out, and no card required. SmartFit is private and local-first, so there is nothing to upsell.',
+    a: 'Yes — the full training core is free forever with no time limit and no card: unlimited workout logging, plans, goals, streaks, records, achievements and data export. SmartFit Pro ($49.99/year) adds training intelligence on top: adaptive progression targets, a daily readiness score, longer analytics ranges and unlimited routine templates.',
+  },
+  {
+    q: 'What does SmartFit Pro add?',
+    a: 'Pro tells you what to do next: every set gets an adaptive target computed from your own history, a daily readiness score tells you when to push or back off, and you unlock quarter/year analytics, unlimited routine templates and watermark-free share cards. Your records, badges and exports stay free either way — Pro never holds your own history hostage. A free 14-day trial needs no card.',
+  },
+  {
+    q: 'Is my data still private on Pro?',
+    a: 'Yes — Pro runs on the same local-first architecture. Progression and readiness are computed on your device from data you entered; upgrading changes what the app computes for you, not where your data lives.',
   },
   {
     q: 'Do I need a smartwatch or wearable?',
@@ -25,7 +33,7 @@ const FAQS = [
   },
   {
     q: 'Can I export my data?',
-    a: 'Yes. From Profile you can export a complete, restorable JSON backup any time.',
+    a: 'Yes. From Profile you can export a complete, restorable JSON backup plus a CSV of every set for spreadsheets — free on every tier, any time.',
   },
   {
     q: 'How do I delete my data?',

@@ -156,8 +156,10 @@ function parseProfile(v: unknown): UserProfile {
   // Optional Pro stamp: only a well-formed {plan, since} pair is kept.
   if (isObj(v.pro)) {
     const rawPlan = v.pro.plan;
-    const plan: 'monthly' | 'yearly' | 'trial' | null =
-      rawPlan === 'monthly' || rawPlan === 'yearly' || rawPlan === 'trial' ? rawPlan : null;
+    const plan: 'monthly' | 'yearly' | 'lifetime' | 'trial' | null =
+      rawPlan === 'monthly' || rawPlan === 'yearly' || rawPlan === 'lifetime' || rawPlan === 'trial'
+        ? rawPlan
+        : null;
     const since = num(v.pro.since, 0);
     if (plan && since > 0) profile.pro = { plan, since };
   }

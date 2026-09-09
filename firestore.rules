@@ -41,7 +41,7 @@ service cloud.firestore {
     function validPro(profile) {
       return !('pro' in profile)
         || (profile.pro is map
-            && profile.pro.plan in ['monthly', 'yearly', 'trial']
+            && profile.pro.plan in ['monthly', 'yearly', 'lifetime', 'trial']
             && profile.pro.since is number
             && profile.pro.since > 0
             && profile.pro.size() <= 3);

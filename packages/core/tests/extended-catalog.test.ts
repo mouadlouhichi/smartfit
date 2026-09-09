@@ -7,7 +7,7 @@ import {
   loadExtendedCatalog,
   type GifDbItem,
 } from '../src/extended-catalog.ts';
-import { matchExercise } from '../src/exercises.ts';
+import { matchExercise, measureForExerciseName } from '../src/exercises.ts';
 
 /**
  * The runtime loader backs the "full 1,323-exercise catalog" feature. These
@@ -77,4 +77,35 @@ test('applyExtendedCatalog skips malformed items', () => {
   assert.equal(added.length, 1);
   assert.equal(added[0]?.id, 'abs/dead-bug');
   assert.ok(matchExercise('Dead Bug'));
+});
+
+test('runtime cardio entries log distance, strength entries log load', () => {
+  const added = applyExtendedCatalog([
+    {
+      id: 'cardio/treadmill-running',
+      slug: 'treadmill-running',
+      name: 'Treadmill Running',
+      muscle: 'cardio',
+      equipment: 'treadmill',
+      category: 'cardio',
+    },
+    {
+      id: 'cardio/stationary-bike-ride',
+      slug: 'stationary-bike-ride',
+      name: 'Stationary Bike Ride',
+      muscle: 'quads',
+      equipment: 'stationary bike',
+      category: 'cardio',
+    },
+    deadBug,
+  ]);
+  assert.equal(added.length, 3);
+  const run = added.find((e) => e.name === 'Treadmill Running');
+  assert.equal(run?.measure, 'distance');
+  assert.equal(run?.equipment, 'running');
+  const bike = added.find((e) => e.name === 'Stationary Bike Ride');
+  assert.equal(bike?.measure, 'distance');
+  const bug = added.find((e) => e.name === 'Dead Bug');
+  assert.equal(bug?.measure, undefined);
+  assert.equal(measureForExerciseName('Treadmill Running'), 'distance');
 });

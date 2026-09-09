@@ -73,10 +73,45 @@ const EQUIPMENT_TO_OURS: Record<string, ExerciseEquipment> = {
   smith: 'machine',
   sled: 'machine',
   bodyweight: 'body',
+  body: 'body',
   band: 'band',
   kettlebell: 'kettlebell',
   'ez-bar': 'ez-bar',
+  // Cardio machines — the runner logs these by distance, not load.
+  treadmill: 'running',
+  bike: 'running',
+  'stationary bike': 'running',
+  'exercise bike': 'running',
+  elliptical: 'running',
+  'rowing machine': 'running',
+  rower: 'running',
+  stepmill: 'running',
+  stairs: 'running',
+  pool: 'pool',
 };
+
+/** Equipment values that imply a distance-measured movement. */
+const CARDIO_EQUIPMENT = new Set([
+  'treadmill',
+  'bike',
+  'stationary bike',
+  'exercise bike',
+  'spin bike',
+  'elliptical',
+  'rowing machine',
+  'rower',
+  'stepmill',
+  'stairs',
+  'pool',
+]);
+
+/**
+ * Strong cardio verbs for names the dataset doesn't tag as cardio. Kept tight
+ * on purpose: "row" would catch the barbell row, "walk" would catch the
+ * (weighted) farmer's walk — both stay load-measured.
+ */
+const CARDIO_NAME_PATTERN =
+  /\b(run|runs|running|runner|jog|jogging|sprint|sprinting|treadmill|cycle|cycling|cyclist|bike|biking|swim|swimming|swimmer|elliptical|stairmaster|stepmill|marathon|triathlon|5k|10k)\b/i;
 
 /** Lowercase, strip punctuation, collapse whitespace — mirrors the core matcher. */
 function normalizeName(value: string): string {
@@ -130,11 +165,21 @@ function toEntry(item: GifDbItem): ExerciseCatalogEntry {
     const mapped = secondary === 'cardio' ? undefined : MUSCLE_TO_OURS[secondary];
     if (mapped && mapped !== primary && !muscles.includes(mapped)) muscles.push(mapped);
   }
+  const equipmentKey = (item.equipment ?? '').trim().toLowerCase();
+  const equipment = EQUIPMENT_TO_OURS[equipmentKey] ?? 'other';
+  // Cardio entries log distance, never load — without this every runtime
+  // running/cycling/rowing movement showed a weight input in the runner.
+  const isCardio =
+    item.muscle === 'cardio' ||
+    item.category === 'cardio' ||
+    CARDIO_EQUIPMENT.has(equipmentKey) ||
+    CARDIO_NAME_PATTERN.test(item.name);
   return {
     id: item.id ?? `${item.muscle}/${item.slug}`,
     name: item.name,
     muscles,
-    equipment: EQUIPMENT_TO_OURS[item.equipment ?? ''] ?? 'other',
+    equipment,
+    measure: isCardio ? 'distance' : undefined,
     group: groupFor(item),
     gif: { muscle: item.muscle, slug: item.slug },
     extended: true,

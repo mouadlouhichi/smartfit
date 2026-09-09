@@ -20,6 +20,10 @@ test('isPro requires a well-formed stamp', () => {
     true,
   );
   assert.equal(
+    isPro({ ...state, profile: { ...state.profile, pro: { plan: 'lifetime', since: 1 } } }),
+    true,
+  );
+  assert.equal(
     isPro({ ...state, profile: { ...state.profile, pro: { plan: 'weekly', since: 1 } as never } }),
     false,
   );
@@ -36,7 +40,13 @@ test('pro stamp survives parsing; junk is dropped', () => {
   assert.ok(ok, 'valid state parses');
   assert.deepEqual(ok.profile.pro, { plan: 'monthly', since: 1717171717 });
 
-  const junk = parseStateJSON(JSON.stringify({ profile: { pro: { plan: 'lifetime', since: 5 } } }));
+  const lifetime = parseStateJSON(
+    JSON.stringify({ profile: { pro: { plan: 'lifetime', since: 1717171717 } } }),
+  );
+  assert.ok(lifetime, 'state still parses');
+  assert.deepEqual(lifetime.profile.pro, { plan: 'lifetime', since: 1717171717 });
+
+  const junk = parseStateJSON(JSON.stringify({ profile: { pro: { plan: 'weekly', since: 5 } } }));
   assert.ok(junk, 'state still parses');
   assert.equal('pro' in junk.profile, false);
 
@@ -45,8 +55,8 @@ test('pro stamp survives parsing; junk is dropped', () => {
   assert.equal('pro' in none.profile, false);
 });
 
-test('catalog is sellable: two plans, priced, with promises', () => {
-  assert.equal(PRO_PLANS.length, 2);
+test('catalog is sellable: three plans, priced, with promises', () => {
+  assert.equal(PRO_PLANS.length, 3);
   for (const p of PRO_PLANS) {
     assert.match(p.price, /^\$\d/);
     assert.ok(p.name.length > 0);
