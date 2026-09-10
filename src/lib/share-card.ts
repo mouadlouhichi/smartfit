@@ -212,9 +212,9 @@ function fit(
 /* ── brand furniture ─────────────────────────────────────────────────── */
 
 /**
- * The SmartFit mark: the ember tile with the white dumbbell. Drawn as vectors
- * (exactly the geometry of `public/icon.svg`) so there is no image decode, no
- * CORS and no softness at any size.
+ * The SmartFit mark: the charcoal disc with the white flame — the same badge
+ * the dashboard header wears, and the geometry of `public/icon.svg`. Drawn as
+ * vectors so there is no image decode, no CORS and no softness at any size.
  */
 export function drawLogoMark(
   ctx: CanvasRenderingContext2D,
@@ -228,30 +228,27 @@ export function drawLogoMark(
     ctx.shadowColor = 'rgba(10,8,7,0.5)';
     ctx.shadowBlur = size * 0.22;
   }
-  roundRect(ctx, x, y, size, size, size * 0.2266); // 116/512 in the brand asset
-  ctx.fillStyle = opts.plate ?? '#e05e36';
+  ctx.beginPath();
+  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
+  ctx.fillStyle = opts.plate ?? '#3f3d3b';
   ctx.fill();
   ctx.restore();
 
-  // Dumbbell bars, in the source viewBox' own coordinates.
+  // The flame, in lucide's own 24-box coordinates.
+  const s = (size * 0.58) / 24;
   ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(size / 512, size / 512);
+  ctx.translate(x + (size - 24 * s) / 2, y + (size - 24 * s) / 2);
+  ctx.scale(s, s);
   ctx.strokeStyle = opts.ink ?? '#ffffff';
-  ctx.lineWidth = 30;
+  ctx.lineWidth = 2;
   ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(170, 186);
-  ctx.lineTo(170, 326);
-  ctx.moveTo(342, 186);
-  ctx.lineTo(342, 326);
-  ctx.moveTo(118, 226);
-  ctx.lineTo(118, 286);
-  ctx.moveTo(394, 226);
-  ctx.lineTo(394, 286);
-  ctx.moveTo(170, 256);
-  ctx.lineTo(342, 256);
-  ctx.stroke();
+  ctx.lineJoin = 'round';
+  ctx.stroke(
+    new Path2D(
+      'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 ' +
+        '.5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z',
+    ),
+  );
   ctx.restore();
 }
 

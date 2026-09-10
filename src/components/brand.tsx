@@ -1,46 +1,24 @@
 import { cn } from '@/lib/utils';
+import { Flame } from 'lucide-react';
 
 /**
- * The one SmartFit mark, everywhere.
- *
- * `public/icon.svg` (favicon, PWA icons, OG image), `drawLogoMark` in the
- * share-card canvas and this component are the same geometry: a primary
- * tile carrying the white pulse glyph — two tall bars, two short bars and
- * the crossbar that ties them, an heartbeat read as a barbell. The app
- * previously drifted into a dumbbell tile here and a flame badge in the
- * dashboard header; the header, shell, onboarding and landing now all wear
- * this mark so the brand reads identically from favicon to share card.
+ * The one SmartFit mark: the charcoal disc with the white flame — the badge
+ * that leads the dashboard header greeting, and the geometry of
+ * `public/icon.svg`, the PWA/Expo icons (`scripts/gen-brand-assets.mjs`) and
+ * the share-card canvas mark. One fire everywhere: favicon, splash, share
+ * cards, shell, onboarding, wordmarks.
  */
-export function Logo({
-  className,
-  size = 36,
-  radius,
-}: {
-  className?: string;
-  size?: number;
-  /** Corner radius; defaults to the icon.svg squircle (22.66% of the side). */
-  radius?: number | string;
-}) {
+export function Logo({ className, size = 36 }: { className?: string; size?: number }) {
   return (
     <span
-      className={cn('bg-primary shadow-primary/25 inline-flex shrink-0 shadow-sm', className)}
-      style={{ width: size, height: size, borderRadius: radius ?? size * 0.2266 }}
+      className={cn(
+        'bg-charcoal inline-flex shrink-0 items-center justify-center rounded-full text-white',
+        className,
+      )}
+      style={{ width: size, height: size }}
       aria-hidden
     >
-      <svg viewBox="0 0 512 512" width={size} height={size} fill="none">
-        <g
-          stroke="currentColor"
-          strokeWidth="30"
-          strokeLinecap="round"
-          className="text-primary-foreground"
-        >
-          <path d="M170 186v140" />
-          <path d="M342 186v140" />
-          <path d="M118 226v60" />
-          <path d="M394 226v60" />
-          <path d="M170 256h172" />
-        </g>
-      </svg>
+      <Flame style={{ width: size * 0.44, height: size * 0.44 }} strokeWidth={2} />
     </span>
   );
 }
