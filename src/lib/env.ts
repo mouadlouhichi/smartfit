@@ -39,10 +39,13 @@ export const env = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID?.trim() ?? '',
   },
   /**
-   * Optional AI coach. Any OpenAI-compatible chat-completions endpoint works
-   * (Gemini's OpenAI layer, Groq, OpenRouter, Pollinations, a self-hosted
-   * proxy…). Unset means the on-device rule-based coach answers everything —
-   * nothing is ever sent anywhere by default.
+   * Legacy/browser-side AI coach configuration. Any OpenAI-compatible
+   * chat-completions endpoint works (Gemini's OpenAI layer, Groq, OpenRouter,
+   * Pollinations, Ollama on localhost…). These are `NEXT_PUBLIC_*`, so the key
+   * is public: for anything deployed, prefer the server-side keys read by
+   * `/api/coach` (`AI_COACH_*`, see `ai-coach-server.ts`) and leave these
+   * unset. Unset everywhere means the on-device rule-based coach answers
+   * everything — nothing is ever sent anywhere by default.
    */
   ai: {
     endpoint: process.env.NEXT_PUBLIC_AI_ENDPOINT?.trim() ?? '',

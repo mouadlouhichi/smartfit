@@ -123,12 +123,17 @@ shared domain package — but applies them to **training** instead of money.
   keeps the app shell working offline.
 - **On-device coach** — a deterministic rule engine (in `@smartfit/core`) that
   answers questions from your real data. No LLM, no network call. Optionally
-  plug in any OpenAI-compatible AI endpoint (`NEXT_PUBLIC_AI_*`): the coach
-  then shows an "AI answers" switch (off by default, per browser), labels
-  AI-written replies, and falls back to the on-device engine on any failure.
-  Every answer shows a thinking state while it's being produced (rotating
-  status lines, an elapsed timer on slow free endpoints and a Stop button that
-  answers from on-device data instead), so the chat never looks frozen.
+  plug in any OpenAI-compatible AI endpoint: the coach then shows an "AI
+  answers" switch (off by default, per browser), labels AI-written replies,
+  and falls back to the on-device engine on any failure. AI answers **stream in
+  as they are written**, the conversation keeps its recent turns so follow-ups
+  work, and light markdown (bullets, bold, code) renders as real formatting.
+  The provider key goes behind the built-in `/api/coach` proxy
+  (`AI_COACH_*`, server-only); the legacy browser-side `NEXT_PUBLIC_AI_*` pair
+  still works for keyless local models such as Ollama. Every answer shows a
+  thinking state while it's being produced (rotating status lines, an elapsed
+  timer on slow free endpoints and a Stop button that keeps whatever already
+  streamed).
 - **Light / dark** theming on web; token-driven design system shared conceptually
   across platforms.
 - **Marketing site** included (landing, features, how-it-works, plans, FAQ),
@@ -200,9 +205,12 @@ the relevant `.env.example` to `.env.local` (web) / `.env` (mobile) to override.
 | `NEXT_PUBLIC_FIREBASE_*` | web | _unset_ | A **complete** set (API key, auth domain, project id, app id) switches the app into cloud mode; anything missing keeps it local |
 | `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | web | _unset_ | reCAPTCHA v3 site key from Firebase App Check; when set, the client attests every request (enable enforcement in the console only after deploying it) |
 | `NEXT_PUBLIC_ERROR_ENDPOINT` | web | _unset_ | Optional **self-hosted**, cookie-free collector for crash reports and web vitals. Unset = nothing is ever sent (see `docs/ops-runbook.md`) |
-| `NEXT_PUBLIC_AI_ENDPOINT` | web | _unset_ | Optional OpenAI-compatible chat-completions URL for the coach (Gemini's OpenAI layer, Groq, OpenRouter, Pollinations…). Unset = no AI switch anywhere, everything stays on-device |
-| `NEXT_PUBLIC_AI_API_KEY` | web | _unset_ | Provider key, sent as `Authorization: Bearer` (free tiers exist for Gemini/Groq) |
-| `NEXT_PUBLIC_AI_MODEL` | web | _unset_ | Model id, e.g. `gemini-2.0-flash`; omit to let the provider choose |
+| `AI_COACH_ENDPOINT` | web (server) | _unset_ | **Recommended.** OpenAI-compatible base URL for the coach proxy (`/api/coach`) — Gemini's OpenAI layer, Groq, OpenRouter, Pollinations… Unset = the proxy stays off |
+| `AI_COACH_API_KEY` | web (server) | _unset_ | Provider key, used only by `/api/coach`; never shipped to the browser. Free tiers exist for Groq/Gemini |
+| `AI_COACH_MODEL` | web (server) | _unset_ | Model id, e.g. `llama-3.3-70b-versatile`; omit to let the provider choose |
+| `NEXT_PUBLIC_AI_ENDPOINT` | web (browser) | _unset_ | Legacy/local endpoint: the browser calls the provider directly. Use for a keyless model on your own machine (Ollama: `http://localhost:11434/v1`). `NEXT_PUBLIC_*` is public — never a shared secret |
+| `NEXT_PUBLIC_AI_API_KEY` | web (browser) | _unset_ | Key for the browser-side mode above (visible in the bundle) |
+| `NEXT_PUBLIC_AI_MODEL` | web (browser) | _unset_ | Model id for the browser-side mode |
 
 Env access is centralised and validated in `src/lib/env.ts` (web) and
 `apps/mobile/src/lib/env.ts` (invalid plan values fall back to the default). See
@@ -336,8 +344,11 @@ inside React: `hydration.test.ts` (what every identity/mode combination sees),
 `write-queue.test.ts` (ordering, retries, collapsing, failure surfacing),
 `auth-errors.test.ts` (friendly, enumeration-safe messages),
 `report.test.ts` (diagnostics stay silent by default and never leak query strings),
-`ai-coach.test.ts` (opt-in AI client: URL normalisation, context minimisation,
-graceful failure back to the on-device engine).
+`ai-coach.test.ts` (opt-in AI client: transport choice, proxy requests that
+never carry the key, SSE parsing across chunk boundaries, conversation
+trimming, request validation, rate limiting, graceful failure back to the
+on-device engine) and `coach-text.test.ts` (the markdown subset the coach may
+use, and that anything else stays literal text).
 
 **E2E (`e2e/`, Playwright)** — the real production build in local mode:
 onboarding → log → detail → edit → delete → schedule → goals → body → units →
