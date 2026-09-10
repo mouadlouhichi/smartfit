@@ -25,8 +25,17 @@ import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '../confirm-context';
-import { RouteMap } from '../route-map';
 import { RunHome } from './run-home';
+import dynamic from 'next/dynamic';
+
+/**
+ * Leaflet + its CSS live in their own chunk: the basemap only downloads when
+ * a screen with a map on it mounts, and never on the server.
+ */
+const RunMap = dynamic(() => import('./run-map').then((m) => m.RunMap), {
+  ssr: false,
+  loading: () => null,
+});
 import { ShareSheet } from '../share-sheet';
 import { StatCard } from '../stat-card';
 import { useStore } from '@/lib/store-context';
@@ -631,11 +640,7 @@ function LiveStage({
           className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_35%,rgba(0,0,0,0.55)_100%)]"
         />
         {points.length >= 2 ? (
-          <RouteMap
-            route={points}
-            className="absolute inset-0 h-full w-full p-5 drop-shadow-[0_0_10px_rgba(255,122,77,0.45)]"
-            stroke="#ff7a4d"
-          />
+          <RunMap points={points} className="absolute inset-0 z-0" />
         ) : (
           <div className="absolute inset-0 grid place-items-center">
             <p className="flex items-center gap-2 text-xs font-bold text-white/60">
@@ -646,7 +651,7 @@ function LiveStage({
         )}
 
         {/* Floating status + clock */}
-        <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2">
+        <div className="absolute top-4 left-4 z-10 flex flex-wrap items-center gap-2">
           <span
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold backdrop-blur-sm',
@@ -693,10 +698,10 @@ function LiveStage({
             </span>
           )}
         </div>
-        <span className="absolute top-4 right-4 rounded-full bg-black/45 px-3.5 py-1.5 font-mono text-xl font-extrabold text-white tabular-nums backdrop-blur-sm">
+        <span className="absolute top-4 right-4 z-10 rounded-full bg-black/45 px-3.5 py-1.5 font-mono text-xl font-extrabold text-white tabular-nums backdrop-blur-sm">
           {fmtDuration(elapsedSec)}
         </span>
-        <span className="absolute bottom-4 left-4 text-[10px] font-bold tracking-wide text-white/50 uppercase">
+        <span className="absolute bottom-4 left-4 z-10 text-[10px] font-bold tracking-wide text-white/50 uppercase">
           Live route
         </span>
       </div>
@@ -975,7 +980,9 @@ function RunSummary({
       {points.length >= 2 && (
         <div className="border-border bg-card rounded-3xl border p-4 shadow-sm sm:p-5">
           <p className="eyebrow text-muted-foreground mb-3">Route</p>
-          <RouteMap route={points} className="h-64 w-full" />
+          <div className="relative h-64 w-full overflow-hidden rounded-2xl">
+            <RunMap points={points} follow={false} className="absolute inset-0 z-0" />
+          </div>
         </div>
       )}
 

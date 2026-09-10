@@ -26,8 +26,8 @@ import { cn } from '@/lib/utils';
 
 const STYLES: { id: ShareStyle; label: string; hint: string }[] = [
   { id: 'transparent', label: 'Transparent', hint: 'Layers over a photo — story style' },
-  { id: 'dark', label: 'Ember', hint: 'Dark card for the feed' },
-  { id: 'light', label: 'Paper', hint: 'Light card for white timelines' },
+  { id: 'dark', label: 'Ember', hint: 'Dark card, route on a real night map' },
+  { id: 'light', label: 'Paper', hint: 'Light card, route on a street map' },
 ];
 
 const FORMATS: { id: ShareFormat; label: string; ratio: string }[] = [

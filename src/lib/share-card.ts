@@ -22,6 +22,7 @@
  * (branding, never a nag).
  */
 
+import { drawMapTiles, mapPoint, MAP_ATTRIBUTION, type MapTransform } from './map-tiles';
 import { fmtDuration, fmtPace, projectRoute, type GeoPoint } from '@smartfit/core';
 
 export type ShareStyle = 'transparent' | 'dark' | 'light';
@@ -356,6 +357,66 @@ export function drawRoute(
   endpointDot(ctx, end.x + box.x, end.y + box.y, r, theme.highlight, '#141110', theme);
 }
 
+/** Rounded-rectangle clip path, used to frame the basemap like a panel. */
+function roundPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/**
+ * The route in true map registration: same projection as the tiles under it,
+ * so the line sits on the streets it was recorded on — the whole point of
+ * drawing a basemap at all.
+ */
+function drawRouteOnMap(
+  ctx: CanvasRenderingContext2D,
+  route: GeoPoint[],
+  t: MapTransform,
+  theme: ShareTheme,
+  opts: { lineWidth?: number },
+) {
+  const points = route.map((p) => mapPoint(t, p));
+  const path = new Path2D();
+  points.forEach((p, i) => (i === 0 ? path.moveTo(p.x, p.y) : path.lineTo(p.x, p.y)));
+  const width = opts.lineWidth ?? 12;
+
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = theme.routeGlow;
+  ctx.lineWidth = width * 2.2;
+  ctx.stroke(path);
+
+  const grad = ctx.createLinearGradient(
+    points[0].x,
+    points[0].y,
+    points.at(-1)!.x,
+    points.at(-1)!.y,
+  );
+  grad.addColorStop(0, theme.route);
+  grad.addColorStop(1, theme.accent);
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = width;
+  ctx.stroke(path);
+  ctx.restore();
+
+  const r = width * 0.75;
+  endpointDot(ctx, points[0].x, points[0].y, r, '#ffffff', theme.route, theme);
+  endpointDot(ctx, points.at(-1)!.x, points.at(-1)!.y, r, theme.highlight, '#141110', theme);
+}
+
 function endpointDot(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -437,6 +498,12 @@ export interface RunCardData {
 }
 
 export interface RunCardOptions {
+  /**
+   * Draw a real basemap (CARTO/OSM raster tiles) under the route on the
+   * opaque styles — the Strava look. Off, or offline, keeps the plain panel.
+   * The transparent style never fetches tiles: transparency is the point.
+   */
+  map?: boolean;
   style?: ShareStyle;
   format?: ShareFormat;
   /** Draw the route (off for a stats-only card). */
@@ -558,16 +625,47 @@ export async function renderRunCard(data: RunCardData, opts: RunCardOptions = {}
     y += 108;
   }
 
-  // ── route ────────────────────────────────────────────────────────────
+  // ── route, over a real basemap when we can fetch one ─────────────────
   if (hasRoute && routeSize > 0) {
     const x = (W - routeSize) / 2;
-    if (theme.panel) {
-      panel(ctx, x - 28, y - 28, routeSize + 56, routeSize + 56, theme, 56);
+    const mapRect = { x: x - 28, y: y - 28, w: routeSize + 56, h: routeSize + 56 };
+    const lineWidth = Math.max(12, routeSize * 0.026);
+    let transform: MapTransform | null = null;
+
+    if (style !== 'transparent' && opts.map !== false) {
+      ctx.save();
+      roundPath(ctx, mapRect.x, mapRect.y, mapRect.w, mapRect.h, 56);
+      ctx.clip();
+      transform = await drawMapTiles(
+        ctx,
+        data.route!,
+        mapRect,
+        style === 'dark' ? 'dark' : 'light',
+      );
+      if (transform) {
+        // Settle the map into the card instead of letting it shout.
+        ctx.fillStyle = style === 'dark' ? 'rgba(20,17,16,0.30)' : 'rgba(239,237,234,0.22)';
+        ctx.fillRect(mapRect.x, mapRect.y, mapRect.w, mapRect.h);
+      }
+      ctx.restore();
     }
-    drawRoute(ctx, data.route!, { x, y, size: routeSize }, theme, {
-      lineWidth: Math.max(12, routeSize * 0.026),
-    });
-    y += routeSize + (theme.panel ? 44 : 16);
+
+    if (transform) {
+      drawRouteOnMap(ctx, data.route!, transform, theme, { lineWidth });
+      text(ctx, MAP_ATTRIBUTION, mapRect.x + mapRect.w - 22, mapRect.y + mapRect.h - 20, {
+        theme,
+        size: 17,
+        weight: 600,
+        ink: style === 'dark' ? 'rgba(247,242,234,0.6)' : 'rgba(23,22,21,0.6)',
+        align: 'right',
+      });
+    } else {
+      if (theme.panel) {
+        panel(ctx, mapRect.x, mapRect.y, mapRect.w, mapRect.h, theme, 56);
+      }
+      drawRoute(ctx, data.route!, { x, y, size: routeSize }, theme, { lineWidth });
+    }
+    y += routeSize + (transform || theme.panel ? 44 : 16);
   }
 
   // ── splits equalizer ─────────────────────────────────────────────────

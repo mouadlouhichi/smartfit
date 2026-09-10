@@ -87,6 +87,13 @@ shared domain package — but applies them to **training** instead of money.
   glanceable clock, a rest timer, exercise + set tickers, and finishing logs
   the session with its real duration and the sets you completed. Category art
   tiles (generated, in `public/images/`) anchor each session visually.
+- **Dedicated run hub** (`/dashboard/run`) — GPS recording with auto-pause and
+  moving time, kilometre splits with watch-style cues, laps, elevation, best
+  efforts and PBs, draft recovery after a reload, and an editable summary.
+  The live view puts a **real basemap** (Leaflet over CARTO/OSM tiles, themed
+  to light/dark, follow-until-you-drag) under your route; share cards offer a
+  Strava-style map card (Ember/Paper, route registered to the streets) or a
+  truly transparent PNG that layers over a photo — logo mark always on.
 - **SmartFit Pro** — a paid tier with a real paywall: plan cards (monthly /
   yearly / lifetime), Stripe Payment Link checkout when configured (otherwise
   a clearly labelled sandbox checkout), restore & cancel. Gates: adaptive
