@@ -14,11 +14,13 @@ import { useModals, usePayload } from '../modal-context';
 import { CategoryIcon } from '@/components/category-icon';
 import {
   INTENSITY_META,
+  type GeoPoint,
   categoryById,
   formatCalories,
   formatDateLabel,
   formatDistance,
   formatMinutes,
+  hasProAccess,
 } from '@smartfit/core';
 import { Clock, Flame, Info, Pencil, Route, Share2, StickyNote } from 'lucide-react';
 import { ExerciseImage } from '@/components/exercise-image';
@@ -26,8 +28,10 @@ import { ExerciseDetailDialog } from '@/components/exercise-detail';
 import { matchExercise, toISODate } from '@smartfit/core';
 import { useExtendedCatalog } from '@/lib/use-extended-catalog';
 import { RouteMap } from '../route-map';
-import { renderRoutePng, shareOrDownloadPng } from '@/lib/route-art';
-import { useToast } from '@/components/ui/toast';
+import { ShareSheet } from '../share-sheet';
+
+/** Stable identity for sessions logged without a route (keeps memo keys warm). */
+const EMPTY_ROUTE: GeoPoint[] = [];
 
 /**
  * Read-only detail for a logged session.
@@ -46,26 +50,7 @@ export function SessionDetailModal() {
   useExtendedCatalog();
   const session = payload?.session;
   const [detailName, setDetailName] = useState<string | null>(null);
-  const [sharing, setSharing] = useState(false);
-  const toast = useToast();
-
-  async function shareMap() {
-    if (!session?.route || session.route.length < 2) return;
-    setSharing(true);
-    try {
-      const blob = await renderRoutePng(session.route, {
-        title: session.title,
-        durationMin: session.durationMin,
-        distanceKm: session.distanceKm,
-      });
-      const result = await shareOrDownloadPng(blob, `smartfit-route-${session.date}.png`);
-      toast(result === 'shared' ? 'Route shared' : 'Route saved to downloads');
-    } catch {
-      toast('Could not render the route map', 'info');
-    } finally {
-      setSharing(false);
-    }
-  }
+  const [shareOpen, setShareOpen] = useState(false);
 
   if (!session) {
     return <Dialog open={false} onOpenChange={() => undefined} />;
@@ -74,6 +59,15 @@ export function SessionDetailModal() {
   const category = categoryById(state, session.categoryId);
   const intensity = INTENSITY_META[session.intensity];
   const exercises = session.exercises ?? [];
+  const route = session.route?.length ? session.route : EMPTY_ROUTE;
+  const isRun = route.length >= 2 || (session.splits?.length ?? 0) > 0;
+
+  // Sessions logged before the run screen still deserve the new share card, so
+  // the card is rebuilt from whatever the log holds: moving time when the run
+  // screen recorded it, otherwise the logged duration.
+  const movingSec = Math.round((session.movingTimeMin ?? session.durationMin) * 60);
+  const distanceKm = session.distanceKm ?? 0;
+  const dateLabel = formatDateLabel(session.date);
 
   return (
     <>
@@ -130,19 +124,19 @@ export function SessionDetailModal() {
           )}
 
           {/* The saved GPS trace, redrawn, with a Strava-style transparent share. */}
-          {(session.route?.length ?? 0) >= 2 && (
+          {isRun && (
             <div className="bg-secondary/60 flex items-center gap-3 rounded-2xl p-3 min-[430px]:gap-4">
               <div className="bg-card h-20 w-20 shrink-0 overflow-hidden rounded-xl shadow-sm min-[430px]:h-24 min-[430px]:w-24">
-                <RouteMap route={session.route!} className="h-full w-full" />
+                <RouteMap route={route} className="h-full w-full" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold">Route map</p>
+                <p className="text-sm font-bold">Share card</p>
                 <p className="text-muted-foreground text-xs">
-                  Transparent PNG — layer it over a photo for Instagram.
+                  Transparent, Ember or Paper — layer it over a photo for Instagram.
                 </p>
               </div>
-              <Button size="sm" onClick={() => void shareMap()} disabled={sharing}>
-                <Share2 className="h-4 w-4" /> {sharing ? 'Rendering…' : 'Share'}
+              <Button size="sm" onClick={() => setShareOpen(true)}>
+                <Share2 className="h-4 w-4" /> Share
               </Button>
             </div>
           )}
@@ -218,6 +212,24 @@ export function SessionDetailModal() {
         name={detailName}
         open={!!detailName}
         onOpenChange={(o) => !o && setDetailName(null)}
+      />
+      <ShareSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        watermark={!hasProAccess(state)}
+        filename={`smartfit-run-${session.date}.png`}
+        routeAvailable={route.length >= 2}
+        data={{
+          title: session.title,
+          dateLabel,
+          distanceKm,
+          movingSec,
+          paceMinPerKm: distanceKm > 0 ? movingSec / 60 / distanceKm : 0,
+          elevationGainM: session.elevationGainM ?? 0,
+          calories: session.calories,
+          splits: session.splits,
+          route,
+        }}
       />
     </>
   );

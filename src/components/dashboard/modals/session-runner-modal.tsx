@@ -41,6 +41,7 @@ import {
   lastPerformance,
   measureForExerciseName,
   progressionTarget,
+  computeRunStats,
   routeDistanceKm,
   simplifyRoute,
   suggestedExercisesForCategory,
@@ -50,8 +51,10 @@ import {
   type ProgressionTarget,
   type SessionSummary,
 } from '@smartfit/core';
-import { renderRoutePng, renderWorkoutPng, shareOrDownloadPng } from '@/lib/route-art';
+import { renderWorkoutPng, shareOrDownloadPng } from '@/lib/route-art';
 import { RouteMap } from '../route-map';
+import { ShareSheet } from '../share-sheet';
+import type { RunCardData } from '@/lib/share-card';
 import { cn } from '@/lib/utils';
 
 /* ── helpers ───────────────────────────────────────────────────────────── */
@@ -156,6 +159,8 @@ export function SessionRunnerModal() {
   // GPS walk tracking
   const [tracking, setTracking] = useState(false);
   const [distanceKm, setDistanceKm] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareData, setShareData] = useState<RunCardData | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const routeRef = useRef<GeoPoint[]>([]);
   const watchIdRef = useRef<number | null>(null);
@@ -252,18 +257,30 @@ export function SessionRunnerModal() {
     );
   }
 
-  async function shareMap() {
-    try {
-      const blob = await renderRoutePng(routeRef.current, {
-        title: run.title,
-        durationMin: Math.max(1, Math.round(seconds / 60)),
-        distanceKm,
-      });
-      const result = await shareOrDownloadPng(blob, `smartfit-route-${toISODate(new Date())}.png`);
-      toast(result === 'shared' ? 'Route shared' : 'Route saved to downloads');
-    } catch {
-      toast('Could not render the route map', 'info');
-    }
+  /**
+   * Route sharing hands the frozen trace to the shared share sheet, so a GPS
+   * workout gets the same transparent / Ember / Paper cards as a run recorded
+   * on the run screen.
+   */
+  function openRouteShare() {
+    const points = routeRef.current;
+    const stats = computeRunStats(points);
+    setShareData({
+      title: run.title,
+      dateLabel: new Date().toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      distanceKm: stats.distanceKm,
+      movingSec: stats.movingSec,
+      paceMinPerKm: stats.avgPaceMinPerKm,
+      elevationGainM: stats.elevationGainM,
+      splits: stats.splits,
+      efforts: stats.bestEfforts,
+      route: points,
+    });
+    setShareOpen(true);
   }
 
   /** Shareable "gym receipt" card — watermarked on free, clean on Pro. */
@@ -540,7 +557,7 @@ export function SessionRunnerModal() {
           weightUnit={state.profile.weightUnit}
           route={routeRef.current}
           distanceKm={distanceKm}
-          onShare={shareMap}
+          onShare={openRouteShare}
           onShareWorkout={shareWorkout}
           onSave={saveSession}
           onBack={() => setScreen('live')}
@@ -567,6 +584,25 @@ export function SessionRunnerModal() {
           finish={finishToSummary}
         />
       )}
+
+      <ShareSheet
+        open={shareOpen}
+        onClose={() => setShareOpen(false)}
+        watermark={!hasProAccess(state)}
+        filename={`smartfit-route-${toISODate(new Date())}.png`}
+        routeAvailable={routeRef.current.length >= 2}
+        data={
+          shareData ?? {
+            title: run.title,
+            dateLabel: toISODate(new Date()),
+            distanceKm: 0,
+            movingSec: 0,
+            paceMinPerKm: 0,
+            elevationGainM: 0,
+            route: [],
+          }
+        }
+      />
     </div>
   );
 
