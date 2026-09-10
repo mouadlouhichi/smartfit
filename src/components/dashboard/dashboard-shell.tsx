@@ -37,7 +37,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 aria-label="SmartFit home"
                 className="mb-7 rounded-full transition-transform hover:scale-105"
               >
-                <Logo size={46} className="rounded-full" />
+                <Logo size={46} radius="50%" />
               </Link>
 
               <nav className="flex flex-1 flex-col items-center gap-4">

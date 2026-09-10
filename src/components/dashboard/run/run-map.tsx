@@ -250,7 +250,6 @@ export function RunMap({
     } catch (e) {
       console.warn('[run-map] restyle skipped:', e);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind]);
 
   /* ── live updates ──────────────────────────────────────────────────── */
