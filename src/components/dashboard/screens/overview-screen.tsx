@@ -19,7 +19,7 @@ import { EmptyState } from '../empty-state';
 import { CategoryIcon } from '@/components/category-icon';
 import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
 import { ReadinessCard } from '../readiness-card';
-import { Play } from 'lucide-react';
+import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   currentStreak,
@@ -110,6 +110,7 @@ export function OverviewScreen() {
 
   const quickActions = [
     { label: 'Workout', icon: Dumbbell, onClick: () => openModal('workout') },
+    { label: 'Run', icon: Footprints, href: '/dashboard/run' },
     { label: 'Goals', icon: Target, href: '/dashboard/goals' },
     { label: 'Plan', icon: CalendarCheck, href: '/dashboard/plan' },
     { label: 'Stats', icon: BarChart3, href: '/dashboard/progress' },
