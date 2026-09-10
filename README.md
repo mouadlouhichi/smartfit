@@ -121,19 +121,20 @@ shared domain package — but applies them to **training** instead of money.
   review.
 - **Installable PWA** — web manifest, maskable icons and a service worker that
   keeps the app shell working offline.
-- **On-device coach** — a deterministic rule engine (in `@smartfit/core`) that
-  answers questions from your real data. No LLM, no network call. Optionally
-  plug in any OpenAI-compatible AI endpoint: the coach then shows an "AI
-  answers" switch (off by default, per browser), labels AI-written replies,
-  and falls back to the on-device engine on any failure. AI answers **stream in
-  as they are written**, the conversation keeps its recent turns so follow-ups
-  work, and light markdown (bullets, bold, code) renders as real formatting.
-  The provider key goes behind the built-in `/api/coach` proxy
-  (`AI_COACH_*`, server-only); the legacy browser-side `NEXT_PUBLIC_AI_*` pair
-  still works for keyless local models such as Ollama. Every answer shows a
-  thinking state while it's being produced (rotating status lines, an elapsed
-  timer on slow free endpoints and a Stop button that keeps whatever already
-  streamed).
+- **Coach** — a deterministic rule engine (in `@smartfit/core`) that answers
+  questions from your real data: no LLM, no network call, always available.
+  Plug in any OpenAI-compatible AI endpoint and the coach uses it **by
+  default** — there is no switch to flip — falling back to the on-device
+  engine on any failure, so the chat answers with or without a provider. AI
+  answers **stream in as they are written**, the conversation keeps its recent
+  turns so follow-ups work, and light markdown (bullets, bold, code) renders
+  as real formatting; AI-written replies are labelled and every answer shows a
+  thinking state (rotating status lines, an elapsed timer on slow free
+  endpoints and a Stop button that keeps whatever already streamed). The coach
+  names the provider above the chat and the `/privacy` page spells out exactly which
+  summary leaves the device. The provider key goes behind the built-in
+  `/api/coach` proxy (`AI_COACH_*`, server-only); the legacy browser-side
+  `NEXT_PUBLIC_AI_*` pair still works for keyless local models such as Ollama.
 - **Light / dark** theming on web; token-driven design system shared conceptually
   across platforms.
 - **Marketing site** included (landing, features, how-it-works, plans, FAQ),
@@ -374,7 +375,7 @@ inside React: `hydration.test.ts` (what every identity/mode combination sees),
 `write-queue.test.ts` (ordering, retries, collapsing, failure surfacing),
 `auth-errors.test.ts` (friendly, enumeration-safe messages),
 `report.test.ts` (diagnostics stay silent by default and never leak query strings),
-`ai-coach.test.ts` (opt-in AI client: transport choice, proxy requests that
+`ai-coach.test.ts` (AI client: transport choice, proxy requests that
 never carry the key, SSE parsing across chunk boundaries, conversation
 trimming, request validation, rate limiting, graceful failure back to the
 on-device engine) and `coach-text.test.ts` (the markdown subset the coach may

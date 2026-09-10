@@ -52,9 +52,6 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 const LOCAL_THINK_MS = 650;
 const AI_MIN_THINK_MS = 1200;
 
-/** Where the athlete's AI-answers preference lives (opt-in, per browser). */
-const AI_PREF_KEY = 'smartfit.aiCoach';
-
 /** Free-tier AI reply counter (per calendar day, per browser). Pro = unlimited. */
 const AI_USE_KEY = 'smartfit.coach.aiUses';
 
@@ -146,7 +143,7 @@ function aiFallbackNotice(error: unknown, stopped: boolean): string {
     return 'The AI endpoint timed out — answered from your on-device data instead.';
   }
   if (/not configured/i.test(message)) {
-    return 'AI is not configured on this deployment — answered on-device.';
+    return 'This deployment has no AI provider configured — answered on-device.';
   }
   if (/rate limit|quota|\(429\)/i.test(message)) {
     return 'The AI provider\u2019s free limit is reached — answered from your on-device data.';
@@ -164,11 +161,11 @@ function aiFallbackNotice(error: unknown, stopped: boolean): string {
 /**
  * Shared conversation state for every coach surface.
  *
- * Default answers come from `answerCoach` in @smartfit/core — one
- * deterministic, unit-tested, on-device engine. When (and only when) the
- * deployment configures an AI endpoint AND the athlete switches "AI answers"
- * on, questions go to that provider instead; any AI failure transparently
- * falls back to the on-device engine with a visible note.
+ * Answers come from the deployment's configured AI provider when there is
+ * one, and from `answerCoach` in @smartfit/core — one deterministic,
+ * unit-tested, on-device engine — otherwise. There is no switch: any AI
+ * failure falls back to the on-device engine with a visible note, so the
+ * coach always answers even with no provider, no network, or no key.
  */
 export function useCoachConversation() {
   const { state } = useStore();
@@ -200,7 +197,6 @@ export function useCoachConversation() {
   });
   const aiAvailable = ai.available;
   const aiHost_ = ai.host;
-  const [aiOn, setAiOn] = useState(false);
   const pro = hasProAccess(state);
   const [aiUses, setAiUses] = useState(readAiUses);
   const capped = !pro && aiUses >= FREE_COACH_REPLIES_PER_DAY;
@@ -229,18 +225,12 @@ export function useCoachConversation() {
     };
   }, []);
 
-  // Restore the thread and the opt-in preference. The preference defaults to
-  // OFF — nothing leaves the device unless the athlete explicitly asked.
+  // Restore the thread, so a reload does not wipe the conversation.
   useEffect(() => {
     const restored = readChat();
     if (restored.length > 0) {
       idRef.current = Math.max(...restored.map((m) => m.id)) + 1;
       setMessages(restored);
-    }
-    try {
-      setAiOn(localStorage.getItem(AI_PREF_KEY) === '1');
-    } catch {
-      /* private mode — stay off */
     }
   }, []);
 
@@ -261,18 +251,6 @@ export function useCoachConversation() {
     return () => clearTimeout(t);
   }, [messages]);
 
-  function toggleAi() {
-    setAiOn((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(AI_PREF_KEY, next ? '1' : '0');
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  }
-
   /** Abort an in-flight AI request; the coach falls back to on-device data. */
   function stop() {
     stoppedRef.current = true;
@@ -286,7 +264,7 @@ export function useCoachConversation() {
     const stamp = now();
     setMessages((m) => [...m, { id: idRef.current++, role: 'user', text: question, time: stamp }]);
 
-    if (aiAvailable && aiOn && !capped) {
+    if (aiAvailable && !capped) {
       setPending('ai');
       const started = Date.now();
       const controller = new AbortController();
@@ -428,10 +406,8 @@ export function useCoachConversation() {
     thinking,
     pending,
     aiAvailable,
-    aiOn,
     aiHost: aiHost_,
     aiTransport: ai.transport,
-    toggleAi,
     stop,
     capped,
     quickReplies: useMemo(() => [...COACH_QUICK_REPLIES], []),
@@ -454,60 +430,33 @@ export function CoachFreeLimitNotice({ show }: { show: boolean }) {
   );
 }
 
-/** Opt-in switch for AI answers, shown only when an endpoint is configured. */
-export function CoachAiToggle({
-  on,
-  onToggle,
+/**
+ * Where the coach's answers come from — a label, not a control.
+ *
+ * AI answers are used whenever the deployment has a provider configured; the
+ * on-device engine is the fallback. The switch that used to live here is gone
+ * (the operator configures AI once, per deployment, in the environment), but
+ * the disclosure stays: a question plus a summary of the training data really
+ * does leave the device, and the athlete is entitled to know where it goes.
+ */
+export function CoachAiSource({
   host,
   viaProxy = false,
   className,
 }: {
-  on: boolean;
-  onToggle: () => void;
   host: string;
   /** True when answers go through this deployment's own /api/coach route. */
   viaProxy?: boolean;
   className?: string;
 }) {
   return (
-    <div className={cn('grid gap-1', className)}>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        onClick={onToggle}
-        className={cn(
-          'inline-flex w-fit items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold transition-colors',
-          on
-            ? 'bg-primary text-primary-foreground border-transparent'
-            : 'border-border bg-card text-foreground hover:border-primary/50',
-        )}
-      >
-        <Sparkles className="h-3.5 w-3.5" aria-hidden />
-        AI answers {on ? 'on' : 'off'}
-        <span
-          className={cn(
-            'relative ml-0.5 h-4 w-7 rounded-full transition-colors',
-            on ? 'bg-primary-foreground/35' : 'bg-secondary',
-          )}
-          aria-hidden
-        >
-          <span
-            className={cn(
-              'bg-card absolute top-0.5 h-3 w-3 rounded-full transition-all',
-              on ? 'left-3.5' : 'left-0.5',
-            )}
-          />
-        </span>
-      </button>
-      {on && host && (
-        <p className="text-muted-foreground max-w-sm text-[11px] leading-snug">
-          Your question plus a summary of your training stats is sent to <b>{host}</b>
-          {viaProxy ? ' by this app’s server — the provider key never reaches your browser' : ''}.
-          Off means every answer is computed on this device.
-        </p>
-      )}
-    </div>
+    <p className={cn('text-muted-foreground max-w-sm text-[11px] leading-snug', className)}>
+      <Sparkles className="mr-1 inline h-3 w-3 align-[-1px]" aria-hidden />
+      Answers come from AI (<b>{host || 'your provider'}</b>)
+      {viaProxy ? ' through this app’s server — the key never reaches your browser' : ''}. Your
+      question and a summary of your training stats are sent there; if the provider fails or has no
+      key, the coach answers on this device from the same data.
+    </p>
   );
 }
 
@@ -787,10 +736,8 @@ export function CoachPanel({ className }: { className?: string }) {
     thinking,
     pending,
     aiAvailable,
-    aiOn,
     aiHost,
     aiTransport,
-    toggleAi,
     stop,
     quickReplies,
     capped,
@@ -808,12 +755,10 @@ export function CoachPanel({ className }: { className?: string }) {
           <Sparkles className="h-4 w-4" /> Your coach
         </span>
         {aiAvailable && (
-          <CoachAiToggle
-            on={aiOn}
-            onToggle={toggleAi}
+          <CoachAiSource
             host={aiHost}
             viaProxy={aiTransport === 'proxy'}
-            className="justify-self-end"
+            className="max-w-[15rem] text-right"
           />
         )}
       </div>
@@ -831,7 +776,7 @@ export function CoachPanel({ className }: { className?: string }) {
       </div>
 
       <div className="p-4 pt-1">
-        <CoachFreeLimitNotice show={capped && aiOn && aiAvailable} />
+        <CoachFreeLimitNotice show={capped && aiAvailable} />
         <CoachComposer onSend={send} placeholder="Type something…" disabled={thinking} />
       </div>
     </div>

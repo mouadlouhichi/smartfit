@@ -199,6 +199,34 @@ test('live docs never reference a variable the code has never heard of', () => {
   assert.deepEqual(stale, [], `documented but unknown to the code: ${stale.join(', ')}`);
 });
 
+/**
+ * The "AI answers" switch was removed (AI is used whenever a provider is
+ * configured). Copy is part of the product here: the console, the privacy page
+ * and the marketing site must not promise a control that no longer exists.
+ */
+test('no user-facing copy still advertises the removed AI-answers switch', () => {
+  const COPIES = [
+    'README.md',
+    '.env.example',
+    'src/app/privacy/page.tsx',
+    'src/components/dashboard/coach-panel.tsx',
+    'src/app/dashboard/coach/page.tsx',
+  ];
+  const offenders: string[] = [];
+  for (const file of COPIES) {
+    const text = readFileSync(join(ROOT, file), 'utf8');
+    for (const phrase of [
+      'AI answers switch',
+      'AI answers” switch',
+      'opt-in switch',
+      'Turn the switch off',
+    ]) {
+      if (text.includes(phrase)) offenders.push(`${file}: ${phrase}`);
+    }
+  }
+  assert.deepEqual(offenders, []);
+});
+
 test('the guard itself would notice drift (self-check)', () => {
   // If the regexes stop matching, every rule above passes vacuously — which is
   // exactly how a broken guard behaves. Pin that they still see real names.
