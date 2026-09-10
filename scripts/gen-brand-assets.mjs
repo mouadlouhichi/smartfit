@@ -3,6 +3,9 @@
  * with the white flame — the badge that leads the dashboard header greeting.
  * Run with `node scripts/gen-brand-assets.mjs` after touching the mark.
  *
+ * The plate is the brand ember (#e05e36) — the colour the mark has always
+ * worn — with the white flame from the dashboard header badge on top.
+ *
  * Two variants, same glyph:
  *   - disc on transparent  → favicon, PWA icons, Expo favicon (the "icon"
  *     look, exactly like the header badge);
@@ -16,7 +19,7 @@
 import sharp from 'sharp';
 import { writeFileSync } from 'node:fs';
 
-const CHARCOAL = '#3f3d3b';
+const CHARCOAL = '#e05e36'; // the ember plate; name kept for the disc/tile helpers
 const EMBER = { r: 0xe0, g: 0x5e, b: 0x36 }; // previous mark colour, for bbox hunt
 const FLAME =
   'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 ' +

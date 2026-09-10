@@ -196,3 +196,32 @@ test('clear() drops pending work — used on sign-out', async () => {
 
   assert.deepEqual(written, [], "a signed-out session's writes never land");
 });
+
+test('flush() waits for in-flight writes, and parks (not hangs) on error', async () => {
+  const q = new WriteQueue();
+
+  let release!: () => void;
+  const gate = new Promise<void>((r) => (release = r));
+  q.push({ key: 'a', run: () => gate });
+
+  let flushed = false;
+  const pending = q.flush().then(() => void (flushed = true));
+  await new Promise((r) => setTimeout(r, 5));
+  assert.equal(flushed, false, 'flush must not resolve while a write is in flight');
+
+  release();
+  await pending;
+  assert.equal(flushed, true);
+  assert.equal(q.pending, 0);
+
+  // A navigation that awaits flush() must never hang on a rules failure.
+  const denied = new WriteQueue();
+  denied.push({
+    key: 'denied',
+    run: async () => {
+      throw Object.assign(new Error('nope'), { code: 'permission-denied' });
+    },
+  });
+  await denied.flush();
+  assert.equal(denied.pending, 1, 'the parked op stays queued for a manual retry');
+});

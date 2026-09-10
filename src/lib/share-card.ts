@@ -212,7 +212,7 @@ function fit(
 /* ── brand furniture ─────────────────────────────────────────────────── */
 
 /**
- * The SmartFit mark: the charcoal disc with the white flame — the same badge
+ * The SmartFit mark: the ember disc with the white flame — the same badge
  * the dashboard header wears, and the geometry of `public/icon.svg`. Drawn as
  * vectors so there is no image decode, no CORS and no softness at any size.
  */
@@ -230,7 +230,7 @@ export function drawLogoMark(
   }
   ctx.beginPath();
   ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
-  ctx.fillStyle = opts.plate ?? '#3f3d3b';
+  ctx.fillStyle = opts.plate ?? '#e05e36';
   ctx.fill();
   ctx.restore();
 

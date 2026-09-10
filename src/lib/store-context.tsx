@@ -182,6 +182,8 @@ interface StoreContextValue {
   // profile / lifecycle
   updateProfile: (patch: Partial<UserProfile>) => void;
   completeOnboarding: (patch: Partial<UserProfile>) => void;
+  /** Resolves when every queued cloud write has landed; instant on-device. */
+  flushWrites: () => Promise<void>;
   clearData: () => Promise<void>;
   /** Sign out and drop this device's copy of the account's data. */
   signOutAndForget: () => Promise<void>;
@@ -725,6 +727,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           (next, o) => ({ key: 'profile', run: () => saveProfile(o, next.profile) }),
         );
       },
+      flushWrites: () => queue.flush(),
 
       clearData: async () => {
         queue.clear();

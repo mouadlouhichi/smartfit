@@ -20,7 +20,7 @@ const STEPS = ['Welcome', 'About you', 'Strategy', 'First goal', 'Ready'] as con
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { state, completeOnboarding, addGoal, cloud } = useStore();
+  const { state, completeOnboarding, addGoal, flushWrites, cloud } = useStore();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   // Prefill from whatever the account already knows: the profile if it has a
@@ -40,8 +40,13 @@ export default function OnboardingPage() {
       : '',
   );
   const [gymId, setGymId] = useState(state.profile.gymId ?? '');
+  // The finish write must land before the redirect, or a reload right after
+  // "Enter dashboard" could resurrect this page.
+  const [saving, setSaving] = useState(false);
 
-  function finish() {
+  async function finish() {
+    if (saving) return;
+    setSaving(true);
     if (Number(goalTarget) > 0) {
       addGoal({
         name: goalMetric === 'workouts' ? 'Train this week' : 'Active minutes this week',
@@ -66,6 +71,10 @@ export default function OnboardingPage() {
       ...(targetKg != null ? { targetWeightKg: targetKg } : {}),
       ...(gymId ? { gymId } : {}),
     });
+    // On-device this resolves immediately (the persistence effect writes
+    // synchronously on commit); in cloud mode it waits for the queued
+    // profile write to land so the done-flag can never be lost in flight.
+    await flushWrites();
     router.replace('/dashboard');
   }
 
@@ -343,8 +352,8 @@ export default function OnboardingPage() {
             Continue <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={finish} disabled={!nameOk}>
-            Enter dashboard <ArrowRight className="h-4 w-4" />
+          <Button onClick={() => void finish()} disabled={!nameOk || saving}>
+            {saving ? 'Saving…' : 'Enter dashboard'} <ArrowRight className="h-4 w-4" />
           </Button>
         )}
       </footer>
