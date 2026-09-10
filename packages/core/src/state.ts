@@ -19,6 +19,7 @@ import type {
   GoalMetric,
   Intensity,
   PlanId,
+  RunSplit,
   ScheduledWorkout,
   UserProfile,
   Weekday,
@@ -198,8 +199,39 @@ function parseSession(v: unknown): WorkoutSession | null {
     notes: str(v.notes) || undefined,
     scheduleId: str(v.scheduleId) || undefined,
     route: parseRoute(v.route),
+    movingTimeMin: optNum(v.movingTimeMin),
+    elevationGainM: optNum(v.elevationGainM),
+    splits: parseSplits(v.splits),
     createdAt: num(v.createdAt, Date.now()),
   };
+}
+
+/**
+ * Stored splits are trusted only as far as their numbers: keep well-formed
+ * entries, cap the count (a 200 km ultra is not a use case this app stores)
+ * and drop the field entirely when nothing survives.
+ */
+function parseSplits(v: unknown): RunSplit[] | undefined {
+  if (!Array.isArray(v)) return undefined;
+  const out: RunSplit[] = [];
+  for (const raw of v) {
+    if (!isObj(raw)) continue;
+    const durationSec = num(raw.durationSec, NaN);
+    const distanceKm = num(raw.distanceKm, NaN);
+    if (!Number.isFinite(durationSec) || durationSec < 0) continue;
+    if (!Number.isFinite(distanceKm) || distanceKm <= 0) continue;
+    const pace = num(raw.paceMinPerKm, durationSec / 60 / distanceKm);
+    out.push({
+      index: Math.max(1, Math.round(num(raw.index, out.length + 1))),
+      distanceKm,
+      durationSec: Math.round(durationSec),
+      paceMinPerKm: Number.isFinite(pace) && pace > 0 ? pace : durationSec / 60 / distanceKm,
+      elevationGainM: Math.max(0, Math.round(num(raw.elevationGainM, 0))),
+      partial: raw.partial === true,
+    });
+    if (out.length >= 200) break;
+  }
+  return out.length > 0 ? out : undefined;
 }
 
 /**
@@ -218,7 +250,11 @@ function parseRoute(v: unknown): GeoPoint[] | undefined {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
     if (lat < -90 || lat > 90 || lng < -180 || lng > 180) continue;
     const t = optNum(raw.t);
-    out.push(t !== undefined ? { lat, lng, t } : { lat, lng });
+    const ele = optNum(raw.ele);
+    const point: GeoPoint = { lat, lng };
+    if (t !== undefined) point.t = t;
+    if (ele !== undefined) point.ele = ele;
+    out.push(point);
     if (out.length >= 1000) break;
   }
   return out.length >= 2 ? out : undefined;
