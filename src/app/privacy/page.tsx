@@ -76,16 +76,34 @@ export default function PrivacyPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="font-display text-xl font-bold">AI coach answers (optional)</h2>
+          <h2 className="font-display text-xl font-bold">AI coach answers</h2>
           <p>
-            The coach answers from your own data on your device by default. A deployment&apos;s
-            operator may configure an AI provider, and the coach then shows an
-            <strong> &ldquo;AI answers&rdquo; switch which is off unless you turn it on</strong>.
-            While it is on, your question plus a compact summary of your training (weekly totals,
-            streak, goal progress, the last few session titles and your latest weight — never your
-            full export, email or credentials) is sent to that provider to compose the answer. Any
-            AI failure falls back to the on-device coach. Turn the switch off at any time; answers
-            produced by AI are labelled as such.
+            The coach always answers from your own data, and everything it needs is computed on your
+            device. When a deployment&apos;s operator has configured an AI provider for it, the
+            provider composes the wording of the answer: your question plus a compact summary of
+            your training (weekly totals, streak, goal progress, the last few session titles and
+            your latest weight — never your full export, email or credentials) is sent to that
+            provider. Any AI failure falls back to the on-device coach, and AI-written answers are
+            labelled as such.
+          </p>
+          <p>
+            Prefer that nothing leaves the device? Use the mobile app, self-host the web app with no
+            AI provider configured, or ask the operator of this deployment which provider it uses —
+            the coach names it above the chat.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold">Maps (optional, network)</h2>
+          <p>
+            The live run view draws a labelled basemap from OpenFreeMap&apos;s free vector tiles
+            (OpenStreetMap data, no API key, no cookies) — or, on devices where that engine cannot
+            run, from CARTO&apos;s raster tiles of the same OpenStreetMap data — and the Ember/Paper
+            share cards draw CARTO raster tiles likewise. All are credited on the map and on the
+            card. A tile request carries only the coordinates of the area being displayed, never
+            your route as a whole, your account or your identity, and it is made by your browser,
+            not by us. The transparent share style and the route sticker fetch no tiles at all, and
+            everything still works offline: without tiles the route is drawn on its own.
           </p>
         </section>
 

@@ -1,16 +1,24 @@
 import { cn } from '@/lib/utils';
-import { Dumbbell } from 'lucide-react';
+import { Flame } from 'lucide-react';
 
+/**
+ * The one SmartFit mark: the ember disc with the white flame — the badge
+ * that leads the dashboard header greeting, and the geometry of
+ * `public/icon.svg`, the PWA/Expo icons (`scripts/gen-brand-assets.mjs`) and
+ * the share-card canvas mark. One fire everywhere: favicon, splash, share
+ * cards, shell, onboarding, wordmarks.
+ */
 export function Logo({ className, size = 36 }: { className?: string; size?: number }) {
   return (
     <span
       className={cn(
-        'bg-primary text-primary-foreground shadow-primary/25 inline-flex items-center justify-center rounded-2xl shadow-sm',
+        'bg-ember inline-flex shrink-0 items-center justify-center rounded-full text-white',
         className,
       )}
       style={{ width: size, height: size }}
+      aria-hidden
     >
-      <Dumbbell style={{ width: size * 0.55, height: size * 0.55 }} strokeWidth={2.4} />
+      <Flame style={{ width: size * 0.44, height: size * 0.44 }} strokeWidth={2} />
     </span>
   );
 }

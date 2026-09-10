@@ -50,6 +50,52 @@ export interface GeoPoint {
   lng: number;
   /** Epoch ms of the fix (for pace); optional and dropped when absent. */
   t?: number;
+  /** Barometric/GPS elevation in metres, when the device reports it. */
+  ele?: number;
+}
+
+/**
+ * One kilometre (or mile) of a tracked run, as stored on the session so
+ * history and share cards never recompute from raw GPS.
+ */
+export interface RunSplit {
+  /** 1-based split number. */
+  index: number;
+  distanceKm: number;
+  /** Seconds spent on this split, excluding auto-paused time. */
+  durationSec: number;
+  paceMinPerKm: number;
+  elevationGainM: number;
+  /** True for the trailing, incomplete split. */
+  partial: boolean;
+}
+
+/** A fastest-window effort inside one run ("Fastest 1 km"). */
+export interface RunBestEffort {
+  label: string;
+  distanceKm: number;
+  durationSec: number;
+  paceMinPerKm: number;
+}
+
+/** Everything the run tracker derives from a GPS trace. */
+export interface RunStats {
+  distanceKm: number;
+  /** Wall-clock seconds, first fix → last fix. */
+  elapsedSec: number;
+  /** Seconds actually moving (auto-paused stretches excluded). */
+  movingSec: number;
+  stoppedSec: number;
+  /** Minutes per kilometre over moving time. */
+  avgPaceMinPerKm: number;
+  /** Fastest split pace of the session. */
+  bestPaceMinPerKm: number;
+  elevationGainM: number;
+  elevationLossM: number;
+  splits: RunSplit[];
+  bestEfforts: RunBestEffort[];
+  startedAt?: number;
+  endedAt?: number;
 }
 
 export interface WorkoutExercise {
@@ -72,6 +118,11 @@ export interface WorkoutSession {
   scheduleId?: string;
   /** GPS trace captured by the walk tracker (drives the shareable route map). */
   route?: GeoPoint[];
+  /** Run tracker extras — present only on GPS-recorded sessions. */
+  movingTimeMin?: number;
+  elevationGainM?: number;
+  /** Per-kilometre splits, stored so history/share never recompute them. */
+  splits?: RunSplit[];
   createdAt: number;
 }
 

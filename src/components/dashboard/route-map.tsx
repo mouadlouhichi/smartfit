@@ -6,7 +6,7 @@ import { projectRoute, type GeoPoint } from '@smartfit/core';
 /**
  * Inline SVG preview of a GPS route — the same projection the share canvas
  * uses, so what you see is what you get. Purely presentational; the heavy
- * transparent PNG is rendered on demand by `route-art.ts`.
+ * transparent PNG is rendered on demand by the share sheet (`share-card.ts`).
  */
 export function RouteMap({
   route,

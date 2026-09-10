@@ -6,6 +6,7 @@ import {
   Ruler,
   UserRound,
   Sparkles,
+  Footprints,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -19,6 +20,7 @@ export interface NavItem {
 /** Canonical app routes (also used by the mobile floating pill). */
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, short: 'Home' },
+  { href: '/dashboard/run', label: 'Run', icon: Footprints, short: 'Run' },
   { href: '/dashboard/plan', label: 'Training plan', icon: CalendarCheck, short: 'Plan' },
   { href: '/dashboard/goals', label: 'Goals', icon: Target, short: 'Goals' },
   { href: '/dashboard/progress', label: 'Progress', icon: LineChart, short: 'Progress' },
@@ -32,6 +34,7 @@ export const NAV_ITEMS: NavItem[] = [
  */
 export const RAIL_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/run', label: 'Run', icon: Footprints },
   { href: '/dashboard/progress', label: 'Progress', icon: LineChart },
   { href: '/dashboard/coach', label: 'Insights', icon: Sparkles },
   { href: '/dashboard/plan', label: 'Training', icon: CalendarCheck },

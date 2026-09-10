@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { ClipboardList, CalendarCheck, Zap, UserRound } from 'lucide-react';
+import { ClipboardList, CalendarCheck, Footprints, Zap, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useModals } from './modal-context';
 
@@ -18,7 +18,7 @@ function TargetMark({ className }: { className?: string }) {
   );
 }
 
-type TabId = 'dashboard' | 'progress' | 'training' | 'profile';
+type TabId = 'dashboard' | 'progress' | 'run' | 'training' | 'profile';
 
 interface Tab {
   id: TabId;
@@ -33,6 +33,7 @@ const LEFT_TABS: Tab[] = [
   { id: 'progress', href: '/dashboard/progress', label: 'Progress', Icon: ClipboardList },
 ];
 const RIGHT_TABS: Tab[] = [
+  { id: 'run', href: '/dashboard/run', label: 'Run', Icon: Footprints },
   { id: 'training', href: '/dashboard/plan', label: 'Training', Icon: CalendarCheck },
   { id: 'profile', href: '/dashboard/profile', label: 'Profile', Icon: UserRound },
 ];
@@ -41,6 +42,7 @@ function activeIdFor(pathname: string): TabId | null {
   if (pathname === '/dashboard') return 'dashboard';
   if (pathname.startsWith('/dashboard/progress') || pathname.startsWith('/dashboard/body'))
     return 'progress';
+  if (pathname.startsWith('/dashboard/run')) return 'run';
   if (pathname.startsWith('/dashboard/plan')) return 'training';
   if (pathname.startsWith('/dashboard/profile')) return 'profile';
   return null; // coach / goals / other screens: no tab highlighted
@@ -54,8 +56,9 @@ interface PillRect {
 }
 
 /**
- * Mobile bottom navigation — five items: Dashboard, Progress, a raised center
- * bolt (logs a workout), Training and Profile.
+ * Mobile bottom navigation — Dashboard, Progress, a raised center bolt (logs a
+ * workout), Run, Training and Profile. Run sits next to the bolt so the
+ * dedicated run screen is one tap away on a phone.
  *
  * A single white "active" pill is measured from the active tab's position in
  * the bar and animated with a spring transition, so it glides horizontally

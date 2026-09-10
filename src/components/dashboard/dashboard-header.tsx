@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Flame, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { Logo } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/lib/store-context';
 import { currentStreak } from '@smartfit/core';
@@ -22,9 +23,7 @@ export function DashboardHeader() {
     <header className="bg-background/70 sticky top-0 z-30 backdrop-blur lg:hidden">
       <div className="mx-auto flex max-w-[1300px] items-center justify-between gap-3 px-4 py-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="bg-charcoal flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white">
-            <Flame className="h-4 w-4" />
-          </span>
+          <Logo size={36} />
           <div className="min-w-0 leading-tight">
             <p className="truncate text-sm font-extrabold tracking-tight">
               {ready && state.profile.name ? `Hi, ${state.profile.name}` : 'SmartFit'}

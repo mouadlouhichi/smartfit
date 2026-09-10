@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Crown, Send, Sparkles } from 'lucide-react';
+import { Crown, Loader2, Send, Sparkles, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/lib/store-context';
@@ -15,8 +15,15 @@ import {
   COACH_QUICK_REPLIES,
   type CoachChip,
 } from '@smartfit/core';
-import { aiCoachEnabled, aiHost, askAiCoach } from '@/lib/ai-coach';
+import {
+  CoachAiError,
+  resolveCoachAvailability,
+  streamAiCoach,
+  type CoachAvailability,
+  type CoachTurn,
+} from '@/lib/ai-coach';
 import { Ring } from './ring';
+import { CoachText } from './coach-text';
 import { cn } from '@/lib/utils';
 
 export interface CoachMessage {
@@ -29,15 +36,82 @@ export interface CoachMessage {
   ai?: boolean;
   /** Small print under a bubble, e.g. the AI-unavailable fallback note. */
   notice?: string;
+  /** True while tokens are still arriving — shows the live caret + Stop. */
+  streaming?: boolean;
 }
 
 const now = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 
-/** Where the athlete's AI-answers preference lives (opt-in, per browser). */
-const AI_PREF_KEY = 'smartfit.aiCoach';
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Pacing. Local answers are instant to compute, but snapping them in feels
+ * broken next to a slow AI reply — so every answer keeps a short visible
+ * "thinking" beat. Fast AI endpoints get the same treatment (a longer hold).
+ */
+const LOCAL_THINK_MS = 650;
+const AI_MIN_THINK_MS = 1200;
 
 /** Free-tier AI reply counter (per calendar day, per browser). Pro = unlimited. */
 const AI_USE_KEY = 'smartfit.coach.aiUses';
+
+/**
+ * The conversation itself, so a reload does not wipe the thread. Bounded: the
+ * last 40 bubbles are plenty for a chat, and a runaway log would slow every
+ * render down.
+ */
+const CHAT_KEY = 'smartfit.coach.chat.v1';
+const CHAT_KEEP = 40;
+
+function readChat(): CoachMessage[] {
+  try {
+    const raw = localStorage.getItem(CHAT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { v?: number; messages?: unknown };
+    if (parsed.v !== 1 || !Array.isArray(parsed.messages)) return [];
+    return parsed.messages
+      .filter(
+        (m): m is CoachMessage =>
+          !!m &&
+          typeof m === 'object' &&
+          (m as CoachMessage).role !== undefined &&
+          typeof (m as CoachMessage).text === 'string' &&
+          typeof (m as CoachMessage).id === 'number',
+      )
+      .filter((m) => m.role === 'user' || m.role === 'coach')
+      .map((m) => ({ ...m, streaming: false }))
+      .slice(-CHAT_KEEP);
+  } catch {
+    return [];
+  }
+}
+
+function writeChat(messages: CoachMessage[]) {
+  try {
+    localStorage.setItem(
+      CHAT_KEY,
+      JSON.stringify({
+        v: 1,
+        messages: messages
+          .filter((m) => m.text.trim().length > 0)
+          .slice(-CHAT_KEEP)
+          .map(({ streaming: _streaming, ...rest }) => rest),
+      }),
+    );
+  } catch {
+    /* private mode / quota — the thread just does not survive the reload */
+  }
+}
+
+/**
+ * The turns the provider sees. The on-device engine answers from the stored
+ * state, so only text matters here — chips, notices and timestamps are UI.
+ */
+export function toCoachTurns(messages: CoachMessage[]): CoachTurn[] {
+  return messages
+    .filter((m) => m.text.trim().length > 0)
+    .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }) as CoachTurn);
+}
 
 function readAiUses(): number {
   try {
@@ -59,23 +133,70 @@ function writeAiUse(count: number) {
 }
 
 /**
+ * One honest sentence about why an AI answer did not arrive — the athlete sees
+ * this under a coach bubble that was answered from their own data instead.
+ */
+function aiFallbackNotice(error: unknown, stopped: boolean): string {
+  if (stopped) return 'Stopped the AI answer — here is your coach on your own data.';
+  const message = (error instanceof Error ? error.message : '').replace(/\s+/g, ' ').trim();
+  if (/took too long|did not respond in time/i.test(message)) {
+    return 'The AI endpoint timed out — answered from your on-device data instead.';
+  }
+  if (/not configured/i.test(message)) {
+    return 'This deployment has no AI provider configured — answered on-device.';
+  }
+  if (/rate limit|quota|\(429\)/i.test(message)) {
+    return 'The AI provider\u2019s free limit is reached — answered from your on-device data.';
+  }
+  // A rejected key, an unknown model, a provider-side outage: the provider's
+  // own words are the most useful thing an operator can see here, so pass them
+  // through (shortened) instead of hiding them behind "unavailable".
+  if (message) {
+    const detail = message.length > 150 ? `${message.slice(0, 149)}…` : message;
+    return `AI unavailable — ${detail} Answered from your on-device data.`;
+  }
+  return 'AI unavailable right now — answered from your on-device data.';
+}
+
+/**
  * Shared conversation state for every coach surface.
  *
- * Default answers come from `answerCoach` in @smartfit/core — one
- * deterministic, unit-tested, on-device engine. When (and only when) the
- * deployment configures an AI endpoint AND the athlete switches "AI answers"
- * on, questions go to that provider instead; any AI failure transparently
- * falls back to the on-device engine with a visible note.
+ * Answers come from the deployment's configured AI provider when there is
+ * one, and from `answerCoach` in @smartfit/core — one deterministic,
+ * unit-tested, on-device engine — otherwise. There is no switch: any AI
+ * failure falls back to the on-device engine with a visible note, so the
+ * coach always answers even with no provider, no network, or no key.
  */
 export function useCoachConversation() {
   const { state } = useStore();
   const [messages, setMessages] = useState<CoachMessage[]>([]);
-  const [thinking, setThinking] = useState(false);
+  /**
+   * Which kind of answer is in flight (null = idle). Drives the thinking
+   * bubble, the composer's loading state, and the stop button for AI calls.
+   */
+  const [pending, setPending] = useState<'ai' | 'local' | null>(null);
+  const thinking = pending !== null;
   const idRef = useRef(0);
+  /** Synchronous send lock — state updates lag a same-tick double tap. */
+  const busyRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const stoppedRef = useRef(false);
+  /** False after unmount — a slow free endpoint must not push late answers. */
+  const aliveRef = useRef(true);
 
-  const aiAvailable = useMemo(() => aiCoachEnabled(), []);
-  const aiHost_ = useMemo(() => (aiAvailable ? aiHost() : ''), [aiAvailable]);
-  const [aiOn, setAiOn] = useState(false);
+  /**
+   * Which transport can answer: this deployment's own proxy (key on the
+   * server) or a directly configured public endpoint. Probed once — the answer
+   * only changes when the deployment does.
+   */
+  const [ai, setAi] = useState<CoachAvailability>({
+    available: false,
+    transport: 'none',
+    host: '',
+    model: '',
+  });
+  const aiAvailable = ai.available;
+  const aiHost_ = ai.host;
   const pro = hasProAccess(state);
   const [aiUses, setAiUses] = useState(readAiUses);
   const capped = !pro && aiUses >= FREE_COACH_REPLIES_PER_DAY;
@@ -94,48 +215,149 @@ export function useCoachConversation() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Restore the opt-in preference (default stays OFF — nothing leaves the
-  // device unless the athlete explicitly asked for it).
+  // Navigating away cancels an in-flight free-provider request (and any
+  // pending on-device beat) so late answers never land in the next screen.
   useEffect(() => {
-    if (!aiAvailable) return;
-    try {
-      setAiOn(localStorage.getItem(AI_PREF_KEY) === '1');
-    } catch {
-      /* private mode — stay off */
-    }
-  }, [aiAvailable]);
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
 
-  function toggleAi() {
-    setAiOn((prev) => {
-      const next = !prev;
-      try {
-        localStorage.setItem(AI_PREF_KEY, next ? '1' : '0');
-      } catch {
-        /* ignore */
-      }
-      return next;
+  // Restore the thread, so a reload does not wipe the conversation.
+  useEffect(() => {
+    const restored = readChat();
+    if (restored.length > 0) {
+      idRef.current = Math.max(...restored.map((m) => m.id)) + 1;
+      setMessages(restored);
+    }
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    void resolveCoachAvailability().then((next) => {
+      if (alive) setAi(next);
     });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Persist the thread (debounced — tokens arrive in bursts while streaming).
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const t = setTimeout(() => writeChat(messages), 400);
+    return () => clearTimeout(t);
+  }, [messages]);
+
+  /** Abort an in-flight AI request; the coach falls back to on-device data. */
+  function stop() {
+    stoppedRef.current = true;
+    abortRef.current?.abort();
   }
 
   function send(text: string) {
     const question = text.trim();
-    if (!question || thinking) return;
+    if (!question || busyRef.current) return;
+    busyRef.current = true;
     const stamp = now();
     setMessages((m) => [...m, { id: idRef.current++, role: 'user', text: question, time: stamp }]);
 
-    if (aiAvailable && aiOn && !capped) {
-      setThinking(true);
-      void askAiCoach(question, state)
-        .then((answer) => {
-          recordAiUse();
-          setMessages((m) => [
-            ...m,
-            { id: idRef.current++, role: 'coach', text: answer, time: now(), ai: true },
-          ]);
-        })
-        .catch(() => {
-          // The on-device engine never fails — degrade with an honest note.
+    if (aiAvailable && !capped) {
+      setPending('ai');
+      const started = Date.now();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      const history = toCoachTurns(messages);
+      void (async () => {
+        /** The bubble takes its id from here the moment the first token lands. */
+        let id: number | null = null;
+        let streamed = '';
+        let flushTimer: ReturnType<typeof setTimeout> | null = null;
+        const flush = () => {
+          if (id === null) return;
+          const text = streamed;
+          setMessages((m) => m.map((x) => (x.id === id ? { ...x, text } : x)));
+        };
+        const settle = (patch: Partial<CoachMessage>) => {
+          if (id === null) return;
+          const target = id;
+          setMessages((m) =>
+            m.map((x) => (x.id === target ? { ...x, streaming: false, ...patch } : x)),
+          );
+        };
+        try {
+          for await (const delta of streamAiCoach(question, state, {
+            history,
+            signal: controller.signal,
+            transport: ai.transport,
+          })) {
+            if (!aliveRef.current) return;
+            if (id === null) {
+              // Free endpoints are slow; fast ones shouldn't flash — hold the
+              // thinking state for a readable minimum before the first token.
+              const hold = AI_MIN_THINK_MS - (Date.now() - started);
+              if (hold > 0) await wait(hold);
+              if (!aliveRef.current) return;
+              if (!stoppedRef.current) recordAiUse();
+              id = idRef.current++;
+              const created = id;
+              setMessages((m) => [
+                ...m,
+                { id: created, role: 'coach', text: '', time: now(), ai: true, streaming: true },
+              ]);
+            }
+            streamed += delta;
+            // One render per ~60ms instead of one per token.
+            if (!flushTimer) {
+              flushTimer = setTimeout(() => {
+                flushTimer = null;
+                flush();
+              }, 60);
+            }
+          }
+          if (flushTimer) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
+          if (id === null) throw new CoachAiError('AI response was empty.');
+          flush();
+          const trimmed = streamed.trim();
+          if (!trimmed) throw new CoachAiError('AI response was empty.');
+          settle(
+            stoppedRef.current
+              ? { text: trimmed, notice: 'Stopped — this answer may be incomplete.' }
+              : { text: trimmed },
+          );
+        } catch (e) {
+          if (flushTimer) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
+          if (!aliveRef.current) return;
+          // Already streaming? Keep what arrived instead of swapping the
+          // athlete's half-answer for a different one.
+          if (id !== null && streamed.trim()) {
+            flush();
+            settle({
+              text: streamed.trim(),
+              notice: stoppedRef.current
+                ? 'Stopped — this answer may be incomplete.'
+                : 'The AI connection dropped — this answer may be incomplete.',
+            });
+            return;
+          }
+          // Nothing arrived: the on-device engine never fails — degrade with
+          // an honest note. The console line matters: the browser's own
+          // `POST /api/coach 4xx/5xx` says nothing about the cause, and this
+          // is where an operator finds the provider's own words.
+          if (e instanceof Error) console.warn('[coach] AI answer failed:', e.message);
           const local = answerCoach(question, state);
+          await wait(400);
+          if (!aliveRef.current) return;
+          const stopped = stoppedRef.current;
+          const notice = aiFallbackNotice(e, stoppedRef.current);
           setMessages((m) => [
             ...m,
             {
@@ -144,29 +366,49 @@ export function useCoachConversation() {
               text: local.text,
               chips: local.chips,
               time: now(),
-              notice: 'AI unavailable right now — answered from your on-device data.',
+              notice,
             },
           ]);
-        })
-        .finally(() => setThinking(false));
+        } finally {
+          abortRef.current = null;
+          stoppedRef.current = false;
+          busyRef.current = false;
+          if (aliveRef.current) setPending(null);
+        }
+      })();
       return;
     }
 
+    // On-device answers compute instantly; hold a short visible think so the
+    // reply never snaps in and double-sends are impossible while it's busy.
+    setPending('local');
     const answer = answerCoach(question, state);
-    setMessages((m) => [
-      ...m,
-      { id: idRef.current++, role: 'coach', text: answer.text, chips: answer.chips, time: now() },
-    ]);
+    void wait(LOCAL_THINK_MS + Math.round(Math.random() * 250)).then(() => {
+      if (!aliveRef.current) return;
+      setMessages((m) => [
+        ...m,
+        {
+          id: idRef.current++,
+          role: 'coach',
+          text: answer.text,
+          chips: answer.chips,
+          time: now(),
+        },
+      ]);
+      busyRef.current = false;
+      setPending(null);
+    });
   }
 
   return {
     messages,
     send,
     thinking,
+    pending,
     aiAvailable,
-    aiOn,
     aiHost: aiHost_,
-    toggleAi,
+    aiTransport: ai.transport,
+    stop,
     capped,
     quickReplies: useMemo(() => [...COACH_QUICK_REPLIES], []),
   };
@@ -188,56 +430,33 @@ export function CoachFreeLimitNotice({ show }: { show: boolean }) {
   );
 }
 
-/** Opt-in switch for AI answers, shown only when an endpoint is configured. */
-export function CoachAiToggle({
-  on,
-  onToggle,
+/**
+ * Where the coach's answers come from — a label, not a control.
+ *
+ * AI answers are used whenever the deployment has a provider configured; the
+ * on-device engine is the fallback. The switch that used to live here is gone
+ * (the operator configures AI once, per deployment, in the environment), but
+ * the disclosure stays: a question plus a summary of the training data really
+ * does leave the device, and the athlete is entitled to know where it goes.
+ */
+export function CoachAiSource({
   host,
+  viaProxy = false,
   className,
 }: {
-  on: boolean;
-  onToggle: () => void;
   host: string;
+  /** True when answers go through this deployment's own /api/coach route. */
+  viaProxy?: boolean;
   className?: string;
 }) {
   return (
-    <div className={cn('grid gap-1', className)}>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        onClick={onToggle}
-        className={cn(
-          'inline-flex w-fit items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-bold transition-colors',
-          on
-            ? 'bg-primary text-primary-foreground border-transparent'
-            : 'border-border bg-card text-foreground hover:border-primary/50',
-        )}
-      >
-        <Sparkles className="h-3.5 w-3.5" aria-hidden />
-        AI answers {on ? 'on' : 'off'}
-        <span
-          className={cn(
-            'relative ml-0.5 h-4 w-7 rounded-full transition-colors',
-            on ? 'bg-primary-foreground/35' : 'bg-secondary',
-          )}
-          aria-hidden
-        >
-          <span
-            className={cn(
-              'bg-card absolute top-0.5 h-3 w-3 rounded-full transition-all',
-              on ? 'left-3.5' : 'left-0.5',
-            )}
-          />
-        </span>
-      </button>
-      {on && host && (
-        <p className="text-muted-foreground max-w-sm text-[11px] leading-snug">
-          Your question plus a summary of your training stats is sent to <b>{host}</b>. Off means
-          every answer is computed on this device.
-        </p>
-      )}
-    </div>
+    <p className={cn('text-muted-foreground max-w-sm text-[11px] leading-snug', className)}>
+      <Sparkles className="mr-1 inline h-3 w-3 align-[-1px]" aria-hidden />
+      Answers come from AI (<b>{host || 'your provider'}</b>)
+      {viaProxy ? ' through this app’s server — the key never reaches your browser' : ''}. Your
+      question and a summary of your training stats are sent there; if the provider fails or has no
+      key, the coach answers on this device from the same data.
+    </p>
   );
 }
 
@@ -269,16 +488,77 @@ export function CoachChips({ chips }: { chips: CoachChip[] }) {
   );
 }
 
-/** Three bouncing dots while an AI answer is on its way. */
-function TypingBubble() {
+/**
+ * Coach is thinking — the loading face of the chat.
+ *
+ * Shown for every in-flight answer (on-device too, see `LOCAL_THINK_MS`).
+ * Rotating status lines + a live elapsed timer make slow free AI endpoints
+ * legible instead of looking frozen, and an AI request can be stopped from
+ * here (the conversation then answers on-device).
+ */
+function ThinkingBubble({ ai, host, onStop }: { ai: boolean; host?: string; onStop?: () => void }) {
+  const captions = ai
+    ? [
+        host ? `Asking ${host}…` : 'Asking the AI coach…',
+        'Reading your training log…',
+        'Checking this week and your goals…',
+        'Almost there…',
+      ]
+    : ['Looking through your log…', 'Adding up this week…'];
+
+  const [step, setStep] = useState(0);
+  const [seconds, setSeconds] = useState(0);
+
+  useEffect(() => {
+    const rotate = setInterval(() => setStep((s) => s + 1), ai ? 2600 : 800);
+    return () => clearInterval(rotate);
+  }, [ai]);
+
+  useEffect(() => {
+    const tick = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(tick);
+  }, []);
+
+  const slow = ai && seconds >= 10;
+
   return (
     <div className="flex flex-col items-start">
-      <div className="border-border bg-card text-card-foreground dot-typing flex max-w-[88%] items-center gap-1.5 rounded-3xl rounded-tl-md border px-5 py-4 shadow-sm">
-        <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />
-        <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />
-        <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />
+      <div className="border-border bg-card text-card-foreground flex max-w-[88%] items-center gap-3 rounded-3xl rounded-tl-md border px-4 py-3.5 shadow-sm">
+        <span className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-full">
+          <Sparkles className="animate-pulse-soft h-3.5 w-3.5" aria-hidden />
+        </span>
+        <span className="dot-typing flex items-center gap-1.5" aria-hidden>
+          <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />
+          <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />
+          <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />
+        </span>
       </div>
-      <span className="text-muted-foreground mt-1 px-1 text-[10px]">Coach is thinking…</span>
+      <span className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-[11px]">
+        <span aria-live="polite">
+          {slow ? 'Still working — the provider is slow…' : captions[step % captions.length]}
+        </span>
+        {ai && seconds >= 3 && (
+          <span className="tabular-nums opacity-80" aria-hidden>
+            {seconds}s
+          </span>
+        )}
+        {ai && onStop && (
+          <button
+            type="button"
+            onClick={onStop}
+            className="text-muted-foreground hover:text-foreground hover:bg-secondary inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold transition-colors"
+          >
+            <Square className="h-2.5 w-2.5 fill-current" aria-hidden /> Stop
+          </button>
+        )}
+      </span>
+      <span className="text-muted-foreground/80 mt-0.5 px-1 text-[10px] italic">
+        {slow
+          ? 'Free AI endpoints can take a while — Stop answers instantly from your own data.'
+          : ai
+            ? 'Using a privacy-limited summary of your stats'
+            : 'Keeping everything on this device'}
+      </span>
     </div>
   );
 }
@@ -286,13 +566,23 @@ function TypingBubble() {
 export function CoachMessages({
   messages,
   className,
-  thinking = false,
+  pending = null,
+  aiHost,
+  onStop,
 }: {
   messages: CoachMessage[];
   className?: string;
-  thinking?: boolean;
+  /** `'ai'` or `'local'` while an answer is in flight; `null` when idle. */
+  pending?: 'ai' | 'local' | null;
+  /** Shown in the thinking status ("Asking <host>…") for AI answers. */
+  aiHost?: string;
+  /** Cancels an in-flight AI request (Stop in the thinking bubble). */
+  onStop?: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  /** A token stream replaces the thinking bubble as soon as it starts. */
+  const streaming = messages.some((m) => m.streaming);
+  const thinking = pending !== null && !streaming;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -313,7 +603,32 @@ export function CoachMessages({
                 : 'border-border bg-card text-card-foreground animate-fade-in rounded-tl-md border',
             )}
           >
-            {m.text}
+            {m.role === 'user' ? (
+              <span className="whitespace-pre-line">{m.text}</span>
+            ) : (
+              <CoachText text={m.text} />
+            )}
+            {m.streaming && (
+              <span className="text-muted-foreground mt-2 flex items-center gap-2 text-[11px]">
+                <span className="dot-typing flex items-center gap-1" aria-hidden>
+                  <span className="bg-muted-foreground/70 h-1 w-1 rounded-full" />
+                  <span className="bg-muted-foreground/70 h-1 w-1 rounded-full" />
+                  <span className="bg-muted-foreground/70 h-1 w-1 rounded-full" />
+                </span>
+                <span aria-live="polite" className="sr-only">
+                  Answer streaming
+                </span>
+                {onStop && (
+                  <button
+                    type="button"
+                    onClick={onStop}
+                    className="hover:text-foreground hover:bg-secondary inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold transition-colors"
+                  >
+                    <Square className="h-2.5 w-2.5 fill-current" aria-hidden /> Stop
+                  </button>
+                )}
+              </span>
+            )}
           </div>
           {m.notice && (
             <p className="text-muted-foreground mt-1 max-w-[88%] px-1 text-[11px] italic">
@@ -331,7 +646,13 @@ export function CoachMessages({
           </span>
         </div>
       ))}
-      {thinking && <TypingBubble />}
+      {pending !== null && (
+        <ThinkingBubble
+          ai={pending === 'ai'}
+          host={aiHost}
+          onStop={pending === 'ai' ? onStop : undefined}
+        />
+      )}
     </div>
   );
 }
@@ -355,7 +676,7 @@ export function CoachComposer({
   }
 
   return (
-    <form onSubmit={submit} className="flex items-center gap-2">
+    <form onSubmit={submit} className="flex items-center gap-2" aria-busy={disabled}>
       <Input
         value={input}
         onChange={(e) => setInput(e.target.value)}
@@ -370,7 +691,11 @@ export function CoachComposer({
         disabled={disabled || !input.trim()}
         className="shadow-primary/30 h-12 w-12 shrink-0 rounded-full shadow-md sm:h-12 sm:w-12"
       >
-        <Send className="h-5 w-5" />
+        {disabled ? (
+          <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
+        ) : (
+          <Send className="h-5 w-5" aria-hidden />
+        )}
       </Button>
     </form>
   );
@@ -405,8 +730,18 @@ export function CoachQuickReplies({
 
 /** Compact coach used in the dashboard's right-hand column. */
 export function CoachPanel({ className }: { className?: string }) {
-  const { messages, send, thinking, aiAvailable, aiOn, aiHost, toggleAi, quickReplies, capped } =
-    useCoachConversation();
+  const {
+    messages,
+    send,
+    thinking,
+    pending,
+    aiAvailable,
+    aiHost,
+    aiTransport,
+    stop,
+    quickReplies,
+    capped,
+  } = useCoachConversation();
 
   return (
     <div
@@ -420,18 +755,28 @@ export function CoachPanel({ className }: { className?: string }) {
           <Sparkles className="h-4 w-4" /> Your coach
         </span>
         {aiAvailable && (
-          <CoachAiToggle on={aiOn} onToggle={toggleAi} host={aiHost} className="justify-self-end" />
+          <CoachAiSource
+            host={aiHost}
+            viaProxy={aiTransport === 'proxy'}
+            className="max-w-[15rem] text-right"
+          />
         )}
       </div>
 
-      <CoachMessages messages={messages} thinking={thinking} className="px-5 py-6" />
+      <CoachMessages
+        messages={messages}
+        pending={pending}
+        aiHost={aiHost}
+        onStop={stop}
+        className="px-5 py-6"
+      />
 
       <div className="px-5 pb-3">
         <CoachQuickReplies replies={quickReplies} onPick={send} disabled={thinking} />
       </div>
 
       <div className="p-4 pt-1">
-        <CoachFreeLimitNotice show={capped && aiOn && aiAvailable} />
+        <CoachFreeLimitNotice show={capped && aiAvailable} />
         <CoachComposer onSend={send} placeholder="Type something…" disabled={thinking} />
       </div>
     </div>

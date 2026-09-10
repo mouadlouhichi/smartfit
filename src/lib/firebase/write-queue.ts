@@ -84,6 +84,23 @@ export class WriteQueue {
     }
   }
 
+  /**
+   * Resolves once everything queued so far has been written — or once the
+   * queue has parked on an error, so callers never hang on a permission
+   * failure. Used where a navigation must not outrun its save.
+   */
+  flush(): Promise<void> {
+    if (!this.queue.length && !this.running) return Promise.resolve();
+    return new Promise((resolve) => {
+      const off = this.subscribe((status, pending) => {
+        if ((pending === 0 && !this.running) || status === 'error') {
+          off();
+          resolve();
+        }
+      });
+    });
+  }
+
   /** Drop everything pending (sign-out, account wipe). */
   clear() {
     this.queue = [];
@@ -130,6 +147,9 @@ export class WriteQueue {
       this.setStatus('idle');
     } finally {
       this.running = false;
+      // Notify after the flag flips: flush() waiters observe the settled
+      // queue, not a half-finished drain.
+      this.emit();
     }
   }
 

@@ -2,7 +2,7 @@
 
 import { Sparkles } from 'lucide-react';
 import {
-  CoachAiToggle,
+  CoachAiSource,
   CoachComposer,
   CoachFreeLimitNotice,
   CoachMessages,
@@ -14,12 +14,23 @@ import {
  * Full-screen coach. Shares the exact conversation logic used by the compact
  * dashboard panel, which in turn delegates every answer to `answerCoach` in
  * @smartfit/core — so the two surfaces can no longer drift apart or disagree
- * about what "this week" means. When an AI endpoint is configured, athletes
- * can opt in to AI answers here; the on-device engine stays the fallback.
+ * about what "this week" means. It answers with AI when the deployment has a
+ * provider configured, and with the on-device engine when it does not (or when
+ * the provider fails); there is no switch to flip.
  */
 export default function CoachPage() {
-  const { messages, send, thinking, aiAvailable, aiOn, aiHost, toggleAi, quickReplies, capped } =
-    useCoachConversation();
+  const {
+    messages,
+    send,
+    thinking,
+    pending,
+    aiAvailable,
+    aiHost,
+    aiTransport,
+    stop,
+    quickReplies,
+    capped,
+  } = useCoachConversation();
 
   return (
     <div className="flex h-[calc(100dvh-140px)] flex-col lg:h-[calc(100dvh-120px)]">
@@ -39,18 +50,20 @@ export default function CoachPage() {
               />
               {thinking
                 ? 'Thinking…'
-                : aiAvailable && aiOn
-                  ? `AI answers on via ${aiHost} — falls back to on-device answers`
+                : aiAvailable
+                  ? `AI answers via ${aiHost} — streams as it writes, on-device when it cannot`
                   : 'Worked out on this device from your own data'}
             </p>
           </div>
         </div>
-        {aiAvailable && <CoachAiToggle on={aiOn} onToggle={toggleAi} host={aiHost} />}
+        {aiAvailable && <CoachAiSource host={aiHost} viaProxy={aiTransport === 'proxy'} />}
       </div>
 
       <CoachMessages
         messages={messages}
-        thinking={thinking}
+        pending={pending}
+        aiHost={aiHost}
+        onStop={stop}
         className="border-border bg-card/60 rounded-3xl border p-4"
       />
 
@@ -59,7 +72,7 @@ export default function CoachPage() {
       </div>
 
       <div className="mt-2">
-        <CoachFreeLimitNotice show={capped && aiOn && aiAvailable} />
+        <CoachFreeLimitNotice show={capped && aiAvailable} />
         <CoachComposer onSend={send} disabled={thinking} />
       </div>
     </div>

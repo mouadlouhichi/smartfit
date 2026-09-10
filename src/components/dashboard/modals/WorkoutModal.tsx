@@ -11,15 +11,16 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { CategoryIcon, chipAccentStyle } from '@/components/category-icon';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
 import { useConfirm } from '../confirm-context';
 import { INTENSITY_META, toISODate, fromKm, toKm } from '@smartfit/core';
 import type { Intensity, WorkoutExercise } from '@smartfit/core';
-import { Trash2 } from 'lucide-react';
+import { Flame, Plus, Trash2 } from 'lucide-react';
 import { ExercisePicker } from '@/components/exercise-picker';
 
 const BLANK_EXERCISE: WorkoutExercise = { name: '', sets: [{}] };
@@ -81,6 +82,10 @@ export function WorkoutModal() {
   const category = state.categories.find((c) => c.id === categoryId);
   const isCardio = categoryId === 'cat-cardio' || categoryId === 'cat-sports';
 
+  function addExercise() {
+    setExercises((p) => [...p, { ...BLANK_EXERCISE, sets: [{}, {}] }]);
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const mins = Number(duration);
@@ -124,34 +129,54 @@ export function WorkoutModal() {
     closeModal();
   }
 
+  const accent = chipAccentStyle(category?.color);
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && closeModal()}>
       <DialogContent>
-        <form onSubmit={submit}>
+        <form onSubmit={submit} className="flex min-h-0 flex-col">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit workout' : 'Log workout'}</DialogTitle>
-            <DialogDescription>
-              {editing
-                ? 'Fix anything that went in wrong — totals, streaks and charts update instantly.'
-                : 'Every session you log feeds your weekly stats and streaks.'}
-            </DialogDescription>
+            <div className="flex items-start gap-3 pr-8">
+              <span
+                aria-hidden
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                style={accent}
+              >
+                <CategoryIcon name={category?.icon ?? 'activity'} size={22} />
+              </span>
+              <div className="min-w-0">
+                <DialogTitle>{editing ? 'Edit workout' : 'Log workout'}</DialogTitle>
+                <DialogDescription>
+                  {editing
+                    ? 'Fix anything that went in wrong — totals, streaks and charts update instantly.'
+                    : 'Every session you log feeds your weekly stats and streaks.'}
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="mt-4 grid gap-4">
+          <div className="mt-5 grid gap-5">
+            {/* When + Type */}
             <div className="grid grid-cols-2 gap-3">
               <Field id="w-date" label="Date">
-                <Input
-                  type="date"
+                <DatePicker
                   value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
+                  onValueChange={setDate}
+                  weekStartsOn={state.profile.weekStartsOn ?? 1}
                 />
               </Field>
               <Field id="w-cat" label="Type">
                 <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                   {state.categories.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          aria-hidden
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: c.color }}
+                        />
+                        {c.name}
+                      </span>
                     </option>
                   ))}
                 </Select>
@@ -174,6 +199,7 @@ export function WorkoutModal() {
                 <Input
                   type="number"
                   min={1}
+                  inputMode="numeric"
                   value={duration}
                   onChange={(e) => {
                     setDuration(e.target.value);
@@ -189,7 +215,14 @@ export function WorkoutModal() {
                 >
                   {Object.entries(INTENSITY_META).map(([k, m]) => (
                     <option key={k} value={k}>
-                      {m.label}
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          aria-hidden
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: m.color }}
+                        />
+                        {m.label}
+                      </span>
                     </option>
                   ))}
                 </Select>
@@ -205,50 +238,82 @@ export function WorkoutModal() {
                     // step="any": 0.1 rejected splits like 5.25 km.
                     step="any"
                     min={0}
+                    inputMode="decimal"
+                    placeholder="0.0"
                     value={distance}
                     onChange={(e) => setDistance(e.target.value)}
                   />
                 </Field>
               ) : (
-                <div className="col-span-2 grid gap-1.5 min-[430px]:col-span-1">
-                  <Label htmlFor="w-cal">Est. kcal</Label>
-                  <div
-                    id="w-cal"
-                    className="border-input bg-secondary flex h-10 items-center rounded-xl border px-3 text-sm font-semibold"
-                  >
-                    {cal}
+                <div className="col-span-2 grid content-start gap-1.5 min-[430px]:col-span-1">
+                  <p className="text-foreground/90 text-sm leading-none font-medium">Est. burn</p>
+                  <div className="border-accent/60 bg-accent/40 flex h-11 items-center gap-2 rounded-xl border px-3 sm:h-10">
+                    <Flame className="text-accent-foreground h-4 w-4 shrink-0" aria-hidden />
+                    <span className="text-foreground text-sm font-extrabold tabular-nums">
+                      {cal}
+                    </span>
+                    <span className="text-accent-foreground/90 text-xs font-semibold">kcal</span>
                   </div>
                 </div>
               )}
             </div>
 
+            {/* Live summary for cardio (duration · distance are already in the
+                inputs above; this one line answers "what did it burn?"). */}
             {isCardio && (
-              <div className="grid gap-1.5">
-                <Label htmlFor="w-cal-cardio">Estimated burn</Label>
-                <div
-                  id="w-cal-cardio"
-                  className="border-input bg-secondary flex h-10 items-center rounded-xl border px-3 text-sm font-semibold"
-                >
+              <div className="border-accent/60 bg-accent/30 flex items-center justify-between gap-3 rounded-2xl border px-4 py-3">
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="bg-accent text-accent-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                    <Flame className="h-4 w-4" aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="text-foreground block text-sm font-bold">Estimated burn</span>
+                    <span className="text-muted-foreground block truncate text-xs">
+                      {Number(duration) > 0
+                        ? `${Math.max(1, Math.round(Number(duration)))} min`
+                        : '—'}{' '}
+                      · {INTENSITY_META[intensity].label.toLowerCase()} effort
+                    </span>
+                  </span>
+                </span>
+                <span className="text-foreground shrink-0 text-lg font-extrabold tabular-nums">
                   {cal} kcal
-                </div>
+                </span>
               </div>
             )}
 
-            <div className="grid gap-2">
-              <div className="flex items-center justify-between">
-                <Label>Exercises</Label>
+            {/* Exercises */}
+            <section className="border-border bg-secondary/40 grid gap-3 rounded-2xl border p-3 sm:p-3.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-foreground/90 text-sm leading-none font-medium">Exercises</p>
+                  <p className="text-muted-foreground mt-1 truncate text-xs">
+                    Sets you completed — optional, but it makes history worth looking back at.
+                  </p>
+                </div>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="secondary"
                   size="sm"
-                  onClick={() => setExercises((p) => [...p, { name: '', sets: [{}, {}] }])}
+                  onClick={addExercise}
+                  className="shrink-0"
                 >
-                  + Add
+                  <Plus className="h-3.5 w-3.5" aria-hidden /> Add
                 </Button>
               </div>
+
               <div className="grid gap-2">
                 {exercises.map((ex, i) => (
-                  <div key={i} className="flex items-center gap-2">
+                  <div
+                    key={i}
+                    className="border-border bg-card flex items-center gap-2 rounded-xl border p-1.5 shadow-sm sm:pl-2"
+                  >
+                    <span
+                      aria-hidden
+                      className="bg-secondary text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-extrabold tabular-nums"
+                    >
+                      {i + 1}
+                    </span>
                     <ExercisePicker
                       ariaLabel={`Exercise ${i + 1} name`}
                       placeholder={`Exercise ${i + 1} (e.g. Squat)`}
@@ -260,11 +325,11 @@ export function WorkoutModal() {
                     />
                     <Input
                       aria-label={`Exercise ${i + 1} sets`}
-                      className="w-16 shrink-0 min-[430px]:w-20"
+                      className="w-16 shrink-0 text-center min-[430px]:w-20"
                       type="number"
+                      min={1}
                       placeholder="sets"
                       value={ex.sets.length}
-                      min={1}
                       onChange={(e) =>
                         setExercises((p) =>
                           p.map((x, xi) =>
@@ -286,7 +351,7 @@ export function WorkoutModal() {
                         type="button"
                         onClick={() => setExercises((p) => p.filter((_, xi) => xi !== i))}
                         aria-label={`Remove exercise ${i + 1}`}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -294,7 +359,7 @@ export function WorkoutModal() {
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
 
             <Field id="w-notes" label="Notes">
               <Input

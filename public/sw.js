@@ -10,7 +10,7 @@
  * The app's *data* is already offline-capable (localStorage in local mode,
  * Firestore's IndexedDB cache in cloud mode); this only covers the shell.
  */
-const VERSION = 'smartfit-v1';
+const VERSION = 'smartfit-v3'; // ember-plate fire mark: new icon bytes behind old URLs
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const OFFLINE_URL = '/offline';

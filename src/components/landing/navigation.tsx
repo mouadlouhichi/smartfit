@@ -164,24 +164,3 @@ export function Navigation() {
     </header>
   );
 }
-
-export function LogoMark({ size = 34 }: { size?: number }) {
-  return (
-    <span
-      className="flex items-center justify-center rounded-xl bg-[color:var(--primary)] shadow-md"
-      style={{ width: size, height: size }}
-    >
-      <svg
-        viewBox="0 0 24 24"
-        width={size * 0.58}
-        height={size * 0.58}
-        fill="none"
-        stroke="#FDF6F2"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      >
-        <path d="M6.5 8.5v7M17.5 8.5v7M3.5 10.5v3M20.5 10.5v3M6.5 12h11" />
-      </svg>
-    </span>
-  );
-}
