@@ -5,6 +5,7 @@ import {
   DIAGNOSTIC_TIMEOUT_MS,
   UPSTREAM_CEILING_MS,
   UPSTREAM_FIRST_TOKEN_MS,
+  endpointProblem,
   providerHttpStatus,
   readServerAiConfig,
   serverAiHost,
@@ -45,7 +46,12 @@ export async function GET(req: Request): Promise<Response> {
   const cfg = readServerAiConfig();
   if (!cfg) return json({ configured: false });
 
+  const problem = endpointProblem(cfg.endpoint);
   const base = { configured: true, host: serverAiHost(cfg), model: cfg.model };
+  if (problem) {
+    console.error(`[coach] AI_COACH_ENDPOINT ${problem}`);
+    return json({ ...base, ok: false, error: `AI_COACH_ENDPOINT ${problem}` }, 503);
+  }
 
   // `?check=1` actually pings the provider — the fastest way to tell a bad key
   // or model from a bad network from the deployment's own logs. The prompt is
@@ -115,6 +121,11 @@ function callerKey(req: Request): string {
 export async function POST(req: Request): Promise<Response> {
   const cfg = readServerAiConfig();
   if (!cfg) return json({ error: 'AI coach is not configured on this deployment.' }, 503);
+  const problem = endpointProblem(cfg.endpoint);
+  if (problem) {
+    console.error(`[coach] AI_COACH_ENDPOINT ${problem}`);
+    return json({ error: `AI_COACH_ENDPOINT ${problem}` }, 503);
+  }
 
   if (!sameOrigin(req)) return json({ error: 'Cross-origin requests are not allowed.' }, 403);
 
@@ -166,7 +177,9 @@ export async function POST(req: Request): Promise<Response> {
   } catch (e) {
     if (timer) clearTimeout(timer);
     const aborted = (e as { name?: string } | null)?.name === 'AbortError';
-    console.error(`[coach] upstream unreachable: ${e instanceof Error ? e.message : String(e)}`);
+    console.error(
+      `[coach] ${serverCompletionsUrl(cfg)} unreachable: ${e instanceof Error ? e.message : String(e)}`,
+    );
     return json(
       {
         error: aborted
@@ -183,7 +196,7 @@ export async function POST(req: Request): Promise<Response> {
     const message = `${extractError(detail) || 'The AI provider refused the request.'} (${upstream.status})`;
     // Logged with the status so the deployment's own function logs explain a
     // failure even when nobody reads the response body.
-    console.error(`[coach] provider rejected the request: ${message}`);
+    console.error(`[coach] ${serverCompletionsUrl(cfg)} → ${message}`);
     return json(
       { error: message, providerStatus: upstream.status },
       providerHttpStatus(upstream.status),

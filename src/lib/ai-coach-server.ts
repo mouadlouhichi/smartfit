@@ -32,6 +32,46 @@ export function readServerAiConfig(): ServerAiConfig | null {
   };
 }
 
+/**
+ * Why a configured endpoint cannot work from a deployed function.
+ *
+ * The single most common way this breaks: someone points `AI_COACH_ENDPOINT`
+ * at a model running on their own machine (`http://localhost:11434/v1`) and
+ * the serverless function dutifully tries to call itself. The request dies as
+ * a generic "could not reach the provider", which is impossible to diagnose
+ * from a browser console — so say it outright instead.
+ */
+export function endpointProblem(endpoint: string): string | null {
+  let host: string;
+  try {
+    host = new URL(endpoint).hostname.toLowerCase();
+  } catch {
+    return 'is not a valid URL.';
+  }
+
+  const loopback =
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host === '127.0.0.1' ||
+    host === '[::1]' ||
+    host === '::1';
+  const mdns = host.endsWith('.local');
+  const privateV4 =
+    /^(?:10|127)\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(?:1[6-9]|2\d|3[01])\./.test(host) ||
+    host === '0.0.0.0';
+
+  if (loopback || mdns || privateV4) {
+    return (
+      `points at "${host}", which only exists on your own machine — this server cannot reach it. ` +
+      'Point AI_COACH_ENDPOINT at a hosted provider, or run the model locally and use the ' +
+      'browser-side NEXT_PUBLIC_AI_* mode instead (that one is called by your computer, not by the deployment).'
+    );
+  }
+  return null;
+}
+
 /** Upstream host, for the coach's honest "sent to …" note. */
 export function serverAiHost(cfg: ServerAiConfig): string {
   try {

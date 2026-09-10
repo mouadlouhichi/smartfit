@@ -371,7 +371,10 @@ export function useCoachConversation() {
             return;
           }
           // Nothing arrived: the on-device engine never fails — degrade with
-          // an honest note.
+          // an honest note. The console line matters: the browser's own
+          // `POST /api/coach 4xx/5xx` says nothing about the cause, and this
+          // is where an operator finds the provider's own words.
+          if (e instanceof Error) console.warn('[coach] AI answer failed:', e.message);
           const local = answerCoach(question, state);
           await wait(400);
           if (!aliveRef.current) return;

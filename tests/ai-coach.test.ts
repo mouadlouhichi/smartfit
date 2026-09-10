@@ -20,7 +20,7 @@ import {
   type CoachTurn,
 } from '../src/lib/ai-coach.ts';
 import { createRateLimiter } from '../src/lib/rate-limit.ts';
-import { providerHttpStatus } from '../src/lib/ai-coach-server.ts';
+import { endpointProblem, providerHttpStatus } from '../src/lib/ai-coach-server.ts';
 import { emptyState, toISODate, type FitnessState } from '@smartfit/core';
 
 /**
@@ -467,6 +467,38 @@ test('a provider rejection is not reported as a broken gateway', () => {
   assert.equal(providerHttpStatus(429), 429);
   assert.equal(providerHttpStatus(500), 502);
   assert.equal(providerHttpStatus(503), 502);
+});
+
+test('an endpoint the deployment cannot reach is named, not guessed at', () => {
+  // The classic: a local model URL pasted into a hosted deployment.
+  for (const url of [
+    'http://localhost:11434/v1',
+    'http://127.0.0.1:1234/v1',
+    'http://[::1]:8080/v1',
+    'http://ollama.local:11434/v1',
+    'http://192.168.1.20:11434/v1',
+    'http://10.0.0.5:8000/v1',
+    'http://172.16.0.9:1234/v1',
+    'http://172.31.255.1/v1',
+    'http://0.0.0.0:4010/v1',
+  ]) {
+    const problem = endpointProblem(url);
+    assert.ok(problem, `${url} should be flagged`);
+    assert.match(problem!, /only exists on your own machine/);
+  }
+
+  // Hosted providers, and addresses that merely look private, are fine.
+  for (const url of [
+    'https://api.groq.com/openai/v1',
+    'https://generativelanguage.googleapis.com/v1beta/openai',
+    'https://gen.pollinations.ai/v1',
+    'https://openrouter.ai/api/v1',
+    'http://172.32.0.1/v1', // just outside 172.16/12
+    'http://11.0.0.1/v1',
+  ]) {
+    assert.equal(endpointProblem(url), null, `${url} should be allowed`);
+  }
+  assert.match(endpointProblem('not a url')!, /not a valid URL/);
 });
 
 /* ── the abuse speed bump ─────────────────────────────────────────────── */
