@@ -15,8 +15,15 @@ import {
   COACH_QUICK_REPLIES,
   type CoachChip,
 } from '@smartfit/core';
-import { CoachAiError, aiCoachEnabled, aiHost, askAiCoach } from '@/lib/ai-coach';
+import {
+  CoachAiError,
+  resolveCoachAvailability,
+  streamAiCoach,
+  type CoachAvailability,
+  type CoachTurn,
+} from '@/lib/ai-coach';
 import { Ring } from './ring';
+import { CoachText } from './coach-text';
 import { cn } from '@/lib/utils';
 
 export interface CoachMessage {
@@ -29,6 +36,8 @@ export interface CoachMessage {
   ai?: boolean;
   /** Small print under a bubble, e.g. the AI-unavailable fallback note. */
   notice?: string;
+  /** True while tokens are still arriving — shows the live caret + Stop. */
+  streaming?: boolean;
 }
 
 const now = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -49,6 +58,64 @@ const AI_PREF_KEY = 'smartfit.aiCoach';
 /** Free-tier AI reply counter (per calendar day, per browser). Pro = unlimited. */
 const AI_USE_KEY = 'smartfit.coach.aiUses';
 
+/**
+ * The conversation itself, so a reload does not wipe the thread. Bounded: the
+ * last 40 bubbles are plenty for a chat, and a runaway log would slow every
+ * render down.
+ */
+const CHAT_KEY = 'smartfit.coach.chat.v1';
+const CHAT_KEEP = 40;
+
+function readChat(): CoachMessage[] {
+  try {
+    const raw = localStorage.getItem(CHAT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as { v?: number; messages?: unknown };
+    if (parsed.v !== 1 || !Array.isArray(parsed.messages)) return [];
+    return parsed.messages
+      .filter(
+        (m): m is CoachMessage =>
+          !!m &&
+          typeof m === 'object' &&
+          (m as CoachMessage).role !== undefined &&
+          typeof (m as CoachMessage).text === 'string' &&
+          typeof (m as CoachMessage).id === 'number',
+      )
+      .filter((m) => m.role === 'user' || m.role === 'coach')
+      .map((m) => ({ ...m, streaming: false }))
+      .slice(-CHAT_KEEP);
+  } catch {
+    return [];
+  }
+}
+
+function writeChat(messages: CoachMessage[]) {
+  try {
+    localStorage.setItem(
+      CHAT_KEY,
+      JSON.stringify({
+        v: 1,
+        messages: messages
+          .filter((m) => m.text.trim().length > 0)
+          .slice(-CHAT_KEEP)
+          .map(({ streaming: _streaming, ...rest }) => rest),
+      }),
+    );
+  } catch {
+    /* private mode / quota — the thread just does not survive the reload */
+  }
+}
+
+/**
+ * The turns the provider sees. The on-device engine answers from the stored
+ * state, so only text matters here — chips, notices and timestamps are UI.
+ */
+export function toCoachTurns(messages: CoachMessage[]): CoachTurn[] {
+  return messages
+    .filter((m) => m.text.trim().length > 0)
+    .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }) as CoachTurn);
+}
+
 function readAiUses(): number {
   try {
     const raw = localStorage.getItem(AI_USE_KEY);
@@ -66,6 +133,25 @@ function writeAiUse(count: number) {
   } catch {
     /* storage unavailable — the cap simply stays soft */
   }
+}
+
+/**
+ * One honest sentence about why an AI answer did not arrive — the athlete sees
+ * this under a coach bubble that was answered from their own data instead.
+ */
+function aiFallbackNotice(error: unknown, stopped: boolean): string {
+  if (stopped) return 'Stopped the AI answer — here is your coach on your own data.';
+  const message = error instanceof Error ? error.message : '';
+  if (/took too long/i.test(message)) {
+    return 'The AI endpoint timed out — answered from your on-device data instead.';
+  }
+  if (/not configured/i.test(message)) {
+    return 'AI is not configured on this deployment — answered on-device.';
+  }
+  if (/rate limit|quota|\(429\)/i.test(message)) {
+    return 'The AI provider\u2019s free limit is reached — answered from your on-device data.';
+  }
+  return 'AI unavailable right now — answered from your on-device data.';
 }
 
 /**
@@ -94,8 +180,19 @@ export function useCoachConversation() {
   /** False after unmount — a slow free endpoint must not push late answers. */
   const aliveRef = useRef(true);
 
-  const aiAvailable = useMemo(() => aiCoachEnabled(), []);
-  const aiHost_ = useMemo(() => (aiAvailable ? aiHost() : ''), [aiAvailable]);
+  /**
+   * Which transport can answer: this deployment's own proxy (key on the
+   * server) or a directly configured public endpoint. Probed once — the answer
+   * only changes when the deployment does.
+   */
+  const [ai, setAi] = useState<CoachAvailability>({
+    available: false,
+    transport: 'none',
+    host: '',
+    model: '',
+  });
+  const aiAvailable = ai.available;
+  const aiHost_ = ai.host;
   const [aiOn, setAiOn] = useState(false);
   const pro = hasProAccess(state);
   const [aiUses, setAiUses] = useState(readAiUses);
@@ -125,16 +222,37 @@ export function useCoachConversation() {
     };
   }, []);
 
-  // Restore the opt-in preference (default stays OFF — nothing leaves the
-  // device unless the athlete explicitly asked for it).
+  // Restore the thread and the opt-in preference. The preference defaults to
+  // OFF — nothing leaves the device unless the athlete explicitly asked.
   useEffect(() => {
-    if (!aiAvailable) return;
+    const restored = readChat();
+    if (restored.length > 0) {
+      idRef.current = Math.max(...restored.map((m) => m.id)) + 1;
+      setMessages(restored);
+    }
     try {
       setAiOn(localStorage.getItem(AI_PREF_KEY) === '1');
     } catch {
       /* private mode — stay off */
     }
-  }, [aiAvailable]);
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    void resolveCoachAvailability().then((next) => {
+      if (alive) setAi(next);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Persist the thread (debounced — tokens arrive in bursts while streaming).
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const t = setTimeout(() => writeChat(messages), 400);
+    return () => clearTimeout(t);
+  }, [messages]);
 
   function toggleAi() {
     setAiOn((prev) => {
@@ -166,31 +284,92 @@ export function useCoachConversation() {
       const started = Date.now();
       const controller = new AbortController();
       abortRef.current = controller;
+      const history = toCoachTurns(messages);
       void (async () => {
+        /** The bubble takes its id from here the moment the first token lands. */
+        let id: number | null = null;
+        let streamed = '';
+        let flushTimer: ReturnType<typeof setTimeout> | null = null;
+        const flush = () => {
+          if (id === null) return;
+          const text = streamed;
+          setMessages((m) => m.map((x) => (x.id === id ? { ...x, text } : x)));
+        };
+        const settle = (patch: Partial<CoachMessage>) => {
+          if (id === null) return;
+          const target = id;
+          setMessages((m) =>
+            m.map((x) => (x.id === target ? { ...x, streaming: false, ...patch } : x)),
+          );
+        };
         try {
-          const answer = await askAiCoach(question, state, { signal: controller.signal });
-          // Free endpoints are slow; fast ones shouldn't flash the answer —
-          // hold the thinking state for a readable minimum either way.
-          const hold = AI_MIN_THINK_MS - (Date.now() - started);
-          if (hold > 0) await wait(hold);
-          if (!aliveRef.current) return;
-          recordAiUse();
-          setMessages((m) => [
-            ...m,
-            { id: idRef.current++, role: 'coach', text: answer, time: now(), ai: true },
-          ]);
+          for await (const delta of streamAiCoach(question, state, {
+            history,
+            signal: controller.signal,
+            transport: ai.transport,
+          })) {
+            if (!aliveRef.current) return;
+            if (id === null) {
+              // Free endpoints are slow; fast ones shouldn't flash — hold the
+              // thinking state for a readable minimum before the first token.
+              const hold = AI_MIN_THINK_MS - (Date.now() - started);
+              if (hold > 0) await wait(hold);
+              if (!aliveRef.current) return;
+              if (!stoppedRef.current) recordAiUse();
+              id = idRef.current++;
+              const created = id;
+              setMessages((m) => [
+                ...m,
+                { id: created, role: 'coach', text: '', time: now(), ai: true, streaming: true },
+              ]);
+            }
+            streamed += delta;
+            // One render per ~60ms instead of one per token.
+            if (!flushTimer) {
+              flushTimer = setTimeout(() => {
+                flushTimer = null;
+                flush();
+              }, 60);
+            }
+          }
+          if (flushTimer) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
+          if (id === null) throw new CoachAiError('AI response was empty.');
+          flush();
+          const trimmed = streamed.trim();
+          if (!trimmed) throw new CoachAiError('AI response was empty.');
+          settle(
+            stoppedRef.current
+              ? { text: trimmed, notice: 'Stopped — this answer may be incomplete.' }
+              : { text: trimmed },
+          );
         } catch (e) {
-          // The on-device engine never fails — degrade with an honest note.
+          if (flushTimer) {
+            clearTimeout(flushTimer);
+            flushTimer = null;
+          }
+          if (!aliveRef.current) return;
+          // Already streaming? Keep what arrived instead of swapping the
+          // athlete's half-answer for a different one.
+          if (id !== null && streamed.trim()) {
+            flush();
+            settle({
+              text: streamed.trim(),
+              notice: stoppedRef.current
+                ? 'Stopped — this answer may be incomplete.'
+                : 'The AI connection dropped — this answer may be incomplete.',
+            });
+            return;
+          }
+          // Nothing arrived: the on-device engine never fails — degrade with
+          // an honest note.
           const local = answerCoach(question, state);
           await wait(400);
           if (!aliveRef.current) return;
           const stopped = stoppedRef.current;
-          const notice =
-            !stopped && e instanceof CoachAiError && /took too long/i.test(e.message)
-              ? 'The AI endpoint timed out — answered from your on-device data instead.'
-              : stopped
-                ? 'Stopped the AI answer — here is your coach on your own data.'
-                : 'AI unavailable right now — answered from your on-device data.';
+          const notice = aiFallbackNotice(e, stoppedRef.current);
           setMessages((m) => [
             ...m,
             {
@@ -241,6 +420,7 @@ export function useCoachConversation() {
     aiAvailable,
     aiOn,
     aiHost: aiHost_,
+    aiTransport: ai.transport,
     toggleAi,
     stop,
     capped,
@@ -269,11 +449,14 @@ export function CoachAiToggle({
   on,
   onToggle,
   host,
+  viaProxy = false,
   className,
 }: {
   on: boolean;
   onToggle: () => void;
   host: string;
+  /** True when answers go through this deployment's own /api/coach route. */
+  viaProxy?: boolean;
   className?: string;
 }) {
   return (
@@ -309,8 +492,9 @@ export function CoachAiToggle({
       </button>
       {on && host && (
         <p className="text-muted-foreground max-w-sm text-[11px] leading-snug">
-          Your question plus a summary of your training stats is sent to <b>{host}</b>. Off means
-          every answer is computed on this device.
+          Your question plus a summary of your training stats is sent to <b>{host}</b>
+          {viaProxy ? ' by this app’s server — the provider key never reaches your browser' : ''}.
+          Off means every answer is computed on this device.
         </p>
       )}
     </div>
@@ -437,7 +621,9 @@ export function CoachMessages({
   onStop?: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const thinking = pending !== null;
+  /** A token stream replaces the thinking bubble as soon as it starts. */
+  const streaming = messages.some((m) => m.streaming);
+  const thinking = pending !== null && !streaming;
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
@@ -458,7 +644,32 @@ export function CoachMessages({
                 : 'border-border bg-card text-card-foreground animate-fade-in rounded-tl-md border',
             )}
           >
-            {m.text}
+            {m.role === 'user' ? (
+              <span className="whitespace-pre-line">{m.text}</span>
+            ) : (
+              <CoachText text={m.text} />
+            )}
+            {m.streaming && (
+              <span className="text-muted-foreground mt-2 flex items-center gap-2 text-[11px]">
+                <span className="dot-typing flex items-center gap-1" aria-hidden>
+                  <span className="bg-muted-foreground/70 h-1 w-1 rounded-full" />
+                  <span className="bg-muted-foreground/70 h-1 w-1 rounded-full" />
+                  <span className="bg-muted-foreground/70 h-1 w-1 rounded-full" />
+                </span>
+                <span aria-live="polite" className="sr-only">
+                  Answer streaming
+                </span>
+                {onStop && (
+                  <button
+                    type="button"
+                    onClick={onStop}
+                    className="hover:text-foreground hover:bg-secondary inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold transition-colors"
+                  >
+                    <Square className="h-2.5 w-2.5 fill-current" aria-hidden /> Stop
+                  </button>
+                )}
+              </span>
+            )}
           </div>
           {m.notice && (
             <p className="text-muted-foreground mt-1 max-w-[88%] px-1 text-[11px] italic">
@@ -568,6 +779,7 @@ export function CoachPanel({ className }: { className?: string }) {
     aiAvailable,
     aiOn,
     aiHost,
+    aiTransport,
     toggleAi,
     stop,
     quickReplies,
@@ -586,7 +798,13 @@ export function CoachPanel({ className }: { className?: string }) {
           <Sparkles className="h-4 w-4" /> Your coach
         </span>
         {aiAvailable && (
-          <CoachAiToggle on={aiOn} onToggle={toggleAi} host={aiHost} className="justify-self-end" />
+          <CoachAiToggle
+            on={aiOn}
+            onToggle={toggleAi}
+            host={aiHost}
+            viaProxy={aiTransport === 'proxy'}
+            className="justify-self-end"
+          />
         )}
       </div>
 

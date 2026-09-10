@@ -26,6 +26,7 @@ export default function CoachPage() {
     aiAvailable,
     aiOn,
     aiHost,
+    aiTransport,
     toggleAi,
     stop,
     quickReplies,
@@ -51,12 +52,19 @@ export default function CoachPage() {
               {thinking
                 ? 'Thinking…'
                 : aiAvailable && aiOn
-                  ? `AI answers on via ${aiHost} — falls back to on-device answers`
+                  ? `AI answers on via ${aiHost} — streams as it writes, falls back on-device`
                   : 'Worked out on this device from your own data'}
             </p>
           </div>
         </div>
-        {aiAvailable && <CoachAiToggle on={aiOn} onToggle={toggleAi} host={aiHost} />}
+        {aiAvailable && (
+          <CoachAiToggle
+            on={aiOn}
+            onToggle={toggleAi}
+            host={aiHost}
+            viaProxy={aiTransport === 'proxy'}
+          />
+        )}
       </div>
 
       <CoachMessages
