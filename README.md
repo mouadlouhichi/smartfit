@@ -214,7 +214,7 @@ missing from `.env.example`, so this list cannot drift.
 
 | Variable | App | Default | Effect |
 | --- | --- | --- | --- |
-| `AI_COACH_ENDPOINT` | web (server) | _unset_ | **Recommended.** OpenAI-compatible base URL for the coach proxy (`/api/coach`) — Gemini's OpenAI layer, Groq, OpenRouter, Pollinations… Unset = the proxy stays off |
+| `AI_COACH_ENDPOINT` | web (server) | _unset_ | **Recommended.** OpenAI-compatible base URL for the coach proxy (`/api/coach`) — the base, not the full path (`/chat/completions` is appended unless you include it) — Gemini's OpenAI layer, Groq, OpenRouter, Pollinations… Unset = the proxy stays off |
 | `AI_COACH_API_KEY` | web (server) | _unset_ | Provider key, used only by `/api/coach`; never shipped to the browser. Free tiers exist for Groq/Gemini |
 | `AI_COACH_MODEL` | web (server) | _unset_ | Model id, e.g. `llama-3.3-70b-versatile`; omit to let the provider choose |
 | `NEXT_PUBLIC_AI_ENDPOINT` | web (browser) | _unset_ | Legacy/local endpoint: the browser calls the provider directly. Use for a keyless model on your own machine (Ollama: `http://localhost:11434/v1`) — it is only consulted when `AI_COACH_ENDPOINT` is unset. `NEXT_PUBLIC_*` is public, so never a shared secret |
