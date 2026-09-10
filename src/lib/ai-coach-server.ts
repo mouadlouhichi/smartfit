@@ -47,10 +47,35 @@ export function serverCompletionsUrl(cfg: ServerAiConfig): string {
   return /\/chat\/completions$/.test(base) ? base : `${base}/chat/completions`;
 }
 
-/** First token within this window, or the upstream is treated as dead. */
-export const UPSTREAM_FIRST_TOKEN_MS = 25_000;
-/** Hard ceiling for one upstream answer. */
-export const UPSTREAM_CEILING_MS = 90_000;
+/**
+ * First token within this window, or the upstream is treated as dead.
+ * The route arms the first-token window and then the ceiling below, so the
+ * worst case one request can hold a function open is the sum of the two —
+ * keep that under the platform limit (`maxDuration` in the route) so the route
+ * ends a slow answer itself instead of being killed mid-stream.
+ */
+export const UPSTREAM_FIRST_TOKEN_MS = 18_000;
+/** Hard ceiling for one upstream answer (see the note above). */
+export const UPSTREAM_CEILING_MS = 40_000;
+
+/** Timeout for the `?check=1` diagnostic ping — it is a health probe, not a chat. */
+export const DIAGNOSTIC_TIMEOUT_MS = 12_000;
+
+/**
+ * Which HTTP status to hand back for a provider rejection.
+ *
+ * This used to collapse everything to 502, which made a wrong API key look
+ * like a broken gateway in the browser console (`POST /api/coach 502`) and hid
+ * the provider's own explanation from whoever was debugging the deployment.
+ * A provider's 4xx is the caller's problem and is passed through verbatim;
+ * 429 keeps its meaning (quota); anything genuinely upstream (5xx, unreadable)
+ * stays a 502.
+ */
+export function providerHttpStatus(upstreamStatus: number): number {
+  if (upstreamStatus === 429) return 429;
+  if (upstreamStatus >= 400 && upstreamStatus < 500) return upstreamStatus;
+  return 502;
+}
 
 /** Requests one caller (IP) may make in the window below. */
 export const COACH_RATE_MAX = 20;

@@ -196,21 +196,51 @@ pnpm --filter @smartfit/mobile typecheck   # mobile types
 
 SmartFit is **local-first — every variable is optional** and has a default. Copy
 the relevant `.env.example` to `.env.local` (web) / `.env` (mobile) to override.
+`tests/env-docs.test.ts` fails the build if a variable is read by code but
+missing from `.env.example`, so this list cannot drift.
+
+### App + data
 
 | Variable | App | Default | Effect |
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_DEFAULT_PLAN` / `EXPO_PUBLIC_DEFAULT_PLAN` | web / mobile | `full-body` | Default strategy for new accounts (`ppl` · `upper-lower` · `full-body` · `cardio-focus`) |
 | `NEXT_PUBLIC_APP_NAME` / `EXPO_PUBLIC_APP_NAME` | web / mobile | `SmartFit` | Display name (web metadata / document title) |
-| `NEXT_PUBLIC_SITE_URL` | web | Vercel URL, else `http://localhost:3000` | Absolute origin for canonical URLs, Open Graph tags, `robots.txt` and the sitemap |
-| `NEXT_PUBLIC_FIREBASE_*` | web | _unset_ | A **complete** set (API key, auth domain, project id, app id) switches the app into cloud mode; anything missing keeps it local |
+| `NEXT_PUBLIC_SITE_URL` | web | Vercel URL, else `http://localhost:3000` | Absolute origin for canonical URLs, Open Graph tags, `robots.txt` and the sitemap. The Vercel fallback comes from `NEXT_PUBLIC_VERCEL_URL`, which the platform injects — do not set it by hand |
+| `NEXT_PUBLIC_FIREBASE_*` | web | _unset_ | A **complete** set (API key, auth domain, project id, app id) switches the app into cloud mode; anything missing keeps it local. Optional extras: `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` |
 | `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | web | _unset_ | reCAPTCHA v3 site key from Firebase App Check; when set, the client attests every request (enable enforcement in the console only after deploying it) |
 | `NEXT_PUBLIC_ERROR_ENDPOINT` | web | _unset_ | Optional **self-hosted**, cookie-free collector for crash reports and web vitals. Unset = nothing is ever sent (see `docs/ops-runbook.md`) |
+
+### Coach
+
+| Variable | App | Default | Effect |
+| --- | --- | --- | --- |
 | `AI_COACH_ENDPOINT` | web (server) | _unset_ | **Recommended.** OpenAI-compatible base URL for the coach proxy (`/api/coach`) — Gemini's OpenAI layer, Groq, OpenRouter, Pollinations… Unset = the proxy stays off |
 | `AI_COACH_API_KEY` | web (server) | _unset_ | Provider key, used only by `/api/coach`; never shipped to the browser. Free tiers exist for Groq/Gemini |
 | `AI_COACH_MODEL` | web (server) | _unset_ | Model id, e.g. `llama-3.3-70b-versatile`; omit to let the provider choose |
-| `NEXT_PUBLIC_AI_ENDPOINT` | web (browser) | _unset_ | Legacy/local endpoint: the browser calls the provider directly. Use for a keyless model on your own machine (Ollama: `http://localhost:11434/v1`). `NEXT_PUBLIC_*` is public — never a shared secret |
+| `NEXT_PUBLIC_AI_ENDPOINT` | web (browser) | _unset_ | Legacy/local endpoint: the browser calls the provider directly. Use for a keyless model on your own machine (Ollama: `http://localhost:11434/v1`) — it is only consulted when `AI_COACH_ENDPOINT` is unset. `NEXT_PUBLIC_*` is public, so never a shared secret |
 | `NEXT_PUBLIC_AI_API_KEY` | web (browser) | _unset_ | Key for the browser-side mode above (visible in the bundle) |
 | `NEXT_PUBLIC_AI_MODEL` | web (browser) | _unset_ | Model id for the browser-side mode |
+
+### Billing
+
+| Variable | App | Default | Effect |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY` | web | _unset_ | Stripe Payment Link for the monthly plan (opened in a new tab). Unset = sandbox provider (see `docs/billing.md`) |
+| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_YEARLY` | web | _unset_ | Stripe Payment Link for the yearly plan |
+| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_LIFETIME` | web | _unset_ | Stripe Payment Link for the lifetime tier |
+| `NEXT_PUBLIC_STRIPE_PORTAL_URL` | web | _unset_ | Optional Stripe Customer Portal link for self-serve management |
+| `NEXT_PUBLIC_CMI_ENABLED` | web (browser) | _unset_ | `1` shows the CMI option. CMI is **dormant by decision**; the flag alone unlocks nothing |
+| `CMI_STORE_ID`, `CMI_STORE_KEY`, `CMI_GATEWAY_URL`, `CMI_OK_URL`, `CMI_FAIL_URL` | web (server) | _unset_ | Server-only credentials for the future `/api/billing/cmi/*` routes — reserved in `CMI_SETUP`, read by nothing yet, and deliberately **never** `NEXT_PUBLIC_` (the store key must not ship to the browser). See `docs/billing.md` |
+
+### Ops / scripts (server-only)
+
+| Variable | App | Default | Effect |
+| --- | --- | --- | --- |
+| `FIREBASE_PROJECT_ID` | script | _unset_ | Admin SDK service account used by `pnpm seed`; **never** `NEXT_PUBLIC_` |
+| `FIREBASE_CLIENT_EMAIL` | script | _unset_ | Admin SDK client email, same account |
+| `FIREBASE_PRIVATE_KEY` | script | _unset_ | Admin SDK private key (keep the `\n` escapes). See `scripts/README.md` |
+| `SEED_UID` | script | `demo-user` | UID that `pnpm seed` writes the demo history to |
+| `SEED_EMAIL` | script | _unset_ | Email for the seeded account when it is created |
 
 Env access is centralised and validated in `src/lib/env.ts` (web) and
 `apps/mobile/src/lib/env.ts` (invalid plan values fall back to the default). See

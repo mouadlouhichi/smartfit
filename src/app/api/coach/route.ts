@@ -2,8 +2,10 @@ import { buildSystemMessage, parseCoachRequest } from '@/lib/ai-coach';
 import {
   COACH_RATE_MAX,
   COACH_RATE_WINDOW_MS,
+  DIAGNOSTIC_TIMEOUT_MS,
   UPSTREAM_CEILING_MS,
   UPSTREAM_FIRST_TOKEN_MS,
+  providerHttpStatus,
   readServerAiConfig,
   serverAiHost,
   serverCompletionsUrl,
@@ -24,6 +26,13 @@ import { createRateLimiter } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+/**
+ * Streaming answers can outlive a platform's default function budget (Vercel
+ * Hobby kills a function at 10 s unless told otherwise). The upstream windows
+ * in `ai-coach-server.ts` are sized to stay inside this, so a slow free
+ * endpoint ends as a coach answer rather than a killed request.
+ */
+export const maxDuration = 60;
 
 /** Best-effort per-instance throttle; see `rate-limit.ts` for the caveats. */
 const limiter = createRateLimiter({ max: COACH_RATE_MAX, windowMs: COACH_RATE_WINDOW_MS });
@@ -32,11 +41,57 @@ function json(body: unknown, status = 200): Response {
   return Response.json(body, { status, headers: { 'cache-control': 'no-store' } });
 }
 
-export async function GET(): Promise<Response> {
+export async function GET(req: Request): Promise<Response> {
   const cfg = readServerAiConfig();
-  return json(
-    cfg ? { configured: true, host: serverAiHost(cfg), model: cfg.model } : { configured: false },
-  );
+  if (!cfg) return json({ configured: false });
+
+  const base = { configured: true, host: serverAiHost(cfg), model: cfg.model };
+
+  // `?check=1` actually pings the provider — the fastest way to tell a bad key
+  // or model from a bad network from the deployment's own logs. The prompt is
+  // fixed and the answer thrown away, so this cannot be used to generate
+  // anything; it is rate-limited like a normal request.
+  const url = new URL(req.url);
+  if (url.searchParams.get('check') !== '1') return json(base);
+  if (!limiter.allow(`check:${callerKey(req)}`)) {
+    return json(
+      { ...base, ok: false, error: 'Too many checks — try again in a few minutes.' },
+      429,
+    );
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), DIAGNOSTIC_TIMEOUT_MS);
+  try {
+    const res = await fetch(serverCompletionsUrl(cfg), {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        ...(cfg.apiKey ? { authorization: `Bearer ${cfg.apiKey}` } : {}),
+      },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: 'ping' }],
+        max_tokens: 1,
+        stream: false,
+        ...(cfg.model ? { model: cfg.model } : {}),
+      }),
+      signal: controller.signal,
+    });
+    if (res.ok) return json({ ...base, ok: true, status: res.status });
+    const detail = await res.text().catch(() => '');
+    const error = extractError(detail) || 'The provider refused the request.';
+    console.error(`[coach] check failed: ${res.status} ${error}`);
+    return json({ ...base, ok: false, status: res.status, error }, providerHttpStatus(res.status));
+  } catch (e) {
+    const aborted = (e as { name?: string } | null)?.name === 'AbortError';
+    const error = aborted
+      ? `The provider did not answer within ${Math.round(DIAGNOSTIC_TIMEOUT_MS / 1000)} s.`
+      : 'Could not reach the provider from this deployment.';
+    console.error(`[coach] check failed: ${error}`);
+    return json({ ...base, ok: false, error }, 502);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /** Same-origin guard: a request with an Origin must come from this host. */
@@ -108,18 +163,30 @@ export async function POST(req: Request): Promise<Response> {
       }),
       signal: controller.signal,
     });
-  } catch {
+  } catch (e) {
     if (timer) clearTimeout(timer);
-    return json({ error: 'Could not reach the AI provider.' }, 502);
+    const aborted = (e as { name?: string } | null)?.name === 'AbortError';
+    console.error(`[coach] upstream unreachable: ${e instanceof Error ? e.message : String(e)}`);
+    return json(
+      {
+        error: aborted
+          ? 'The AI provider did not respond in time.'
+          : 'Could not reach the AI provider from this deployment.',
+      },
+      502,
+    );
   }
 
   if (!upstream.ok || !upstream.body) {
     if (timer) clearTimeout(timer);
     const detail = await upstream.text().catch(() => '');
     const message = `${extractError(detail) || 'The AI provider refused the request.'} (${upstream.status})`;
+    // Logged with the status so the deployment's own function logs explain a
+    // failure even when nobody reads the response body.
+    console.error(`[coach] provider rejected the request: ${message}`);
     return json(
       { error: message, providerStatus: upstream.status },
-      upstream.status === 429 ? 429 : 502,
+      providerHttpStatus(upstream.status),
     );
   }
 

@@ -141,8 +141,8 @@ function writeAiUse(count: number) {
  */
 function aiFallbackNotice(error: unknown, stopped: boolean): string {
   if (stopped) return 'Stopped the AI answer — here is your coach on your own data.';
-  const message = error instanceof Error ? error.message : '';
-  if (/took too long/i.test(message)) {
+  const message = (error instanceof Error ? error.message : '').replace(/\s+/g, ' ').trim();
+  if (/took too long|did not respond in time/i.test(message)) {
     return 'The AI endpoint timed out — answered from your on-device data instead.';
   }
   if (/not configured/i.test(message)) {
@@ -150,6 +150,13 @@ function aiFallbackNotice(error: unknown, stopped: boolean): string {
   }
   if (/rate limit|quota|\(429\)/i.test(message)) {
     return 'The AI provider\u2019s free limit is reached — answered from your on-device data.';
+  }
+  // A rejected key, an unknown model, a provider-side outage: the provider's
+  // own words are the most useful thing an operator can see here, so pass them
+  // through (shortened) instead of hiding them behind "unavailable".
+  if (message) {
+    const detail = message.length > 150 ? `${message.slice(0, 149)}…` : message;
+    return `AI unavailable — ${detail} Answered from your on-device data.`;
   }
   return 'AI unavailable right now — answered from your on-device data.';
 }

@@ -20,6 +20,7 @@ import {
   type CoachTurn,
 } from '../src/lib/ai-coach.ts';
 import { createRateLimiter } from '../src/lib/rate-limit.ts';
+import { providerHttpStatus } from '../src/lib/ai-coach-server.ts';
 import { emptyState, toISODate, type FitnessState } from '@smartfit/core';
 
 /**
@@ -451,6 +452,21 @@ test('the context is a summary — never raw records or identity', () => {
   assert.ok(!ctx.includes('ses-1'));
   assert.ok(!ctx.includes('goal-1'));
   assert.ok(!ctx.includes('body-1'));
+});
+
+/* ── provider rejections keep their meaning ───────────────────────────── */
+
+test('a provider rejection is not reported as a broken gateway', () => {
+  // The bug this covers: every rejection used to surface as `502`, so a wrong
+  // key in Vercel looked like a gateway failure in the browser console.
+  assert.equal(providerHttpStatus(401), 401);
+  assert.equal(providerHttpStatus(403), 403);
+  assert.equal(providerHttpStatus(404), 404);
+  assert.equal(providerHttpStatus(400), 400);
+  assert.equal(providerHttpStatus(422), 422);
+  assert.equal(providerHttpStatus(429), 429);
+  assert.equal(providerHttpStatus(500), 502);
+  assert.equal(providerHttpStatus(503), 502);
 });
 
 /* ── the abuse speed bump ─────────────────────────────────────────────── */
