@@ -5,7 +5,6 @@ import {
   Activity,
   Check,
   Flag,
-  Footprints,
   Gauge,
   Loader2,
   MapPin,
@@ -14,6 +13,7 @@ import {
   Play,
   RotateCcw,
   Share2,
+  Square,
   Timer,
   Trash2,
   TriangleAlert,
@@ -26,6 +26,7 @@ import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '../confirm-context';
 import { RouteMap } from '../route-map';
+import { RunHome } from './run-home';
 import { ShareSheet } from '../share-sheet';
 import { StatCard } from '../stat-card';
 import { useStore } from '@/lib/store-context';
@@ -115,6 +116,8 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
   const [live, setLive] = useState<LiveState>(BLANK_LIVE);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [autoPaused, setAutoPaused] = useState(false);
+  /** Manual pause: the big round button. Fixes keep arriving, time goes to `stoppedSec`. */
+  const [held, setHeld] = useState(false);
   const [laps, setLaps] = useState<Lap[]>([]);
   const [gps, setGps] = useState<'idle' | 'acquiring' | 'ready' | 'weak' | 'error'>('idle');
   const [gpsNote, setGpsNote] = useState<string | null>(null);
@@ -133,6 +136,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
   const watchRef = useRef<{ stop: () => void } | null>(null);
   const releaseWakeLockRef = useRef<(() => void) | null>(null);
   const liveRef = useRef<LiveState>(BLANK_LIVE);
+  const heldRef = useRef(false);
   const pendingEleRef = useRef(0);
   const lastFixRef = useRef<GeoPoint | null>(null);
   const dirtyRef = useRef(0);
@@ -163,6 +167,8 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     setGps('acquiring');
     setGpsNote(null);
     setAutoPaused(false);
+    heldRef.current = false;
+    setHeld(false);
     setLaps([]);
     pendingEleRef.current = 0;
 
@@ -200,6 +206,19 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
         const now = Date.now();
         const dtSec = last?.t ? (point.t! - last.t) / 1000 : 0;
         const meters = last ? haversineMeters(last, point) : 0;
+
+        // Held (manual pause): the clock for this run stands still. The fix is
+        // consumed so resuming does not teleport the distance, and the time
+        // goes to stoppedSec exactly like auto-pause would put it.
+        if (heldRef.current && last) {
+          liveRef.current = {
+            ...liveRef.current,
+            stoppedSec: liveRef.current.stoppedSec + dtSec,
+          };
+          setLive(liveRef.current);
+          lastFixRef.current = point;
+          return;
+        }
 
         if (last && meters < MIN_MOVE_M) return; // jitter / standing still
         if (last && dtSec > 30) {
@@ -280,6 +299,13 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     setPhase('live');
     buzz([40, 40, 40]);
     chime('start');
+  }, []);
+
+  const toggleHold = useCallback(() => {
+    const next = !heldRef.current;
+    heldRef.current = next;
+    setHeld(next);
+    buzz(next ? [60, 40, 60] : 50);
   }, []);
 
   const stopWatch = useCallback(() => {
@@ -433,64 +459,42 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     const currentSplitSec = live.movingSec - live.splitStartedAt;
     const currentPace = currentSplitM > 0 ? currentSplitSec / 60 / (currentSplitM / 1000) : 0;
     const pctToNextKm = Math.min(100, (currentSplitM / 1000) * 100);
+    const kcal = estimateSessionCalories(Math.max(1, Math.round(live.movingSec / 60)), intensity);
 
     return (
-      <div className="grid gap-5">
-        <LiveStage
-          elapsedSec={elapsedSec}
-          distanceM={live.distanceM}
-          avgPace={avgPace}
-          currentPace={currentPace}
-          elevationGainM={live.elevationGainM}
-          autoPaused={autoPaused}
-          gps={gps}
-          accuracy={accuracy}
-          gpsNote={gpsNote}
-          points={points}
-          splits={live.splits}
-          pctToNextKm={pctToNextKm}
-          currentSplitM={currentSplitM}
-          currentSplitSec={currentSplitSec}
-          laps={laps.length}
-        />
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Button
-            variant="secondary"
-            onClick={() => {
-              const lap: Lap = {
-                index: laps.length + 1,
-                distanceKm: live.distanceM / 1000,
-                durationSec: Math.round(live.movingSec),
-              };
-              setLaps((l) => [...l, lap]);
-              buzz(60);
-              toast(`Lap ${laps.length + 1} · ${fmtDuration(Math.round(live.movingSec))}`);
-            }}
-            className="h-14"
-          >
-            <Flag className="h-5 w-5" aria-hidden /> Lap
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              if (autoPaused) return;
-              buzz(30);
-              toast('Auto-pause is on — the clock keeps running', 'info');
-            }}
-            className="h-14"
-            disabled
-          >
-            <Zap className="h-5 w-5" aria-hidden /> Auto-pause on
-          </Button>
-          <Button variant="destructive" onClick={() => void discard()} className="h-14">
-            <Trash2 className="h-5 w-5" aria-hidden /> Discard
-          </Button>
-          <Button onClick={finish} className="h-14">
-            <Check className="h-5 w-5" aria-hidden /> Finish
-          </Button>
-        </div>
-      </div>
+      <LiveStage
+        elapsedSec={elapsedSec}
+        distanceM={live.distanceM}
+        avgPace={avgPace}
+        currentPace={currentPace}
+        elevationGainM={live.elevationGainM}
+        stoppedSec={live.stoppedSec}
+        calories={kcal}
+        held={held}
+        autoPaused={autoPaused}
+        gps={gps}
+        accuracy={accuracy}
+        gpsNote={gpsNote}
+        points={points}
+        splits={live.splits}
+        pctToNextKm={pctToNextKm}
+        currentSplitM={currentSplitM}
+        currentSplitSec={currentSplitSec}
+        laps={laps.length}
+        onLap={() => {
+          const lap: Lap = {
+            index: laps.length + 1,
+            distanceKm: live.distanceM / 1000,
+            durationSec: Math.round(live.movingSec),
+          };
+          setLaps((l) => [...l, lap]);
+          buzz(60);
+          toast(`Lap ${laps.length + 1} · ${fmtDuration(Math.round(live.movingSec))}`);
+        }}
+        onHold={toggleHold}
+        onFinish={finish}
+        onDiscard={() => void discard()}
+      />
     );
   }
 
@@ -534,78 +538,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
         </div>
       )}
 
-      <div className="card-hero relative overflow-hidden p-5 text-white sm:p-7">
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -top-20 -right-16 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(224,94,54,0.55),transparent_70%)]"
-        />
-        <div className="relative grid gap-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,16rem)] sm:items-center">
-          <div className="grid gap-4">
-            <p className="hero-muted eyebrow">Tracked run</p>
-            <h2 className="font-display text-3xl leading-tight font-extrabold tracking-tight sm:text-4xl">
-              Press start and run.
-            </h2>
-            <p className="hero-muted max-w-md text-sm leading-relaxed">
-              Your route, pace, splits, elevation and best efforts are recorded on this device.
-              Auto-pause stops the clock whenever you stop moving, and the screen stays awake.
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-                <Gauge className="h-3.5 w-3.5" aria-hidden /> Splits + best efforts
-              </span>
-              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-                <Mountain className="h-3.5 w-3.5" aria-hidden /> Elevation
-              </span>
-              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-                <Share2 className="h-3.5 w-3.5" aria-hidden /> Transparent share
-              </span>
-            </div>
-            <div className="mt-1">
-              <Button
-                size="lg"
-                onClick={() => beginRecording()}
-                className="shadow-primary/30 h-14 gap-2.5 px-7 text-base shadow-lg"
-              >
-                <Play className="h-5 w-5" aria-hidden /> Start run
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid gap-3 rounded-3xl border border-white/10 bg-black/25 p-4 backdrop-blur-sm">
-            <p className="eyebrow text-white/60">Last 7 days</p>
-            {history.length === 0 ? (
-              <p className="text-sm text-white/70">
-                No tracked runs yet — your first one shows up here.
-              </p>
-            ) : (
-              <>
-                <p className="font-display text-3xl font-extrabold tracking-tight">
-                  {thisWeek.distanceKm >= 1
-                    ? `${Math.round(thisWeek.distanceKm * 10) / 10} km`
-                    : `${Math.round(thisWeek.distanceKm * 1000)} m`}
-                </p>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <span className="text-white/80">
-                    <b className="text-white">{thisWeek.runs}</b> runs
-                  </span>
-                  <span className="text-white/80">
-                    <b className="text-white">{Math.round(thisWeek.movingMin)}</b> min
-                  </span>
-                  <span className="text-white/80">
-                    <b className="text-white">{thisWeek.elevationGainM}</b> m climb
-                  </span>
-                  <span className="text-white/80">
-                    <b className="text-white">
-                      {fmtPace(avgPaceOf(thisWeek.distanceKm, thisWeek.movingMin))}
-                    </b>{' '}
-                    /km avg
-                  </span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      <RunHome runs={history} onStart={() => beginRecording()} />
     </div>
   );
 }
@@ -624,12 +557,22 @@ function avgPaceOf(km: number, minutes: number): number {
 
 /* ── live stage ──────────────────────────────────────────────────────── */
 
+/**
+ * The live view, laid out like the watch face it is standing in for: the map
+ * owns the top of the screen with the status and the clock floating on it,
+ * the kilometre you are in gets a player-style progress chip, six numbers sit
+ * in a hairline grid (pace, distance, calories / time, climb, stopped), and
+ * three round buttons do the only three things a run ever needs mid-stride.
+ */
 function LiveStage({
   elapsedSec,
   distanceM,
   avgPace,
   currentPace,
   elevationGainM,
+  stoppedSec,
+  calories,
+  held,
   autoPaused,
   gps,
   accuracy,
@@ -640,12 +583,19 @@ function LiveStage({
   currentSplitM,
   currentSplitSec,
   laps,
+  onLap,
+  onHold,
+  onFinish,
+  onDiscard,
 }: {
   elapsedSec: number;
   distanceM: number;
   avgPace: number;
   currentPace: number;
   elevationGainM: number;
+  stoppedSec: number;
+  calories: number;
+  held: boolean;
   autoPaused: boolean;
   gps: 'idle' | 'acquiring' | 'ready' | 'weak' | 'error';
   accuracy: number | null;
@@ -656,27 +606,64 @@ function LiveStage({
   currentSplitM: number;
   currentSplitSec: number;
   laps: number;
+  onLap: () => void;
+  onHold: () => void;
+  onFinish: () => void;
+  onDiscard: () => void;
 }) {
   const km = distanceM / 1000;
   return (
-    <div className="card-hero relative overflow-hidden p-5 text-white sm:p-7">
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -top-24 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(224,94,54,0.5),transparent_70%)]"
-      />
+    <div className="grid gap-4">
+      {/* Map hero */}
+      <div className="border-border relative min-h-[17rem] overflow-hidden rounded-[2rem] border bg-[#141110] sm:min-h-[21rem]">
+        <span
+          aria-hidden
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.055) 1px, transparent 1px),' +
+              'linear-gradient(90deg, rgba(255,255,255,0.055) 1px, transparent 1px)',
+            backgroundSize: '26px 26px',
+          }}
+        />
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_35%,rgba(0,0,0,0.55)_100%)]"
+        />
+        {points.length >= 2 ? (
+          <RouteMap
+            route={points}
+            className="absolute inset-0 h-full w-full p-5 drop-shadow-[0_0_10px_rgba(255,122,77,0.45)]"
+            stroke="#ff7a4d"
+          />
+        ) : (
+          <div className="absolute inset-0 grid place-items-center">
+            <p className="flex items-center gap-2 text-xs font-bold text-white/60">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[#ff7a4d]" aria-hidden />
+              Your route draws itself here once the GPS settles.
+            </p>
+          </div>
+        )}
 
-      {/* Status row */}
-      <div className="relative flex flex-wrap items-center justify-between gap-2">
-        <span className="flex items-center gap-2">
+        {/* Floating status + clock */}
+        <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold',
-              autoPaused ? 'bg-amber-400/20 text-amber-200' : 'bg-white/10 text-white/85',
+              'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold backdrop-blur-sm',
+              held
+                ? 'bg-white/85 text-[#1c0e0a]'
+                : autoPaused
+                  ? 'bg-amber-400/25 text-amber-100'
+                  : 'bg-black/45 text-white/90',
             )}
             role="status"
             aria-live="polite"
           >
-            {autoPaused ? (
+            {held ? (
+              <>
+                <Pause className="h-3.5 w-3.5" aria-hidden /> Paused
+              </>
+            ) : autoPaused ? (
               <>
                 <Pause className="h-3.5 w-3.5" aria-hidden /> Auto-paused
               </>
@@ -701,107 +688,174 @@ function LiveStage({
             )}
           </span>
           {laps > 0 && (
-            <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1.5 text-xs font-bold text-white/85 backdrop-blur-sm">
               <Flag className="h-3.5 w-3.5" aria-hidden /> {laps} lap{laps === 1 ? '' : 's'}
             </span>
           )}
-        </span>
-        <span className="font-mono text-2xl font-extrabold tabular-nums">
+        </div>
+        <span className="absolute top-4 right-4 rounded-full bg-black/45 px-3.5 py-1.5 font-mono text-xl font-extrabold text-white tabular-nums backdrop-blur-sm">
           {fmtDuration(elapsedSec)}
         </span>
-      </div>
-
-      {gpsNote && <p className="relative mt-2 text-xs text-amber-200">{gpsNote}</p>}
-
-      {/* Headline: distance */}
-      <div className="relative mt-5 flex items-end gap-3">
-        <span className="font-mono text-6xl leading-none font-extrabold tabular-nums sm:text-7xl">
-          {km >= 10 ? km.toFixed(2) : km.toFixed(2)}
+        <span className="absolute bottom-4 left-4 text-[10px] font-bold tracking-wide text-white/50 uppercase">
+          Live route
         </span>
-        <span className="pb-1 text-lg font-extrabold text-white/70">km</span>
       </div>
 
-      {/* Pace row */}
-      <div className="relative mt-4 grid grid-cols-3 gap-3">
-        <LiveMetric label="Current pace" value={`${fmtPace(currentPace)}`} unit="/km" />
-        <LiveMetric label="Average pace" value={`${fmtPace(avgPace)}`} unit="/km" />
-        <LiveMetric label="Elevation" value={`${Math.round(elevationGainM)}`} unit="m gain" />
-      </div>
+      {gpsNote && (
+        <p className="-mt-2 text-xs font-bold text-amber-600 dark:text-amber-300">{gpsNote}</p>
+      )}
 
-      {/* Split progress */}
-      <div className="relative mt-5">
-        <div className="flex items-center justify-between text-[11px] font-bold text-white/70">
-          <span className="eyebrow">Kilometre {splits.length + 1}</span>
-          <span className="tabular-nums">
-            {Math.round(currentSplitM)} m · {fmtDuration(Math.round(currentSplitSec))}
+      {/* The kilometre you are in, player-style */}
+      <div className="bg-card border-border flex items-center gap-3 rounded-2xl border p-3">
+        <span className="bg-primary/12 text-primary grid h-11 w-11 shrink-0 place-items-center rounded-full font-mono text-base font-extrabold tabular-nums">
+          {splits.length + 1}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-baseline justify-between gap-2">
+            <span className="text-xs font-bold">Kilometre {splits.length + 1}</span>
+            <span className="text-muted-foreground font-mono text-[11px] tabular-nums">
+              {Math.round(currentSplitM)} m · {fmtDuration(Math.round(currentSplitSec))}
+            </span>
           </span>
-        </div>
-        <div
-          className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/15"
-          role="progressbar"
-          aria-valuenow={Math.round(pctToNextKm)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-label="Progress to next kilometre"
-        >
+          <span
+            className="bg-secondary mt-1.5 block h-2 overflow-hidden rounded-full"
+            role="progressbar"
+            aria-valuenow={Math.round(pctToNextKm)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Progress to next kilometre"
+          >
+            <span
+              className="block h-full rounded-full bg-[linear-gradient(90deg,var(--primary),var(--chart-1))] transition-all duration-500"
+              style={{ width: `${Math.max(3, pctToNextKm)}%` }}
+            />
+          </span>
+        </span>
+        <span className="shrink-0 text-right">
+          <span className="block font-mono text-xl leading-none font-extrabold tabular-nums">
+            {fmtPace(currentPace)}
+          </span>
+          <span className="text-muted-foreground block text-[10px] font-bold uppercase">
+            now /km
+          </span>
+        </span>
+      </div>
+
+      {/* Six numbers, hairline grid */}
+      <div className="bg-card border-border grid grid-cols-3 overflow-hidden rounded-2xl border">
+        {[
+          { label: 'Avg pace', value: fmtPace(avgPace), unit: '/km' },
+          { label: 'Distance', value: km.toFixed(2), unit: 'km' },
+          { label: 'Calories', value: `${calories}`, unit: 'kcal' },
+          { label: 'Time', value: fmtDuration(elapsedSec), unit: 'moving+stop' },
+          { label: 'Elevation', value: `${Math.round(elevationGainM)}`, unit: 'm' },
+          { label: 'Stopped', value: fmtDuration(Math.round(stoppedSec)), unit: 'auto+held' },
+        ].map((cell, i) => (
           <div
-            className="h-full rounded-full bg-[linear-gradient(90deg,#f0a37f,#c8f135)] transition-all duration-500"
-            style={{ width: `${Math.max(3, pctToNextKm)}%` }}
-          />
-        </div>
+            key={cell.label}
+            className={cn(
+              'px-3 py-3 text-center sm:py-4',
+              i % 3 > 0 && 'border-border border-l',
+              i >= 3 && 'border-border border-t',
+            )}
+          >
+            <p className="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
+              {cell.label}
+            </p>
+            <p className="mt-1 font-mono text-2xl leading-none font-extrabold tabular-nums sm:text-3xl">
+              {cell.value}
+              <span className="text-muted-foreground ml-1 text-[10px] font-bold">{cell.unit}</span>
+            </p>
+          </div>
+        ))}
       </div>
 
-      <div className="relative mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,14rem)]">
-        {/* Live route */}
-        <div className="relative flex min-h-[12rem] items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-black/25 p-3">
-          {points.length >= 2 ? (
-            <RouteMap route={points} className="h-48 w-full" stroke="#ff7a4d" />
+      {/* Three round buttons */}
+      <div className="flex items-start justify-center gap-6 py-1 sm:gap-10">
+        <RoundControl label="Lap" onClick={onLap}>
+          <Flag className="h-5 w-5" aria-hidden />
+        </RoundControl>
+        <RoundControl label={held ? 'Resume' : 'Pause'} onClick={onHold} big>
+          {held ? (
+            <Play className="h-8 w-8 fill-current" aria-hidden />
           ) : (
-            <p className="text-center text-xs text-white/60">
-              Your route appears here once the GPS settles.
-            </p>
+            <Pause className="h-8 w-8 fill-current" aria-hidden />
           )}
-          <span className="absolute right-3 bottom-3 text-[10px] font-bold tracking-wide text-white/50 uppercase">
-            Live route
-          </span>
-        </div>
+        </RoundControl>
+        <RoundControl label="Finish" onClick={onFinish}>
+          <Square className="h-5 w-5 fill-current" aria-hidden />
+        </RoundControl>
+      </div>
+      <p className="text-muted-foreground -mt-2 text-center text-[11px] font-medium">
+        Auto-pause stops the clock whenever you stop moving. Pause stops it whenever you want.
+      </p>
 
-        {/* Recent splits */}
-        <div className="rounded-3xl border border-white/10 bg-black/25 p-3">
-          <p className="eyebrow text-white/60">Splits</p>
-          {splits.length === 0 ? (
-            <p className="mt-2 text-xs text-white/60">
-              Kilometre splits land here as you pass each one.
-            </p>
-          ) : (
-            <ul className="mt-2 grid gap-1.5">
-              {splits.slice(-4).map((split) => (
-                <li
-                  key={split.index}
-                  className="flex items-center justify-between gap-2 text-xs text-white/85"
-                >
-                  <span className="font-bold">KM {split.index}</span>
-                  <span className="font-mono tabular-nums">{fmtDuration(split.durationSec)}</span>
-                  <span className="text-white/60 tabular-nums">{fmtPace(split.paceMinPerKm)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+      {/* Splits, as a strip */}
+      {splits.length > 0 && (
+        <div className="-mx-1 flex [scrollbar-width:none] gap-2 overflow-x-auto px-1 pb-1 [&::-webkit-scrollbar]:hidden">
+          {splits.map((split) => (
+            <span
+              key={split.index}
+              className="bg-card border-border flex shrink-0 items-baseline gap-2 rounded-xl border px-3 py-2"
+            >
+              <span className="text-[10px] font-bold tracking-wide uppercase">
+                KM {split.index}
+              </span>
+              <span className="font-mono text-sm font-extrabold tabular-nums">
+                {fmtDuration(split.durationSec)}
+              </span>
+              <span className="text-muted-foreground font-mono text-[11px] tabular-nums">
+                {fmtPace(split.paceMinPerKm)}/km
+              </span>
+            </span>
+          ))}
         </div>
+      )}
+
+      <div className="flex justify-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onDiscard}
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="h-4 w-4" aria-hidden /> Discard run
+        </Button>
       </div>
     </div>
   );
 }
 
-function LiveMetric({ label, value, unit }: { label: string; value: string; unit: string }) {
+function RoundControl({
+  label,
+  onClick,
+  big = false,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  big?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5">
-      <p className="text-[10px] font-bold tracking-wide text-white/60 uppercase">{label}</p>
-      <p className="mt-0.5 font-mono text-xl font-extrabold tabular-nums">
-        {value}
-        <span className="ml-1 text-[11px] font-bold text-white/55">{unit}</span>
-      </p>
-    </div>
+    <span className="grid justify-items-center gap-1.5">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={label}
+        className={cn(
+          'grid place-items-center rounded-full transition-transform active:scale-95',
+          big
+            ? 'bg-primary text-primary-foreground shadow-primary/40 h-20 w-20 shadow-xl'
+            : 'bg-card text-foreground hover:border-primary/50 border-border h-14 w-14 border',
+        )}
+      >
+        {children}
+      </button>
+      <span className="text-muted-foreground text-[10px] font-bold tracking-wide uppercase">
+        {label}
+      </span>
+    </span>
   );
 }
 
