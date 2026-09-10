@@ -628,6 +628,7 @@ function LiveStage({
   onFinish: () => void;
   onDiscard: () => void;
 }) {
+  const [mapDown, setMapDown] = useState(false);
   const km = distanceM / 1000;
   const hasGeo = points.length >= 2 || head !== null;
   return (
@@ -648,7 +649,22 @@ function LiveStage({
           aria-hidden
           className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_35%,rgba(0,0,0,0.55)_100%)]"
         />
-        {hasGeo ? (
+        {mapDown ? (
+          <div className="absolute inset-0 grid place-items-center px-6">
+            <p className="text-center text-xs font-bold text-white/60">
+              {points.length >= 2 ? (
+                <>
+                  The basemap can&apos;t start on this device — your route and stats keep recording.
+                </>
+              ) : (
+                <>
+                  The basemap can&apos;t start on this device — recording still works; your route
+                  draws here.
+                </>
+              )}
+            </p>
+          </div>
+        ) : hasGeo ? (
           <>
             {/* The map mounts from the first fix: you see yourself before you move. */}
             {points.length >= 2 && (
@@ -664,6 +680,7 @@ function LiveStage({
               position={head}
               accuracy={accuracy}
               showFlag={false}
+              onUnavailable={() => setMapDown(true)}
               className="absolute inset-0 z-[1]"
             />
             {points.length < 2 && (
@@ -1020,6 +1037,7 @@ function RunSummary({
               className="absolute inset-0 z-0 h-full w-full p-4 opacity-70"
             />
             <RunMap points={points} follow={false} className="absolute inset-0 z-[1]" />
+            {/* If the basemap cannot start, the vector underlay above remains. */}
           </div>
         </div>
       )}

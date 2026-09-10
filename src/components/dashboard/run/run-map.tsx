@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from 'next-themes';
 import type { GeoPoint } from '@smartfit/core';
 
@@ -38,6 +38,7 @@ export function RunMap({
   interactive = true,
   showFlag = true,
   className = '',
+  onUnavailable,
 }: {
   points: GeoPoint[];
   /** The athlete's live fix — a pulsing dot, shown before any route exists. */
@@ -50,7 +51,11 @@ export function RunMap({
   /** Checkered flag at the head of the route (the race-map look). */
   showFlag?: boolean;
   className?: string;
+  /** Called once if the basemap cannot start here (no WebGL, lib failure…). */
+  onUnavailable?: () => void;
 }) {
+  const [failed, setFailed] = useState(false);
+  const failedRef = useRef(false);
   const holder = useRef<HTMLDivElement>(null);
   const libRef = useRef<any>(null);
   const mapRef = useRef<any>(null);
@@ -77,58 +82,77 @@ export function RunMap({
     let map: any = null;
 
     void (async () => {
-      const [maplibregl] = await Promise.all([
-        import('maplibre-gl'),
-        import('maplibre-gl/dist/maplibre-gl.css'),
-      ]);
-      if (cancelled || !holder.current) return;
-      libRef.current = maplibregl;
+      try {
+        // Probe first: MapLibre needs WebGL, and a throw from inside a map
+        // constructor must never reach the route error boundary — a missing
+        // basemap is an inconvenience, not a crashed run screen.
+        const probe = document.createElement('canvas');
+        const gl =
+          probe.getContext('webgl2') ??
+          probe.getContext('webgl') ??
+          probe.getContext('experimental-webgl');
+        if (!gl) throw new Error('WebGL is not available in this browser');
 
-      map = new maplibregl.Map({
-        container: holder.current,
-        style: STYLE_URLS[kindAtStart.current],
-        center: positionRef.current
-          ? [positionRef.current.lng, positionRef.current.lat]
-          : pointsRef.current[0]
-            ? [pointsRef.current[0].lng, pointsRef.current[0].lat]
-            : [-7.5898, 33.5731],
-        zoom: positionRef.current ? 16.5 : 13,
-        attributionControl: { compact: true },
-        interactive,
-        scrollZoom: false,
-        doubleClickZoom: false,
-        dragRotate: false,
-        pitchWithRotate: false,
-        fadeDuration: 0,
-      });
-      mapRef.current = map;
+        const [maplibregl] = await Promise.all([
+          import('maplibre-gl'),
+          import('maplibre-gl/dist/maplibre-gl.css'),
+        ]);
+        if (cancelled || !holder.current) return;
+        libRef.current = maplibregl;
 
-      map.on('dragstart', () => {
-        userMoved.current = true;
-      });
-      map.on('dblclick', () => {
-        userMoved.current = false;
-        applyPoints(true);
-      });
-      map.on('error', (e: { error?: { message?: string } }) => {
-        // Offline / blocked CDN / no WebGL: the underlay carries the route.
-        if (!holder.current?.dataset.warned) {
-          holder.current!.dataset.warned = '1';
-          console.warn('[run-map] basemap unavailable:', e?.error?.message ?? 'unknown');
-        }
-      });
+        map = new maplibregl.Map({
+          container: holder.current,
+          style: STYLE_URLS[kindAtStart.current],
+          center: positionRef.current
+            ? [positionRef.current.lng, positionRef.current.lat]
+            : pointsRef.current[0]
+              ? [pointsRef.current[0].lng, pointsRef.current[0].lat]
+              : [-7.5898, 33.5731],
+          zoom: positionRef.current ? 16.5 : 13,
+          attributionControl: { compact: true },
+          interactive,
+          scrollZoom: false,
+          doubleClickZoom: false,
+          dragRotate: false,
+          pitchWithRotate: false,
+          fadeDuration: 0,
+        });
+        mapRef.current = map;
 
-      map.on('load', () => {
-        addRunLayers(map, maplibregl);
-        applyPoints(true);
-      });
-      // Restyle (theme flip) wipes custom layers — put them back.
-      map.on('style.load', () => {
-        if (map.style?._layers && !map.getLayer('run-line')) {
+        map.on('dragstart', () => {
+          userMoved.current = true;
+        });
+        map.on('dblclick', () => {
+          userMoved.current = false;
+          applyPoints(true);
+        });
+        map.on('error', (e: { error?: { message?: string } }) => {
+          // Offline / blocked CDN / no WebGL: the underlay carries the route.
+          if (!holder.current?.dataset.warned) {
+            holder.current!.dataset.warned = '1';
+            console.warn('[run-map] basemap unavailable:', e?.error?.message ?? 'unknown');
+          }
+        });
+
+        map.on('load', () => {
           addRunLayers(map, maplibregl);
-          applyPoints(false);
+          applyPoints(true);
+        });
+        // Restyle (theme flip) wipes custom layers — put them back.
+        map.on('style.load', () => {
+          if (map.style?._layers && !map.getLayer('run-line')) {
+            addRunLayers(map, maplibregl);
+            applyPoints(false);
+          }
+        });
+      } catch (e) {
+        console.error('[run-map] basemap could not start:', e);
+        if (!cancelled) {
+          failedRef.current = true;
+          setFailed(true);
+          onUnavailable?.();
         }
-      });
+      }
     })();
 
     return () => {
@@ -147,11 +171,15 @@ export function RunMap({
 
   /* theme flip */
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !map.isStyleLoaded || map.getStyle()?.sprite === undefined) return;
-    if ((map.__kind ?? kind) === kind) return;
-    map.__kind = kind;
-    map.setStyle(STYLE_URLS[kind]);
+    try {
+      const map = mapRef.current;
+      if (!map || failedRef.current) return;
+      if ((map.__kind ?? kind) === kind) return;
+      map.__kind = kind;
+      map.setStyle(STYLE_URLS[kind]);
+    } catch (e) {
+      console.warn('[run-map] restyle skipped:', e);
+    }
   }, [kind]);
 
   /* new fixes */
@@ -296,6 +324,18 @@ export function RunMap({
 
   /* ── push the trace into the source ─────────────────────────────────── */
   function applyPoints(force: boolean) {
+    if (failedRef.current) return;
+    try {
+      applyPointsInner(force);
+    } catch (e) {
+      console.warn('[run-map] update skipped:', e);
+      failedRef.current = true;
+      setFailed(true);
+      onUnavailable?.();
+    }
+  }
+
+  function applyPointsInner(force: boolean) {
     const map = mapRef.current;
     if (!map || !map.getSource('run-route')) return;
     const pts = pointsRef.current;
@@ -370,6 +410,7 @@ export function RunMap({
     }
   }
 
+  if (failed) return null;
   return (
     <div
       ref={holder}
