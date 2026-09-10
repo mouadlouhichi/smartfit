@@ -2,75 +2,90 @@
 
 import { useEffect, useRef } from 'react';
 import { useTheme } from 'next-themes';
-import type { Map as LeafletMap, Polyline, CircleMarker, TileLayer } from 'leaflet';
-import type * as Leaflet from 'leaflet';
-import { MAP_ATTRIBUTION, leafletTileUrl, type MapKind } from '@/lib/map-tiles';
 import type { GeoPoint } from '@smartfit/core';
 
 /**
- * A real basemap under the route — Leaflet over public CARTO/OSM raster
- * tiles, themed to match the app (near-black at night, warm paper by day).
+ * A real, labelled, GPU-smooth basemap — MapLibre GL over OpenFreeMap's
+ * public vector tiles (OpenStreetMap data, OpenMapTiles schema).
  *
- * Behaviour borrowed from running watches: the map follows you while you
- * run, and the moment you drag it, it obeys you instead (double-tap/click
- * hands follow back). Tiles are plain images fetched by the browser, so a
- * blocked or offline network degrades to the textured panel behind this
- * component rather than breaking the run.
+ * Why not Google Maps: Google's JS API needs a billed API key per deployment,
+ * phones home with an account-bound SDK, and its free credit is a trap door
+ * ($10k-day stories are why OpenFreeMap exists). OpenFreeMap is free with no
+ * key, no cookies, no request caps and commercial use allowed; MapLibre adds
+ * the required attribution automatically. The look — dark, labelled streets
+ * under a glowing route — is the same family as the reference design.
  *
- * Leaflet and its CSS are imported lazily: the ~40 kB only lands when a
- * screen with a map on it actually mounts.
+ * Watch behaviour: the map follows your latest fix until you drag it;
+ * double-click hands follow back. A checkered flag marks the head of the
+ * route, like a race map. If WebGL or the tile CDN is unavailable the
+ * container stays empty and the vector underlay behind it carries the run.
+ *
+ * MapLibre and its CSS load lazily with this component's chunk.
  */
+
+const STYLE_URLS = {
+  dark: 'https://tiles.openfreemap.org/styles/dark',
+  light: 'https://tiles.openfreemap.org/styles/liberty',
+} as const;
+
+type Kind = keyof typeof STYLE_URLS;
+
 export function RunMap({
   points,
   follow = true,
   interactive = true,
+  showFlag = true,
   className = '',
 }: {
   points: GeoPoint[];
   /** Keep the latest fix centred until the athlete drags the map. */
   follow?: boolean;
   interactive?: boolean;
+  /** Checkered flag at the head of the route (the race-map look). */
+  showFlag?: boolean;
   className?: string;
 }) {
   const holder = useRef<HTMLDivElement>(null);
-  const LRef = useRef<typeof Leaflet | null>(null);
-  const mapRef = useRef<LeafletMap | null>(null);
-  const tilesRef = useRef<TileLayer | null>(null);
-  const glowRef = useRef<Polyline | null>(null);
-  const lineRef = useRef<Polyline | null>(null);
-  const startRef = useRef<CircleMarker | null>(null);
-  const headRef = useRef<CircleMarker | null>(null);
+  const mapRef = useRef<any>(null);
   const userMoved = useRef(false);
   const fitted = useRef(false);
   const pointsRef = useRef(points);
   pointsRef.current = points;
+  const followRef = useRef(follow);
+  followRef.current = follow;
+  const showFlagRef = useRef(showFlag);
+  showFlagRef.current = showFlag;
 
   const { resolvedTheme } = useTheme();
-  const kind: MapKind = resolvedTheme === 'dark' ? 'dark' : 'light';
-  const kindRef = useRef(kind);
-  kindRef.current = kind;
+  const kind: Kind = resolvedTheme === 'dark' ? 'dark' : 'light';
 
   /* create / destroy */
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const [L] = await Promise.all([import('leaflet'), import('leaflet/dist/leaflet.css')]);
-      if (cancelled || !holder.current) return;
-      LRef.current = L;
+    let map: any = null;
 
-      const map = L.map(holder.current, {
-        zoomControl: false,
-        attributionControl: true,
-        dragging: interactive,
-        touchZoom: interactive,
-        scrollWheelZoom: false,
+    void (async () => {
+      const [maplibregl] = await Promise.all([
+        import('maplibre-gl'),
+        import('maplibre-gl/dist/maplibre-gl.css'),
+      ]);
+      if (cancelled || !holder.current) return;
+
+      map = new maplibregl.Map({
+        container: holder.current,
+        style: STYLE_URLS[kindAtStart.current],
+        center: [pointsRef.current[0]?.lng ?? -7.5898, pointsRef.current[0]?.lat ?? 33.5731],
+        zoom: 13,
+        attributionControl: { compact: true },
+        interactive,
+        scrollZoom: false,
         doubleClickZoom: false,
-        keyboard: false,
-        zoomSnap: 0.5,
+        dragRotate: false,
+        pitchWithRotate: false,
+        fadeDuration: 0,
       });
-      map.attributionControl.setPrefix('');
-      // Dragging means "I want to look somewhere else"; double-click takes
-      // the wheel back.
+      mapRef.current = map;
+
       map.on('dragstart', () => {
         userMoved.current = true;
       });
@@ -78,107 +93,190 @@ export function RunMap({
         userMoved.current = false;
         applyPoints(true);
       });
+      map.on('error', (e: { error?: { message?: string } }) => {
+        // Offline / blocked CDN / no WebGL: the underlay carries the route.
+        if (!holder.current?.dataset.warned) {
+          holder.current!.dataset.warned = '1';
+          console.warn('[run-map] basemap unavailable:', e?.error?.message ?? 'unknown');
+        }
+      });
 
-      tilesRef.current = L.tileLayer(leafletTileUrl(kindRef.current), {
-        attribution: MAP_ATTRIBUTION,
-        subdomains: 'abcd',
-        maxZoom: 19,
-      }).addTo(map);
-
-      mapRef.current = map;
-      applyPoints(true);
+      map.on('load', () => {
+        addRunLayers(map, maplibregl);
+        applyPoints(true);
+      });
+      // Restyle (theme flip) wipes custom layers — put them back.
+      map.on('style.load', () => {
+        if (map.style?._layers && !map.getLayer('run-line')) {
+          addRunLayers(map, maplibregl);
+          applyPoints(false);
+        }
+      });
     })();
 
     return () => {
       cancelled = true;
-      mapRef.current?.remove();
+      map?.remove();
       mapRef.current = null;
-      tilesRef.current = null;
-      glowRef.current = null;
-      lineRef.current = null;
-      startRef.current = null;
-      headRef.current = null;
       fitted.current = false;
       userMoved.current = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [interactive]);
 
-  /* retheme tiles with the app */
+  const kindAtStart = useRef(kind);
+  kindAtStart.current = kind;
+
+  /* theme flip */
   useEffect(() => {
     const map = mapRef.current;
-    const L = LRef.current;
-    if (!map || !L || !tilesRef.current) return;
-    map.removeLayer(tilesRef.current);
-    tilesRef.current = L.tileLayer(leafletTileUrl(kind), {
-      attribution: MAP_ATTRIBUTION,
-      subdomains: 'abcd',
-      maxZoom: 19,
-    }).addTo(map);
-    tilesRef.current.bringToBack();
+    if (!map || !map.isStyleLoaded || map.getStyle()?.sprite === undefined) return;
+    if ((map.__kind ?? kind) === kind) return;
+    map.__kind = kind;
+    map.setStyle(STYLE_URLS[kind]);
   }, [kind]);
 
   /* new fixes */
   useEffect(() => {
     applyPoints(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [points, follow]);
 
+  /* ── layers: glow + gradient line + start + head + flag ─────────────── */
+  function addRunLayers(map: any, maplibregl: any) {
+    if (map.getSource('run-route')) return;
+    map.addSource('run-route', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    });
+    map.addLayer({
+      id: 'run-glow',
+      type: 'line',
+      source: 'run-route',
+      filter: ['==', ['get', 'kind'], 'line'],
+      paint: {
+        'line-color': '#ff7a4d',
+        'line-width': 12,
+        'line-opacity': 0.28,
+        'line-blur': 4,
+      },
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+    });
+    map.addLayer({
+      id: 'run-line',
+      type: 'line',
+      source: 'run-route',
+      filter: ['==', ['get', 'kind'], 'line'],
+      paint: {
+        'line-color': ['interpolate', ['linear'], ['line-progress'], 0, '#ff7a4d', 1, '#f0a37f'],
+        'line-width': 4.5,
+      },
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+    });
+    map.addLayer({
+      id: 'run-start',
+      type: 'circle',
+      source: 'run-route',
+      filter: ['==', ['get', 'kind'], 'start'],
+      paint: {
+        'circle-radius': 6,
+        'circle-color': '#ffffff',
+        'circle-stroke-color': '#ff7a4d',
+        'circle-stroke-width': 3,
+      },
+    });
+    map.addLayer({
+      id: 'run-head',
+      type: 'circle',
+      source: 'run-route',
+      filter: ['==', ['get', 'kind'], 'head'],
+      paint: {
+        'circle-radius': 6.5,
+        'circle-color': '#d9ff5c',
+        'circle-stroke-color': '#141110',
+        'circle-stroke-width': 3,
+      },
+    });
+
+    // Checkered flag, drawn once into an image the style can place.
+    const c = document.createElement('canvas');
+    c.width = 44;
+    c.height = 56;
+    const g = c.getContext('2d');
+    if (g) {
+      g.strokeStyle = '#f7f2ea';
+      g.lineWidth = 4;
+      g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(8, 54);
+      g.lineTo(8, 6);
+      g.stroke();
+      for (let y = 0; y < 4; y++) {
+        for (let x = 0; x < 6; x++) {
+          g.fillStyle = (x + y) % 2 === 0 ? '#141110' : '#f7f2ea';
+          g.fillRect(8 + x * 5, 6 + y * 5, 5, 5);
+        }
+      }
+      g.strokeStyle = 'rgba(0,0,0,0.55)';
+      g.lineWidth = 1.5;
+      g.strokeRect(8, 6, 30, 20);
+    }
+    if (!map.hasImage('run-flag')) {
+      map.addImage('run-flag', c, { pixelRatio: 2 });
+    }
+    map.addLayer({
+      id: 'run-flag',
+      type: 'symbol',
+      source: 'run-route',
+      filter: ['==', ['get', 'kind'], 'head'],
+      layout: {
+        'icon-image': 'run-flag',
+        'icon-anchor': 'bottom-left',
+        'icon-offset': [2, -8],
+        'icon-allow-overlap': true,
+        // The flag only appears when the run is being reviewed, not mid-stride.
+        visibility: showFlagRef.current ? 'visible' : 'none',
+      },
+    });
+    void maplibregl;
+  }
+
+  /* ── push the trace into the source ─────────────────────────────────── */
   function applyPoints(force: boolean) {
-    const L = LRef.current;
     const map = mapRef.current;
-    if (!L || !map) return;
+    if (!map || !map.getSource('run-route')) return;
     const pts = pointsRef.current;
     if (pts.length < 2) return;
 
-    const latlngs = pts.map((p) => [p.lat, p.lng] as [number, number]);
-    if (!lineRef.current) {
-      glowRef.current = L.polyline(latlngs, {
-        color: '#ff7a4d',
-        weight: 11,
-        opacity: 0.28,
-        lineJoin: 'round',
-        lineCap: 'round',
-        interactive: false,
-      }).addTo(map);
-      lineRef.current = L.polyline(latlngs, {
-        color: '#ff7a4d',
-        weight: 5,
-        opacity: 0.95,
-        lineJoin: 'round',
-        lineCap: 'round',
-        interactive: false,
-      }).addTo(map);
-      startRef.current = L.circleMarker(latlngs[0], {
-        radius: 6,
-        color: '#ff7a4d',
-        weight: 3,
-        fillColor: '#ffffff',
-        fillOpacity: 1,
-        interactive: false,
-      }).addTo(map);
-      headRef.current = L.circleMarker(latlngs.at(-1)!, {
-        radius: 7,
-        color: '#141110',
-        weight: 3,
-        fillColor: '#d9ff5c',
-        fillOpacity: 1,
-        interactive: false,
-      }).addTo(map);
-    } else {
-      lineRef.current.setLatLngs(latlngs);
-      glowRef.current?.setLatLngs(latlngs);
-      startRef.current?.setLatLng(latlngs[0]);
-      headRef.current?.setLatLng(latlngs.at(-1)!);
-    }
+    const coords = pts.map((p) => [p.lng, p.lat]);
+    map.getSource('run-route').setData({
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: { kind: 'line' },
+          geometry: { type: 'LineString', coordinates: coords },
+        },
+        {
+          type: 'Feature',
+          properties: { kind: 'start' },
+          geometry: { type: 'Point', coordinates: coords[0] },
+        },
+        {
+          type: 'Feature',
+          properties: { kind: 'head' },
+          geometry: { type: 'Point', coordinates: coords.at(-1) },
+        },
+      ],
+    });
+    const flagVisible = showFlagRef.current ? 'visible' : 'none';
+    if (map.getLayer('run-flag')) map.setLayoutProperty('run-flag', 'visibility', flagVisible);
 
     if (!fitted.current || force) {
       fitted.current = true;
-      map.fitBounds(L.latLngBounds(latlngs), { padding: [28, 28], animate: false });
+      map.fitBounds(coordsToBounds(coords), { padding: 36, animate: false });
       return;
     }
-    if (follow && !userMoved.current) {
-      map.panTo(latlngs.at(-1)!, { animate: true });
+    if (followRef.current && !userMoved.current) {
+      map.easeTo({ center: coords.at(-1), duration: 350 });
     }
   }
 
@@ -187,8 +285,26 @@ export function RunMap({
       ref={holder}
       className={className}
       style={{ background: 'transparent' }}
-      aria-label="Map of the run route"
       role="img"
+      aria-label="Map of the run route"
     />
   );
+}
+
+/** Plain-array bounds → the LatLngBounds-like array pairs fitBounds accepts. */
+function coordsToBounds(coords: number[][]): [[number, number], [number, number]] {
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  for (const [lng, lat] of coords) {
+    minLng = Math.min(minLng, lng);
+    maxLng = Math.max(maxLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+  }
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
 }

@@ -7,7 +7,6 @@ import {
   routeBounds,
   tileRange,
   tileUrl,
-  leafletTileUrl,
   mapPoint,
   TILE_PX,
   type MapBounds,
@@ -96,10 +95,6 @@ test('tileRange() covers every corner of the bounds', () => {
 test('tile URLs point at the themed CARTO basemaps, retina for the canvas', () => {
   assert.match(tileUrl('dark', 12, 3, 5), /dark_all\/12\/3\/5@2x\.png$/);
   assert.match(tileUrl('light', 12, 3, 5), /rastertiles\/voyager\/12\/3\/5@2x\.png$/);
-  assert.match(
-    leafletTileUrl('dark'),
-    /\{s\}\.basemaps\.cartocdn\.com\/dark_all\/\{z\}\/\{x\}\/\{y\}\{r\}\.png/,
-  );
 });
 
 test('mapPoint() is project() shifted by the transform offset', () => {

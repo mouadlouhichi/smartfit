@@ -96,12 +96,13 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="font-display text-xl font-bold">Maps (optional, network)</h2>
           <p>
-            The live run view and the Ember/Paper share cards draw map tiles served by CARTO from
-            OpenStreetMap data, credited on the map and the card. A tile request carries only the
-            coordinates of the area being displayed — never your route as a whole, your account or
-            your identity — and it is made by your browser, not by us. The transparent share style
-            and the route sticker fetch no tiles at all, and everything still works offline: a
-            blocked tile request degrades to the plain route drawing.
+            The live run view draws a labelled basemap from OpenFreeMap&apos;s free vector tiles
+            (OpenStreetMap data, no API key, no cookies), and the Ember/Paper share cards draw map
+            tiles served by CARTO from the same OpenStreetMap data — both credited on the map and on
+            the card. A tile request carries only the coordinates of the area being displayed, never
+            your route as a whole, your account or your identity, and it is made by your browser,
+            not by us. The transparent share style and the route sticker fetch no tiles at all, and
+            everything still works offline: without tiles the route is drawn on its own.
           </p>
         </section>
 

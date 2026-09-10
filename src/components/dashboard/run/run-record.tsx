@@ -25,11 +25,12 @@ import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { useConfirm } from '../confirm-context';
+import { RouteMap } from '../route-map';
 import { RunHome } from './run-home';
 import dynamic from 'next/dynamic';
 
 /**
- * Leaflet + its CSS live in their own chunk: the basemap only downloads when
+ * MapLibre + its CSS live in their own chunk: the basemap only downloads when
  * a screen with a map on it mounts, and never on the server.
  */
 const RunMap = dynamic(() => import('./run-map').then((m) => m.RunMap), {
@@ -640,7 +641,15 @@ function LiveStage({
           className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_35%,rgba(0,0,0,0.55)_100%)]"
         />
         {points.length >= 2 ? (
-          <RunMap points={points} className="absolute inset-0 z-0" />
+          <>
+            {/* Vector underlay: the route is visible before tiles or WebGL are. */}
+            <RouteMap
+              route={points}
+              stroke="#ff7a4d"
+              className="absolute inset-0 z-0 h-full w-full p-6 opacity-70"
+            />
+            <RunMap points={points} showFlag={false} className="absolute inset-0 z-[1]" />
+          </>
         ) : (
           <div className="absolute inset-0 grid place-items-center">
             <p className="flex items-center gap-2 text-xs font-bold text-white/60">
@@ -981,7 +990,12 @@ function RunSummary({
         <div className="border-border bg-card rounded-3xl border p-4 shadow-sm sm:p-5">
           <p className="eyebrow text-muted-foreground mb-3">Route</p>
           <div className="relative h-64 w-full overflow-hidden rounded-2xl">
-            <RunMap points={points} follow={false} className="absolute inset-0 z-0" />
+            <RouteMap
+              route={points}
+              stroke="#ff7a4d"
+              className="absolute inset-0 z-0 h-full w-full p-4 opacity-70"
+            />
+            <RunMap points={points} follow={false} className="absolute inset-0 z-[1]" />
           </div>
         </div>
       )}

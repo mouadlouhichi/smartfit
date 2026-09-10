@@ -90,10 +90,12 @@ shared domain package — but applies them to **training** instead of money.
 - **Dedicated run hub** (`/dashboard/run`) — GPS recording with auto-pause and
   moving time, kilometre splits with watch-style cues, laps, elevation, best
   efforts and PBs, draft recovery after a reload, and an editable summary.
-  The live view puts a **real basemap** (Leaflet over CARTO/OSM tiles, themed
-  to light/dark, follow-until-you-drag) under your route; share cards offer a
-  Strava-style map card (Ember/Paper, route registered to the streets) or a
-  truly transparent PNG that layers over a photo — logo mark always on.
+  The live view puts a **real labelled basemap** under your route — MapLibre GL
+  over OpenFreeMap's free vector tiles (no API key, no cookies), dark at night
+  and Liberty by day, follow-until-you-drag, checkered flag at the head; share
+  cards offer a Strava-style map card (Ember/Paper, route registered to the
+  streets via CARTO raster tiles) or a truly transparent PNG that layers over
+  a photo — logo mark always on.
 - **SmartFit Pro** — a paid tier with a real paywall: plan cards (monthly /
   yearly / lifetime), Stripe Payment Link checkout when configured (otherwise
   a clearly labelled sandbox checkout), restore & cancel. Gates: adaptive

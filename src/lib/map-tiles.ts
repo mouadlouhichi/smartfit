@@ -30,16 +30,6 @@ export function tileUrl(kind: MapKind, z: number, x: number, y: number): string 
   return `https://${sub}.basemaps.cartocdn.com/${style}/${z}/${x}/${y}@2x.png`;
 }
 
-/**
- * Leaflet template for the same basemaps (`{s}` subdomain, `{r}` retina).
- * Kept next to `tileUrl` so the live map and the share canvas can never
- * disagree about where the world comes from.
- */
-export function leafletTileUrl(kind: MapKind): string {
-  const style = kind === 'dark' ? 'dark_all' : 'rastertiles/voyager';
-  return `https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png`;
-}
-
 export interface MapBounds {
   minLng: number;
   maxLng: number;
