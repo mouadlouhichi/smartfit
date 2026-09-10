@@ -92,10 +92,12 @@ shared domain package — but applies them to **training** instead of money.
   efforts and PBs, draft recovery after a reload, and an editable summary.
   The live view puts a **real labelled basemap** under your route — MapLibre GL
   over OpenFreeMap's free vector tiles (no API key, no cookies), dark at night
-  and Liberty by day, follow-until-you-drag, checkered flag at the head; share
-  cards offer a Strava-style map card (Ember/Paper, route registered to the
-  streets via CARTO raster tiles) or a truly transparent PNG that layers over
-  a photo — logo mark always on.
+  and Liberty by day, follow-until-you-drag, checkered flag at the head — with
+  a fallback chain: devices where GL cannot start (no WebGL, older iOS) get
+  Leaflet over CARTO raster tiles instead, and if even that fails the route
+  still draws on-device while recording continues untouched. Share cards offer
+  a Strava-style map card (Ember/Paper, route registered to the streets) or a
+  truly transparent PNG that layers over a photo — logo mark always on.
 - **SmartFit Pro** — a paid tier with a real paywall: plan cards (monthly /
   yearly / lifetime), Stripe Payment Link checkout when configured (otherwise
   a clearly labelled sandbox checkout), restore & cancel. Gates: adaptive

@@ -5,30 +5,40 @@ import { useTheme } from 'next-themes';
 import type { GeoPoint } from '@smartfit/core';
 
 /**
- * A real, labelled, GPU-smooth basemap — MapLibre GL over OpenFreeMap's
- * public vector tiles (OpenStreetMap data, OpenMapTiles schema).
+ * The run's basemap, with a fallback chain instead of a single point of
+ * failure:
  *
- * Why not Google Maps: Google's JS API needs a billed API key per deployment,
- * phones home with an account-bound SDK, and its free credit is a trap door
- * ($10k-day stories are why OpenFreeMap exists). OpenFreeMap is free with no
- * key, no cookies, no request caps and commercial use allowed; MapLibre adds
- * the required attribution automatically. The look — dark, labelled streets
- * under a glowing route — is the same family as the reference design.
+ *   1. **MapLibre GL** over OpenFreeMap vector tiles — labelled, GPU-smooth,
+ *      the look of the reference design. Needs WebGL and a modern browser.
+ *   2. **Leaflet** over CARTO raster tiles — plain DOM and images, works on
+ *      essentially anything with a network connection (older iOS, restricted
+ *      WebViews, no WebGL2). Still a real, labelled map.
+ *   3. **Nothing** — the vector SVG underlay behind this component carries
+ *      the route and the parent shows one honest sentence.
  *
- * Watch behaviour: the map follows your latest fix until you drag it;
- * double-click hands follow back. A checkered flag marks the head of the
- * route, like a race map. If WebGL or the tile CDN is unavailable the
- * container stays empty and the vector underlay behind it carries the run.
+ * A map failure is never a run failure: every engine's startup and every
+ * live update is contained, logged as `[run-map] …`, and downgrades to the
+ * next rung. Watch behaviour is shared by all engines: follow the latest
+ * fix until the athlete drags, double-click hands follow back, checkered
+ * flag at the head when reviewing.
  *
- * MapLibre and its CSS load lazily with this component's chunk.
+ * Both libraries and their CSS load lazily with this component's chunk.
  */
 
-const STYLE_URLS = {
+const GL_STYLES = {
   dark: 'https://tiles.openfreemap.org/styles/dark',
   light: 'https://tiles.openfreemap.org/styles/liberty',
 } as const;
 
-type Kind = keyof typeof STYLE_URLS;
+const RASTER_TILES = {
+  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+} as const;
+
+const RASTER_ATTRIBUTION = '© OpenStreetMap contributors © CARTO';
+
+type Kind = keyof typeof GL_STYLES;
+type Engine = 'pending' | 'gl' | 'raster' | 'none';
 
 export function RunMap({
   points,
@@ -51,41 +61,50 @@ export function RunMap({
   /** Checkered flag at the head of the route (the race-map look). */
   showFlag?: boolean;
   className?: string;
-  /** Called once if the basemap cannot start here (no WebGL, lib failure…). */
+  /** Called once if no engine at all can start here. */
   onUnavailable?: () => void;
 }) {
-  const [failed, setFailed] = useState(false);
-  const failedRef = useRef(false);
   const holder = useRef<HTMLDivElement>(null);
+  const [engine, setEngine] = useState<Engine>('pending');
+  const engineRef = useRef<Engine>('pending');
+  const setEngineBoth = (next: Engine) => {
+    engineRef.current = next;
+    setEngine(next);
+  };
   const libRef = useRef<any>(null);
-  const mapRef = useRef<any>(null);
+  const glRef = useRef<any>(null);
+  const rasterRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
   const userMoved = useRef(false);
   const fitted = useRef(false);
+
   const pointsRef = useRef(points);
   pointsRef.current = points;
   const positionRef = useRef(position);
   positionRef.current = position;
   const accuracyRef = useRef(accuracy);
   accuracyRef.current = accuracy;
-  const markerRef = useRef<any>(null);
   const followRef = useRef(follow);
   followRef.current = follow;
   const showFlagRef = useRef(showFlag);
   showFlagRef.current = showFlag;
+  const unavailableRef = useRef(onUnavailable);
+  unavailableRef.current = onUnavailable;
 
   const { resolvedTheme } = useTheme();
   const kind: Kind = resolvedTheme === 'dark' ? 'dark' : 'light';
+  const kindRef = useRef(kind);
+  kindRef.current = kind;
 
-  /* create / destroy */
+  const fail = (where: string, e: unknown) => {
+    console.error(`[run-map] ${where}:`, e);
+  };
+
+  /* ── engine 1: MapLibre GL ─────────────────────────────────────────── */
   useEffect(() => {
     let cancelled = false;
-    let map: any = null;
-
     void (async () => {
       try {
-        // Probe first: MapLibre needs WebGL, and a throw from inside a map
-        // constructor must never reach the route error boundary — a missing
-        // basemap is an inconvenience, not a crashed run screen.
         const probe = document.createElement('canvas');
         const gl =
           probe.getContext('webgl2') ??
@@ -99,25 +118,30 @@ export function RunMap({
         ]);
         if (cancelled || !holder.current) return;
         libRef.current = maplibregl;
-
-        map = new maplibregl.Map({
-          container: holder.current,
-          style: STYLE_URLS[kindAtStart.current],
-          center: positionRef.current
-            ? [positionRef.current.lng, positionRef.current.lat]
-            : pointsRef.current[0]
-              ? [pointsRef.current[0].lng, pointsRef.current[0].lat]
-              : [-7.5898, 33.5731],
-          zoom: positionRef.current ? 16.5 : 13,
-          attributionControl: { compact: true },
-          interactive,
-          scrollZoom: false,
-          doubleClickZoom: false,
-          dragRotate: false,
-          pitchWithRotate: false,
-          fadeDuration: 0,
-        });
-        mapRef.current = map;
+        let map: any;
+        try {
+          map = new maplibregl.Map({
+            container: holder.current,
+            style: GL_STYLES[kindRef.current],
+            center: initialCenter(),
+            zoom: positionRef.current ? 16.5 : 13,
+            attributionControl: { compact: true },
+            interactive,
+            scrollZoom: false,
+            doubleClickZoom: false,
+            dragRotate: false,
+            pitchWithRotate: false,
+            fadeDuration: 0,
+          });
+        } catch (e) {
+          throw new Error(`MapLibre could not initialise (${String(e)})`);
+        }
+        if (cancelled) {
+          map.remove();
+          return;
+        }
+        glRef.current = map;
+        map.__kind = kindRef.current;
 
         map.on('dragstart', () => {
           userMoved.current = true;
@@ -127,84 +151,144 @@ export function RunMap({
           applyPoints(true);
         });
         map.on('error', (e: { error?: { message?: string } }) => {
-          // Offline / blocked CDN / no WebGL: the underlay carries the route.
           if (!holder.current?.dataset.warned) {
             holder.current!.dataset.warned = '1';
-            console.warn('[run-map] basemap unavailable:', e?.error?.message ?? 'unknown');
+            console.warn('[run-map] basemap tile/style error:', e?.error?.message ?? 'unknown');
           }
         });
-
         map.on('load', () => {
-          addRunLayers(map, maplibregl);
+          addGlLayers(map, maplibregl);
           applyPoints(true);
         });
-        // Restyle (theme flip) wipes custom layers — put them back.
         map.on('style.load', () => {
-          if (map.style?._layers && !map.getLayer('run-line')) {
-            addRunLayers(map, maplibregl);
+          if (!map.getLayer('run-line')) {
+            addGlLayers(map, maplibregl);
             applyPoints(false);
           }
         });
+        setEngineBoth('gl');
       } catch (e) {
-        console.error('[run-map] basemap could not start:', e);
+        fail('vector basemap unavailable, trying raster', e);
+        if (!cancelled) setEngineBoth('raster');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [interactive]);
+
+  /* ── engine 2: Leaflet raster ──────────────────────────────────────── */
+  useEffect(() => {
+    if (engine !== 'raster') return;
+    let cancelled = false;
+    let map: any = null;
+    void (async () => {
+      try {
+        const [L] = await Promise.all([import('leaflet'), import('leaflet/dist/leaflet.css')]);
+        if (cancelled || !holder.current) return;
+        libRef.current = libRef.current ?? L;
+
+        map = L.map(holder.current, {
+          zoomControl: false,
+          attributionControl: true,
+          dragging: interactive,
+          touchZoom: interactive,
+          scrollWheelZoom: false,
+          doubleClickZoom: false,
+          keyboard: false,
+          zoomSnap: 0.5,
+        });
+        map.attributionControl.setPrefix('');
+        map.on('dragstart', () => {
+          userMoved.current = true;
+        });
+        map.on('dblclick', () => {
+          userMoved.current = false;
+          applyPoints(true);
+        });
+        addRasterTiles(map, L, kindRef.current);
+        rasterRef.current = { map, L };
+        if (cancelled) {
+          map.remove();
+          return;
+        }
+        applyPoints(true);
+      } catch (e) {
+        fail('raster basemap unavailable too', e);
         if (!cancelled) {
-          failedRef.current = true;
-          setFailed(true);
-          onUnavailable?.();
+          setEngineBoth('none');
+          unavailableRef.current?.();
         }
       }
     })();
 
     return () => {
       cancelled = true;
-      markerRef.current?.remove();
-      markerRef.current = null;
-      map?.remove();
-      mapRef.current = null;
-      fitted.current = false;
-      userMoved.current = false;
+      if (map) {
+        map.remove();
+        rasterRef.current = null;
+        markerRef.current = null;
+      }
     };
-  }, [interactive]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [engine, interactive]);
 
-  const kindAtStart = useRef(kind);
-  kindAtStart.current = kind;
-
-  /* theme flip */
+  /* ── theme flip ────────────────────────────────────────────────────── */
   useEffect(() => {
     try {
-      const map = mapRef.current;
-      if (!map || failedRef.current) return;
-      if ((map.__kind ?? kind) === kind) return;
-      map.__kind = kind;
-      map.setStyle(STYLE_URLS[kind]);
+      if (engineRef.current === 'gl' && glRef.current) {
+        const map = glRef.current;
+        if ((map.__kind ?? kind) === kind) return;
+        map.__kind = kind;
+        map.setStyle(GL_STYLES[kind]);
+      } else if (engineRef.current === 'raster' && rasterRef.current) {
+        const { map, L } = rasterRef.current;
+        addRasterTiles(map, L, kind);
+      }
     } catch (e) {
       console.warn('[run-map] restyle skipped:', e);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind]);
 
-  /* new fixes */
+  /* ── live updates ──────────────────────────────────────────────────── */
   useEffect(() => {
     applyPoints(false);
-  }, [points, position, accuracy, follow]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [points, position, accuracy, follow, engine]);
 
-  /* ── layers: glow + gradient line + start + head + flag ─────────────── */
-  function addRunLayers(map: any, maplibregl: any) {
+  function initialCenter(): [number, number] {
+    const pos = positionRef.current;
+    const first = pointsRef.current[0];
+    const p = pos ?? first;
+    return p ? [p.lng, p.lat] : [-7.5898, 33.5731];
+  }
+
+  /* ── GL layers ─────────────────────────────────────────────────────── */
+  function addGlLayers(map: any, maplibregl: any) {
     if (map.getSource('run-route')) return;
     map.addSource('run-route', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] },
+    });
+    map.addSource('run-pos', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    });
+    map.addLayer({
+      id: 'run-pos-acc',
+      type: 'fill',
+      source: 'run-pos',
+      paint: { 'fill-color': '#4da3ff', 'fill-opacity': 0.1 },
     });
     map.addLayer({
       id: 'run-glow',
       type: 'line',
       source: 'run-route',
       filter: ['==', ['get', 'kind'], 'line'],
-      paint: {
-        'line-color': '#ff7a4d',
-        'line-width': 12,
-        'line-opacity': 0.28,
-        'line-blur': 4,
-      },
+      paint: { 'line-color': '#ff7a4d', 'line-width': 12, 'line-opacity': 0.28, 'line-blur': 4 },
       layout: { 'line-cap': 'round', 'line-join': 'round' },
     });
     map.addLayer({
@@ -217,30 +301,6 @@ export function RunMap({
         'line-width': 4.5,
       },
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-    });
-    map.addSource('run-pos', {
-      type: 'geojson',
-      data: { type: 'FeatureCollection', features: [] },
-    });
-    // Circle of trust: metres → pixels at the current zoom and latitude.
-    map.addLayer({
-      id: 'run-pos-acc',
-      type: 'fill',
-      source: 'run-pos',
-      paint: {
-        'fill-color': '#4da3ff',
-        'fill-opacity': 0.1,
-      },
-    });
-    map.addLayer({
-      id: 'run-pos-acc-ring',
-      type: 'line',
-      source: 'run-pos',
-      paint: {
-        'line-color': '#4da3ff',
-        'line-opacity': 0.35,
-        'line-width': 1.5,
-      },
     });
     map.addLayer({
       id: 'run-start',
@@ -267,7 +327,6 @@ export function RunMap({
       },
     });
 
-    // Checkered flag, drawn once into an image the style can place.
     const c = document.createElement('canvas');
     c.width = 44;
     c.height = 56;
@@ -290,9 +349,7 @@ export function RunMap({
       g.lineWidth = 1.5;
       g.strokeRect(8, 6, 30, 20);
     }
-    if (!map.hasImage('run-flag')) {
-      map.addImage('run-flag', c, { pixelRatio: 2 });
-    }
+    if (!map.hasImage('run-flag')) map.addImage('run-flag', c, { pixelRatio: 2 });
     map.addLayer({
       id: 'run-flag',
       type: 'symbol',
@@ -303,14 +360,21 @@ export function RunMap({
         'icon-anchor': 'bottom-left',
         'icon-offset': [2, -8],
         'icon-allow-overlap': true,
-        // The flag only appears when the run is being reviewed, not mid-stride.
         visibility: showFlagRef.current ? 'visible' : 'none',
       },
     });
     void maplibregl;
   }
+  function addRasterTiles(map: any, L: any, k: Kind) {
+    if (map.__tiles) map.removeLayer(map.__tiles);
+    map.__tiles = L.tileLayer(RASTER_TILES[k], {
+      attribution: RASTER_ATTRIBUTION,
+      subdomains: 'abcd',
+      maxZoom: 19,
+    }).addTo(map);
+  }
 
-  /** A 40-segment circle `accuracy` metres around a point — the GPS halo. */
+  /** A 40-segment circle `meters` metres around a point — the GPS halo. */
   function accuracyCircle(lng: number, lat: number, meters: number): number[][] {
     const pts: number[][] = [];
     const dLat = meters / 111320;
@@ -322,30 +386,37 @@ export function RunMap({
     return pts;
   }
 
-  /* ── push the trace into the source ─────────────────────────────────── */
+  /* ── push state into whichever engine is alive ─────────────────────── */
   function applyPoints(force: boolean) {
-    if (failedRef.current) return;
     try {
-      applyPointsInner(force);
+      if (engineRef.current === 'gl') applyGl(force);
+      else if (engineRef.current === 'raster') applyRaster(force);
     } catch (e) {
-      console.warn('[run-map] update skipped:', e);
-      failedRef.current = true;
-      setFailed(true);
-      onUnavailable?.();
+      // A broken update downgrades rather than throwing into React.
+      fail('map update failed, downgrading', e);
+      if (engineRef.current === 'gl') {
+        markerRef.current?.remove?.();
+        markerRef.current = null;
+        glRef.current?.remove();
+        glRef.current = null;
+        fitted.current = false;
+        setEngineBoth('raster');
+      } else if (engineRef.current === 'raster') {
+        setEngineBoth('none');
+        unavailableRef.current?.();
+      }
     }
   }
 
-  function applyPointsInner(force: boolean) {
-    const map = mapRef.current;
+  function applyGl(force: boolean) {
+    const map = glRef.current;
     if (!map || !map.getSource('run-route')) return;
     const pts = pointsRef.current;
     const pos = positionRef.current;
 
-    // "You are here": a DOM marker (so it can pulse) plus a halo of trust.
     if (pos) {
-      const posSource = map.getSource('run-pos');
       const acc = Math.max(4, accuracyRef.current ?? 10);
-      posSource?.setData({
+      map.getSource('run-pos').setData({
         type: 'FeatureCollection',
         features: [
           {
@@ -366,11 +437,11 @@ export function RunMap({
     }
 
     if (pts.length < 2) {
-      // No route yet — the dot is the story; keep it centred while following.
-      if (pos && (!fitted.current || force)) {
+      if (!pos) return;
+      if (!fitted.current || force) {
         fitted.current = true;
         map.easeTo({ center: [pos.lng, pos.lat], zoom: 16.5, animate: false });
-      } else if (pos && followRef.current && !userMoved.current) {
+      } else if (followRef.current && !userMoved.current) {
         map.easeTo({ center: [pos.lng, pos.lat], duration: 350 });
       }
       return;
@@ -397,20 +468,136 @@ export function RunMap({
         },
       ],
     });
-    const flagVisible = showFlagRef.current ? 'visible' : 'none';
-    if (map.getLayer('run-flag')) map.setLayoutProperty('run-flag', 'visibility', flagVisible);
+    if (map.getLayer('run-flag')) {
+      map.setLayoutProperty('run-flag', 'visibility', showFlagRef.current ? 'visible' : 'none');
+    }
 
     if (!fitted.current || force) {
       fitted.current = true;
       map.fitBounds(coordsToBounds(coords), { padding: 36, animate: false });
       return;
     }
-    if (followRef.current && !userMoved.current) {
-      map.easeTo({ center: coords.at(-1), duration: 350 });
-    }
+    const target = pos ? [pos.lng, pos.lat] : coords.at(-1);
+    if (followRef.current && !userMoved.current) map.easeTo({ center: target, duration: 350 });
   }
 
-  if (failed) return null;
+  function applyRaster(force: boolean) {
+    const cur = rasterRef.current;
+    if (!cur) return;
+    const { map, L } = cur as { map: any; L: any };
+    const pts = pointsRef.current;
+    const pos = positionRef.current;
+
+    if (pos) {
+      const acc = Math.max(4, accuracyRef.current ?? 10);
+      if (!map.__acc) {
+        map.__acc = L.circle([pos.lat, pos.lng], {
+          radius: acc,
+          color: '#4da3ff',
+          weight: 1.5,
+          opacity: 0.35,
+          fillColor: '#4da3ff',
+          fillOpacity: 0.1,
+          interactive: false,
+        }).addTo(map);
+      } else {
+        map.__acc.setLatLng([pos.lat, pos.lng]);
+        map.__acc.setRadius(acc);
+      }
+      if (!markerRef.current) {
+        const el = document.createElement('div');
+        el.className = 'run-pos-marker';
+        markerRef.current = L.marker([pos.lat, pos.lng], {
+          icon: L.divIcon({
+            className: '',
+            html: el.outerHTML,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
+          }),
+          interactive: false,
+        }).addTo(map);
+      } else {
+        markerRef.current.setLatLng([pos.lat, pos.lng]);
+      }
+    }
+
+    if (pts.length < 2) {
+      if (!pos) return;
+      if (!fitted.current || force) {
+        fitted.current = true;
+        map.setView([pos.lat, pos.lng], 16.5, { animate: false });
+      } else if (followRef.current && !userMoved.current) {
+        map.panTo([pos.lat, pos.lng], { animate: true });
+      }
+      return;
+    }
+
+    const latlngs = pts.map((p) => [p.lat, p.lng]);
+    if (!map.__glow) {
+      map.__glow = L.polyline(latlngs, {
+        color: '#ff7a4d',
+        weight: 11,
+        opacity: 0.28,
+        lineJoin: 'round',
+        lineCap: 'round',
+        interactive: false,
+      }).addTo(map);
+      map.__line = L.polyline(latlngs, {
+        color: '#ff7a4d',
+        weight: 5,
+        opacity: 0.95,
+        lineJoin: 'round',
+        lineCap: 'round',
+        interactive: false,
+      }).addTo(map);
+      map.__start = L.circleMarker(latlngs[0], {
+        radius: 6,
+        color: '#ff7a4d',
+        weight: 3,
+        fillColor: '#ffffff',
+        fillOpacity: 1,
+        interactive: false,
+      }).addTo(map);
+      map.__head = L.circleMarker(latlngs.at(-1), {
+        radius: 7,
+        color: '#141110',
+        weight: 3,
+        fillColor: '#d9ff5c',
+        fillOpacity: 1,
+        interactive: false,
+      }).addTo(map);
+    } else {
+      map.__glow.setLatLngs(latlngs);
+      map.__line.setLatLngs(latlngs);
+      map.__start.setLatLng(latlngs[0]);
+      map.__head.setLatLng(latlngs.at(-1));
+    }
+
+    if (!fitted.current || force) {
+      fitted.current = true;
+      map.fitBounds(L.latLngBounds(latlngs), { padding: [36, 36], animate: false });
+      return;
+    }
+    const target = pos ? [pos.lat, pos.lng] : latlngs.at(-1);
+    if (followRef.current && !userMoved.current) map.panTo(target, { animate: true });
+  }
+
+  /* ── unmount: whichever engine is alive goes away cleanly ──────────── */
+  useEffect(
+    () => () => {
+      markerRef.current?.remove?.();
+      markerRef.current = null;
+      glRef.current?.remove?.();
+      glRef.current = null;
+      rasterRef.current?.map?.remove?.();
+      rasterRef.current = null;
+      fitted.current = false;
+      userMoved.current = false;
+    },
+    [],
+  );
+
+  if (engine === 'none') return null;
   return (
     <div
       ref={holder}
@@ -422,7 +609,6 @@ export function RunMap({
   );
 }
 
-/** Plain-array bounds → the LatLngBounds-like array pairs fitBounds accepts. */
 function coordsToBounds(coords: number[][]): [[number, number], [number, number]] {
   let minLng = Infinity;
   let maxLng = -Infinity;
