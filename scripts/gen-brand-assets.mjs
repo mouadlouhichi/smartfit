@@ -9,12 +9,17 @@
  * Two variants, same glyph:
  *   - disc on transparent  → favicon, PWA icons, Expo favicon (the "icon"
  *     look, exactly like the header badge);
- *   - full-bleed charcoal  → maskable/adaptive tiles and Apple touch icon,
+ *   - full-bleed ember     → maskable/adaptive tiles and Apple touch icon,
  *     where the OS crops or rounds the canvas itself.
  *
  * `og.png` and the Expo splash keep their existing composition: the script
- * locates the previous ember tile by colour, repaints its box with the
- * surrounding background and seats the new mark in the same spot.
+ * locates the previous mark by colour, repaints its box with the surrounding
+ * background and seats the new mark in the same spot.
+ *
+ * After running it, bump the `?v=` revision on the icon URLs in
+ * `src/app/layout.tsx` and `public/manifest.webmanifest` — home-screen and
+ * PWA icons are cached by URL, and a new query is the only thing that makes
+ * phones refetch bytes that kept their path.
  */
 import sharp from 'sharp';
 import { writeFileSync } from 'node:fs';
