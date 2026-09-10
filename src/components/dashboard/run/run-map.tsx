@@ -32,12 +32,18 @@ type Kind = keyof typeof STYLE_URLS;
 
 export function RunMap({
   points,
+  position = null,
+  accuracy = null,
   follow = true,
   interactive = true,
   showFlag = true,
   className = '',
 }: {
   points: GeoPoint[];
+  /** The athlete's live fix — a pulsing dot, shown before any route exists. */
+  position?: GeoPoint | null;
+  /** GPS accuracy in metres, drawn as a soft circle of trust. */
+  accuracy?: number | null;
   /** Keep the latest fix centred until the athlete drags the map. */
   follow?: boolean;
   interactive?: boolean;
@@ -46,11 +52,17 @@ export function RunMap({
   className?: string;
 }) {
   const holder = useRef<HTMLDivElement>(null);
+  const libRef = useRef<any>(null);
   const mapRef = useRef<any>(null);
   const userMoved = useRef(false);
   const fitted = useRef(false);
   const pointsRef = useRef(points);
   pointsRef.current = points;
+  const positionRef = useRef(position);
+  positionRef.current = position;
+  const accuracyRef = useRef(accuracy);
+  accuracyRef.current = accuracy;
+  const markerRef = useRef<any>(null);
   const followRef = useRef(follow);
   followRef.current = follow;
   const showFlagRef = useRef(showFlag);
@@ -70,12 +82,17 @@ export function RunMap({
         import('maplibre-gl/dist/maplibre-gl.css'),
       ]);
       if (cancelled || !holder.current) return;
+      libRef.current = maplibregl;
 
       map = new maplibregl.Map({
         container: holder.current,
         style: STYLE_URLS[kindAtStart.current],
-        center: [pointsRef.current[0]?.lng ?? -7.5898, pointsRef.current[0]?.lat ?? 33.5731],
-        zoom: 13,
+        center: positionRef.current
+          ? [positionRef.current.lng, positionRef.current.lat]
+          : pointsRef.current[0]
+            ? [pointsRef.current[0].lng, pointsRef.current[0].lat]
+            : [-7.5898, 33.5731],
+        zoom: positionRef.current ? 16.5 : 13,
         attributionControl: { compact: true },
         interactive,
         scrollZoom: false,
@@ -116,6 +133,8 @@ export function RunMap({
 
     return () => {
       cancelled = true;
+      markerRef.current?.remove();
+      markerRef.current = null;
       map?.remove();
       mapRef.current = null;
       fitted.current = false;
@@ -138,7 +157,7 @@ export function RunMap({
   /* new fixes */
   useEffect(() => {
     applyPoints(false);
-  }, [points, follow]);
+  }, [points, position, accuracy, follow]);
 
   /* ── layers: glow + gradient line + start + head + flag ─────────────── */
   function addRunLayers(map: any, maplibregl: any) {
@@ -170,6 +189,30 @@ export function RunMap({
         'line-width': 4.5,
       },
       layout: { 'line-cap': 'round', 'line-join': 'round' },
+    });
+    map.addSource('run-pos', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] },
+    });
+    // Circle of trust: metres → pixels at the current zoom and latitude.
+    map.addLayer({
+      id: 'run-pos-acc',
+      type: 'fill',
+      source: 'run-pos',
+      paint: {
+        'fill-color': '#4da3ff',
+        'fill-opacity': 0.1,
+      },
+    });
+    map.addLayer({
+      id: 'run-pos-acc-ring',
+      type: 'line',
+      source: 'run-pos',
+      paint: {
+        'line-color': '#4da3ff',
+        'line-opacity': 0.35,
+        'line-width': 1.5,
+      },
     });
     map.addLayer({
       id: 'run-start',
@@ -239,12 +282,59 @@ export function RunMap({
     void maplibregl;
   }
 
+  /** A 40-segment circle `accuracy` metres around a point — the GPS halo. */
+  function accuracyCircle(lng: number, lat: number, meters: number): number[][] {
+    const pts: number[][] = [];
+    const dLat = meters / 111320;
+    const dLng = meters / (111320 * Math.cos((lat * Math.PI) / 180) || 1);
+    for (let i = 0; i <= 40; i++) {
+      const a = (i / 40) * Math.PI * 2;
+      pts.push([lng + dLng * Math.cos(a), lat + dLat * Math.sin(a)]);
+    }
+    return pts;
+  }
+
   /* ── push the trace into the source ─────────────────────────────────── */
   function applyPoints(force: boolean) {
     const map = mapRef.current;
     if (!map || !map.getSource('run-route')) return;
     const pts = pointsRef.current;
-    if (pts.length < 2) return;
+    const pos = positionRef.current;
+
+    // "You are here": a DOM marker (so it can pulse) plus a halo of trust.
+    if (pos) {
+      const posSource = map.getSource('run-pos');
+      const acc = Math.max(4, accuracyRef.current ?? 10);
+      posSource?.setData({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: { kind: 'acc' },
+            geometry: { type: 'Polygon', coordinates: [accuracyCircle(pos.lng, pos.lat, acc)] },
+          },
+        ],
+      });
+      if (!markerRef.current && libRef.current) {
+        const el = document.createElement('div');
+        el.className = 'run-pos-marker';
+        el.setAttribute('aria-label', 'Your position');
+        markerRef.current = new libRef.current.Marker({ element: el });
+        markerRef.current.addTo(map);
+      }
+      markerRef.current?.setLngLat([pos.lng, pos.lat]);
+    }
+
+    if (pts.length < 2) {
+      // No route yet — the dot is the story; keep it centred while following.
+      if (pos && (!fitted.current || force)) {
+        fitted.current = true;
+        map.easeTo({ center: [pos.lng, pos.lat], zoom: 16.5, animate: false });
+      } else if (pos && followRef.current && !userMoved.current) {
+        map.easeTo({ center: [pos.lng, pos.lat], duration: 350 });
+      }
+      return;
+    }
 
     const coords = pts.map((p) => [p.lng, p.lat]);
     map.getSource('run-route').setData({

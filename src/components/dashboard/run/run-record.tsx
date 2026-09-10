@@ -128,6 +128,8 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
   const [autoPaused, setAutoPaused] = useState(false);
   /** Manual pause: the big round button. Fixes keep arriving, time goes to `stoppedSec`. */
   const [held, setHeld] = useState(false);
+  /** Latest GPS fix — the "you are here" dot, shown even before a route exists. */
+  const [head, setHead] = useState<GeoPoint | null>(null);
   const [laps, setLaps] = useState<Lap[]>([]);
   const [gps, setGps] = useState<'idle' | 'acquiring' | 'ready' | 'weak' | 'error'>('idle');
   const [gpsNote, setGpsNote] = useState<string | null>(null);
@@ -179,6 +181,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     setAutoPaused(false);
     heldRef.current = false;
     setHeld(false);
+    setHead(restored?.points.at(-1) ?? null);
     setLaps([]);
     pendingEleRef.current = 0;
 
@@ -212,6 +215,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
       onFix: ({ point, accuracy: acc }) => {
         setGps('ready');
         setAccuracy(Math.round(acc));
+        setHead(point);
         const last = lastFixRef.current;
         const now = Date.now();
         const dtSec = last?.t ? (point.t! - last.t) / 1000 : 0;
@@ -485,6 +489,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
         gps={gps}
         accuracy={accuracy}
         gpsNote={gpsNote}
+        head={head}
         points={points}
         splits={live.splits}
         pctToNextKm={pctToNextKm}
@@ -587,6 +592,7 @@ function LiveStage({
   gps,
   accuracy,
   gpsNote,
+  head,
   points,
   splits,
   pctToNextKm,
@@ -610,6 +616,7 @@ function LiveStage({
   gps: 'idle' | 'acquiring' | 'ready' | 'weak' | 'error';
   accuracy: number | null;
   gpsNote: string | null;
+  head: GeoPoint | null;
   points: GeoPoint[];
   splits: RunSplit[];
   pctToNextKm: number;
@@ -622,6 +629,7 @@ function LiveStage({
   onDiscard: () => void;
 }) {
   const km = distanceM / 1000;
+  const hasGeo = points.length >= 2 || head !== null;
   return (
     <div className="grid gap-4">
       {/* Map hero */}
@@ -640,21 +648,37 @@ function LiveStage({
           aria-hidden
           className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,transparent_35%,rgba(0,0,0,0.55)_100%)]"
         />
-        {points.length >= 2 ? (
+        {hasGeo ? (
           <>
-            {/* Vector underlay: the route is visible before tiles or WebGL are. */}
-            <RouteMap
-              route={points}
-              stroke="#ff7a4d"
-              className="absolute inset-0 z-0 h-full w-full p-6 opacity-70"
+            {/* The map mounts from the first fix: you see yourself before you move. */}
+            {points.length >= 2 && (
+              /* Vector underlay: the route is visible before tiles or WebGL are. */
+              <RouteMap
+                route={points}
+                stroke="#ff7a4d"
+                className="absolute inset-0 z-0 h-full w-full p-6 opacity-70"
+              />
+            )}
+            <RunMap
+              points={points}
+              position={head}
+              accuracy={accuracy}
+              showFlag={false}
+              className="absolute inset-0 z-[1]"
             />
-            <RunMap points={points} showFlag={false} className="absolute inset-0 z-[1]" />
+            {points.length < 2 && (
+              <p className="absolute bottom-10 left-1/2 z-10 -translate-x-1/2 rounded-full bg-black/55 px-3.5 py-1.5 text-[11px] font-bold whitespace-nowrap text-white/75 backdrop-blur-sm">
+                You&apos;re on the map — the route draws itself once you move.
+              </p>
+            )}
           </>
         ) : (
           <div className="absolute inset-0 grid place-items-center">
             <p className="flex items-center gap-2 text-xs font-bold text-white/60">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[#ff7a4d]" aria-hidden />
-              Your route draws itself here once the GPS settles.
+              {gps === 'error'
+                ? 'No GPS yet — the map appears with your first fix.'
+                : 'Finding your position — the map appears with your first fix.'}
             </p>
           </div>
         )}
