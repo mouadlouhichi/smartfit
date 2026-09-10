@@ -35,6 +35,9 @@ shared domain package — but applies them to **training** instead of money.
 
 - **Log workouts** — strength, cardio, HIIT, mobility, sport & active rest, with
   duration, intensity, estimated calories, distance and exercises on both apps.
+  Web logs backdate with a custom calendar picker (quick Today/Yesterday,
+  month paging, full keyboard support) that stays closed until you open it —
+  no native date overlay popping over the form.
 - **Illustrated exercise library** — a curated catalog of 100+ common movements
   (muscles, equipment, aliases, browse groups) in `@smartfit/core`, with
   two-frame demonstration images streamed from the open
@@ -123,6 +126,9 @@ shared domain package — but applies them to **training** instead of money.
   plug in any OpenAI-compatible AI endpoint (`NEXT_PUBLIC_AI_*`): the coach
   then shows an "AI answers" switch (off by default, per browser), labels
   AI-written replies, and falls back to the on-device engine on any failure.
+  Every answer shows a thinking state while it's being produced (rotating
+  status lines, an elapsed timer on slow free endpoints and a Stop button that
+  answers from on-device data instead), so the chat never looks frozen.
 - **Light / dark** theming on web; token-driven design system shared conceptually
   across platforms.
 - **Marketing site** included (landing, features, how-it-works, plans, FAQ),

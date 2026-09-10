@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
+import { CategoryIcon, chipAccentStyle } from '@/components/category-icon';
 import { useStore } from '@/lib/store-context';
 import { useModals, usePayload } from '../modal-context';
 import { useConfirm } from '../confirm-context';
@@ -61,6 +63,8 @@ export function BodyModal() {
 
   const meta = BODY_UNIT_META[unit];
   const displayUnit = bodyDisplayUnit(unit, state.profile);
+  const accent = chipAccentStyle(undefined);
+  const icon = meta?.icon ?? 'activity';
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,23 +104,41 @@ export function BodyModal() {
       <DialogContent>
         <form onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit measurement' : 'Log a measurement'}</DialogTitle>
-            <DialogDescription>
-              Track body weight and measurements over time to see real progress. Your weight also
-              personalises calorie estimates.
-            </DialogDescription>
+            <div className="flex items-start gap-3 pr-8">
+              <span
+                aria-hidden
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-1 ring-black/5 dark:ring-white/10"
+                style={accent}
+              >
+                <CategoryIcon name={icon} size={22} />
+              </span>
+              <div className="min-w-0">
+                <DialogTitle>{editing ? 'Edit measurement' : 'Log a measurement'}</DialogTitle>
+                <DialogDescription>
+                  Track body weight and measurements over time to see real progress. Your weight
+                  also personalises calorie estimates.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
 
-          <div className="mt-4 grid gap-4">
+          <div className="mt-5 grid gap-4">
             <div className="grid grid-cols-2 gap-3">
               <Field id="b-date" label="Date">
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+                <DatePicker
+                  value={date}
+                  onValueChange={setDate}
+                  weekStartsOn={state.profile.weekStartsOn ?? 1}
+                />
               </Field>
               <Field id="b-unit" label="Measurement">
                 <Select value={unit} onChange={(e) => setUnit(e.target.value as BodyUnit)}>
                   {Object.entries(BODY_UNIT_META).map(([k, m]) => (
                     <option key={k} value={k}>
-                      {m.label}
+                      <span className="inline-flex items-center gap-2">
+                        <CategoryIcon name={m.icon} size={12} className="text-muted-foreground" />
+                        {m.label}
+                      </span>
                     </option>
                   ))}
                 </Select>

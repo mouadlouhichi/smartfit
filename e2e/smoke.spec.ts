@@ -40,6 +40,17 @@ test('the full local-mode journey: log, edit, delete, plan, goals, body, units, 
   await page.getByRole('main').getByRole('button', { name: 'Log workout' }).click();
   const logDialog = page.getByRole('dialog').filter({ hasText: 'Log workout' });
   await expect(logDialog).toBeVisible();
+
+  // The custom date control is closed by default (no native date overlay) and
+  // backdates in two clicks: open the calendar, pick Yesterday.
+  const dateTrigger = logDialog.locator('#w-date');
+  await expect(dateTrigger).toHaveText('Today');
+  await dateTrigger.click();
+  const calendar = logDialog.getByRole('dialog', { name: 'Choose date' });
+  await expect(calendar).toBeVisible();
+  await calendar.getByRole('button', { name: 'Yesterday', exact: true }).click();
+  await expect(dateTrigger).toHaveText('Yesterday');
+
   await logDialog.getByLabel('Title').fill('Playwright Bench Press');
   await logDialog.getByLabel('Minutes').fill('50');
   await logDialog.getByRole('button', { name: 'Save workout' }).click();

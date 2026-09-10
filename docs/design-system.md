@@ -17,7 +17,10 @@ compose, and the rules that keep screens consistent (and the E2E suite green).
    No hand-stacked lookalikes.
 2. **Native controls first.** `<input>`, `<select>`, `<button>` under the hood —
    mobile pickers, autofill, and keyboard behavior come free. Radix only where
-   native can't reach (Dialog, Label, Switch, Tabs).
+   native can't reach (Dialog, Label, Switch, Tabs). **Exception: dates.** A
+   native `<input type="date">` opens the browser's picker overlay on some
+   devices as soon as the dialog mounts, so log modals use the `DatePicker`
+   primitive (a closed-by-default trigger) instead.
 3. **Tokens over one-offs.** Colors/radii/ink come from the CSS custom
    properties in `globals.css` (AA-contrast in light *and* dark). Components
    never hardcode hex values.
@@ -44,8 +47,9 @@ screens       components/dashboard/screens/*, auth, onboarding, landing
 | Component | File | When to use | Notes |
 | --- | --- | --- | --- |
 | `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the ember pulse; mobile-first sizes — default h-11, sm h-9, icon 44px, compacted on sm+ |
-| `Input` | `ui/input.tsx` | free text, numbers, dates | h-11 + 16px type on mobile (no iOS focus zoom), h-10 + text-sm on sm+, rounded-xl; `aria-invalid=true` → destructive border |
+| `Input` | `ui/input.tsx` | free text, numbers | h-11 + 16px type on mobile (no iOS focus zoom), h-10 + text-sm on sm+, rounded-xl; `aria-invalid=true` → destructive border |
 | `Select` | `ui/select.tsx` | closed choice sets | styled native `<select>` + chevron; same invalid styling; keep native picker on mobile |
+| `DatePicker` | `ui/date-picker.tsx` | **every** date field | trigger styled like `Select`; the calendar popover is closed until pressed (native date inputs auto-open theirs on some devices). Month paging, Today/Yesterday quick picks, arrow/Home/End keyboard grid, `max` (default today) and `min` bounds, `weekStartsOn` follows the profile |
 | `Field` | `ui/field.tsx` | **every** labelled control | label + control + hint + error with a11y wiring; see §4 |
 | `Label` | `ui/label.tsx` | standalone labels (rare — prefer `Field`) | Radix label; clicking focuses the control |
 | `Card` / `CardHeader` / `CardTitle` / `CardContent` | `ui/card.tsx` | grouped content | screen sections; `card-hero` class for heroes |
@@ -133,7 +137,8 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
 
 - **Migrated to `Field`:** Profile (8 settings + target-weight range error),
   Plan (strategy picker), all dashboard modals — `WorkoutModal` (date/type/
-  title/minutes/intensity/distance/notes + minutes range error),
+  title/minutes/intensity/distance/notes + minutes range error, date via
+  `DatePicker`),
   `ScheduleModal` (title/type/day/time/minutes/intensity + minutes error),
   `GoalModal` (name/track/reset/target + target error), `BodyModal` (date/
   measurement/name/value + value error), `CategoryModal` (name + name error),
@@ -143,8 +148,8 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
   login email/password (leading icon, "Forgot password?" inline action),
   profile password-confirm (label carries helper copy, input sits in a button
   row), `CategoryModal` icon/color pickers and `SessionDetailModal` notes
-  (group labels / read-only, not single controls), the two read-only kcal
-  displays in `WorkoutModal`.
+  (group labels / read-only, not single controls), the read-only "est. burn"
+  tile/strip in `WorkoutModal` (a live estimate, not an input).
 - **Error-state rule now enforced everywhere:** forms never silently coerce
   (`|| 1`, quiet `return`) — invalid input sets the `Field` error and stays put.
 

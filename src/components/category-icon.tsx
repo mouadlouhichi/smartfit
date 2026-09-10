@@ -60,6 +60,20 @@ export const CATEGORY_ICON_OPTIONS = [
   'activity',
 ] as const;
 
+/**
+ * Soft tinted chip for a category/unit accent hex — inline because the color
+ * is data (never hardcoded in markup); opaque token colors as the fallback.
+ */
+export function chipAccentStyle(color: string | undefined): {
+  color: string;
+  backgroundColor: string;
+} {
+  if (color && /^#[0-9a-f]{6}$/i.test(color)) {
+    return { color, backgroundColor: `${color}1c` };
+  }
+  return { color: 'var(--primary)', backgroundColor: 'var(--accent)' };
+}
+
 export const CATEGORY_COLOR_OPTIONS = [
   '#d6532f',
   '#b7220f',

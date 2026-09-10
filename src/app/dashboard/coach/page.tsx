@@ -22,12 +22,12 @@ export default function CoachPage() {
     messages,
     send,
     thinking,
-    thinkingLabel,
-    thinkingMode,
+    pending,
     aiAvailable,
     aiOn,
     aiHost,
     toggleAi,
+    stop,
     quickReplies,
     capped,
   } = useCoachConversation();
@@ -49,7 +49,7 @@ export default function CoachPage() {
                 aria-hidden
               />
               {thinking
-                ? thinkingLabel
+                ? 'Thinking…'
                 : aiAvailable && aiOn
                   ? `AI answers on via ${aiHost} — falls back to on-device answers`
                   : 'Worked out on this device from your own data'}
@@ -61,9 +61,9 @@ export default function CoachPage() {
 
       <CoachMessages
         messages={messages}
-        thinking={thinking}
-        thinkingLabel={thinkingLabel}
-        thinkingMode={thinkingMode}
+        pending={pending}
+        aiHost={aiHost}
+        onStop={stop}
         className="border-border bg-card/60 rounded-3xl border p-4"
       />
 

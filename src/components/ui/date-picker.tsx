@@ -1,297 +1,368 @@
 'use client';
 
 import * as React from 'react';
-import { CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { formatDateLabel, relativeDay, toISODate } from '@smartfit/core';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, CornerDownLeft } from 'lucide-react';
+import {
+  addDaysIso,
+  calendarCells,
+  formatTriggerDate,
+  isDayDisabled,
+  isIsoDate,
+  longDateLabel,
+  monthOf,
+  parseIsoDate,
+  shiftMonth,
+  startOfToday,
+  weekdayHeader,
+  type MonthPage,
+} from '@/lib/date-picker';
 import { cn } from '@/lib/utils';
 
-interface DatePickerProps extends Omit<
+/**
+ * DatePicker — the design-system date control.
+ *
+ * Replaces native `<input type="date">`: some devices open the browser's
+ * picker overlay the moment the dialog appears (or steal a tap to open before
+ * the user is ready). This control stays fully closed until the trigger is
+ * explicitly pressed, and the calendar then opens as an in-flow popover.
+ *
+ * Accessibility mirrors a real calendar: each day is a button with a full
+ * date label, the arrow keys move day-by-day / week-by-week, Home/End jump to
+ * the week's first/last day, Escape closes and returns focus to the trigger,
+ * and reduced-motion users get the same behavior without animation.
+ *
+ * All date math lives in `@/lib/date-picker` (unit-tested).
+ */
+
+export interface DatePickerProps extends Omit<
   React.ButtonHTMLAttributes<HTMLButtonElement>,
-  'value' | 'onChange' | 'type'
+  'type'
 > {
+  /** ISO date `yyyy-mm-dd`. */
   value: string;
-  onChange: (value: string) => void;
-  /** Open the calendar as soon as the field mounts. Useful in log flows. */
-  openOnMount?: boolean;
+  onValueChange: (iso: string) => void;
+  /** First day of the calendar week — 0 = Sunday, 1 = Monday (app default). */
+  weekStartsOn?: 0 | 1;
+  /** ISO dates after this are disabled (defaults to today — no future logs). */
+  max?: string;
+  /** ISO dates before this are disabled. */
+  min?: string;
 }
 
-/**
- * A small date-only calendar for forms where the browser's native date input
- * would clash with the product's visual language. Dates are kept as local
- * ISO days — no UTC conversion means a workout never jumps to the day before
- * or after it around midnight.
- */
-const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
-  ({ className, value, onChange, openOnMount = false, disabled, id, ...props }, ref) => {
-    const selected = parseISODate(value) ?? startOfDay(new Date());
-    const [open, setOpen] = React.useState(openOnMount);
-    const [month, setMonth] = React.useState(() => firstOfMonth(selected));
-    const rootRef = React.useRef<HTMLDivElement>(null);
-    const panelId = React.useId();
+export function DatePicker({
+  value,
+  onValueChange,
+  weekStartsOn = 1,
+  max,
+  min,
+  className,
+  disabled,
+  ...rest
+}: DatePickerProps) {
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const gridRef = React.useRef<HTMLDivElement>(null);
+  const [open, setOpen] = React.useState(false);
 
-    // If an existing record is loaded after mount, keep the visible month in
-    // step with that record instead of leaving the user on today's month.
-    React.useEffect(() => {
-      const next = parseISODate(value);
-      if (next) setMonth(firstOfMonth(next));
-    }, [value]);
+  const todayIso = startOfToday();
+  const bounds = React.useMemo(() => ({ max, min }), [max, min]);
 
-    React.useEffect(() => {
-      if (!open) return;
-      function onPointerDown(event: PointerEvent) {
-        if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+  // The day the calendar is on: the current value, else today.
+  const [focusIso, setFocusIso] = React.useState<string>(() =>
+    isIsoDate(value) ? value : todayIso,
+  );
+
+  // Which month is on screen: derived from the focused day, so arrow
+  // navigation across a month boundary flips the page naturally.
+  const [view, setView] = React.useState<MonthPage>(() =>
+    monthOf(isIsoDate(value) ? value : todayIso),
+  );
+
+  const lastValue = React.useRef(value);
+  React.useEffect(() => {
+    if (value === lastValue.current) return;
+    lastValue.current = value;
+    if (!isIsoDate(value)) return;
+    setFocusIso(value);
+    setView(monthOf(value));
+  }, [value]);
+
+  // Close on outside pointer press (same contract as ui/select). The check
+  // covers the whole popover: month arrows and quick picks live outside the
+  // day grid, and closing on their pointerdown would swallow the click.
+  React.useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
+  // Opening moves focus onto the current (or today's) day cell.
+  React.useEffect(() => {
+    if (!open) return;
+    gridRef.current?.querySelector<HTMLButtonElement>(`[data-date="${focusIso}"]`)?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function close() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function jumpTo(iso: string) {
+    setFocusIso(iso);
+    setView(monthOf(iso));
+  }
+
+  function pick(iso: string) {
+    onValueChange(iso);
+    setOpen(false);
+    // The clicked day unmounts with the popover; keep focus on the trigger so
+    // the dialog's tab order never drops to the body.
+    triggerRef.current?.focus();
+  }
+
+  function pickToday() {
+    const iso = startOfToday();
+    jumpTo(iso);
+    pick(iso);
+  }
+
+  function pickYesterday() {
+    const iso = addDaysIso(startOfToday(), -1);
+    jumpTo(iso);
+    pick(iso);
+  }
+
+  function pickLastWeek() {
+    const iso = addDaysIso(startOfToday(), -7);
+    jumpTo(iso);
+    pick(iso);
+  }
+
+  /** Move the roving focus by `days`, paging the month when it crosses over. */
+  function moveFocus(days: number) {
+    const next = addDaysIso(focusIso, days);
+    if (isDayDisabled(next, bounds)) return; // never land on a blocked day
+    setFocusIso(next);
+    setView(monthOf(next));
+    // Focus the new cell after the month page (if any) has re-rendered.
+    requestAnimationFrame(() => {
+      gridRef.current?.querySelector<HTMLButtonElement>(`[data-date="${next}"]`)?.focus();
+    });
+  }
+
+  function handleGridKey(e: React.KeyboardEvent) {
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        moveFocus(-1);
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        moveFocus(1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        moveFocus(-7);
+        break;
+      case 'ArrowDown':
+        e.preventDefault();
+        moveFocus(7);
+        break;
+      case 'Home': {
+        e.preventDefault();
+        moveFocus(-weekOffset); // week start
+        break;
       }
-      document.addEventListener('pointerdown', onPointerDown);
-      return () => document.removeEventListener('pointerdown', onPointerDown);
-    }, [open]);
+      case 'End': {
+        e.preventDefault();
+        moveFocus(6 - weekOffset); // week end
+        break;
+      }
+      case 'Escape':
+        e.preventDefault();
+        close();
+        break;
+    }
+  }
 
-    React.useEffect(() => {
-      if (!open) return;
-      function onKeyDown(event: KeyboardEvent) {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          setOpen(false);
+  const cells = calendarCells(view.y, view.m, weekStartsOn);
+  const weekdays = weekdayHeader(weekStartsOn);
+  const viewLabel = new Date(view.y, view.m, 1).toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  });
+  /** Row of the focused day within the week — 0 = the configured week start. */
+  const weekOffset = (parseIsoDate(focusIso).getDay() - weekStartsOn + 7) % 7;
+
+  // Month paging stops at the bounds (default: no future logs).
+  const maxPage = monthOf(max ?? todayIso);
+  const minPage = min !== undefined ? monthOf(min) : null;
+  const beforeMax = view.y < maxPage.y || (view.y === maxPage.y && view.m < maxPage.m);
+  const afterMin =
+    minPage === null || view.y > minPage.y || (view.y === minPage.y && view.m > minPage.m);
+
+  return (
+    <div ref={rootRef} className={cn('relative', className)}>
+      <button
+        ref={triggerRef}
+        type="button"
+        disabled={disabled}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'bg-secondary text-foreground hover:bg-secondary/70 focus-visible:ring-ring focus-visible:border-ring focus-visible:bg-background',
+          'flex h-11 w-full items-center gap-2 rounded-xl border border-transparent px-3 text-left text-base font-medium transition-colors sm:h-10 sm:text-sm',
+          'focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+          'aria-[invalid=true]:border-destructive aria-[invalid=true]:bg-destructive/5',
+        )}
+        {...rest}
+        // The abbreviated label is visual only — announce the full date.
+        aria-label={
+          rest['aria-label'] ?? (isIsoDate(value) ? `Date: ${longDateLabel(value)}` : undefined)
         }
-      }
-      document.addEventListener('keydown', onKeyDown);
-      return () => document.removeEventListener('keydown', onKeyDown);
-    }, [open]);
-
-    function pick(next: Date) {
-      onChange(toISODate(next));
-      setMonth(firstOfMonth(next));
-      setOpen(false);
-    }
-
-    function handleTriggerKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
-      if (disabled) return;
-      if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
-        event.preventDefault();
-        setOpen(true);
-      }
-    }
-
-    const days = calendarDays(month);
-    const monthLabel = month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    const today = toISODate(new Date());
-    const yesterday = toISODate(addDays(new Date(), -1));
-    const lastWeek = toISODate(addDays(new Date(), -7));
-
-    return (
-      <div ref={rootRef} className="relative min-w-0">
-        <button
-          ref={ref}
-          id={id}
-          type="button"
-          disabled={disabled}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          aria-controls={open ? panelId : undefined}
-          onKeyDown={handleTriggerKeyDown}
-          onClick={() => setOpen((current) => !current)}
+      >
+        <CalendarDays className="text-muted-foreground h-4 w-4 shrink-0" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">{formatTriggerDate(value)}</span>
+        <ChevronDown
           className={cn(
-            'bg-secondary text-foreground hover:bg-secondary/70 focus-visible:ring-ring focus-visible:border-ring focus-visible:bg-background',
-            'flex h-12 w-full items-center justify-between gap-3 rounded-2xl border border-transparent px-3.5 text-left transition-colors',
-            'focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
-            'aria-[invalid=true]:border-destructive aria-[invalid=true]:bg-destructive/5',
-            className,
+            'text-muted-foreground h-4 w-4 shrink-0 transition-transform',
+            open && 'rotate-180',
           )}
-          {...props}
+          aria-hidden
+        />
+      </button>
+
+      {/* Fixed-width popover: it must clear the trigger's narrow 2-column cell
+          on phones without ever pushing past the viewport. */}
+      {open && (
+        <div
+          role="dialog"
+          aria-label="Choose date"
+          className="border-border bg-popover text-popover-foreground animate-fade-in absolute top-full left-0 z-50 mt-1.5 w-[19.5rem] max-w-[calc(100vw-3rem)] rounded-2xl border p-3 shadow-lg shadow-black/10"
         >
-          <span className="flex min-w-0 items-center gap-3">
-            <span className="bg-primary/12 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-              <CalendarDays className="h-4.5 w-4.5" aria-hidden />
-            </span>
-            <span className="min-w-0">
-              <span className="text-muted-foreground block text-[10px] leading-none font-bold tracking-[0.12em] uppercase">
-                {relativeDay(value || today)}
-              </span>
-              <span className="mt-1 block truncate text-sm font-extrabold sm:text-base">
-                {formatDateLabel(value || today)}
-              </span>
-            </span>
-          </span>
-          <ChevronDown
-            className={cn(
-              'text-muted-foreground h-4 w-4 shrink-0 transition-transform',
-              open && 'rotate-180',
-            )}
-            aria-hidden
-          />
-        </button>
+          {/* Month navigation */}
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              aria-label="Previous month"
+              disabled={!afterMin}
+              onClick={() => setView((v) => shiftMonth(v, -1))}
+              className="hover:bg-secondary text-muted-foreground hover:text-foreground focus-visible:ring-ring flex h-9 w-9 items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden />
+            </button>
+            <p className="text-sm font-bold" aria-live="polite">
+              {viewLabel}
+            </p>
+            <button
+              type="button"
+              aria-label="Next month"
+              disabled={!beforeMax}
+              onClick={() => setView((v) => shiftMonth(v, 1))}
+              className="hover:bg-secondary text-muted-foreground hover:text-foreground focus-visible:ring-ring flex h-9 w-9 items-center justify-center rounded-full transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-30"
+            >
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
 
-        {open && (
+          {/* Weekday header */}
+          <div className="text-muted-foreground mt-2 grid grid-cols-7 text-center">
+            {weekdays.map((w) => (
+              <span key={w} className="pb-1 text-[11px] font-bold tracking-wide uppercase">
+                {w}
+              </span>
+            ))}
+          </div>
+
+          {/* Day grid */}
           <div
-            id={panelId}
-            role="dialog"
-            aria-label="Choose workout date"
-            className="border-border bg-popover text-popover-foreground animate-fade-in absolute top-[calc(100%+0.5rem)] right-0 left-0 z-40 rounded-2xl border p-3 shadow-xl shadow-black/10 sm:p-4"
+            ref={gridRef}
+            role="grid"
+            aria-label="Calendar"
+            onKeyDown={handleGridKey}
+            className="grid grid-cols-7"
           >
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-muted-foreground text-[10px] font-bold tracking-[0.14em] uppercase">
-                  Workout date
-                </p>
-                <p className="mt-1 text-sm font-extrabold">{formatDateLabel(value || today)}</p>
-              </div>
-              <div className="bg-secondary flex items-center gap-1 rounded-xl p-1">
-                <button
-                  type="button"
-                  aria-label="Previous month"
-                  onClick={() => setMonth((current) => addMonths(current, -1))}
-                  className="text-muted-foreground hover:text-foreground hover:bg-card flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
-                >
-                  <ChevronLeft className="h-4 w-4" aria-hidden />
-                </button>
-                <span className="min-w-[7.5rem] text-center text-xs font-bold">{monthLabel}</span>
-                <button
-                  type="button"
-                  aria-label="Next month"
-                  onClick={() => setMonth((current) => addMonths(current, 1))}
-                  className="text-muted-foreground hover:text-foreground hover:bg-card flex h-9 w-9 items-center justify-center rounded-lg transition-colors"
-                >
-                  <ChevronRight className="h-4 w-4" aria-hidden />
-                </button>
-              </div>
-            </div>
-
-            <div className="mb-3 grid grid-cols-3 gap-2">
-              <QuickDateButton
-                label="Today"
-                date={today}
-                selected={value === today}
-                onPick={pick}
-              />
-              <QuickDateButton
-                label="Yesterday"
-                date={yesterday}
-                selected={value === yesterday}
-                onPick={pick}
-              />
-              <QuickDateButton
-                label="7 days ago"
-                date={lastWeek}
-                selected={value === lastWeek}
-                onPick={pick}
-              />
-            </div>
-
-            <div className="mb-2 grid grid-cols-7 gap-1 text-center">
-              {weekdayLabels.map((label) => (
-                <span
-                  key={label}
-                  className="text-muted-foreground py-1 text-[10px] font-bold tracking-wide uppercase"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-            <div role="grid" aria-label={monthLabel} className="grid grid-cols-7 gap-1">
-              {days.map((day) => {
-                const iso = toISODate(day);
-                const outside = day.getMonth() !== month.getMonth();
-                const isSelected = iso === value;
-                const isToday = iso === today;
-                return (
+            {cells.map((iso, i) => {
+              if (!iso) return <span key={`blank-${i}`} className="h-9 w-full" />;
+              const disabledDay = isDayDisabled(iso, bounds);
+              const selected = iso === value;
+              const isToday = iso === todayIso;
+              const focused = iso === focusIso;
+              return (
+                <div key={iso} className="flex justify-center">
                   <button
-                    key={iso}
                     type="button"
-                    role="gridcell"
-                    aria-label={day.toLocaleDateString(undefined, {
-                      weekday: 'long',
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
-                    aria-selected={isSelected}
-                    onClick={() => pick(day)}
+                    data-date={iso}
+                    tabIndex={focused ? 0 : -1}
+                    aria-label={longDateLabel(iso)}
+                    aria-pressed={selected}
+                    disabled={disabledDay}
+                    onClick={() => pick(iso)}
                     className={cn(
-                      'relative flex aspect-square min-h-9 items-center justify-center rounded-xl text-xs font-bold tabular-nums transition-colors sm:min-h-10',
-                      'hover:bg-secondary focus-visible:ring-ring focus-visible:z-10 focus-visible:ring-2 focus-visible:outline-none',
-                      outside && 'text-muted-foreground/45 font-medium',
-                      isToday && !isSelected && 'text-primary ring-primary/35 ring-1',
-                      isSelected && 'bg-primary text-primary-foreground shadow-sm',
+                      // Fluid width keeps 7 columns inside the popover on every
+                      // viewport (a fixed 36px cell overflows on a 320px phone).
+                      'flex h-9 w-full max-w-9 items-center justify-center rounded-full text-sm font-medium transition-colors',
+                      'focus-visible:ring-ring focus-visible:ring-offset-popover focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none',
+                      selected
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
+                        : disabledDay
+                          ? 'text-muted-foreground/30 cursor-not-allowed hover:bg-transparent'
+                          : 'text-popover-foreground hover:bg-secondary',
+                      !selected && !disabledDay && isToday && 'ring-primary/40 ring-1 ring-inset',
                     )}
                   >
-                    {day.getDate()}
-                    {isSelected && <Check className="absolute right-1 bottom-1 h-2.5 w-2.5" />}
+                    {Number(iso.slice(8))}
                   </button>
-                );
-              })}
-            </div>
-            <p className="text-muted-foreground mt-3 text-center text-[11px]">
-              Choose the day you actually trained — past dates are welcome.
-            </p>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
-    );
-  },
-);
-DatePicker.displayName = 'DatePicker';
 
-function QuickDateButton({
-  label,
-  date,
-  selected,
-  onPick,
-}: {
-  label: string;
-  date: string;
-  selected: boolean;
-  onPick: (date: Date) => void;
-}) {
-  const parsed = parseISODate(date) ?? new Date();
-  return (
-    <button
-      type="button"
-      onClick={() => onPick(parsed)}
-      className={cn(
-        'flex min-h-9 items-center justify-center rounded-xl border px-2 text-[11px] font-bold transition-colors',
-        selected
-          ? 'border-primary/25 bg-primary/10 text-primary'
-          : 'border-border bg-card text-muted-foreground hover:border-primary/35 hover:text-foreground',
+          <p className="text-muted-foreground border-border/70 mt-2 flex items-center gap-1.5 border-t pt-2 text-[11px]">
+            <CornerDownLeft className="hidden h-3 w-3 shrink-0 sm:block" aria-hidden />
+            Choose the day you actually trained — past dates are welcome.
+          </p>
+
+          {/* Quick picks */}
+          <div className="mt-2 flex items-center justify-between gap-1">
+            {[
+              { label: 'Today', iso: todayIso, primary: true },
+              { label: '7 days ago', iso: addDaysIso(todayIso, -7), primary: false },
+              { label: 'Yesterday', iso: addDaysIso(todayIso, -1), primary: false },
+            ].map((quick) => {
+              const onPick =
+                quick.label === 'Today'
+                  ? pickToday
+                  : quick.label === 'Yesterday'
+                    ? pickYesterday
+                    : pickLastWeek;
+              const active = value === quick.iso;
+              return (
+                <button
+                  key={quick.label}
+                  type="button"
+                  onClick={onPick}
+                  aria-pressed={active}
+                  className={cn(
+                    'focus-visible:ring-ring flex items-center rounded-full px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none',
+                    quick.primary
+                      ? 'text-primary hover:bg-primary/10'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+                    active && (quick.primary ? 'bg-primary/10' : 'bg-secondary text-foreground'),
+                  )}
+                >
+                  {quick.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
-    >
-      {selected && <Check className="mr-1 h-3 w-3" aria-hidden />}
-      {label}
-    </button>
+    </div>
   );
 }
-
-const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-function calendarDays(month: Date): Date[] {
-  const first = firstOfMonth(month);
-  // Monday-first grid: Sunday (0) becomes the seventh column.
-  const offset = (first.getDay() + 6) % 7;
-  const start = addDays(first, -offset);
-  return Array.from({ length: 42 }, (_, index) => addDays(start, index));
-}
-
-function parseISODate(value: string): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return null;
-  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  return Number.isNaN(date.getTime()) ? null : startOfDay(date);
-}
-
-function startOfDay(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function firstOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function addDays(date: Date, amount: number): Date {
-  const next = new Date(date);
-  next.setDate(next.getDate() + amount);
-  return startOfDay(next);
-}
-
-function addMonths(date: Date, amount: number): Date {
-  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
-}
-
-export { DatePicker };
