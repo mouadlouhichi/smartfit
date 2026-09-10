@@ -18,8 +18,19 @@ import {
  * can opt in to AI answers here; the on-device engine stays the fallback.
  */
 export default function CoachPage() {
-  const { messages, send, thinking, aiAvailable, aiOn, aiHost, toggleAi, quickReplies, capped } =
-    useCoachConversation();
+  const {
+    messages,
+    send,
+    thinking,
+    thinkingLabel,
+    thinkingMode,
+    aiAvailable,
+    aiOn,
+    aiHost,
+    toggleAi,
+    quickReplies,
+    capped,
+  } = useCoachConversation();
 
   return (
     <div className="flex h-[calc(100dvh-140px)] flex-col lg:h-[calc(100dvh-120px)]">
@@ -38,7 +49,7 @@ export default function CoachPage() {
                 aria-hidden
               />
               {thinking
-                ? 'Thinking…'
+                ? thinkingLabel
                 : aiAvailable && aiOn
                   ? `AI answers on via ${aiHost} — falls back to on-device answers`
                   : 'Worked out on this device from your own data'}
@@ -51,6 +62,8 @@ export default function CoachPage() {
       <CoachMessages
         messages={messages}
         thinking={thinking}
+        thinkingLabel={thinkingLabel}
+        thinkingMode={thinkingMode}
         className="border-border bg-card/60 rounded-3xl border p-4"
       />
 

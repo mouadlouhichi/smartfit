@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Crown, Send, Sparkles } from 'lucide-react';
+import { Crown, LoaderCircle, Send, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/lib/store-context';
@@ -32,6 +32,8 @@ export interface CoachMessage {
 }
 
 const now = () => new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+type ThinkingMode = 'local' | 'ai';
 
 /** Where the athlete's AI-answers preference lives (opt-in, per browser). */
 const AI_PREF_KEY = 'smartfit.aiCoach';
@@ -71,7 +73,12 @@ export function useCoachConversation() {
   const { state } = useStore();
   const [messages, setMessages] = useState<CoachMessage[]>([]);
   const [thinking, setThinking] = useState(false);
+  const [thinkingLabel, setThinkingLabel] = useState('Reviewing your training log…');
+  const [thinkingMode, setThinkingMode] = useState<ThinkingMode>('local');
   const idRef = useRef(0);
+  const localTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aliveRef = useRef(true);
+  const aiAbortRef = useRef<AbortController | null>(null);
 
   const aiAvailable = useMemo(() => aiCoachEnabled(), []);
   const aiHost_ = useMemo(() => (aiAvailable ? aiHost() : ''), [aiAvailable]);
@@ -92,6 +99,18 @@ export function useCoachConversation() {
     ]);
     // Greet once per mount, not on every state change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep timers and an in-flight free-provider request from outliving the
+  // surface that started them. This also keeps a slow mobile tab from adding
+  // an answer after the user has navigated away.
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      if (localTimerRef.current !== null) clearTimeout(localTimerRef.current);
+      aiAbortRef.current?.abort();
+    };
   }, []);
 
   // Restore the opt-in preference (default stays OFF — nothing leaves the
@@ -117,6 +136,25 @@ export function useCoachConversation() {
     });
   }
 
+  function finishLocalAnswer(question: string) {
+    // A short async beat makes the free/on-device path feel like a considered
+    // coach response and, importantly, gives keyboard and screen-reader users
+    // a visible loading state just like the optional free AI provider.
+    setThinkingMode('local');
+    setThinkingLabel('Reviewing your training log…');
+    setThinking(true);
+    localTimerRef.current = setTimeout(() => {
+      if (!aliveRef.current) return;
+      const answer = answerCoach(question, state);
+      setMessages((m) => [
+        ...m,
+        { id: idRef.current++, role: 'coach', text: answer.text, chips: answer.chips, time: now() },
+      ]);
+      localTimerRef.current = null;
+      setThinking(false);
+    }, 420);
+  }
+
   function send(text: string) {
     const question = text.trim();
     if (!question || thinking) return;
@@ -124,9 +162,14 @@ export function useCoachConversation() {
     setMessages((m) => [...m, { id: idRef.current++, role: 'user', text: question, time: stamp }]);
 
     if (aiAvailable && aiOn && !capped) {
+      setThinkingMode('ai');
+      setThinkingLabel('Thinking with your free AI coach…');
       setThinking(true);
-      void askAiCoach(question, state)
+      const controller = new AbortController();
+      aiAbortRef.current = controller;
+      void askAiCoach(question, state, { signal: controller.signal })
         .then((answer) => {
+          if (!aliveRef.current) return;
           recordAiUse();
           setMessages((m) => [
             ...m,
@@ -134,6 +177,7 @@ export function useCoachConversation() {
           ]);
         })
         .catch(() => {
+          if (!aliveRef.current || controller.signal.aborted) return;
           // The on-device engine never fails — degrade with an honest note.
           const local = answerCoach(question, state);
           setMessages((m) => [
@@ -148,21 +192,25 @@ export function useCoachConversation() {
             },
           ]);
         })
-        .finally(() => setThinking(false));
+        .finally(() => {
+          if (aliveRef.current) {
+            aiAbortRef.current = null;
+            setThinking(false);
+            setThinkingLabel('Reviewing your training log…');
+          }
+        });
       return;
     }
 
-    const answer = answerCoach(question, state);
-    setMessages((m) => [
-      ...m,
-      { id: idRef.current++, role: 'coach', text: answer.text, chips: answer.chips, time: now() },
-    ]);
+    finishLocalAnswer(question);
   }
 
   return {
     messages,
     send,
     thinking,
+    thinkingLabel,
+    thinkingMode,
     aiAvailable,
     aiOn,
     aiHost: aiHost_,
@@ -269,16 +317,33 @@ export function CoachChips({ chips }: { chips: CoachChip[] }) {
   );
 }
 
-/** Three bouncing dots while an AI answer is on its way. */
-function TypingBubble() {
+/** A calm loading bubble shared by the local coach and the free AI path. */
+function TypingBubble({ label, mode }: { label: string; mode: ThinkingMode }) {
   return (
-    <div className="flex flex-col items-start">
-      <div className="border-border bg-card text-card-foreground dot-typing flex max-w-[88%] items-center gap-1.5 rounded-3xl rounded-tl-md border px-5 py-4 shadow-sm">
-        <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />
-        <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />
-        <span className="bg-muted-foreground/70 h-1.5 w-1.5 rounded-full" />
+    <div
+      className="animate-fade-in flex flex-col items-start"
+      role="status"
+      aria-live="polite"
+      aria-label={label}
+    >
+      <div className="border-border bg-card text-card-foreground flex max-w-[92%] items-center gap-3 rounded-3xl rounded-tl-md border px-4 py-3.5 shadow-sm">
+        <span className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+          <Sparkles className="h-4 w-4 animate-pulse" aria-hidden />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-xs font-extrabold">{label}</span>
+          <span className="text-muted-foreground mt-0.5 flex items-center gap-1 text-[10px]">
+            {mode === 'ai'
+              ? 'Using a privacy-limited summary of your stats'
+              : 'Keeping everything on this device'}
+            <span className="dot-typing ml-1 inline-flex gap-0.5" aria-hidden>
+              <span className="bg-muted-foreground/70 h-1 w-1 rounded-full" />
+              <span className="bg-muted-foreground/70 h-1 w-1 rounded-full" />
+              <span className="bg-muted-foreground/70 h-1 w-1 rounded-full" />
+            </span>
+          </span>
+        </span>
       </div>
-      <span className="text-muted-foreground mt-1 px-1 text-[10px]">Coach is thinking…</span>
     </div>
   );
 }
@@ -287,10 +352,14 @@ export function CoachMessages({
   messages,
   className,
   thinking = false,
+  thinkingLabel = 'Reviewing your training log…',
+  thinkingMode = 'local',
 }: {
   messages: CoachMessage[];
   className?: string;
   thinking?: boolean;
+  thinkingLabel?: string;
+  thinkingMode?: ThinkingMode;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -331,7 +400,7 @@ export function CoachMessages({
           </span>
         </div>
       ))}
-      {thinking && <TypingBubble />}
+      {thinking && <TypingBubble label={thinkingLabel} mode={thinkingMode} />}
     </div>
   );
 }
@@ -359,18 +428,25 @@ export function CoachComposer({
       <Input
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder={placeholder}
+        placeholder={disabled ? 'Your coach is thinking…' : placeholder}
         aria-label="Message your coach"
+        disabled={disabled}
+        aria-busy={disabled}
         className="border-border bg-card h-12 flex-1 rounded-full pl-5 shadow-sm sm:h-12"
       />
       <Button
         type="submit"
-        aria-label="Send"
+        aria-label={disabled ? 'Coach is thinking' : 'Send'}
+        aria-busy={disabled}
         size="icon"
         disabled={disabled || !input.trim()}
         className="shadow-primary/30 h-12 w-12 shrink-0 rounded-full shadow-md sm:h-12 sm:w-12"
       >
-        <Send className="h-5 w-5" />
+        {disabled ? (
+          <LoaderCircle className="h-5 w-5 animate-spin" aria-hidden />
+        ) : (
+          <Send className="h-5 w-5" aria-hidden />
+        )}
       </Button>
     </form>
   );
@@ -405,8 +481,19 @@ export function CoachQuickReplies({
 
 /** Compact coach used in the dashboard's right-hand column. */
 export function CoachPanel({ className }: { className?: string }) {
-  const { messages, send, thinking, aiAvailable, aiOn, aiHost, toggleAi, quickReplies, capped } =
-    useCoachConversation();
+  const {
+    messages,
+    send,
+    thinking,
+    thinkingLabel,
+    thinkingMode,
+    aiAvailable,
+    aiOn,
+    aiHost,
+    toggleAi,
+    quickReplies,
+    capped,
+  } = useCoachConversation();
 
   return (
     <div
@@ -424,7 +511,13 @@ export function CoachPanel({ className }: { className?: string }) {
         )}
       </div>
 
-      <CoachMessages messages={messages} thinking={thinking} className="px-5 py-6" />
+      <CoachMessages
+        messages={messages}
+        thinking={thinking}
+        thinkingLabel={thinkingLabel}
+        thinkingMode={thinkingMode}
+        className="px-5 py-6"
+      />
 
       <div className="px-5 pb-3">
         <CoachQuickReplies replies={quickReplies} onPick={send} disabled={thinking} />
