@@ -123,7 +123,7 @@ processors beyond Google/Firebase in account mode.
 | --- | --- |
 | "Changes aren't syncing" banner for many users | Firestore status; App Check enforcement flipped before clients had the key (step 7 ordering); rules deploy broke writes (rollback: `firebase deploy --only firestore:rules` with the previous revision from git) |
 | Sign-in suddenly fails on a domain | Authorised domains list; API-key referrer restrictions; `auth/unauthorized-domain` message in the app tells users exactly this |
-| Cold start empty in cloud mode | Composite index missing (`failed-precondition` in console) — redeploy indexes |
+| Cold start empty in cloud mode | Historically a missing composite index (`failed-precondition` in console) — redeploy indexes. Reads now fall back to an unordered fetch + client-side sort (with a console warning), so sign-in works regardless; the indexes just make it cheaper |
 | Blank page after deploy | Check the collector endpoint for `route`/`global` crash reports; Vercel build logs; rollback the deployment (Vercel keeps prior builds one click away) |
 
 Rollback path: Vercel → Deployments → Promote previous. Firestore rules/
