@@ -33,16 +33,38 @@ export function formatVolume(kg: number, unit: WeightUnit = 'kg'): string {
 
 /** A single set, the way the runner writes it: "8 × 60 kg" / "45s" / "2 km". */
 export function formatSet(
-  set: { reps?: number; weight?: number; distance?: number; duration?: number },
+  set: {
+    reps?: number;
+    weight?: number;
+    distance?: number;
+    duration?: number;
+    kind?: 'working' | 'warmup' | 'drop' | 'failure';
+    rpe?: number;
+  },
   unit: WeightUnit = 'kg',
 ): string {
+  let value = '—';
   if ((set.weight ?? 0) > 0 && (set.reps ?? 0) > 0) {
-    return `${set.reps} × ${formatWeight(set.weight!, unit)}`;
+    value = `${set.reps} × ${formatWeight(set.weight!, unit)}`;
+  } else if ((set.reps ?? 0) > 0) {
+    value = `${set.reps} reps`;
+  } else if ((set.distance ?? 0) > 0) {
+    value = formatSetDistance(set.distance!);
+  } else if ((set.duration ?? 0) > 0) {
+    value = formatMinutes(set.duration!);
   }
-  if ((set.reps ?? 0) > 0) return `${set.reps} reps`;
-  if ((set.distance ?? 0) > 0) return formatSetDistance(set.distance!);
-  if ((set.duration ?? 0) > 0) return formatMinutes(set.duration!);
-  return '—';
+
+  const kindLabel =
+    set.kind === 'warmup'
+      ? 'Warm-up'
+      : set.kind === 'drop'
+        ? 'Drop set'
+        : set.kind === 'failure'
+          ? 'Failure'
+          : '';
+  const rpeLabel = set.rpe != null && set.rpe >= 1 && set.rpe <= 10 ? `RPE ${set.rpe}` : '';
+  const labels = [kindLabel, rpeLabel].filter(Boolean).join(' · ');
+  return labels ? (value === '—' ? labels : `${value} · ${labels}`) : value;
 }
 
 /**

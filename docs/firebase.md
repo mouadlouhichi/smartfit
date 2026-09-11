@@ -67,9 +67,10 @@ Firestore emulator (requires Java 17+):
 pnpm test:rules
 ```
 
-CI runs them in the (currently advisory-only) `firestore-rules` job. Verify
-after deploying: sign up, complete onboarding, log a workout, reload — the
-profile document, category seeds and session write must all succeed.
+CI runs them in the blocking `firestore-rules` job. Verify after deploying:
+sign up, complete onboarding, log a workout, reload — the profile document,
+category seeds, generated starter schedule (when selected), and session write
+must all succeed.
 
 ## 4. Data model
 ```
@@ -79,9 +80,29 @@ users/{uid}/sessions/{id}            -> logged workout sessions
 users/{uid}/schedule/{id}            -> recurring scheduled workouts
 users/{uid}/goals/{id}               -> goals
 users/{uid}/bodyLogs/{id}            -> body measurements
+accountDeletionJobs/{uid}             -> server-only deletion progress (client denied)
 ```
 
-## 5. Demo data (optional, never shipped to end users)
+## 5. Server-side account deletion
+
+Cloud account deletion is handled by `POST /api/account/delete`, not by a
+client-side loop. After the client reauthenticates and sends a fresh ID token,
+the Admin SDK records a retryable job, recursively deletes `users/{uid}` and
+all nested collections, then deletes the Firebase Auth user. Configure either
+these Vercel server-only variables:
+
+```
+FIREBASE_ADMIN_PROJECT_ID=...
+FIREBASE_ADMIN_CLIENT_EMAIL=...
+FIREBASE_ADMIN_PRIVATE_KEY=...     # preserve escaped newlines
+```
+
+or one `FIREBASE_ADMIN_SERVICE_ACCOUNT` JSON secret. Google-hosted runtimes may
+use Application Default Credentials. Never expose any of these as
+`NEXT_PUBLIC_*`. A failed request can be retried; the job record prevents a
+crashed request from leaving an account permanently stuck.
+
+## 6. Demo data (optional, never shipped to end users)
 The app never seeds demo data. For demos/analytics use one of:
 
 - **Firestore:** `pnpm seed` — see `scripts/README.md`. Requires a service
@@ -90,7 +111,7 @@ The app never seeds demo data. For demos/analytics use one of:
 - **SQL:** `scripts/seed.sql` — relational schema + the same demo data for Postgres/SQLite
   exploration and analytics (includes a `v_weekly_volume` view).
 
-## 6. App Check (recommended before launch)
+## 7. App Check (recommended before launch)
 The Firebase config keys are necessarily public, so rules are the real access
 control. **App Check** adds attestation on top: it proves requests come from
 the genuine app on an authorised domain, which is what stops scripts from
@@ -107,7 +128,7 @@ farming Auth signups and Firestore operations with the public key.
 Enforce only after step 2 is live — enforcing first would lock out real users.
 Full ordering is in `docs/ops-runbook.md` §1.
 
-## 7. Email verification
+## 8. Email verification
 Sign-up sends a verification email automatically. The profile screen shows an
 "Email not verified" notice with a resend action while the address is
 unconfirmed. Customise the sender, subject and body under

@@ -18,6 +18,9 @@ import {
   PLANS,
   formatWeight,
   fromKg,
+  getGymProgram,
+  suggestProgram,
+  suggestedToSchedule,
   toKg,
   uid,
 } from '@smartfit/core';
@@ -78,24 +81,31 @@ export default function OnboardingPage() {
             createdAt: Date.now(),
           })
         : undefined;
-    // The profile and first goal are committed by one Firestore batch, so the
-    // dashboard cannot claim onboarding is complete while its promised goal is
-    // still waiting in a second queue slot.
+    // The profile, first goal, and (when a gym was selected) starter week are
+    // committed by one Firestore batch, so the dashboard cannot claim
+    // onboarding is complete while promised setup is still in another queue.
     const targetKg = parsedTargetWeight();
-    completeOnboarding(
-      {
-        // The name is required by `canNext`, so there is never an invented
-        // stand-in identity to fall back to.
-        name: name.trim(),
-        weightUnit,
-        distanceUnit,
-        weeklyRestDays: restDays,
-        planId,
-        ...(targetKg != null ? { targetWeightKg: targetKg } : {}),
-        ...(gymId ? { gymId } : {}),
-      },
-      firstGoal,
-    );
+    const profilePatch = {
+      // The name is required by `canNext`, so there is never an invented
+      // stand-in identity to fall back to.
+      name: name.trim(),
+      weightUnit,
+      distanceUnit,
+      weeklyRestDays: restDays,
+      planId,
+      ...(targetKg != null ? { targetWeightKg: targetKg } : {}),
+      ...(gymId ? { gymId } : {}),
+    };
+    const gymProgram = getGymProgram(gymId);
+    const starterState = {
+      ...state,
+      profile: { ...state.profile, ...profilePatch },
+    };
+    const starterSchedule =
+      state.schedule.length === 0 && gymProgram
+        ? suggestedToSchedule(suggestProgram(starterState, gymProgram))
+        : [];
+    completeOnboarding(profilePatch, firstGoal, starterSchedule);
     try {
       // On-device this resolves immediately; in cloud mode it stays on this
       // page and explains the problem when the batch cannot be saved.
@@ -369,8 +379,10 @@ export default function OnboardingPage() {
               </CardContent>
             </Card>
             <p className="text-muted-foreground mt-4 text-sm">
-              That&apos;s everything — your plan and first goal are ready. Log sessions as you go
-              and your streaks, trends and goals will build themselves.{' '}
+              That&apos;s everything — your plan and first goal are ready.{' '}
+              {gymId
+                ? 'Your suggested gym week will be scheduled automatically.'
+                : 'Schedule your first session from the Plan tab, then log it as you go.'}{' '}
               {cloud
                 ? 'Everything syncs privately to your account.'
                 : 'Everything stays on this device.'}

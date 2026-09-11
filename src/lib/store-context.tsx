@@ -129,6 +129,26 @@ function clearLocal(owner: string | null) {
   }
 }
 
+/** Local Pro previews are deliberately not cloud entitlements. Do not let
+ * a trial or sandbox paid stamp cross the client-to-cloud migration boundary.
+ * A paid stamp already provisioned by a trusted server is handled separately
+ * by the Firestore rule that requires an exact existing value. */
+function stripLocalProPreview(state: FitnessState): FitnessState {
+  if (!state.profile.pro) return state;
+  return parseState({
+    ...state,
+    profile: { ...state.profile, pro: undefined },
+  });
+}
+
+/** Strip only a local trial when replacing an existing cloud state. A trusted
+ * paid stamp may survive a backup replacement only when Firestore sees the
+ * exact same stamp already stored on the account. */
+function stripCloudTrial(state: FitnessState): FitnessState {
+  if (state.profile.pro?.plan !== 'trial') return state;
+  return stripLocalProPreview(state);
+}
+
 export type { PendingMigration };
 
 interface StoreContextValue {
@@ -184,7 +204,11 @@ interface StoreContextValue {
   deleteCategory: (id: string) => void;
   // profile / lifecycle
   updateProfile: (patch: Partial<UserProfile>) => void;
-  completeOnboarding: (patch: Partial<UserProfile>, firstGoal?: FitnessGoal) => void;
+  completeOnboarding: (
+    patch: Partial<UserProfile>,
+    firstGoal?: FitnessGoal,
+    starterSchedule?: Omit<ScheduledWorkout, 'id' | 'createdAt'>[],
+  ) => void;
   /** Resolves when every queued cloud write has landed; instant on-device. */
   flushWrites: () => Promise<void>;
   clearData: () => Promise<void>;
@@ -551,10 +575,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             bodyLogs = merged;
             if (!grew || more.length < PAGE_SIZE) break;
           }
-        } catch {
-          // Export what is loaded rather than failing the whole download;
-          // the flags stay untouched so paging can still be retried.
-          return { ...state, sessions, bodyLogs };
+        } catch (err) {
+          // Never label a truncated cloud view as a complete backup. The
+          // caller shows a retryable error while the paging flags remain
+          // untouched for another attempt.
+          throw new Error('complete-backup-unavailable', { cause: err });
         }
         if (sessions !== state.sessions || bodyLogs !== state.bodyLogs) {
           setHasMoreSessions(false);
@@ -572,16 +597,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       importLocalData: async () => {
         if (!pendingMigration || !owner) return;
         const incoming = pendingMigration.state;
-        const merged = parseState({
-          ...incoming,
-          profile: {
-            ...incoming.profile,
-            // Only skip onboarding if the on-device profile was actually set
-            // up. Importing a half-configured profile must not strand the user
-            // in a dashboard with no name, units or plan.
-            onboardingDone: incoming.profile.onboardingDone && !!incoming.profile.name.trim(),
-          },
-        });
+        const merged = stripLocalProPreview(
+          parseState({
+            ...incoming,
+            profile: {
+              ...incoming.profile,
+              // Only skip onboarding if the on-device profile was actually set
+              // up. Importing a half-configured profile must not strand the user
+              // in a dashboard with no name, units or plan.
+              onboardingDone: incoming.profile.onboardingDone && !!incoming.profile.name.trim(),
+            },
+          }),
+        );
         await importState(owner, merged);
         clearLocal(null); // it now lives in the cloud account
         setPendingMigration(null);
@@ -728,7 +755,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           (next, o) => ({ key: 'profile', run: () => saveProfile(o, next.profile) }),
         );
       },
-      completeOnboarding: (patch, firstGoal) => {
+      completeOnboarding: (patch, firstGoal, starterSchedule = []) => {
+        const now = Date.now();
+        const starterItems: ScheduledWorkout[] = starterSchedule.map((item, index) => ({
+          ...item,
+          id: uid('sch'),
+          createdAt: now + index,
+        }));
         mutate(
           (prev) => ({
             ...prev,
@@ -736,10 +769,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             ...(firstGoal && !prev.goals.some((goal) => goal.id === firstGoal.id)
               ? { goals: [...prev.goals, firstGoal] }
               : {}),
+            ...(starterItems.length > 0 && prev.schedule.length === 0
+              ? { schedule: starterItems }
+              : {}),
           }),
           (next, o) => ({
             key: 'onboarding',
-            run: () => saveOnboarding(o, next.profile, firstGoal),
+            run: () =>
+              saveOnboarding(
+                o,
+                next.profile,
+                firstGoal,
+                next.schedule.length > 0 && state.schedule.length === 0 ? starterItems : [],
+              ),
           }),
         );
       },
@@ -788,7 +830,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       replaceState: async (next) => {
-        const clean = parseState(next);
+        const parsed = parseState(next);
+        const clean = owner ? stripCloudTrial(parsed) : parsed;
         // A replace must not race a queued write, or the old mutation can
         // recreate a document immediately after the wipe.
         await queue.flush();

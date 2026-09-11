@@ -94,6 +94,7 @@ export function ProfileScreen() {
   const [busy, setBusy] = useState<null | 'delete' | 'import' | 'export'>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
   const [needPassword, setNeedPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -202,6 +203,7 @@ export function ProfileScreen() {
 
   async function exportData() {
     setBusy('export');
+    setDataError(null);
     try {
       // Pages through any history the initial bounded load left in the cloud,
       // so the backup is complete even for multi-year accounts.
@@ -213,6 +215,10 @@ export function ProfileScreen() {
       a.download = `smartfit-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+    } catch {
+      setDataError(
+        'The complete backup could not be loaded. Nothing was downloaded; check your connection and retry.',
+      );
     } finally {
       setBusy(null);
     }
@@ -225,16 +231,31 @@ export function ProfileScreen() {
    */
   async function exportCsv() {
     setBusy('export');
+    setDataError(null);
     try {
       const full = await collectFullState();
       const rows = [
-        'date,title,category,exercise,set,reps,weight_kg,distance_km,duration_min,intensity,calories',
+        'date,title,category,exercise,set,reps,weight_kg,distance_km,duration_min,intensity,calories,set_type,rpe',
       ];
       for (const s of full.sessions) {
         const cat = full.categories.find((c) => c.id === s.categoryId)?.name ?? s.categoryId;
         if (s.exercises.length === 0) {
           rows.push(
-            csvRow([s.date, s.title, cat, '', '', '', '', s.durationMin, s.intensity, s.calories]),
+            csvRow([
+              s.date,
+              s.title,
+              cat,
+              '',
+              '',
+              '',
+              '',
+              '',
+              s.durationMin,
+              s.intensity,
+              s.calories,
+              '',
+              '',
+            ]),
           );
         } else {
           for (const ex of s.exercises) {
@@ -252,6 +273,8 @@ export function ProfileScreen() {
                   s.durationMin,
                   s.intensity,
                   s.calories,
+                  set.kind ?? 'working',
+                  set.rpe ?? '',
                 ]),
               );
             });
@@ -266,6 +289,10 @@ export function ProfileScreen() {
       a.click();
       URL.revokeObjectURL(url);
       toast('CSV downloaded');
+    } catch {
+      setDataError(
+        'The complete CSV could not be loaded. Nothing was downloaded; check your connection and retry.',
+      );
     } finally {
       setBusy(null);
     }
@@ -315,12 +342,11 @@ export function ProfileScreen() {
     setBusy('delete');
     setDeleteError(null);
     try {
-      // Prove the password or OAuth identity *before* wiping data: a wrong
-      // credential or cancelled popup must never leave an empty-but-alive
-      // account behind.
+      // Prove the password or OAuth identity before invoking the server job:
+      // a wrong credential or cancelled popup must not start deletion.
       await reauthenticate(pw);
-      // Data first — the security rules require an authenticated user.
-      await clearData();
+      // The Admin SDK now owns the complete operation: it recursively removes
+      // Firestore, retries from a durable job record, then deletes Auth.
       await deleteAccount();
       window.location.href = '/';
     } catch (err) {
@@ -331,8 +357,8 @@ export function ProfileScreen() {
       } else {
         setDeleteError(
           err instanceof Error
-            ? err.message || 'We could not finish deleting your account.'
-            : 'We could not finish deleting your account. Nothing was deleted after this error.',
+            ? err.message || 'We could not finish deleting your account. Retry to continue.'
+            : 'We could not finish deleting your account. Retry to continue the server deletion job.',
         );
       }
     } finally {
@@ -960,12 +986,13 @@ export function ProfileScreen() {
             </Button>
           </div>
           {importError && <p className="text-destructive text-xs">{importError}</p>}
+          {dataError && <p className="text-destructive text-xs">{dataError}</p>}
           <p className="text-muted-foreground text-xs">
             {cloud
               ? 'Your training is stored in Cloud Firestore under your account and synced across devices, with an offline copy on this device. Export a JSON backup any time.'
               : mode === 'cloud'
-                ? 'You are signed out — data is stored locally in this browser until you sign in, then it syncs to the cloud.'
-                : 'SmartFit stores everything locally in your browser (localStorage). Nothing is sent to a server, and there are no trackers. Export any time for a backup.'}
+                ? 'You are signed out — data is stored in this browser’s local bucket until you sign in, then it syncs to the cloud. Anyone using this browser profile can see that local data.'
+                : 'SmartFit stores everything locally in this browser (localStorage). Anyone using this browser profile can see it; nothing is sent to a server. Export regularly for a backup.'}
           </p>
         </CardContent>
       </Card>

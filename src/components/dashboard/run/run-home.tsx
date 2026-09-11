@@ -244,6 +244,14 @@ function WeekBars({ days }: { days: DayBar[] }) {
           </div>
         ))}
       </div>
+      <ul className="sr-only" aria-label="Daily run distances">
+        {days.map((d) => (
+          <li key={`${d.iso}-text`}>
+            {d.label}: {d.distanceKm.toFixed(2)} kilometres, {Math.round(d.elevationGainM)} metres
+            elevation
+          </li>
+        ))}
+      </ul>
       {weekKm === 0 && (
         <p className="mt-2 text-[11px] text-white/55">
           Every run you record lights up its day — today&apos;s bar is the bright one.

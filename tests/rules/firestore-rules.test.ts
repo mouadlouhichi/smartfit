@@ -88,14 +88,56 @@ test('sessions must look like training records', async () => {
   await assertFails(setDoc(ref, { ...VALID_SESSION, durationMin: -30 }));
   await assertFails(setDoc(ref, { ...VALID_SESSION, intensity: 'extreme' }));
   await assertFails(setDoc(ref, { ...VALID_SESSION, title: 'x'.repeat(5000) }));
-  // 7 valid fields + 6 junk = 13 > the 12-field cap.
+  // 7 valid fields + 12 junk = 19 > the 18-field cap.
   await assertFails(
-    setDoc(ref, { ...VALID_SESSION, junk: true, more: 1, extra: 'a', pad: 2, x: 3, y: 4 }),
+    setDoc(ref, {
+      ...VALID_SESSION,
+      junk: true,
+      more: 1,
+      extra: 'a',
+      pad: 2,
+      x: 3,
+      y: 4,
+      z: 5,
+      one: 6,
+      two: 7,
+      three: 8,
+      four: 9,
+      five: 10,
+    }),
   );
-  // Optional fields are validated when present.
+  // Optional fields are validated when present, including a full GPS run
+  // shape that uses every supported session field.
   await assertFails(setDoc(ref, { ...VALID_SESSION, notes: 'n'.repeat(6000) }));
   await assertFails(setDoc(ref, { ...VALID_SESSION, distanceKm: -5 }));
-  await assertSucceeds(setDoc(ref, { ...VALID_SESSION, distanceKm: 10.5, notes: 'Felt good' }));
+  await assertFails(setDoc(ref, { ...VALID_SESSION, route: 'not-a-list' }));
+  await assertFails(
+    setDoc(ref, { ...VALID_SESSION, route: Array.from({ length: 1001 }, () => ({})) }),
+  );
+  await assertSucceeds(
+    setDoc(ref, {
+      ...VALID_SESSION,
+      distanceKm: 10.5,
+      notes: 'Felt good',
+      scheduleId: 'sch-1',
+      exercises: [
+        {
+          name: 'Bench press',
+          sets: [
+            { reps: 5, weight: 40, kind: 'warmup' },
+            { reps: 8, weight: 80, kind: 'working', rpe: 8 },
+          ],
+        },
+      ],
+      route: [
+        { lat: 33.57, lng: -7.59 },
+        { lat: 33.58, lng: -7.6 },
+      ],
+      movingTimeMin: 40,
+      elevationGainM: 80,
+      splits: [{ index: 1, distanceKm: 1, durationSec: 360, paceMinPerKm: 6 }],
+    }),
+  );
 });
 
 test('goals are constrained to the four real metrics and two cadences', async () => {
@@ -142,10 +184,32 @@ test('body logs and categories reject junk payloads', async () => {
   );
 });
 
-test('the root profile document must carry a profile map', async () => {
+test('the root profile document must carry a bounded profile map', async () => {
   const alice = env.authenticatedContext(ALICE).firestore();
-  await assertFails(setDoc(doc(alice, 'users', ALICE), { hello: 'world' }));
-  await assertSucceeds(setDoc(doc(alice, 'users', ALICE), { profile: { name: 'A' } }));
+  const ref = doc(alice, 'users', ALICE);
+  await assertFails(setDoc(ref, { hello: 'world' }));
+  await assertSucceeds(setDoc(ref, { profile: { name: 'A' } }));
+  await assertFails(setDoc(ref, { profile: { name: 'n'.repeat(81) } }));
+  await assertFails(setDoc(ref, { profile: { weightUnit: 'stone' } }));
+  await assertFails(setDoc(ref, { profile: { weeklyRestDays: 7 } }));
+  await assertFails(setDoc(ref, { profile: { planId: 'anything' } }));
+  await assertFails(
+    setDoc(ref, {
+      profile: {
+        a: 1,
+        b: 2,
+        c: 3,
+        d: 4,
+        e: 5,
+        f: 6,
+        g: 7,
+        h: 8,
+        i: 9,
+        j: 10,
+        k: 11,
+      },
+    }),
+  );
 });
 
 test('clients cannot mint paid Pro entitlements', async () => {
@@ -155,6 +219,11 @@ test('clients cannot mint paid Pro entitlements', async () => {
   await assertFails(
     setDoc(ref, {
       profile: { name: 'A', pro: { plan: 'lifetime', since: paidSince } },
+    }),
+  );
+  await assertFails(
+    setDoc(ref, {
+      profile: { name: 'A', pro: { plan: 'trial', since: paidSince } },
     }),
   );
 
@@ -176,4 +245,5 @@ test('everything outside users/{uid} is denied', async () => {
   const alice = env.authenticatedContext(ALICE).firestore();
   await assertFails(setDoc(doc(alice, 'public', 'anything'), { v: 1 }));
   await assertFails(getDoc(doc(alice, 'meta', 'anything')));
+  await assertFails(getDoc(doc(alice, 'accountDeletionJobs', ALICE)));
 });

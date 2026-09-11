@@ -249,6 +249,8 @@ missing from `.env.example`, so this list cannot drift.
 | `FIREBASE_PROJECT_ID` | script | _unset_ | Admin SDK service account used by `pnpm seed`; **never** `NEXT_PUBLIC_` |
 | `FIREBASE_CLIENT_EMAIL` | script | _unset_ | Admin SDK client email, same account |
 | `FIREBASE_PRIVATE_KEY` | script | _unset_ | Admin SDK private key (keep the `\n` escapes). See `scripts/README.md` |
+| `FIREBASE_ADMIN_*` | web (server) | _unset_ | Server-only Admin SDK credentials for `POST /api/account/delete`: project id, client email and private key; alternatively use `FIREBASE_ADMIN_SERVICE_ACCOUNT` JSON. Never expose these as `NEXT_PUBLIC_` variables |
+| `GOOGLE_CLOUD_PROJECT` | platform | _unset_ | Optional Google-hosted runtime project id used with Application Default Credentials; normally injected by the platform |
 | `SEED_UID` | script | `demo-user` | UID that `pnpm seed` writes the demo history to |
 | `SEED_EMAIL` | script | _unset_ | Email for the seeded account when it is created |
 

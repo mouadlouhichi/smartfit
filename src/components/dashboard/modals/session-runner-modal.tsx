@@ -50,6 +50,7 @@ import {
   type GeoPoint,
   type ProgressionTarget,
   type SessionSummary,
+  type WorkoutSetKind,
 } from '@smartfit/core';
 import { renderWorkoutPng, shareOrDownloadPng } from '@/lib/route-art';
 import { RouteMap } from '../route-map';
@@ -110,6 +111,8 @@ interface LiveSet {
   weight: string;
   /** Metres input for distance-measured exercises (pool/running). */
   distanceM: string;
+  kind: WorkoutSetKind;
+  rpe: string;
   done: boolean;
   isPR: boolean;
 }
@@ -329,7 +332,7 @@ export function SessionRunnerModal() {
     const pro = hasProAccess(state);
     const target = pro ? progressionTarget(state, name) : null;
     const last = lastPerformance(state, name);
-    const first = last?.sets[0];
+    const first = last?.sets.find((set) => set.kind !== 'warmup') ?? last?.sets[0];
     return {
       id: nextId.current++,
       reps:
@@ -346,6 +349,8 @@ export function SessionRunnerModal() {
           : first?.distance != null
             ? String(Math.round(first.distance * 1000))
             : '',
+      kind: 'working',
+      rpe: '',
       done: false,
       isPR: false,
     };
@@ -376,6 +381,8 @@ export function SessionRunnerModal() {
               reps: prev?.reps ?? '',
               weight: prev?.weight ?? '',
               distanceM: prev?.distanceM ?? '',
+              kind: prev?.kind ?? 'working',
+              rpe: prev?.rpe ?? '',
               done: false,
               isPR: false,
             },
@@ -399,7 +406,7 @@ export function SessionRunnerModal() {
   function completeSet(ex: LiveExercise, set: LiveSet) {
     const weight = Number(set.weight);
     const reps = Number(set.reps);
-    const pr = isPersonalRecord(state, ex.name, weight, reps);
+    const pr = set.kind !== 'warmup' && isPersonalRecord(state, ex.name, weight, reps);
     updateSet(ex.id, set.id, { done: true, isPR: pr });
     setRestTotal(suggestedRestSeconds(run.intensity));
     setRestLeft(suggestedRestSeconds(run.intensity));
@@ -418,6 +425,14 @@ export function SessionRunnerModal() {
     value: string,
   ) {
     updateSet(exId, setId, { [field]: value } as Partial<LiveSet>);
+  }
+
+  function setKind(exId: number, setId: number, kind: WorkoutSetKind) {
+    updateSet(exId, setId, { kind, isPR: false });
+  }
+
+  function setRpe(exId: number, setId: number, value: string) {
+    updateSet(exId, setId, { rpe: value });
   }
 
   function removeExercise(exId: number) {
@@ -575,6 +590,8 @@ export function SessionRunnerModal() {
           addExercise={addExercise}
           addSet={addSet}
           setRep={setRep}
+          setKind={setKind}
+          setRpe={setRpe}
           completeSet={completeSet}
           removeExercise={removeExercise}
           restLeft={restLeft}
@@ -615,6 +632,8 @@ export function SessionRunnerModal() {
           reps: s.reps !== '' ? Number(s.reps) : undefined,
           weight: s.weight !== '' ? Number(s.weight) : undefined,
           distance: s.distanceM !== '' ? Number(s.distanceM) / 1000 : undefined,
+          ...(s.kind !== 'working' ? { kind: s.kind } : {}),
+          ...(s.rpe !== '' ? { rpe: Number(s.rpe) } : {}),
         })),
     };
   }
@@ -644,6 +663,8 @@ interface LiveProps {
     field: 'reps' | 'weight' | 'distanceM',
     value: string,
   ) => void;
+  setKind: (exId: number, setId: number, kind: WorkoutSetKind) => void;
+  setRpe: (exId: number, setId: number, value: string) => void;
   completeSet: (ex: LiveExercise, set: LiveSet) => void;
   removeExercise: (exId: number) => void;
   restLeft: number;
@@ -775,7 +796,7 @@ function LiveScreen(p: LiveProps) {
                 <div className="grid gap-2">
                   {p.active.sets.map((s, idx) => {
                     const e1rm =
-                      Number(s.weight) > 0 && Number(s.reps) > 0
+                      s.kind !== 'warmup' && Number(s.weight) > 0 && Number(s.reps) > 0
                         ? estimatedOneRepMax(Number(s.weight), Number(s.reps))
                         : 0;
                     return (
@@ -863,6 +884,39 @@ function LiveScreen(p: LiveProps) {
                             e1RM ≈ {formatWeight(e1rm, unit)}
                           </span>
                         )}
+                        <div className="col-span-4 grid grid-cols-2 gap-2">
+                          <select
+                            value={s.kind}
+                            aria-label={`Set type, set ${idx + 1}`}
+                            onChange={(e) =>
+                              p.setKind(p.active!.id, s.id, e.target.value as WorkoutSetKind)
+                            }
+                            className="session-input h-9 w-full text-xs"
+                          >
+                            <option value="working">Working set</option>
+                            <option value="warmup">Warm-up</option>
+                            <option value="drop">Drop set</option>
+                            <option value="failure">Failure set</option>
+                          </select>
+                          <input
+                            type="number"
+                            min={1}
+                            max={10}
+                            step={1}
+                            inputMode="numeric"
+                            value={s.rpe}
+                            onChange={(e) =>
+                              p.setRpe(
+                                p.active!.id,
+                                s.id,
+                                e.target.value.replace(/[^\d]/g, '').slice(0, 2),
+                              )
+                            }
+                            placeholder="RPE (optional)"
+                            aria-label={`RPE 1 to 10, set ${idx + 1}`}
+                            className="session-input h-9 w-full text-xs"
+                          />
+                        </div>
                       </div>
                     );
                   })}

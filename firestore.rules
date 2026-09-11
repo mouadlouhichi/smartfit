@@ -35,23 +35,31 @@ service cloud.firestore {
       return v in ['low', 'moderate', 'high'];
     }
 
-    // A Pro stamp is not client-mintable. A client may start the explicitly
-    // local/sandbox trial, and may keep a paid stamp that was provisioned by a
-    // trusted server, but it cannot create or change a monthly/yearly/lifetime
-    // entitlement by editing its profile document.
+    function isPlan(v) {
+      return v in ['ppl', 'upper-lower', 'full-body', 'cardio-focus'];
+    }
+
+    // Pro is local-preview state until a trusted Admin SDK billing backend
+    // exists. A browser may not create either a trial or a paid stamp in
+    // Firestore. An already provisioned paid stamp may be carried through an
+    // ordinary profile edit only when it is byte-for-byte unchanged.
     function validPro(profile) {
-      return !('pro' in profile)
-        || (profile.pro is map
-            && profile.pro.plan == 'trial'
-            && profile.pro.since is number
-            && profile.pro.since > 0
-            && profile.pro.size() <= 3);
+      return !('pro' in profile);
+    }
+
+    function isPaidPlan(profile) {
+      return profile is map
+        && ('pro' in profile)
+        && profile.pro is map
+        && profile.pro.plan in ['monthly', 'yearly', 'lifetime']
+        && profile.pro.since is number
+        && profile.pro.since > 0
+        && profile.pro.size() <= 3;
     }
 
     function keepsServerProStamp(profile) {
-      return resource.data.profile is map
-        && ('pro' in resource.data.profile)
-        && ('pro' in profile)
+      return isPaidPlan(resource.data.profile)
+        && isPaidPlan(profile)
         && profile.pro == resource.data.profile.pro;
     }
 
@@ -59,13 +67,27 @@ service cloud.firestore {
       return validPro(profile) || keepsServerProStamp(profile);
     }
 
+    function validProfile(profile) {
+      return profile is map
+        && profile.size() <= 10
+        && (!('name' in profile) || strAtMost(profile.name, 80))
+        && (!('weightUnit' in profile) || profile.weightUnit in ['kg', 'lb'])
+        && (!('distanceUnit' in profile) || profile.distanceUnit in ['km', 'mi'])
+        && (!('weeklyRestDays' in profile) || numBetween(profile.weeklyRestDays, 0, 6))
+        && (!('weekStartsOn' in profile) || profile.weekStartsOn in [0, 1])
+        && (!('planId' in profile) || isPlan(profile.planId))
+        && (!('onboardingDone' in profile) || profile.onboardingDone is bool)
+        && (!('targetWeightKg' in profile) || numBetween(profile.targetWeightKg, 20, 400))
+        && (!('gymId' in profile) || strAtMost(profile.gymId, 64))
+        && validProWrite(profile);
+    }
+
     // ── account root ─────────────────────────────────────────────────────
     match /users/{userId} {
       allow read, delete: if isOwner(userId);
       // The root document carries the profile map and timestamps only.
       allow create, update: if isOwner(userId)
-        && request.resource.data.profile is map
-        && validProWrite(request.resource.data.profile)
+        && validProfile(request.resource.data.profile)
         && request.resource.data.size() <= 4;
 
       // ── logged workouts ────────────────────────────────────────────────
@@ -79,13 +101,20 @@ service cloud.firestore {
           && numBetween(request.resource.data.durationMin, 0, 100000)
           && numBetween(request.resource.data.calories, 0, 1000000)
           && numBetween(request.resource.data.createdAt, 0, 4102444800000) // ≤ 2100-01-01
-          // Optional fields (distanceKm, exercises, notes, scheduleId) are
-          // bounded by the field count and the per-string caps below.
-          && request.resource.data.size() <= 12
+          // Optional run/session fields can coexist (route + splits + moving
+          // time are all emitted by the GPS recorder), so the cap leaves room
+          // for the complete canonical WorkoutSession without permitting an
+          // arbitrary document.
+          && request.resource.data.size() <= 18
           && (!('notes' in request.resource.data) || strAtMost(request.resource.data.notes, 5000))
           && (!('distanceKm' in request.resource.data) || numBetween(request.resource.data.distanceKm, 0, 100000))
+          && (!('scheduleId' in request.resource.data) || strAtMost(request.resource.data.scheduleId, 128))
+          && (!('movingTimeMin' in request.resource.data) || numBetween(request.resource.data.movingTimeMin, 0, 100000))
+          && (!('elevationGainM' in request.resource.data) || numBetween(request.resource.data.elevationGainM, 0, 1000000))
           && (!('exercises' in request.resource.data) || request.resource.data.exercises is list
                 && request.resource.data.exercises.size() <= 100)
+          && (!('splits' in request.resource.data) || request.resource.data.splits is list
+                && request.resource.data.splits.size() <= 200)
           // Optional GPS trace for the walk-tracker share map.
           && (!('route' in request.resource.data) || request.resource.data.route is list
                 && request.resource.data.route.size() <= 1000);
@@ -97,10 +126,11 @@ service cloud.firestore {
         allow create, update: if isOwner(userId)
           && strAtMost(request.resource.data.title, 200)
           && strAtMost(request.resource.data.categoryId, 64)
-          && strAtMost(request.resource.data.timeOfDay, 5)
+          && request.resource.data.timeOfDay.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
           && numBetween(request.resource.data.weekday, 0, 6)
           && isIntensity(request.resource.data.intensity)
           && numBetween(request.resource.data.durationMin, 0, 100000)
+          && numBetween(request.resource.data.createdAt, 0, 4102444800000)
           && request.resource.data.active is bool
           && request.resource.data.size() <= 10
           // Optional routine (exercise list with target sets) — bounded like
@@ -121,6 +151,7 @@ service cloud.firestore {
           && request.resource.data.cadence in ['weekly', 'monthly']
           && numBetween(request.resource.data.target, 0, 10000000)
           && isoDate(request.resource.data.startDate)
+          && numBetween(request.resource.data.createdAt, 0, 4102444800000)
           && request.resource.data.size() <= 8;
       }
 
@@ -129,8 +160,9 @@ service cloud.firestore {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId)
           && isoDate(request.resource.data.date)
-          && strAtMost(request.resource.data.unit, 20)
+          && request.resource.data.unit in ['weight', 'bodyfat', 'waist', 'chest', 'arms', 'custom']
           && numBetween(request.resource.data.value, 0, 10000)
+          && numBetween(request.resource.data.createdAt, 0, 4102444800000)
           && request.resource.data.size() <= 8
           && (!('label' in request.resource.data) || strAtMost(request.resource.data.label, 60));
       }
@@ -142,6 +174,7 @@ service cloud.firestore {
           && strAtMost(request.resource.data.name, 60)
           && strAtMost(request.resource.data.icon, 40)
           && strAtMost(request.resource.data.color, 20)
+          && (!('builtin' in request.resource.data) || request.resource.data.builtin is bool)
           && request.resource.data.size() <= 6;
       }
     }

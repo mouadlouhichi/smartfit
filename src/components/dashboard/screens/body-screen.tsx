@@ -197,7 +197,11 @@ export function BodyScreen() {
                 </div>
               </div>
 
-              <div className="h-56 w-full">
+              <div
+                className="h-56 w-full"
+                role="img"
+                aria-label={`${meta?.label ?? activeUnit} trend over time`}
+              >
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={points} margin={{ top: 8, right: 12, left: -20, bottom: 0 }}>
                     <defs>
@@ -241,6 +245,13 @@ export function BodyScreen() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
+              <ul className="sr-only" aria-label={`${meta?.label ?? activeUnit} trend data`}>
+                {points.map((point) => (
+                  <li key={point.label}>
+                    {point.label}: {point.value} {displayUnit}
+                  </li>
+                ))}
+              </ul>
             </CardContent>
           </Card>
 

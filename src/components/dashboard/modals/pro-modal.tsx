@@ -60,8 +60,8 @@ const GATE_ICONS: Record<string, LucideIcon> = {
  * Redesigned as a genuine *premium* surface: a dark ember hero, an anchored
  * yearly plan with a savings ribbon, an honest Free-vs-Pro comparison built
  * from `PRO_GATES` (so the paywall never promises a gate that isn't enforced),
- * and a no-card 14-day trial in local sandbox mode. With Stripe payment links configured the CTAs open
- * real checkout; otherwise a clearly-labelled sandbox activates locally.
+ * and a no-card 14-day trial in local sandbox mode. Real checkout and cloud
+ * trials remain disabled until trusted server-side billing exists.
  */
 export function ProModal() {
   const { state, updateProfile, cloud } = useStore();
@@ -102,8 +102,8 @@ export function ProModal() {
     const ok = await confirm({
       title: 'Sandbox checkout',
       body:
-        'No payment provider is connected, so this activates Pro locally for testing. ' +
-        'Set NEXT_PUBLIC_STRIPE_PAYMENT_LINK_* to charge for real.',
+        'Paid billing is not connected, so this activation is only a local preview. ' +
+        'No payment link or cloud entitlement is created.',
       confirmLabel: `Activate ${meta.name}`,
     });
     if (!ok) return;

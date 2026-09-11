@@ -26,14 +26,13 @@ interface AuthContextValue {
   resendVerification: () => Promise<void>;
   /**
    * Prove the password again before a sensitive operation (account
-   * deletion). Done *before* the data wipe so a wrong password can never
-   * leave behind an empty-but-alive account.
+   * deletion). Done *before* the server deletion job starts so a wrong
+   * password can never begin an account wipe.
    */
   reauthenticate: (password?: string) => Promise<void>;
   /**
-   * Permanently delete the Firebase Auth account. Firestore data must be
-   * wiped first — see `useStore().clearData()`. Google users are
-   * re-authenticated via popup automatically when Firebase demands it.
+   * Ask the server-owned deletion job to remove Firestore data and the Auth
+   * account. The caller must reauthenticate first.
    */
   deleteAccount: () => Promise<void>;
   clearError: () => void;
@@ -228,25 +227,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const deleteAccount = useCallback(async () => {
-    const svc = await getFirebaseServices();
-    if (!svc) throw new Error('auth-unavailable');
-    const current = svc.auth.currentUser;
-    if (!current) throw new Error('not-signed-in');
-    const fb = await import('firebase/auth');
-
     await run(async () => {
+      const svc = await requireAuth();
+      const current = svc.auth.currentUser;
+      if (!current) throw new Error('not-signed-in');
+
+      // Reauthentication happens in the profile flow before this method. Force
+      // a fresh ID token so the server job receives the proof of that recent
+      // sign-in rather than a stale cached token.
+      const token = await current.getIdToken(true);
+      const response = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+        },
+        cache: 'no-store',
+      });
+      let body: { error?: string } = {};
       try {
-        await fb.deleteUser(current);
-      } catch (err) {
-        // Deleting an account is a sensitive operation: Firebase requires a
-        // recent sign-in. Re-authenticate in place rather than dead-ending.
-        if ((err as { code?: string })?.code !== 'auth/requires-recent-login') throw err;
-        const google = current.providerData.some((p) => p.providerId === 'google.com');
-        if (!google) throw err; // password users are asked to sign in again
-        const provider = new fb.GoogleAuthProvider();
-        await fb.reauthenticateWithPopup(current, provider);
-        await fb.deleteUser(current);
+        body = (await response.json()) as { error?: string };
+      } catch {
+        // A proxy/platform failure may return no JSON; the status still gives
+        // the user a retryable failure rather than silently continuing.
       }
+      if (!response.ok) {
+        throw new Error(
+          body.error ||
+            (response.status === 409
+              ? 'Account deletion is already in progress. Try again shortly.'
+              : 'The server could not finish deleting your account. Try again.'),
+        );
+      }
+
+      // The Admin SDK has deleted Auth already. Sign out locally so a token
+      // cached by the browser cannot keep the deleted account on screen.
+      const fb = await import('firebase/auth');
+      await fb.signOut(svc.auth);
     });
   }, [run]);
 

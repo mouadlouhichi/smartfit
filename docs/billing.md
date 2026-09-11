@@ -84,9 +84,10 @@ specified so the finance work can land without touching product code:
 
 - Trials are local and cardless; only `monthly`/`yearly`/`lifetime`
   stamps come from receipts and never expire client-side.
-- `firestore.rules` must allow the `trial` preview and preserve a paid stamp
-  provisioned by a trusted server, while rejecting client-created paid plans.
-  The current rules implement that boundary; a real Admin SDK webhook is still
-  required before charging.
+- Trials and sandbox paid activations are local-only previews and must not
+  cross into a cloud profile. The client strips local Pro previews during
+  migration/import; `firestore.rules` rejects all client-created Pro stamps and
+  only preserves an exact paid stamp already provisioned by a trusted server.
+  A real Admin SDK webhook is still required before charging.
 - Every `PRO_GATES` row must map to an enforced gate (`packages/core/src/pro.ts`).
 - Sandbox must always be visually distinct from real checkout.
