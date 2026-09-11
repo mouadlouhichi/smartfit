@@ -206,7 +206,7 @@ export function DatePicker({
     minPage === null || view.y > minPage.y || (view.y === minPage.y && view.m > minPage.m);
 
   return (
-    <div ref={rootRef} className={cn('relative', className)}>
+    <div ref={rootRef} className={cn('relative min-w-0', className)}>
       <button
         ref={triggerRef}
         type="button"

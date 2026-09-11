@@ -128,8 +128,11 @@ const DialogContent = React.forwardRef<
           // Mobile-first: a bottom sheet sliding up over 92dvh, with a
           // grabber + swipe-to-dismiss + a sticky action footer (see §3).
           // sm and up: the classic centered dialog. §7.4: scrolling stays
-          // inside the sheet/dialog on every viewport.
-          'border-border bg-card sheet-in fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] w-full flex-col gap-4 overflow-y-auto overscroll-contain rounded-t-[1.75rem] border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl',
+          // inside the sheet/dialog on every viewport — and only ever
+          // vertically: `overflow-x-clip` makes sideways panning impossible,
+          // so a width bug clips instead of adding a horizontal scrollbar.
+          // (Vertical `sticky` footers/headers are unaffected.)
+          'border-border bg-card sheet-in fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] w-full flex-col gap-4 overflow-x-clip overflow-y-auto overscroll-contain rounded-t-[1.75rem] border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl',
           'dialog-in sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-[calc(100vw-2rem)] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6 sm:pb-6',
           className,
         )}

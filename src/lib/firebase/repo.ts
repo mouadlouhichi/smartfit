@@ -46,6 +46,45 @@ export function isFirestoreError(err: unknown): boolean {
   );
 }
 
+/**
+ * True when Firestore reports a missing composite index.
+ *
+ * The bounded history queries need the indexes in firestore.indexes.json. When
+ * they were never deployed, every cold start fails while onboarding itself
+ * succeeds (writes need no indexes) — so the user lands back on onboarding
+ * with empty data on every login. Callers fall back to an unordered read
+ * instead of failing the whole sign-in.
+ */
+export function isMissingIndexError(err: unknown): boolean {
+  if ((err as { code?: string })?.code !== 'failed-precondition') return false;
+  return /index/i.test((err as { message?: string })?.message ?? '');
+}
+
+interface HistoryCursor {
+  date: string;
+  createdAt: number;
+}
+
+type DescRow = Pick<HistoryCursor, 'date' | 'createdAt'>;
+
+/** Newest-first, exactly matching the server-side (date desc, createdAt desc). */
+export function byDateDesc(a: DescRow, b: DescRow): number {
+  return a.date === b.date ? b.createdAt - a.createdAt : a.date < b.date ? 1 : -1;
+}
+
+/**
+ * Rows strictly older than the cursor, newest-first — the in-memory
+ * equivalent of a `startAfter(date, createdAt)` page (also exclusive, so a
+ * page boundary landing inside identical timestamps behaves the same way).
+ */
+export function olderThan<T extends DescRow>(rows: T[], cursor: HistoryCursor): T[] {
+  return rows
+    .filter(
+      (r) => r.date < cursor.date || (r.date === cursor.date && r.createdAt < cursor.createdAt),
+    )
+    .sort(byDateDesc);
+}
+
 async function requireServices() {
   const svc = await getFirebaseServices();
   if (!svc) throw new Error('firebase-unavailable');
@@ -62,8 +101,7 @@ function withId<T>(d: { id: string; data: () => unknown }): T {
  */
 export async function loadUserState(uid: string): Promise<FitnessState | null> {
   const { db } = await requireServices();
-  const { doc, getDoc, collection, getDocs, query, orderBy, limit } =
-    await import('firebase/firestore');
+  const { doc, getDoc, collection, getDocs } = await import('firebase/firestore');
 
   const profileSnap = await getDoc(doc(db, userDoc(uid)));
   if (!profileSnap.exists()) return null;
@@ -83,22 +121,20 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
     getDocs(collection(db, colPath(uid, 'categories'))).then((s) =>
       s.docs.map((d) => withId<Category>(d)),
     ),
-    getDocs(
-      query(
-        collection(db, colPath(uid, 'sessions')),
-        orderBy('date', 'desc'),
-        orderBy('createdAt', 'desc'),
-        limit(INITIAL_SESSION_LIMIT),
-      ),
-    ).then((s) => s.docs.map((d) => withId<WorkoutSession>(d))),
-    getDocs(
-      query(
-        collection(db, colPath(uid, 'bodyLogs')),
-        orderBy('date', 'desc'),
-        orderBy('createdAt', 'desc'),
-        limit(PAGE_SIZE),
-      ),
-    ).then((s) => s.docs.map((d) => withId<BodyLog>(d))),
+    loadHistoryWindow(
+      uid,
+      'sessions',
+      (rows) => parseState({ sessions: rows }).sessions,
+      null,
+      INITIAL_SESSION_LIMIT,
+    ),
+    loadHistoryWindow(
+      uid,
+      'bodyLogs',
+      (rows) => parseState({ bodyLogs: rows }).bodyLogs,
+      null,
+      PAGE_SIZE,
+    ),
   ]);
 
   // parseState guarantees a valid shape even if a document was written by an
@@ -112,19 +148,13 @@ export async function loadMoreSessions(
   cursor: { date: string; createdAt: number },
   pageSize = PAGE_SIZE,
 ): Promise<WorkoutSession[]> {
-  const { db } = await requireServices();
-  const { collection, getDocs, query, orderBy, limit, startAfter } =
-    await import('firebase/firestore');
-  const snap = await getDocs(
-    query(
-      collection(db, colPath(uid, 'sessions')),
-      orderBy('date', 'desc'),
-      orderBy('createdAt', 'desc'),
-      startAfter(cursor.date, cursor.createdAt),
-      limit(pageSize),
-    ),
+  return loadHistoryWindow(
+    uid,
+    'sessions',
+    (rows) => parseState({ sessions: rows }).sessions,
+    cursor,
+    pageSize,
   );
-  return parseState({ sessions: snap.docs.map((d) => withId<WorkoutSession>(d)) }).sessions;
 }
 
 /** Page further back through the measurement history. */
@@ -133,19 +163,57 @@ export async function loadMoreBodyLogs(
   cursor: { date: string; createdAt: number },
   pageSize = PAGE_SIZE,
 ): Promise<BodyLog[]> {
+  return loadHistoryWindow(
+    uid,
+    'bodyLogs',
+    (rows) => parseState({ bodyLogs: rows }).bodyLogs,
+    cursor,
+    pageSize,
+  );
+}
+
+/**
+ * One newest-first window of a time-series collection, optionally starting
+ * after a cursor.
+ *
+ * Normally this is a server-side ordered window (cheap, bounded). When the
+ * composite index was never deployed the ordered query throws
+ * `failed-precondition` — instead of failing the whole sign-in, fall back to a
+ * single unordered read windowed in memory. Correct for any history size, just
+ * more expensive until the indexes exist, hence the loud warning.
+ */
+async function loadHistoryWindow<T extends DescRow>(
+  uid: string,
+  name: 'sessions' | 'bodyLogs',
+  select: (rows: unknown[]) => T[],
+  cursor: HistoryCursor | null,
+  pageSize = cursor ? PAGE_SIZE : INITIAL_SESSION_LIMIT,
+): Promise<T[]> {
   const { db } = await requireServices();
   const { collection, getDocs, query, orderBy, limit, startAfter } =
     await import('firebase/firestore');
-  const snap = await getDocs(
-    query(
-      collection(db, colPath(uid, 'bodyLogs')),
+  const ref = collection(db, colPath(uid, name));
+  try {
+    // Type-only annotation (erased at build — the SDK itself stays dynamically
+    // imported): order/start/limit constraints share only this base type.
+    const parts: import('firebase/firestore').QueryConstraint[] = [
       orderBy('date', 'desc'),
       orderBy('createdAt', 'desc'),
-      startAfter(cursor.date, cursor.createdAt),
-      limit(pageSize),
-    ),
-  );
-  return parseState({ bodyLogs: snap.docs.map((d) => withId<BodyLog>(d)) }).bodyLogs;
+    ];
+    if (cursor) parts.push(startAfter(cursor.date, cursor.createdAt));
+    parts.push(limit(pageSize));
+    const snap = await getDocs(query(ref, ...parts));
+    return select(snap.docs.map((d) => withId(d)));
+  } catch (err) {
+    if (!isMissingIndexError(err)) throw err;
+    console.warn(
+      `[smartfit] ${name} composite index missing — sign-in fell back to an unordered read. ` +
+        `Deploy it: firebase deploy --only firestore:indexes`,
+    );
+    const snap = await getDocs(ref);
+    const rows = select(snap.docs.map((d) => withId(d))).sort(byDateDesc);
+    return (cursor ? olderThan(rows, cursor) : rows).slice(0, pageSize);
+  }
 }
 
 /** Create the user's profile document if it doesn't exist yet. */

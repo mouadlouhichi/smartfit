@@ -141,7 +141,12 @@ const Select = React.forwardRef<
           id={listId}
           role="listbox"
           aria-label={rest['aria-label']}
-          className="bg-popover text-popover-foreground border-border animate-fade-in absolute z-50 mt-1.5 max-h-64 w-full min-w-[10rem] overflow-auto rounded-xl border p-1 shadow-lg shadow-black/10"
+          // Exactly the trigger width — never wider. A fixed min-width would
+          // poke past the dialog edge from narrow modal cells (e.g. the log
+          // modal's ~127px Intensity cell), clipping the panel and adding a
+          // horizontal scrollbar to the sheet. Labels truncate like the
+          // trigger itself, so panel and trigger always agree.
+          className="bg-popover text-popover-foreground border-border animate-fade-in absolute z-50 mt-1.5 max-h-64 w-full overflow-auto rounded-xl border p-1 shadow-lg shadow-black/10"
         >
           {options.map((o, i) => {
             const isSel = o.value === String(value);

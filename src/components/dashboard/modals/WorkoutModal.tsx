@@ -315,6 +315,7 @@ export function WorkoutModal() {
                       {i + 1}
                     </span>
                     <ExercisePicker
+                      compact
                       ariaLabel={`Exercise ${i + 1} name`}
                       placeholder={`Exercise ${i + 1} (e.g. Squat)`}
                       maxLength={80}
