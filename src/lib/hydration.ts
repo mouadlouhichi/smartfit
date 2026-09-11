@@ -99,3 +99,17 @@ export function decideLocalHydration(
     migration: null,
   };
 }
+
+/** A ready snapshot is usable only by the identity it was loaded for. */
+export function isHydrationReady(
+  snapshot: { owner: string | null; ready: boolean },
+  owner: string | null,
+  initializing: boolean,
+): boolean {
+  return !initializing && snapshot.ready && snapshot.owner === owner;
+}
+
+/** Failed reads are not evidence of a new account. Only a completed cache is safe. */
+export function offlineHydrationState(cached: FitnessState | null): FitnessState | null {
+  return cached?.profile.onboardingDone ? cached : null;
+}
