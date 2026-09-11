@@ -99,6 +99,7 @@ export function ExercisePicker({
   placeholder,
   ariaLabel,
   maxLength,
+  compact = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -106,6 +107,12 @@ export function ExercisePicker({
   ariaLabel?: string;
   /** Cap the free-text name length (same intent as the plain Input fields). */
   maxLength?: number;
+  /**
+   * Tight table rows (log-modal exercise lines): the leading thumbnail hides
+   * below 480px so the name field keeps a usable width on phones. Full-width
+   * call sites (runner, library) leave this off.
+   */
+  compact?: boolean;
 }) {
   const { user, mode } = useAuth();
   const ownerKey = user?.uid ?? (mode === 'cloud' ? 'signed-out' : 'local');
@@ -209,7 +216,11 @@ export function ExercisePicker({
   return (
     <div ref={rootRef} className="relative min-w-0 flex-1">
       <div className="flex items-center gap-2">
-        <ExerciseImage name={value} className="h-9 w-9 rounded-lg" animated={false} />
+        <ExerciseImage
+          name={value}
+          className={cn('h-9 w-9 shrink-0 rounded-lg', compact && 'hidden min-[480px]:flex')}
+          animated={false}
+        />
         <div className="relative min-w-0 flex-1">
           <Search
             aria-hidden="true"

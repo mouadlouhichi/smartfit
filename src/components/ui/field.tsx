@@ -47,7 +47,7 @@ export function Field({ id, label, hint, error, className, children }: FieldProp
   });
 
   return (
-    <div className={cn('grid content-start gap-1.5', className)}>
+    <div className={cn('grid min-w-0 content-start gap-1.5', className)}>
       <Label htmlFor={controlId}>{label}</Label>
       {control}
       {hint ? (
