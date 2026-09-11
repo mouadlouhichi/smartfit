@@ -109,7 +109,7 @@ const Select = React.forwardRef<
       <button
         ref={ref}
         type="button"
-        id={id}
+        id={id ?? `${listId}-trigger`}
         disabled={disabled}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -141,6 +141,7 @@ const Select = React.forwardRef<
           id={listId}
           role="listbox"
           aria-label={rest['aria-label']}
+          aria-labelledby={rest['aria-label'] ? undefined : (id ?? `${listId}-trigger`)}
           // Exactly the trigger width — never wider. A fixed min-width would
           // poke past the dialog edge from narrow modal cells (e.g. the log
           // modal's ~127px Intensity cell), clipping the panel and adding a
