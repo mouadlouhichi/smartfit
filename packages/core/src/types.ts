@@ -37,11 +37,17 @@ export interface Category {
   builtin?: boolean;
 }
 
+export type WorkoutSetKind = 'working' | 'warmup' | 'drop' | 'failure';
+
 export interface WorkoutSet {
   reps?: number;
   weight?: number; // canonical kg
   distance?: number; // km
   duration?: number; // minutes
+  /** Optional classification so warm-ups do not become strength PRs. */
+  kind?: WorkoutSetKind;
+  /** Optional perceived exertion score, 1–10. */
+  rpe?: number;
 }
 
 /** One GPS fix captured by the walk tracker. */

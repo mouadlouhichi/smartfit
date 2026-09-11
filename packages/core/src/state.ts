@@ -25,6 +25,7 @@ import type {
   Weekday,
   WorkoutExercise,
   WorkoutSession,
+  WorkoutSetKind,
 } from './types';
 
 export function emptyProfile(): UserProfile {
@@ -115,12 +116,22 @@ function exercises(v: unknown): WorkoutExercise[] {
     const name = str(raw.name).trim();
     if (!name) return [];
     const sets = Array.isArray(raw.sets)
-      ? raw.sets.filter(isObj).map((s) => ({
-          reps: optNum(s.reps),
-          weight: optNum(s.weight),
-          distance: optNum(s.distance),
-          duration: optNum(s.duration),
-        }))
+      ? raw.sets.filter(isObj).map((s) => {
+          const kind = oneOf(
+            s.kind,
+            ['working', 'warmup', 'drop', 'failure'] as const satisfies readonly WorkoutSetKind[],
+            'working',
+          );
+          const rpe = optNum(s.rpe);
+          return {
+            reps: optNum(s.reps),
+            weight: optNum(s.weight),
+            distance: optNum(s.distance),
+            duration: optNum(s.duration),
+            ...(kind !== 'working' ? { kind } : {}),
+            ...(rpe !== undefined && rpe >= 1 && rpe <= 10 ? { rpe } : {}),
+          };
+        })
       : [];
     return [{ name, sets }];
   });

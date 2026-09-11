@@ -39,6 +39,12 @@ firebase deploy --only firestore:rules,firestore:indexes
   with `failed-precondition` and falls back to the local cache.
 - Rules tests: `pnpm test:rules` (needs Java 17+ locally; CI runs it in the
   `firestore-rules` job).
+- The account deletion endpoint (`POST /api/account/delete`) uses the Admin
+  SDK and the server-only `accountDeletionJobs/{uid}` collection. The client
+  sends a freshly reauthenticated Firebase ID token; the endpoint recursively
+  removes `users/{uid}` and its subcollections, records progress, then deletes
+  the Auth user. A failed request is retryable and does not fall back to a
+  client-side wipe.
 
 ### Google Cloud billing & abuse guard-rails
 
@@ -55,9 +61,10 @@ firebase deploy --only firestore:rules,firestore:indexes
 | --- | --- |
 | 14 | Import the repo; framework auto-detected (Next.js), `pnpm` install/build per `vercel.json` |
 | 15 | Set **Production** env vars: `NEXT_PUBLIC_SITE_URL` (custom domain), all `NEXT_PUBLIC_FIREBASE_*`, optional `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY`, optional `NEXT_PUBLIC_ERROR_ENDPOINT`. `NEXT_PUBLIC_*` values are **inlined at build time** — adding one requires a redeploy |
-| 16 | Preview deployments: either leave Firebase vars unset (they run in local mode — good for design review) or point them at a **separate staging Firebase project**. Never share production Firestore with previews |
-| 17 | Add the production domain to Firebase Auth authorised domains (step 4) and to the API-key referrers (step 5) |
-| 18 | Enable Vercel's HTTPS/HSTS defaults; on a custom domain verify the certificate issued before launch |
+| 16 | Set the server-only Admin env vars for the deletion endpoint: `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, and `FIREBASE_ADMIN_PRIVATE_KEY` (or one `FIREBASE_ADMIN_SERVICE_ACCOUNT` JSON secret). Never prefix these with `NEXT_PUBLIC_`; never commit them |
+| 17 | Preview deployments: either leave Firebase vars unset (they run in local mode — good for design review) or point them at a **separate staging Firebase project**. Never share production Firestore with previews |
+| 18 | Add the production domain to Firebase Auth authorised domains (step 4) and to the API-key referrers (step 5) |
+| 19 | Enable Vercel's HTTPS/HSTS defaults; on a custom domain verify the certificate issued before launch |
 
 ### Diagnostics (privacy-compatible)
 
@@ -69,10 +76,10 @@ pathname only (no query strings).
 
 | # | Task |
 | --- | --- |
-| 19 | Stand up a self-hosted collector (GlitchTip, Sentry self-hosted, or a 20-line log function) |
-| 20 | Set `NEXT_PUBLIC_ERROR_ENDPOINT` and redeploy |
-| 21 | Add an **uptime ping** (e.g. UptimeRobot/BetterStack free tier) on `/` and `/dashboard` |
-| 22 | Keep the privacy page's "Crash reports (optional)" section in sync with what the collector actually stores |
+| 20 | Stand up a self-hosted collector (GlitchTip, Sentry self-hosted, or a 20-line log function) |
+| 21 | Set `NEXT_PUBLIC_ERROR_ENDPOINT` and redeploy |
+| 22 | Add an **uptime ping** (e.g. UptimeRobot/BetterStack free tier) on `/` and `/dashboard` |
+| 23 | Keep the privacy page's "Crash reports (optional)" section in sync with what the collector actually stores |
 
 If you instead adopt a hosted analytics/error SDK, the privacy policy **must**
 be amended first — it currently promises no analytics SDKs and no third-party
@@ -120,8 +127,9 @@ processors beyond Google/Firebase in account mode.
 | Blank page after deploy | Check the collector endpoint for `route`/`global` crash reports; Vercel build logs; rollback the deployment (Vercel keeps prior builds one click away) |
 
 Rollback path: Vercel → Deployments → Promote previous. Firestore rules/
-indexes roll back by redeploying the previous git revision. There are no
-server-side migrations to unwind — the client is the only writer.
+indexes roll back by redeploying the previous git revision. The deletion job
+is intentionally server-owned; if its route is rolled back, pause account
+self-deletion rather than restoring the old client-side wipe.
 
 ## 5. Dependencies & security triage
 

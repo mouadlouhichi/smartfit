@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/terms' },
 };
 
-const UPDATED = '7 September 2026';
+const UPDATED = '11 September 2026';
 
 export default function TermsPage() {
   return (
@@ -24,8 +24,10 @@ export default function TermsPage() {
         <section className="space-y-3">
           <h2 className="font-display text-xl font-bold">1. The service</h2>
           <p>
-            SmartFit is a personal training log. It is provided free of charge, with no subscription
-            tier, no trial and no payment of any kind.
+            SmartFit is a personal training log. The current release is provided free of charge:
+            there is no live subscription, trial or payment of any kind. The dashboard may show a
+            clearly labelled local Pro preview for product testing; it is not a purchase or an
+            entitlement.
           </p>
         </section>
 

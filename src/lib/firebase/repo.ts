@@ -171,6 +171,32 @@ export async function ensureUserProfile(
   await batch.commit();
 }
 
+/**
+ * Save the onboarding profile, first goal, and optional starter week together.
+ * The dashboard should never be entered with a profile that says "done" while
+ * its promised first goal or generated week is still queued separately.
+ */
+export async function saveOnboarding(
+  uid: string,
+  profile: UserProfile,
+  goal?: FitnessGoal,
+  starterSchedule: ScheduledWorkout[] = [],
+): Promise<void> {
+  const { db } = await requireServices();
+  const { doc, writeBatch } = await import('firebase/firestore');
+  const batch = writeBatch(db);
+  batch.set(
+    doc(db, userDoc(uid)),
+    { profile: sanitize(profile), updatedAt: Date.now() },
+    { merge: true },
+  );
+  if (goal) batch.set(doc(db, colPath(uid, 'goals'), goal.id), stripId(goal));
+  for (const item of starterSchedule) {
+    batch.set(doc(db, colPath(uid, 'schedule'), item.id), stripId(item));
+  }
+  await batch.commit();
+}
+
 /** Persist a profile patch (whole-profile writes are cheap and simple). */
 export async function saveProfile(uid: string, profile: UserProfile): Promise<void> {
   const { db } = await requireServices();
@@ -224,16 +250,19 @@ export async function replaceCollection<T extends { id: string }>(
   uid: string,
   name: CollectionName,
   items: T[],
+  options: { removeStale?: boolean } = {},
 ): Promise<void> {
   const { db } = await requireServices();
   const { doc, getDocs, writeBatch, collection } = await import('firebase/firestore');
-  const colRef = collection(db, colPath(uid, name));
-  const snap = await getDocs(colRef);
-  const keep = new Set(items.map((i) => i.id));
   const ops: Array<{ ref: ReturnType<typeof doc>; item?: T }> = [];
-  snap.docs.forEach((d) => {
-    if (!keep.has(d.id)) ops.push({ ref: doc(db, colPath(uid, name), d.id) });
-  });
+
+  if (options.removeStale !== false) {
+    const snap = await getDocs(collection(db, colPath(uid, name)));
+    const keep = new Set(items.map((i) => i.id));
+    snap.docs.forEach((d) => {
+      if (!keep.has(d.id)) ops.push({ ref: doc(db, colPath(uid, name), d.id) });
+    });
+  }
   items.forEach((item) => ops.push({ ref: doc(db, colPath(uid, name), item.id), item }));
   for (let i = 0; i < ops.length; i += 400) {
     const batch = writeBatch(db);
@@ -244,6 +273,48 @@ export async function replaceCollection<T extends { id: string }>(
     }
     await batch.commit();
   }
+}
+
+/** Remove rows not present in a validated backup, after all replacement rows
+ * have been uploaded successfully. */
+async function removeStaleCollection<T extends { id: string }>(
+  uid: string,
+  name: CollectionName,
+  items: T[],
+): Promise<void> {
+  const { db } = await requireServices();
+  const { doc, getDocs, writeBatch, collection } = await import('firebase/firestore');
+  const keep = new Set(items.map((i) => i.id));
+  const snap = await getDocs(collection(db, colPath(uid, name)));
+  const stale = snap.docs.filter((d) => !keep.has(d.id));
+  for (let i = 0; i < stale.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const item of stale.slice(i, i + 400)) batch.delete(doc(db, colPath(uid, name), item.id));
+    await batch.commit();
+  }
+}
+
+/**
+ * Replace a cloud account from a validated backup without deleting first.
+ * Each collection is first upserted without deleting anything. Stale rows are
+ * removed only after every replacement row and the profile have uploaded. If a
+ * later network call fails, the account may temporarily contain old plus new
+ * rows, but it is never reduced to an empty or partially deleted account and a
+ * retry can safely finish the cleanup.
+ */
+export async function replaceUserState(uid: string, state: FitnessState): Promise<void> {
+  await replaceCollection(uid, 'categories', state.categories, { removeStale: false });
+  await replaceCollection(uid, 'sessions', state.sessions, { removeStale: false });
+  await replaceCollection(uid, 'schedule', state.schedule, { removeStale: false });
+  await replaceCollection(uid, 'goals', state.goals, { removeStale: false });
+  await replaceCollection(uid, 'bodyLogs', state.bodyLogs, { removeStale: false });
+  // saveProfile also removes optional fields omitted by the backup.
+  await saveProfile(uid, state.profile);
+  await removeStaleCollection(uid, 'categories', state.categories);
+  await removeStaleCollection(uid, 'sessions', state.sessions);
+  await removeStaleCollection(uid, 'schedule', state.schedule);
+  await removeStaleCollection(uid, 'goals', state.goals);
+  await removeStaleCollection(uid, 'bodyLogs', state.bodyLogs);
 }
 
 /**

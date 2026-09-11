@@ -85,10 +85,7 @@ jobs:
   firestore-rules:
     name: Firestore rules tests (emulator)
     runs-on: ubuntu-latest
-    # Advisory-only until this job has been observed green a few times, then
-    # remove continue-on-error: the rules are a security boundary and their
-    # tests should block merges.
-    continue-on-error: true
+    # Rules are the cloud data boundary; a failed emulator test blocks merges.
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

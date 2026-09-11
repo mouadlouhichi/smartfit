@@ -5,6 +5,7 @@ import { Crown, Loader2, Send, Sparkles, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/lib/store-context';
+import { useAuth } from '@/lib/firebase/auth-context';
 import { useModals } from './modal-context';
 import {
   FREE_COACH_REPLIES_PER_DAY,
@@ -52,20 +53,22 @@ const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, 
 const LOCAL_THINK_MS = 650;
 const AI_MIN_THINK_MS = 1200;
 
-/** Free-tier AI reply counter (per calendar day, per browser). Pro = unlimited. */
+/** Free-tier AI reply counter (per calendar day, per account/device). Pro = unlimited. */
 const AI_USE_KEY = 'smartfit.coach.aiUses';
 
 /**
  * The conversation itself, so a reload does not wipe the thread. Bounded: the
  * last 40 bubbles are plenty for a chat, and a runaway log would slow every
- * render down.
+ * render down. The account suffix is important: two people sharing a browser
+ * must never see one another's questions or training context.
  */
 const CHAT_KEY = 'smartfit.coach.chat.v1';
 const CHAT_KEEP = 40;
+const scopedKey = (base: string, owner: string) => `${base}.${owner}`;
 
-function readChat(): CoachMessage[] {
+function readChat(owner: string): CoachMessage[] {
   try {
-    const raw = localStorage.getItem(CHAT_KEY);
+    const raw = localStorage.getItem(scopedKey(CHAT_KEY, owner));
     if (!raw) return [];
     const parsed = JSON.parse(raw) as { v?: number; messages?: unknown };
     if (parsed.v !== 1 || !Array.isArray(parsed.messages)) return [];
@@ -86,10 +89,10 @@ function readChat(): CoachMessage[] {
   }
 }
 
-function writeChat(messages: CoachMessage[]) {
+function writeChat(owner: string, messages: CoachMessage[]) {
   try {
     localStorage.setItem(
-      CHAT_KEY,
+      scopedKey(CHAT_KEY, owner),
       JSON.stringify({
         v: 1,
         messages: messages
@@ -113,9 +116,9 @@ export function toCoachTurns(messages: CoachMessage[]): CoachTurn[] {
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }) as CoachTurn);
 }
 
-function readAiUses(): number {
+function readAiUses(owner: string): number {
   try {
-    const raw = localStorage.getItem(AI_USE_KEY);
+    const raw = localStorage.getItem(scopedKey(AI_USE_KEY, owner));
     if (!raw) return 0;
     const parsed = JSON.parse(raw) as { d?: string; n?: number };
     return parsed.d === toISODate(new Date()) ? (parsed.n ?? 0) : 0;
@@ -124,9 +127,12 @@ function readAiUses(): number {
   }
 }
 
-function writeAiUse(count: number) {
+function writeAiUse(owner: string, count: number) {
   try {
-    localStorage.setItem(AI_USE_KEY, JSON.stringify({ d: toISODate(new Date()), n: count }));
+    localStorage.setItem(
+      scopedKey(AI_USE_KEY, owner),
+      JSON.stringify({ d: toISODate(new Date()), n: count }),
+    );
   } catch {
     /* storage unavailable — the cap simply stays soft */
   }
@@ -169,7 +175,12 @@ function aiFallbackNotice(error: unknown, stopped: boolean): string {
  */
 export function useCoachConversation() {
   const { state } = useStore();
+  const { user, mode } = useAuth();
+  // Firebase uid isolates cloud accounts; local and signed-out sessions use
+  // separate buckets as well, rather than falling back to one global thread.
+  const ownerKey = user?.uid ?? (mode === 'cloud' ? 'signed-out' : 'local');
   const [messages, setMessages] = useState<CoachMessage[]>([]);
+  const hydratedOwnerRef = useRef<string | null>(null);
   /**
    * Which kind of answer is in flight (null = idle). Drives the thinking
    * bubble, the composer's loading state, and the stop button for AI calls.
@@ -198,22 +209,22 @@ export function useCoachConversation() {
   const aiAvailable = ai.available;
   const aiHost_ = ai.host;
   const pro = hasProAccess(state);
-  const [aiUses, setAiUses] = useState(readAiUses);
+  const [aiUses, setAiUses] = useState(() => readAiUses(ownerKey));
   const capped = !pro && aiUses >= FREE_COACH_REPLIES_PER_DAY;
 
   function recordAiUse() {
-    const next = readAiUses() + 1;
-    writeAiUse(next);
+    const next = readAiUses(ownerKey) + 1;
+    writeAiUse(ownerKey, next);
     setAiUses(next);
   }
 
   useEffect(() => {
+    hydratedOwnerRef.current = ownerKey;
     setMessages([
       { id: idRef.current++, role: 'coach', text: coachGreeting(state.profile.name), time: now() },
     ]);
-    // Greet once per mount, not on every state change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // Greet once per account bucket, not on every state change.
+  }, [ownerKey, state.profile.name]);
 
   // Navigating away cancels an in-flight free-provider request (and any
   // pending on-device beat) so late answers never land in the next screen.
@@ -223,16 +234,18 @@ export function useCoachConversation() {
       aliveRef.current = false;
       abortRef.current?.abort();
     };
-  }, []);
+  }, [ownerKey]);
 
-  // Restore the thread, so a reload does not wipe the conversation.
+  // Restore the account-scoped thread, so a reload does not wipe the
+  // conversation or expose it to another person using this browser.
   useEffect(() => {
-    const restored = readChat();
+    const restored = readChat(ownerKey);
+    setAiUses(readAiUses(ownerKey));
     if (restored.length > 0) {
       idRef.current = Math.max(...restored.map((m) => m.id)) + 1;
       setMessages(restored);
     }
-  }, []);
+  }, [ownerKey]);
 
   useEffect(() => {
     let alive = true;
@@ -246,10 +259,10 @@ export function useCoachConversation() {
 
   // Persist the thread (debounced — tokens arrive in bursts while streaming).
   useEffect(() => {
-    if (messages.length === 0) return;
-    const t = setTimeout(() => writeChat(messages), 400);
+    if (messages.length === 0 || hydratedOwnerRef.current !== ownerKey) return;
+    const t = setTimeout(() => writeChat(ownerKey, messages), 400);
     return () => clearTimeout(t);
-  }, [messages]);
+  }, [messages, ownerKey]);
 
   /** Abort an in-flight AI request; the coach falls back to on-device data. */
   function stop() {

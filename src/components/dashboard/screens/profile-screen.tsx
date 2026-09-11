@@ -92,9 +92,12 @@ export function ProfileScreen() {
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<null | 'delete' | 'import' | 'export'>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
   const [needPassword, setNeedPassword] = useState(false);
   const [password, setPassword] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [verifySent, setVerifySent] = useState(false);
   // Target weight is stored canonically in kg but edited in the athlete's
   // display unit; the raw field keeps the typed value until it commits.
@@ -104,6 +107,16 @@ export function ProfileScreen() {
       : '',
   );
   const [targetError, setTargetError] = useState<string | null>(null);
+
+  function changeWeightUnit(next: 'kg' | 'lb') {
+    // Keep the canonical kg value unchanged, but convert the visible target so
+    // `80 kg` cannot silently become `80 lb` when the selector changes.
+    if (state.profile.targetWeightKg != null) {
+      setTargetInput(String(Number(fromKg(state.profile.targetWeightKg, next).toFixed(1))));
+    }
+    setTargetError(null);
+    updateProfile({ weightUnit: next });
+  }
 
   function commitTargetWeight() {
     const trimmed = targetInput.trim();
@@ -178,8 +191,19 @@ export function ProfileScreen() {
 
   const isPasswordUser = !!user?.providerData.some((p) => p.providerId === 'password');
 
+  async function handleSignOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOutAndForget();
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
   async function exportData() {
     setBusy('export');
+    setDataError(null);
     try {
       // Pages through any history the initial bounded load left in the cloud,
       // so the backup is complete even for multi-year accounts.
@@ -191,6 +215,10 @@ export function ProfileScreen() {
       a.download = `smartfit-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
+    } catch {
+      setDataError(
+        'The complete backup could not be loaded. Nothing was downloaded; check your connection and retry.',
+      );
     } finally {
       setBusy(null);
     }
@@ -203,16 +231,31 @@ export function ProfileScreen() {
    */
   async function exportCsv() {
     setBusy('export');
+    setDataError(null);
     try {
       const full = await collectFullState();
       const rows = [
-        'date,title,category,exercise,set,reps,weight_kg,distance_km,duration_min,intensity,calories',
+        'date,title,category,exercise,set,reps,weight_kg,distance_km,duration_min,intensity,calories,set_type,rpe',
       ];
       for (const s of full.sessions) {
         const cat = full.categories.find((c) => c.id === s.categoryId)?.name ?? s.categoryId;
         if (s.exercises.length === 0) {
           rows.push(
-            csvRow([s.date, s.title, cat, '', '', '', '', s.durationMin, s.intensity, s.calories]),
+            csvRow([
+              s.date,
+              s.title,
+              cat,
+              '',
+              '',
+              '',
+              '',
+              '',
+              s.durationMin,
+              s.intensity,
+              s.calories,
+              '',
+              '',
+            ]),
           );
         } else {
           for (const ex of s.exercises) {
@@ -230,6 +273,8 @@ export function ProfileScreen() {
                   s.durationMin,
                   s.intensity,
                   s.calories,
+                  set.kind ?? 'working',
+                  set.rpe ?? '',
                 ]),
               );
             });
@@ -244,6 +289,10 @@ export function ProfileScreen() {
       a.click();
       URL.revokeObjectURL(url);
       toast('CSV downloaded');
+    } catch {
+      setDataError(
+        'The complete CSV could not be loaded. Nothing was downloaded; check your connection and retry.',
+      );
     } finally {
       setBusy(null);
     }
@@ -291,12 +340,13 @@ export function ProfileScreen() {
 
   async function executeDeletion(pw?: string) {
     setBusy('delete');
+    setDeleteError(null);
     try {
-      // Prove the password *before* wiping data: a wrong password must never
-      // leave behind an empty-but-alive account.
-      if (pw !== undefined) await reauthenticate(pw);
-      // Data first — the security rules require an authenticated user.
-      await clearData();
+      // Prove the password or OAuth identity before invoking the server job:
+      // a wrong credential or cancelled popup must not start deletion.
+      await reauthenticate(pw);
+      // The Admin SDK now owns the complete operation: it recursively removes
+      // Firestore, retries from a durable job record, then deletes Auth.
       await deleteAccount();
       window.location.href = '/';
     } catch (err) {
@@ -304,8 +354,13 @@ export function ProfileScreen() {
       // for the password inline instead of dead-ending the user.
       if ((err as { code?: string })?.code === 'auth/requires-recent-login') {
         setNeedPassword(true);
+      } else {
+        setDeleteError(
+          err instanceof Error
+            ? err.message || 'We could not finish deleting your account. Retry to continue.'
+            : 'We could not finish deleting your account. Retry to continue the server deletion job.',
+        );
       }
-      // Anything else is already surfaced via authError below the button.
     } finally {
       setBusy(null);
     }
@@ -437,8 +492,18 @@ export function ProfileScreen() {
                 )}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => void signOutAndForget()}>
-                  <LogOut className="h-4 w-4" /> Sign out
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={signingOut || busy !== null}
+                  onClick={() => void handleSignOut()}
+                >
+                  {signingOut ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogOut className="h-4 w-4" />
+                  )}
+                  {signingOut ? 'Signing out…' : 'Sign out'}
                 </Button>
               </div>
             </div>
@@ -493,6 +558,7 @@ export function ProfileScreen() {
                 Deleting your account erases your training data and sign-in credentials for good.
               </p>
               {authError && <p className="text-destructive mt-1 text-xs">{authError}</p>}
+              {deleteError && <p className="text-destructive mt-1 text-xs">{deleteError}</p>}
               {needPassword ? (
                 <form onSubmit={submitPassword} className="mt-2 grid gap-2">
                   <Label htmlFor="del-password">
@@ -616,7 +682,7 @@ export function ProfileScreen() {
           >
             <Select
               value={state.profile.weightUnit}
-              onChange={(e) => updateProfile({ weightUnit: e.target.value as 'kg' | 'lb' })}
+              onChange={(e) => changeWeightUnit(e.target.value as 'kg' | 'lb')}
             >
               <option value="kg">Kilograms (kg)</option>
               <option value="lb">Pounds (lb)</option>
@@ -920,12 +986,13 @@ export function ProfileScreen() {
             </Button>
           </div>
           {importError && <p className="text-destructive text-xs">{importError}</p>}
+          {dataError && <p className="text-destructive text-xs">{dataError}</p>}
           <p className="text-muted-foreground text-xs">
             {cloud
               ? 'Your training is stored in Cloud Firestore under your account and synced across devices, with an offline copy on this device. Export a JSON backup any time.'
               : mode === 'cloud'
-                ? 'You are signed out — data is stored locally in this browser until you sign in, then it syncs to the cloud.'
-                : 'SmartFit stores everything locally in your browser (localStorage). Nothing is sent to a server, and there are no trackers. Export any time for a backup.'}
+                ? 'You are signed out — data is stored in this browser’s local bucket until you sign in, then it syncs to the cloud. Anyone using this browser profile can see that local data.'
+                : 'SmartFit stores everything locally in this browser (localStorage). Anyone using this browser profile can see it; nothing is sent to a server. Export regularly for a backup.'}
           </p>
         </CardContent>
       </Card>

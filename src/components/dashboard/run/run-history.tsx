@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '../empty-state';
 import { RouteMap } from '../route-map';
 import { useModals } from '../modal-context';
+import { useStore } from '@/lib/store-context';
 import {
   computeRunStats,
   fmtDuration,
@@ -13,6 +14,9 @@ import {
   fmtPace,
   isTrackedRun,
   runTotals,
+  startOfWeek as startOfWeekDate,
+  toISODate,
+  weekStartOf,
   type WorkoutSession,
 } from '@smartfit/core';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,6 +40,7 @@ export function RunHistory({
   onRecord?: () => void;
 }) {
   const { openWith } = useModals();
+  const { state } = useStore();
   const runs = useMemo(
     () =>
       sessions
@@ -46,7 +51,7 @@ export function RunHistory({
   );
 
   const groups = useMemo(() => {
-    const weekStart = startOfWeek(new Date());
+    const weekStart = toISODate(startOfWeekDate(new Date(), weekStartOf(state)));
     const out: { label: string; runs: WorkoutSession[] }[] = [];
     for (const run of runs) {
       const label = run.date >= weekStart ? 'This week' : 'Earlier';
@@ -55,7 +60,7 @@ export function RunHistory({
       else out.push({ label, runs: [run] });
     }
     return out;
-  }, [runs]);
+  }, [runs, state]);
 
   const totals = useMemo(() => runTotals(runs), [runs]);
 
@@ -210,13 +215,4 @@ function barHeight(pace: number, splits: { paceMinPerKm: number }[]): number {
   const worst = Math.max(...paced);
   if (worst === best) return 22;
   return Math.round(8 + (18 * (worst - pace)) / (worst - best));
-}
-
-/** Monday-based ISO week start (the app's default). */
-function startOfWeek(now: Date): string {
-  const d = new Date(now);
-  d.setHours(0, 0, 0, 0);
-  const diff = (d.getDay() + 6) % 7; // Monday = 0
-  d.setDate(d.getDate() - diff);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }

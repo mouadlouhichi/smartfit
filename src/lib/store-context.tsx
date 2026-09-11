@@ -41,15 +41,18 @@ import {
   loadMoreSessions,
   loadMoreBodyLogs,
   saveProfile,
+  saveOnboarding,
   upsertItem,
   deleteItem,
   replaceCollection,
+  replaceUserState,
   wipeUserData,
   INITIAL_SESSION_LIMIT,
   PAGE_SIZE,
   type CollectionName,
 } from './firebase/repo';
 import { WriteQueue, type SyncStatus } from './firebase/write-queue';
+import { clearAllRunDrafts, clearRunDraft } from './run-sensors';
 
 /** First-run state for a brand-new user (see ./hydration). */
 const freshState = (displayName?: string | null): FitnessState =>
@@ -126,6 +129,26 @@ function clearLocal(owner: string | null) {
   }
 }
 
+/** Local Pro previews are deliberately not cloud entitlements. Do not let
+ * a trial or sandbox paid stamp cross the client-to-cloud migration boundary.
+ * A paid stamp already provisioned by a trusted server is handled separately
+ * by the Firestore rule that requires an exact existing value. */
+function stripLocalProPreview(state: FitnessState): FitnessState {
+  if (!state.profile.pro) return state;
+  return parseState({
+    ...state,
+    profile: { ...state.profile, pro: undefined },
+  });
+}
+
+/** Strip only a local trial when replacing an existing cloud state. A trusted
+ * paid stamp may survive a backup replacement only when Firestore sees the
+ * exact same stamp already stored on the account. */
+function stripCloudTrial(state: FitnessState): FitnessState {
+  if (state.profile.pro?.plan !== 'trial') return state;
+  return stripLocalProPreview(state);
+}
+
 export type { PendingMigration };
 
 interface StoreContextValue {
@@ -181,7 +204,11 @@ interface StoreContextValue {
   deleteCategory: (id: string) => void;
   // profile / lifecycle
   updateProfile: (patch: Partial<UserProfile>) => void;
-  completeOnboarding: (patch: Partial<UserProfile>) => void;
+  completeOnboarding: (
+    patch: Partial<UserProfile>,
+    firstGoal?: FitnessGoal,
+    starterSchedule?: Omit<ScheduledWorkout, 'id' | 'createdAt'>[],
+  ) => void;
   /** Resolves when every queued cloud write has landed; instant on-device. */
   flushWrites: () => Promise<void>;
   clearData: () => Promise<void>;
@@ -238,7 +265,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     // Drop the previous identity's data immediately. Nothing may be persisted
-    // until the new snapshot is ready.
+    // until the new snapshot is ready. An unfinished GPS trace is sensitive
+    // too, so remove the old account's draft when auth changes rather than
+    // leaving it behind for a later sign-in.
+    const previousOwner = snapshotRef.current.owner;
+    if (previousOwner && previousOwner !== uidValue) clearRunDraft(previousOwner);
     setSnapshot(BLANK);
     setPendingMigration(null);
     setHasMoreSessions(false);
@@ -544,10 +575,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             bodyLogs = merged;
             if (!grew || more.length < PAGE_SIZE) break;
           }
-        } catch {
-          // Export what is loaded rather than failing the whole download;
-          // the flags stay untouched so paging can still be retried.
-          return { ...state, sessions, bodyLogs };
+        } catch (err) {
+          // Never label a truncated cloud view as a complete backup. The
+          // caller shows a retryable error while the paging flags remain
+          // untouched for another attempt.
+          throw new Error('complete-backup-unavailable', { cause: err });
         }
         if (sessions !== state.sessions || bodyLogs !== state.bodyLogs) {
           setHasMoreSessions(false);
@@ -565,16 +597,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       importLocalData: async () => {
         if (!pendingMigration || !owner) return;
         const incoming = pendingMigration.state;
-        const merged = parseState({
-          ...incoming,
-          profile: {
-            ...incoming.profile,
-            // Only skip onboarding if the on-device profile was actually set
-            // up. Importing a half-configured profile must not strand the user
-            // in a dashboard with no name, units or plan.
-            onboardingDone: incoming.profile.onboardingDone && !!incoming.profile.name.trim(),
-          },
-        });
+        const merged = stripLocalProPreview(
+          parseState({
+            ...incoming,
+            profile: {
+              ...incoming.profile,
+              // Only skip onboarding if the on-device profile was actually set
+              // up. Importing a half-configured profile must not strand the user
+              // in a dashboard with no name, units or plan.
+              onboardingDone: incoming.profile.onboardingDone && !!incoming.profile.name.trim(),
+            },
+          }),
+        );
         await importState(owner, merged);
         clearLocal(null); // it now lives in the cloud account
         setPendingMigration(null);
@@ -721,15 +755,49 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           (next, o) => ({ key: 'profile', run: () => saveProfile(o, next.profile) }),
         );
       },
-      completeOnboarding: (patch) => {
+      completeOnboarding: (patch, firstGoal, starterSchedule = []) => {
+        const now = Date.now();
+        const starterItems: ScheduledWorkout[] = starterSchedule.map((item, index) => ({
+          ...item,
+          id: uid('sch'),
+          createdAt: now + index,
+        }));
         mutate(
-          (prev) => ({ ...prev, profile: { ...prev.profile, ...patch, onboardingDone: true } }),
-          (next, o) => ({ key: 'profile', run: () => saveProfile(o, next.profile) }),
+          (prev) => ({
+            ...prev,
+            profile: { ...prev.profile, ...patch, onboardingDone: true },
+            ...(firstGoal && !prev.goals.some((goal) => goal.id === firstGoal.id)
+              ? { goals: [...prev.goals, firstGoal] }
+              : {}),
+            ...(starterItems.length > 0 && prev.schedule.length === 0
+              ? { schedule: starterItems }
+              : {}),
+          }),
+          (next, o) => ({
+            key: 'onboarding',
+            run: () =>
+              saveOnboarding(
+                o,
+                next.profile,
+                firstGoal,
+                next.schedule.length > 0 && state.schedule.length === 0 ? starterItems : [],
+              ),
+          }),
         );
       },
-      flushWrites: () => queue.flush(),
+      flushWrites: async () => {
+        // `mutate` schedules its remote operation after React commits the
+        // snapshot. Yield one macrotask so an onboarding click cannot observe
+        // an empty queue just before that commit enqueues the batch.
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        await queue.flushStrict();
+      },
 
       clearData: async () => {
+        // Let an in-flight mutation finish before the destructive wipe. Merely
+        // clearing the array cannot cancel Firestore: an old write could land
+        // after the delete and resurrect data.
+        await queue.flush();
         queue.clear();
         const blank = freshState();
         if (owner) {
@@ -746,22 +814,33 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       signOutAndForget: async () => {
+        // Do not sign out while a cloud mutation is still in flight. Firebase
+        // may complete it after the auth transition and write the previous
+        // account's data at an unpredictable point in the next session.
+        await queue.flush();
         queue.clear();
-        if (owner) clearLocal(owner);
+        if (owner) {
+          clearLocal(owner);
+          clearRunDraft(owner);
+        }
         clearLocal(null);
+        clearAllRunDrafts();
         setSnapshot(BLANK);
         await signOut();
       },
 
       replaceState: async (next) => {
-        const clean = parseState(next);
+        const parsed = parseState(next);
+        const clean = owner ? stripCloudTrial(parsed) : parsed;
+        // A replace must not race a queued write, or the old mutation can
+        // recreate a document immediately after the wipe.
+        await queue.flush();
+        queue.clear();
         if (owner) {
-          // A true replace: wipe the remote tree before uploading the backup.
-          // A set-only import would leave every cloud document the file does
-          // not contain in place, and they would resurface on the next reload
-          // — the opposite of what the confirm dialog promises.
-          await wipeUserData(owner);
-          await importState(owner, clean);
+          // Upsert the validated backup and remove stale rows collection by
+          // collection. Unlike the old wipe-then-upload order, a failed
+          // network call cannot turn a healthy account into an empty one.
+          await replaceUserState(owner, clean);
           clearLocal(owner);
         }
         lastSerialized.current = null;

@@ -30,6 +30,7 @@ import {
   parseStateJSON,
   type FitnessState,
   type WorkoutSession,
+  type WorkoutSet,
 } from '../src/index.ts';
 
 /** Minimal session builder so the fixtures stay readable. */
@@ -37,7 +38,7 @@ function session(
   date: string,
   exercises: {
     name: string;
-    sets: { reps?: number; weight?: number; distance?: number; duration?: number }[];
+    sets: WorkoutSet[];
   }[],
   over: Partial<WorkoutSession> = {},
 ): WorkoutSession {
@@ -107,6 +108,21 @@ test('formatSet renders the four shapes a set can take', () => {
   assert.equal(formatSet({ duration: 45 }), '45m');
   assert.equal(formatSet({ distance: 5 }), '5 km');
   assert.equal(formatSet({}), '—');
+  assert.equal(
+    formatSet({ reps: 8, weight: 40, kind: 'warmup', rpe: 6 }),
+    '8 × 40 kg · Warm-up · RPE 6',
+  );
+});
+
+test('warm-up sets are visible but excluded from coaching volume and records', () => {
+  const warmup = { reps: 10, weight: 40, kind: 'warmup' as const };
+  const working = { reps: 5, weight: 80 };
+  const s = session('2026-01-05', [{ name: 'Bench Press', sets: [warmup, working] }]);
+  assert.equal(exerciseVolume(s.exercises[0]), 400);
+  assert.equal(personalRecords(withSessions(s))[0]?.bestWeight, 80);
+  const summary = summariseLiveSession(emptyState(), s.exercises);
+  assert.equal(summary.sets, 1);
+  assert.equal(summary.volume, 400);
 });
 
 // ── progressive overload ─────────────────────────────────────────────────
@@ -440,6 +456,48 @@ test('a scheduled slot keeps its exercise list through parsing', () => {
   assert.equal(withRoutine.exercises?.[0].name, 'Bench Press');
   assert.deepEqual(withRoutine.exercises?.[0].sets[0].reps, 8);
   assert.equal('exercises' in plain, false, 'a reminder carries no routine');
+});
+
+test('set metadata is preserved only when valid', () => {
+  const parsed = parseStateJSON(
+    JSON.stringify({
+      sessions: [
+        {
+          id: 'session-1',
+          date: '2026-01-05',
+          title: 'Push',
+          categoryId: 'cat-strength',
+          durationMin: 45,
+          intensity: 'moderate',
+          calories: 100,
+          exercises: [
+            {
+              name: 'Bench Press',
+              sets: [
+                { reps: 8, weight: 60, kind: 'drop', rpe: 9 },
+                { reps: 10, weight: 40, kind: 'invalid', rpe: 12 },
+              ],
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  const sets = parsed.sessions[0]?.exercises[0]?.sets ?? [];
+  assert.deepEqual(sets[0], {
+    reps: 8,
+    weight: 60,
+    distance: undefined,
+    duration: undefined,
+    kind: 'drop',
+    rpe: 9,
+  });
+  assert.deepEqual(sets[1], {
+    reps: 10,
+    weight: 40,
+    distance: undefined,
+    duration: undefined,
+  });
 });
 
 // ── starter suggestions ─────────────────────────────────────────────────

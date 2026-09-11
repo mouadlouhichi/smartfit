@@ -20,6 +20,7 @@ import {
   formatDateLabel,
   formatDistance,
   formatMinutes,
+  formatSet,
   hasProAccess,
 } from '@smartfit/core';
 import { Clock, Flame, Info, Pencil, Route, Share2, StickyNote } from 'lucide-react';
@@ -172,7 +173,7 @@ export function SessionDetailModal() {
                         </span>
                       )}
                       <span className="text-muted-foreground shrink-0 text-right text-xs">
-                        {describeSets(ex.sets)}
+                        {describeSets(ex.sets, state.profile.weightUnit)}
                       </span>
                     </li>
                   );
@@ -235,13 +236,13 @@ export function SessionDetailModal() {
   );
 }
 
-function describeSets(sets: { reps?: number; weightKg?: number }[]): string {
+function describeSets(sets: Parameters<typeof formatSet>[0][], unit: 'kg' | 'lb'): string {
   if (!sets.length) return '—';
-  const reps = sets.map((s) => s.reps).filter((r): r is number => typeof r === 'number');
   const count = `${sets.length} ${sets.length === 1 ? 'set' : 'sets'}`;
-  if (!reps.length) return count;
-  const same = reps.every((r) => r === reps[0]);
-  return same ? `${sets.length} × ${reps[0]}` : `${count} · ${reps.join('/')}`;
+  const details = sets.map((set) => formatSet(set, unit)).filter((label) => label !== '—');
+  if (details.length === 0) return count;
+  const same = details.every((label) => label === details[0]);
+  return same ? `${count} · ${details[0]}` : `${count} · ${details.join(' / ')}`;
 }
 
 function Stat({

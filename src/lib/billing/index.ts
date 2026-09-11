@@ -14,7 +14,7 @@ export function billingProviders(): BillingProvider[] {
   return [stripeLinksProvider, cmiProvider, sandboxProvider];
 }
 
-/** The provider the paywall checks out with right now. */
+/** The provider contract the preview paywall would use once billing is live. */
 export function activeBillingProvider(): BillingProvider {
   return billingProviders().find((p) => p.available) ?? sandboxProvider;
 }

@@ -93,6 +93,29 @@ test('collapses repeated writes to the same key', async () => {
   assert.deepEqual(written, ['name-3'], 'only the newest value is written');
 });
 
+test('keeps the newest same-key write queued while an older one is in flight', async () => {
+  const q = new WriteQueue();
+  const written: string[] = [];
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => (release = resolve));
+
+  const done = settled(q);
+  q.push({
+    key: 'profile',
+    run: async () => {
+      await gate;
+      written.push('old');
+    },
+  });
+  // This must wait behind the in-flight operation, not replace it.
+  q.push({ key: 'profile', run: async () => void written.push('new') });
+
+  assert.equal(q.pending, 2);
+  release();
+  await done;
+  assert.deepEqual(written, ['old', 'new']);
+});
+
 test('retries a transient failure and then succeeds', async () => {
   const q = new WriteQueue();
   let attempts = 0;
@@ -176,6 +199,18 @@ test('reports saving while work is in flight and idle when drained', async () =>
 
   assert.deepEqual(t.statuses, ['idle', 'saving', 'idle']);
   t.unsub();
+});
+
+test('flushStrict rejects a parked error so onboarding can stay put', async () => {
+  const q = new WriteQueue();
+  q.push({
+    key: 'finish',
+    run: async () => {
+      throw fail('permission-denied');
+    },
+  });
+  await assert.rejects(q.flushStrict(), /isn't allowed/i);
+  assert.equal(q.pending, 1);
 });
 
 test('clear() drops pending work — used on sign-out', async () => {

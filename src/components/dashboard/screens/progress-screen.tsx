@@ -280,7 +280,11 @@ export function ProgressScreen() {
             body="Log workouts to see your weekly volume trend."
           />
         ) : (
-          <div className="h-56 w-full">
+          <div
+            className="h-56 w-full"
+            role="img"
+            aria-label="Active minutes per week for the last eight weeks"
+          >
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={series} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <defs>
@@ -319,6 +323,15 @@ export function ProgressScreen() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        )}
+        {state.sessions.length > 0 && (
+          <ul className="sr-only" aria-label="Weekly active minutes data">
+            {series.map((week) => (
+              <li key={week.label}>
+                {week.label}: {week.minutes} active minutes, {week.workouts} sessions
+              </li>
+            ))}
+          </ul>
         )}
       </Card>
 
@@ -410,7 +423,14 @@ export function ProgressScreen() {
             </span>
             Volume by muscle · last {days} days
           </p>
-          <ul className="grid gap-2.5">
+          <ul className="sr-only" aria-label={`Muscle volume for the last ${days} days`}>
+            {muscles.slice(0, 8).map((m) => (
+              <li key={m.muscle}>
+                {m.label}: {formatVolume(m.volume, state.profile.weightUnit)}, {m.sets} sets
+              </li>
+            ))}
+          </ul>
+          <ul className="grid gap-2.5" aria-hidden="true">
             {muscles.slice(0, 8).map((m) => {
               const max = muscles[0]?.volume ?? 1;
               return (
@@ -510,38 +530,51 @@ export function ProgressScreen() {
               body="Intensity distribution shows up after logging."
             />
           ) : (
-            <div className="space-y-4">
-              {intensityData.map((d) => {
-                const total = intensityData.reduce((a, x) => a + x.value, 0);
-                const pct = Math.round((d.value / total) * 100);
-                return (
-                  <div key={d.key}>
-                    <div className="flex justify-between text-sm">
-                      <span className="flex items-center gap-2 font-semibold">
-                        <span
-                          className="h-2.5 w-2.5 rounded-full"
-                          style={{ backgroundColor: d.color }}
-                          aria-hidden
-                        />
-                        {d.name}
-                      </span>
-                      <span className="text-muted-foreground tabular-nums">
-                        {d.value} session{d.value === 1 ? '' : 's'} · {pct}%
-                      </span>
-                    </div>
-                    <div
-                      className="bg-secondary mt-1.5 h-2.5 w-full overflow-hidden rounded-full"
-                      role="presentation"
-                    >
+            <>
+              <ul className="sr-only" aria-label="Intensity distribution">
+                {intensityData.map((d) => {
+                  const total = intensityData.reduce((a, x) => a + x.value, 0);
+                  const pct = Math.round((d.value / total) * 100);
+                  return (
+                    <li key={d.key}>
+                      {d.name}: {d.value} session{d.value === 1 ? '' : 's'}, {pct}%
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="space-y-4" aria-hidden="true">
+                {intensityData.map((d) => {
+                  const total = intensityData.reduce((a, x) => a + x.value, 0);
+                  const pct = Math.round((d.value / total) * 100);
+                  return (
+                    <div key={d.key}>
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-2 font-semibold">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: d.color }}
+                            aria-hidden
+                          />
+                          {d.name}
+                        </span>
+                        <span className="text-muted-foreground tabular-nums">
+                          {d.value} session{d.value === 1 ? '' : 's'} · {pct}%
+                        </span>
+                      </div>
                       <div
-                        className="h-full rounded-full"
-                        style={{ width: `${pct}%`, backgroundColor: d.color }}
-                      />
+                        className="bg-secondary mt-1.5 h-2.5 w-full overflow-hidden rounded-full"
+                        role="presentation"
+                      >
+                        <div
+                          className="h-full rounded-full"
+                          style={{ width: `${pct}%`, backgroundColor: d.color }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </Card>
       </div>

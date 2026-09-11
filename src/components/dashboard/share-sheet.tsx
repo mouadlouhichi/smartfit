@@ -382,5 +382,6 @@ function fmtPace(minPerKm: number): string {
   if (!Number.isFinite(minPerKm) || minPerKm <= 0) return '—';
   const m = Math.floor(minPerKm);
   const s = Math.round((minPerKm - m) * 60);
-  return `${m}:${String(s === 60 ? 0 : s).padStart(2, '0')}`;
+  // Rounding 5.999 minutes must read 6:00, never the impossible 5:00.
+  return `${s === 60 ? m + 1 : m}:${String(s === 60 ? 0 : s).padStart(2, '0')}`;
 }

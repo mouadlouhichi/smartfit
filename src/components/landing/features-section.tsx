@@ -266,9 +266,9 @@ const FEATURES: Feature[] = [
   },
   {
     number: '04',
-    title: 'Nothing leaves your device',
+    title: 'Private by default',
     description:
-      'There is no account and no server. Delete a session and its effect reverses cleanly. Export or erase everything from Profile in one tap.',
+      'Local mode keeps your log in this browser; account mode syncs it to your own protected cloud account. Delete a session and its effect reverses cleanly. Export or erase everything from Profile.',
     visual: 'shield',
     link: { href: '/#security', anchor: 'How SmartFit privacy works' },
   },

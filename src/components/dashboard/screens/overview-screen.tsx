@@ -85,21 +85,22 @@ export function OverviewScreen() {
   // Today's closing rings (Apple-style) from the athlete's own goals.
   const rings = useMemo(() => activityRings(state, targetsForDays(state, 1)), [state]);
 
-  // Today's next un-done scheduled slot (falls back to the first) — the Start
-  // CTA opens it in the guided runner.
-  const todaysSlot = useMemo(() => {
+  // Today's next un-done scheduled slot. If the plan is already complete,
+  // start a fresh session instead of showing a completed slot as if it were
+  // still waiting to be logged.
+  const nextSlot = useMemo(() => {
     const a = todaysAgenda(state);
-    return a.find((x) => !x.done) ?? a[0];
+    return a.find((x) => !x.done);
   }, [state]);
   const startToday = () =>
-    todaysSlot && !todaysSlot.done
+    nextSlot
       ? openWith({
           kind: 'runner',
-          title: todaysSlot.slot.title,
-          categoryId: todaysSlot.slot.categoryId,
-          intensity: todaysSlot.slot.intensity,
-          scheduleId: todaysSlot.slot.id,
-          exercises: todaysSlot.slot.exercises,
+          title: nextSlot.slot.title,
+          categoryId: nextSlot.slot.categoryId,
+          intensity: nextSlot.slot.intensity,
+          scheduleId: nextSlot.slot.id,
+          exercises: nextSlot.slot.exercises,
         })
       : openWith({
           kind: 'runner',
@@ -191,12 +192,11 @@ export function OverviewScreen() {
         </div>
 
         {/* ── Start today's workout (the "start exercise" entry point) ── */}
-        <div
-          className="pro-surface sheen press relative overflow-hidden rounded-3xl"
-          role="button"
-          tabIndex={0}
+        <button
+          type="button"
+          aria-label={nextSlot ? `Start ${nextSlot.slot.title}` : 'Start another workout'}
+          className="pro-surface sheen press relative block w-full overflow-hidden rounded-3xl text-left"
           onClick={startToday}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && startToday()}
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
           <img
@@ -215,10 +215,18 @@ export function OverviewScreen() {
           <div className="relative flex items-center gap-4 p-5">
             <div className="min-w-0 flex-1">
               <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#f0a37f' }}>
-                {todaysSlot ? 'On today’s plan' : 'Ready when you are'}
+                {nextSlot
+                  ? 'On today’s plan'
+                  : agenda.length > 0
+                    ? 'Plan complete'
+                    : 'Ready when you are'}
               </p>
               <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f7f2ea]">
-                {todaysSlot ? todaysSlot.slot.title : 'Start today’s workout'}
+                {nextSlot
+                  ? nextSlot.slot.title
+                  : agenda.length > 0
+                    ? 'Start another workout'
+                    : 'Start today’s workout'}
               </p>
               <p className="pro-muted mt-0.5 truncate text-xs">
                 {focus ?? 'Guided session with rest timer, demo clips and PR detection'}
@@ -235,7 +243,7 @@ export function OverviewScreen() {
               <Play className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden />
             </span>
           </div>
-        </div>
+        </button>
 
         {/* ── Today's closing rings ─────────────────────────────────────
             Dark ember hero: gradients + halo need the dark stage, and the

@@ -14,15 +14,17 @@ import {
 import { ExerciseImage } from './exercise-image';
 import { ExerciseDetailDialog } from './exercise-detail';
 import { useExtendedCatalog } from '@/lib/use-extended-catalog';
+import { useAuth } from '@/lib/firebase/auth-context';
 
 const SUGGESTION_LIMIT = 8;
-/** Recently-picked exercise names, most recent first (per browser). */
+/** Recently-picked exercise names, most recent first (per account/device). */
 const RECENTS_KEY = 'smartfit.exercise.recents.v1';
 const RECENTS_CAP = 8;
+const recentsKey = (owner: string) => `${RECENTS_KEY}.${owner}`;
 
-function readRecents(): string[] {
+function readRecents(owner: string): string[] {
   try {
-    const raw = localStorage.getItem(RECENTS_KEY);
+    const raw = localStorage.getItem(recentsKey(owner));
     const parsed: unknown = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed.filter((n): n is string => typeof n === 'string') : [];
   } catch {
@@ -30,10 +32,10 @@ function readRecents(): string[] {
   }
 }
 
-function rememberRecent(name: string) {
+function rememberRecent(name: string, owner: string) {
   try {
-    const next = [name, ...readRecents().filter((n) => n !== name)].slice(0, RECENTS_CAP);
-    localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+    const next = [name, ...readRecents(owner).filter((n) => n !== name)].slice(0, RECENTS_CAP);
+    localStorage.setItem(recentsKey(owner), JSON.stringify(next));
   } catch {
     /* storage unavailable — recents simply stay empty */
   }
@@ -105,6 +107,8 @@ export function ExercisePicker({
   /** Cap the free-text name length (same intent as the plain Input fields). */
   maxLength?: number;
 }) {
+  const { user, mode } = useAuth();
+  const ownerKey = user?.uid ?? (mode === 'cloud' ? 'signed-out' : 'local');
   const [open, setOpen] = useState(false);
   const [highlight, setHighlight] = useState(0);
   const [detailName, setDetailName] = useState<string | null>(null);
@@ -141,8 +145,8 @@ export function ExercisePicker({
 
   // Recents live in localStorage — read once on mount (SSR-safe).
   useEffect(() => {
-    setRecents(readRecents());
-  }, []);
+    setRecents(readRecents(ownerKey));
+  }, [ownerKey]);
 
   // Keep the highlighted row in range whenever the query changes.
   useEffect(() => {
@@ -168,8 +172,8 @@ export function ExercisePicker({
     const entry = suggestions[index];
     if (!entry) return;
     onChange(entry.name);
-    rememberRecent(entry.name);
-    setRecents(readRecents());
+    rememberRecent(entry.name, ownerKey);
+    setRecents(readRecents(ownerKey));
     setOpen(false);
     rootRef.current?.querySelector('input')?.blur();
   }

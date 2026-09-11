@@ -42,8 +42,10 @@ export function estimatedOneRepMax(weightKg: number, reps: number): number {
 
 // ── volume ───────────────────────────────────────────────────────────────
 
-/** Tonnage of one set: weight × reps. Bodyweight/timed sets count as 0. */
+/** Tonnage of one set: weight × reps. Warm-ups are excluded from
+ * coaching volume so a ramp-up does not masquerade as working load. */
 export function setVolume(set: WorkoutSet): number {
+  if (set.kind === 'warmup') return 0;
   const w = set.weight ?? 0;
   const r = set.reps ?? 0;
   if (w <= 0 || r <= 0) return 0;
@@ -65,14 +67,14 @@ export function totalVolume(sessions: WorkoutSession[]): number {
   return sessions.reduce((sum, s) => sum + sessionVolume(s), 0);
 }
 
-/** True when a set carries a meaningful load (weight + reps). */
+/** True when a working/failure/drop set carries a meaningful load. */
 export function isLoadedSet(set: WorkoutSet): boolean {
-  return (set.weight ?? 0) > 0 && (set.reps ?? 0) > 0;
+  return set.kind !== 'warmup' && (set.weight ?? 0) > 0 && (set.reps ?? 0) > 0;
 }
 
-/** Total sets recorded for an exercise entry (loaded or not). */
+/** Total coaching sets recorded for an exercise entry (warm-ups excluded). */
 export function setCount(ex: WorkoutExercise): number {
-  return ex.sets.length;
+  return ex.sets.filter((set) => set.kind !== 'warmup').length;
 }
 
 // ── progressive overload ─────────────────────────────────────────────────
@@ -117,11 +119,12 @@ export function lastPerformance(
   for (const session of history) {
     index += 1;
     const entry = session.exercises.find((e) => sameExercise(e.name, target, matched));
-    if (!entry || entry.sets.length === 0) continue;
+    if (!entry || setCount(entry) === 0) continue;
 
     let bestWeight = 0;
     let bestReps = 0;
     for (const s of entry.sets) {
+      if (!isLoadedSet(s)) continue;
       const w = s.weight ?? 0;
       if (w > bestWeight || (w === bestWeight && (s.reps ?? 0) > bestReps)) {
         bestWeight = w;
@@ -273,10 +276,12 @@ export function muscleVolume(state: FitnessState, days = 30, now = new Date()): 
       const match = matchExercise(entry.name);
       if (!match) continue;
       const volume = exerciseVolume(entry);
+      const sets = setCount(entry);
+      if (sets === 0) continue;
       for (const muscle of match.muscles) {
         const cur = acc.get(muscle) ?? { volume: 0, sets: 0 };
         cur.volume += volume;
-        cur.sets += entry.sets.length;
+        cur.sets += sets;
         acc.set(muscle, cur);
       }
     }
@@ -671,6 +676,7 @@ export function summariseLiveSession(
   for (const entry of exercises) {
     let touched = false;
     for (const set of entry.sets) {
+      if (set.kind === 'warmup') continue;
       sets += 1;
       volume += setVolume(set);
       distance += set.distance ?? 0;
@@ -685,7 +691,7 @@ export function summariseLiveSession(
 
   return {
     sets,
-    exercises: exercises.filter((e) => e.sets.length > 0).length,
+    exercises: exercises.filter((e) => setCount(e) > 0).length,
     volume: Math.round(volume),
     distance: Math.round(distance * 100) / 100,
     personalRecords: prs,
