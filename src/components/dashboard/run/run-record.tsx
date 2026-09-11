@@ -40,6 +40,7 @@ const RunMap = dynamic(() => import('./run-map').then((m) => m.RunMap), {
 import { ShareSheet } from '../share-sheet';
 import { StatCard } from '../stat-card';
 import { useStore } from '@/lib/store-context';
+import { useAuth } from '@/lib/firebase/auth-context';
 import {
   computeRunStats,
   fmtDuration,
@@ -49,7 +50,6 @@ import {
   hasProAccess,
   isTrackedRun,
   runAchievements,
-  runTotals,
   toISODate,
   DEFAULT_WEEK_START,
   type GeoPoint,
@@ -118,6 +118,8 @@ const BLANK_LIVE: LiveState = {
  */
 export function RunRecord({ onSaved }: { onSaved?: () => void }) {
   const { state, addSession, estimateSessionCalories } = useStore();
+  const { user } = useAuth();
+  const draftOwner = user?.uid ?? null;
   const toast = useToast();
   const confirmDialog = useConfirm();
 
@@ -154,24 +156,21 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
   const dirtyRef = useRef(0);
 
   const history = useMemo(() => state.sessions.filter(isTrackedRun), [state.sessions]);
-  const thisWeek = useMemo(() => {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const from = toISODate(weekAgo);
-    return runTotals(history.filter((s) => s.date >= from));
-  }, [history]);
 
   /* ── recovery: offer an interrupted run back ─────────────────────── */
   useEffect(() => {
-    const saved = readRunDraft();
-    if (!saved) return;
+    const saved = readRunDraft(draftOwner);
+    if (!saved) {
+      setDraft(null);
+      return;
+    }
     // Older than 12 hours is stale — nobody wants a run they abandoned.
     if (Date.now() - saved.savedAt > 12 * 60 * 60 * 1000) {
-      clearRunDraft();
+      clearRunDraft(draftOwner);
       return;
     }
     setDraft(saved);
-  }, []);
+  }, [draftOwner]);
 
   /* ── GPS ─────────────────────────────────────────────────────────── */
   const beginRecording = useCallback((restored?: RunDraft) => {
@@ -344,8 +343,11 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     if (phase !== 'live' || points.length < 2) return;
     if (dirtyRef.current < 5 && points.length > 6) return;
     dirtyRef.current = 0;
-    saveRunDraft({ startedAt: startedAtRef.current ?? Date.now(), points, savedAt: Date.now() });
-  }, [points, phase]);
+    saveRunDraft(
+      { startedAt: startedAtRef.current ?? Date.now(), points, savedAt: Date.now() },
+      draftOwner,
+    );
+  }, [draftOwner, points, phase]);
 
   // Warn before losing a run to a reload.
   useEffect(() => {
@@ -369,11 +371,11 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     setIntensity(intensityForPace(stats.avgPaceMinPerKm));
     setTitle(`${timeOfDayLabel()} run`);
     setPhase('summary');
-    clearRunDraft();
+    clearRunDraft(draftOwner);
     setDraft(null);
     chime('finish');
     buzz([80, 60, 80]);
-  }, [points, stopWatch]);
+  }, [draftOwner, points, stopWatch]);
 
   const discard = useCallback(async () => {
     const ok = await confirmDialog({
@@ -384,7 +386,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     });
     if (!ok) return;
     stopWatch();
-    clearRunDraft();
+    clearRunDraft(draftOwner);
     setDraft(null);
     setSummary(null);
     setPoints([]);
@@ -393,7 +395,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     setElapsedSec(0);
     setLaps([]);
     setPhase('idle');
-  }, [confirmDialog, stopWatch]);
+  }, [confirmDialog, draftOwner, stopWatch]);
 
   const save = useCallback(async () => {
     if (!summary) return;
@@ -534,7 +536,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
               size="sm"
               variant="ghost"
               onClick={() => {
-                clearRunDraft();
+                clearRunDraft(draftOwner);
                 setDraft(null);
               }}
             >

@@ -21,19 +21,19 @@ const PLANS = [
     ],
   },
   {
-    name: 'Pro',
-    description: 'Training intelligence: know what it means, know what to do next.',
-    price: '$4.17',
-    period: '/ mo, billed yearly ($49.99)',
-    cta: 'Start 14-day free trial',
+    name: 'Pro preview',
+    description: 'Planned training intelligence — not available for purchase in this release.',
+    price: '—',
+    period: 'preview only · no billing',
+    cta: 'See the free app',
     popular: true,
     features: [
       'Everything in Free',
-      'Adaptive progression targets every set',
-      'Daily readiness score & load chart',
-      'Quarter, year & all-time analytics',
-      'Unlimited AI coach replies',
-      'Unlimited routines, no-watermark shares',
+      'Adaptive progression targets (planned)',
+      'Daily readiness score & load chart (planned)',
+      'Longer analytics ranges (planned)',
+      'AI coach limits and entitlements (planned)',
+      'Unlimited routines and premium share styles (planned)',
     ],
   },
 ];
@@ -52,11 +52,11 @@ export function PricingSection() {
           <h2 className="font-display mb-6 text-5xl tracking-tight md:text-6xl lg:text-7xl">
             Free to start.
             <br />
-            <span className="text-stroke">Pro when ready.</span>
+            <span className="text-stroke">Pro is being built.</span>
           </h2>
           <p className="max-w-xl text-lg text-[color:var(--muted-foreground)]">
-            Free logs everything, forever, privately. Pro tells you what your training means and
-            what to do next — computed on your device, from your own data.
+            Free logs everything, forever, privately. A Pro surface is visible in the app as a local
+            product preview, but paid checkout and entitlement activation are not live yet.
           </p>
         </div>
 
@@ -121,8 +121,8 @@ export function PricingSection() {
         </div>
 
         <p className="mt-12 text-center text-sm text-[color:var(--muted-foreground)]">
-          Prefer one payment? Lifetime Pro is $99 — pay once, train forever. Monthly is $6.99. Your
-          training stays private on every tier.
+          SmartFit is free in this release. Paid Pro pricing will be announced only when secure
+          server-side provisioning and account management are live.
         </p>
       </div>
     </section>

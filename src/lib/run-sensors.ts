@@ -158,19 +158,25 @@ export interface RunDraft {
 }
 
 const DRAFT_KEY = 'smartfit.run.draft.v1';
+const draftKey = (owner?: string | null) =>
+  owner ? `${DRAFT_KEY}.${owner}` : `${DRAFT_KEY}.local`;
 
-/** Persist an in-progress run so a reload or a killed tab can recover it. */
-export function saveRunDraft(draft: RunDraft) {
+/**
+ * Persist an in-progress run so a reload or a killed tab can recover it.
+ * The owner is part of the key: a GPS trace must never become visible to the
+ * next Firebase account that signs in on the same device.
+ */
+export function saveRunDraft(draft: RunDraft, owner?: string | null) {
   try {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    localStorage.setItem(draftKey(owner), JSON.stringify(draft));
   } catch {
     /* storage full / private mode — the run simply is not recoverable */
   }
 }
 
-export function readRunDraft(): RunDraft | null {
+export function readRunDraft(owner?: string | null): RunDraft | null {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    const raw = localStorage.getItem(draftKey(owner));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as RunDraft;
     if (!Array.isArray(parsed.points) || parsed.points.length < 2) return null;
@@ -181,9 +187,21 @@ export function readRunDraft(): RunDraft | null {
   }
 }
 
-export function clearRunDraft() {
+export function clearRunDraft(owner?: string | null) {
   try {
-    localStorage.removeItem(DRAFT_KEY);
+    localStorage.removeItem(draftKey(owner));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Remove every account-scoped draft during a deliberate account wipe. */
+export function clearAllRunDrafts() {
+  try {
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key === DRAFT_KEY || key?.startsWith(`${DRAFT_KEY}.`)) localStorage.removeItem(key);
+    }
   } catch {
     /* ignore */
   }

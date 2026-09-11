@@ -98,15 +98,13 @@ shared domain package — but applies them to **training** instead of money.
   still draws on-device while recording continues untouched. Share cards offer
   a Strava-style map card (Ember/Paper, route registered to the streets) or a
   truly transparent PNG that layers over a photo — logo mark always on.
-- **SmartFit Pro** — a paid tier with a real paywall: plan cards (monthly /
-  yearly / lifetime), Stripe Payment Link checkout when configured (otherwise
-  a clearly labelled sandbox checkout), restore & cancel. Gates: adaptive
-  progression targets, readiness score + load chart, unlimited AI coach
-  replies (free = 6 AI replies/day; on-device answers are always unlimited),
-  quarter & year analytics ranges, unlimited routine templates, watermark-free
-  share cards, Pro badge. Records, earned badges and JSON+CSV export are free
-  forever. The billing layer is provider-based (`src/lib/billing/`, see
-  `docs/billing.md`) with CMI specified and ready for the finance setup.
+- **SmartFit Pro preview** — the dashboard includes the planned paywall and
+  gates so the product can be evaluated, but paid checkout, trial activation,
+  server-side entitlement provisioning, restore and cancellation are **not live
+  in this release**. Do not charge users or advertise the preview as a paid
+  service. Records, earned badges and JSON+CSV export remain free forever. The
+  provider contract and go-live checklist live in `src/lib/billing/` and
+  `docs/billing.md`.
 - **Goals** — weekly & monthly targets for workouts, active minutes, calories or
   distance, with live progress bars that reset each period.
 - **Streaks & momentum** — a consecutive-day training streak.
@@ -237,10 +235,10 @@ missing from `.env.example`, so this list cannot drift.
 
 | Variable | App | Default | Effect |
 | --- | --- | --- | --- |
-| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY` | web | _unset_ | Stripe Payment Link for the monthly plan (opened in a new tab). Unset = sandbox provider (see `docs/billing.md`) |
-| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_YEARLY` | web | _unset_ | Stripe Payment Link for the yearly plan |
-| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_LIFETIME` | web | _unset_ | Stripe Payment Link for the lifetime tier |
-| `NEXT_PUBLIC_STRIPE_PORTAL_URL` | web | _unset_ | Optional Stripe Customer Portal link for self-serve management |
+| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY` | web | _unset_ | Reserved Stripe Payment Link for a future paid release; checkout must not be enabled until server-side provisioning is deployed. |
+| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_YEARLY` | web | _unset_ | Reserved Stripe Payment Link for a future paid release |
+| `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_LIFETIME` | web | _unset_ | Reserved Stripe Payment Link for a future paid release |
+| `NEXT_PUBLIC_STRIPE_PORTAL_URL` | web | _unset_ | Reserved future Stripe Customer Portal link; not active until billing provisioning is live |
 | `NEXT_PUBLIC_CMI_ENABLED` | web (browser) | _unset_ | `1` shows the CMI option. CMI is **dormant by decision**; the flag alone unlocks nothing |
 | `CMI_STORE_ID`, `CMI_STORE_KEY`, `CMI_GATEWAY_URL`, `CMI_OK_URL`, `CMI_FAIL_URL` | web (server) | _unset_ | Server-only credentials for the future `/api/billing/cmi/*` routes — reserved in `CMI_SETUP`, read by nothing yet, and deliberately **never** `NEXT_PUBLIC_` (the store key must not ship to the browser). See `docs/billing.md` |
 

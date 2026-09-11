@@ -1,4 +1,7 @@
-# SmartFit — Functional MVP Audit
+# SmartFit — Functional MVP Audit (historical)
+
+> **Superseded on 11 September 2026.** Use [`mvp-audit-2026-09-11.md`](./mvp-audit-2026-09-11.md)
+> for the current re-verification and launch decision.
 
 **Date:** 2026-09-07 · **Commit:** `0eaf739` (branch `arena/01a079b7-smartfit`)
 **Scope:** web app (`src/`), mobile app (`apps/mobile/`), shared domain (`packages/core/`),

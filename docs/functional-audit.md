@@ -1,5 +1,8 @@
-# SmartFit — Deep Functional Audit & Competitive Comparison
+# SmartFit — Deep Functional Audit & Competitive Comparison (historical)
 
+> **Superseded on 11 September 2026.** Use [`mvp-audit-2026-09-11.md`](./mvp-audit-2026-09-11.md)
+> for current launch status; Pro and mobile scope decisions have changed since this snapshot.
+>
 > Audited 2026-09-08 against `main` (commit `9815dbf`), then upgraded on
 > `arena/01a082ec-smartfit`. This document is the **before → after** picture:
 > what the app had, what the category leaders ship, what the reference

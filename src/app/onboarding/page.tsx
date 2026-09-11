@@ -12,7 +12,15 @@ import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store-context';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { GYM_PROGRAMS, GOAL_METRIC_META, PLANS, formatWeight, fromKg, toKg } from '@smartfit/core';
+import {
+  GYM_PROGRAMS,
+  GOAL_METRIC_META,
+  PLANS,
+  formatWeight,
+  fromKg,
+  toKg,
+  uid,
+} from '@smartfit/core';
 import { toISODate } from '@smartfit/core';
 import { env } from '@/lib/env';
 
@@ -20,7 +28,7 @@ const STEPS = ['Welcome', 'About you', 'Strategy', 'First goal', 'Ready'] as con
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { state, completeOnboarding, addGoal, flushWrites, cloud } = useStore();
+  const { state, completeOnboarding, flushWrites, cloud } = useStore();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   // Prefill from whatever the account already knows: the profile if it has a
@@ -43,39 +51,71 @@ export default function OnboardingPage() {
   // The finish write must land before the redirect, or a reload right after
   // "Enter dashboard" could resurrect this page.
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   async function finish() {
     if (saving) return;
     setSaving(true);
-    if (Number(goalTarget) > 0) {
-      addGoal({
-        name: goalMetric === 'workouts' ? 'Train this week' : 'Active minutes this week',
-        metric: goalMetric,
-        cadence: 'weekly',
-        target: Number(goalTarget),
-        startDate: toISODate(new Date()),
-      });
-    }
-    // One atomic write that also flips `onboardingDone`, so the dashboard's
-    // guard sees a finished profile the moment we navigate. (This used to be
-    // two writes separated by a setTimeout, which raced the redirect.)
+    setSaveError(null);
+    const goalName = goalMetric === 'workouts' ? 'Train this week' : 'Active minutes this week';
+    const goalDate = toISODate(new Date());
+    const existingGoal = state.goals.find(
+      (goal) =>
+        goal.name === goalName &&
+        goal.startDate === goalDate &&
+        goal.metric === goalMetric &&
+        goal.cadence === 'weekly',
+    );
+    const firstGoal =
+      Number(goalTarget) > 0
+        ? (existingGoal ?? {
+            id: uid('goal'),
+            name: goalName,
+            metric: goalMetric,
+            cadence: 'weekly' as const,
+            target: Number(goalTarget),
+            startDate: goalDate,
+            createdAt: Date.now(),
+          })
+        : undefined;
+    // The profile and first goal are committed by one Firestore batch, so the
+    // dashboard cannot claim onboarding is complete while its promised goal is
+    // still waiting in a second queue slot.
     const targetKg = parsedTargetWeight();
-    completeOnboarding({
-      // The name is required by `canNext`, so there is never an invented
-      // stand-in identity to fall back to.
-      name: name.trim(),
-      weightUnit,
-      distanceUnit,
-      weeklyRestDays: restDays,
-      planId,
-      ...(targetKg != null ? { targetWeightKg: targetKg } : {}),
-      ...(gymId ? { gymId } : {}),
-    });
-    // On-device this resolves immediately (the persistence effect writes
-    // synchronously on commit); in cloud mode it waits for the queued
-    // profile write to land so the done-flag can never be lost in flight.
-    await flushWrites();
-    router.replace('/dashboard');
+    completeOnboarding(
+      {
+        // The name is required by `canNext`, so there is never an invented
+        // stand-in identity to fall back to.
+        name: name.trim(),
+        weightUnit,
+        distanceUnit,
+        weeklyRestDays: restDays,
+        planId,
+        ...(targetKg != null ? { targetWeightKg: targetKg } : {}),
+        ...(gymId ? { gymId } : {}),
+      },
+      firstGoal,
+    );
+    try {
+      // On-device this resolves immediately; in cloud mode it stays on this
+      // page and explains the problem when the batch cannot be saved.
+      await flushWrites();
+      router.replace('/dashboard');
+    } catch {
+      setSaveError("We couldn't save your setup. Check your connection and try again.");
+      setSaving(false);
+    }
+  }
+
+  function changeWeightUnit(next: 'kg' | 'lb') {
+    const current = targetWeight.trim();
+    if (current !== '') {
+      const kg = toKg(Number(current), weightUnit);
+      if (Number.isFinite(kg)) {
+        setTargetWeight(String(Number(fromKg(kg, next).toFixed(1))));
+      }
+    }
+    setWeightUnit(next);
   }
 
   /** Null when left empty; `canNext` keeps invalid values off this path. */
@@ -163,7 +203,7 @@ export default function OnboardingPage() {
             <Field id="ob-unit" label="Preferred weight unit">
               <Select
                 value={weightUnit}
-                onChange={(e) => setWeightUnit(e.target.value as 'kg' | 'lb')}
+                onChange={(e) => changeWeightUnit(e.target.value as 'kg' | 'lb')}
               >
                 <option value="kg">Kilograms (kg)</option>
                 <option value="lb">Pounds (lb)</option>
@@ -339,7 +379,12 @@ export default function OnboardingPage() {
         )}
       </main>
 
-      <footer className="mx-auto flex w-full max-w-md items-center justify-between gap-3 px-5 py-6">
+      <footer className="mx-auto flex w-full max-w-md flex-wrap items-center justify-between gap-3 px-5 py-6">
+        {saveError && (
+          <p role="alert" className="text-destructive order-last w-full text-xs">
+            {saveError}
+          </p>
+        )}
         <Button
           variant="ghost"
           disabled={step === 0}

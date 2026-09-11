@@ -1,9 +1,12 @@
 # SmartFit billing — providers, setup, and the CMI plan
 
-The app takes money through **one interface** (`BillingProvider` in
-`src/lib/billing/`): checkout opens a URL, and a receipt is provisioned
-**server-side** before the `profile.pro` stamp is written. The client never
-writes its own receipt outside the sandbox.
+The repository contains a billing **preview contract**, not a live paid
+service. The app takes money through one interface (`BillingProvider` in
+`src/lib/billing/`) when the launch work below is complete: checkout opens a
+URL, and a receipt is provisioned **server-side** before the `profile.pro`
+stamp is written. The client must never write its own paid receipt. Until that
+backend exists, do not configure payment links or charge users; the visible
+sandbox is local product testing only.
 
 ```
 src/lib/billing/
@@ -18,8 +21,8 @@ src/lib/billing/
 
 | Provider | Status | Checkout | Provisioning |
 |---|---|---|---|
-| Sandbox | **default** | Simulated locally, labelled in the UI | Local stamp (testing only) |
-| Stripe Links | live when configured | Payment Link per plan (new tab) | Webhook → stamp (to build, §2) |
+| Sandbox | **preview default** | Simulated locally, labelled in the UI | Local stamp (testing only; never a charge) |
+| Stripe Links | **not launch-ready** | Payment Link contract only | Webhook → stamp (to build, §2) |
 | CMI | **dormant** — contract only | Server route (to build, §3) | Callback → stamp (to build, §3) |
 
 ## 2. Stripe setup (international cards)
@@ -41,8 +44,10 @@ src/lib/billing/
 4. Lock the client out: tighten `firestore.rules` `validPro` so only the
    Admin SDK (or a reviewed claim flow) can write `profile.pro`.
 
-Until step 3–4 land, Stripe checkout opens correctly but activation stays
-manual — do not advertise paid plans as self-serve.
+Until step 3–4 land, do **not** configure these links in a user-facing
+deployment. A link can open a real payment page before the app can verify,
+activate, restore or cancel the entitlement — that is not an acceptable MVP
+billing flow.
 
 ## 3. CMI setup (Morocco — when finance is ready)
 
@@ -79,7 +84,9 @@ specified so the finance work can land without touching product code:
 
 - Trials are local and cardless; only `monthly`/`yearly`/`lifetime`
   stamps come from receipts and never expire client-side.
-- `firestore.rules` `validPro` must accept exactly the plans the providers
-  can sell (currently `monthly`, `yearly`, `lifetime`, `trial`).
+- `firestore.rules` must allow the `trial` preview and preserve a paid stamp
+  provisioned by a trusted server, while rejecting client-created paid plans.
+  The current rules implement that boundary; a real Admin SDK webhook is still
+  required before charging.
 - Every `PRO_GATES` row must map to an enforced gate (`packages/core/src/pro.ts`).
 - Sandbox must always be visually distinct from real checkout.

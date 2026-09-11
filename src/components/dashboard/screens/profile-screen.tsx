@@ -92,9 +92,11 @@ export function ProfileScreen() {
   const toast = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<null | 'delete' | 'import' | 'export'>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [needPassword, setNeedPassword] = useState(false);
   const [password, setPassword] = useState('');
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [verifySent, setVerifySent] = useState(false);
   // Target weight is stored canonically in kg but edited in the athlete's
   // display unit; the raw field keeps the typed value until it commits.
@@ -104,6 +106,16 @@ export function ProfileScreen() {
       : '',
   );
   const [targetError, setTargetError] = useState<string | null>(null);
+
+  function changeWeightUnit(next: 'kg' | 'lb') {
+    // Keep the canonical kg value unchanged, but convert the visible target so
+    // `80 kg` cannot silently become `80 lb` when the selector changes.
+    if (state.profile.targetWeightKg != null) {
+      setTargetInput(String(Number(fromKg(state.profile.targetWeightKg, next).toFixed(1))));
+    }
+    setTargetError(null);
+    updateProfile({ weightUnit: next });
+  }
 
   function commitTargetWeight() {
     const trimmed = targetInput.trim();
@@ -177,6 +189,16 @@ export function ProfileScreen() {
   const avatar = initials(displayName);
 
   const isPasswordUser = !!user?.providerData.some((p) => p.providerId === 'password');
+
+  async function handleSignOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOutAndForget();
+    } finally {
+      setSigningOut(false);
+    }
+  }
 
   async function exportData() {
     setBusy('export');
@@ -291,10 +313,12 @@ export function ProfileScreen() {
 
   async function executeDeletion(pw?: string) {
     setBusy('delete');
+    setDeleteError(null);
     try {
-      // Prove the password *before* wiping data: a wrong password must never
-      // leave behind an empty-but-alive account.
-      if (pw !== undefined) await reauthenticate(pw);
+      // Prove the password or OAuth identity *before* wiping data: a wrong
+      // credential or cancelled popup must never leave an empty-but-alive
+      // account behind.
+      await reauthenticate(pw);
       // Data first — the security rules require an authenticated user.
       await clearData();
       await deleteAccount();
@@ -304,8 +328,13 @@ export function ProfileScreen() {
       // for the password inline instead of dead-ending the user.
       if ((err as { code?: string })?.code === 'auth/requires-recent-login') {
         setNeedPassword(true);
+      } else {
+        setDeleteError(
+          err instanceof Error
+            ? err.message || 'We could not finish deleting your account.'
+            : 'We could not finish deleting your account. Nothing was deleted after this error.',
+        );
       }
-      // Anything else is already surfaced via authError below the button.
     } finally {
       setBusy(null);
     }
@@ -437,8 +466,18 @@ export function ProfileScreen() {
                 )}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => void signOutAndForget()}>
-                  <LogOut className="h-4 w-4" /> Sign out
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={signingOut || busy !== null}
+                  onClick={() => void handleSignOut()}
+                >
+                  {signingOut ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <LogOut className="h-4 w-4" />
+                  )}
+                  {signingOut ? 'Signing out…' : 'Sign out'}
                 </Button>
               </div>
             </div>
@@ -493,6 +532,7 @@ export function ProfileScreen() {
                 Deleting your account erases your training data and sign-in credentials for good.
               </p>
               {authError && <p className="text-destructive mt-1 text-xs">{authError}</p>}
+              {deleteError && <p className="text-destructive mt-1 text-xs">{deleteError}</p>}
               {needPassword ? (
                 <form onSubmit={submitPassword} className="mt-2 grid gap-2">
                   <Label htmlFor="del-password">
@@ -616,7 +656,7 @@ export function ProfileScreen() {
           >
             <Select
               value={state.profile.weightUnit}
-              onChange={(e) => updateProfile({ weightUnit: e.target.value as 'kg' | 'lb' })}
+              onChange={(e) => changeWeightUnit(e.target.value as 'kg' | 'lb')}
             >
               <option value="kg">Kilograms (kg)</option>
               <option value="lb">Pounds (lb)</option>

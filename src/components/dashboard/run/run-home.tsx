@@ -39,10 +39,15 @@ import { cn } from '@/lib/utils';
 export function RunHome({ runs, onStart }: { runs: WorkoutSession[]; onStart: () => void }) {
   const { state } = useStore();
 
-  const week = useMemo(() => thisWeek(state), [state]);
-  const lastWeek = useMemo(() => weeklySeries(state, 2)[0], [state]);
-  const streak = useMemo(() => currentStreak(state), [state]);
-  const days = useMemo(() => weekBars(state, runs), [state, runs]);
+  // The Record tab is deliberately about tracked runs, not every logged
+  // cardio session. Keep the hero totals, comparison and bars on the same
+  // dataset so a manually logged bike ride cannot make the headline disagree
+  // with the chart beneath it.
+  const trackedState = useMemo(() => ({ ...state, sessions: runs }), [state, runs]);
+  const week = useMemo(() => thisWeek(trackedState), [trackedState]);
+  const lastWeek = useMemo(() => weeklySeries(trackedState, 2)[0], [trackedState]);
+  const streak = useMemo(() => currentStreak(trackedState), [trackedState]);
+  const days = useMemo(() => weekBars(trackedState, runs), [trackedState, runs]);
   const firstName = (state.profile?.name ?? '').trim().split(/\s+/)[0];
   const first = runs.length === 0;
 

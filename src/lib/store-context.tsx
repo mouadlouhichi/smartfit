@@ -41,15 +41,18 @@ import {
   loadMoreSessions,
   loadMoreBodyLogs,
   saveProfile,
+  saveOnboarding,
   upsertItem,
   deleteItem,
   replaceCollection,
+  replaceUserState,
   wipeUserData,
   INITIAL_SESSION_LIMIT,
   PAGE_SIZE,
   type CollectionName,
 } from './firebase/repo';
 import { WriteQueue, type SyncStatus } from './firebase/write-queue';
+import { clearAllRunDrafts, clearRunDraft } from './run-sensors';
 
 /** First-run state for a brand-new user (see ./hydration). */
 const freshState = (displayName?: string | null): FitnessState =>
@@ -181,7 +184,7 @@ interface StoreContextValue {
   deleteCategory: (id: string) => void;
   // profile / lifecycle
   updateProfile: (patch: Partial<UserProfile>) => void;
-  completeOnboarding: (patch: Partial<UserProfile>) => void;
+  completeOnboarding: (patch: Partial<UserProfile>, firstGoal?: FitnessGoal) => void;
   /** Resolves when every queued cloud write has landed; instant on-device. */
   flushWrites: () => Promise<void>;
   clearData: () => Promise<void>;
@@ -238,7 +241,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     // Drop the previous identity's data immediately. Nothing may be persisted
-    // until the new snapshot is ready.
+    // until the new snapshot is ready. An unfinished GPS trace is sensitive
+    // too, so remove the old account's draft when auth changes rather than
+    // leaving it behind for a later sign-in.
+    const previousOwner = snapshotRef.current.owner;
+    if (previousOwner && previousOwner !== uidValue) clearRunDraft(previousOwner);
     setSnapshot(BLANK);
     setPendingMigration(null);
     setHasMoreSessions(false);
@@ -721,15 +728,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           (next, o) => ({ key: 'profile', run: () => saveProfile(o, next.profile) }),
         );
       },
-      completeOnboarding: (patch) => {
+      completeOnboarding: (patch, firstGoal) => {
         mutate(
-          (prev) => ({ ...prev, profile: { ...prev.profile, ...patch, onboardingDone: true } }),
-          (next, o) => ({ key: 'profile', run: () => saveProfile(o, next.profile) }),
+          (prev) => ({
+            ...prev,
+            profile: { ...prev.profile, ...patch, onboardingDone: true },
+            ...(firstGoal && !prev.goals.some((goal) => goal.id === firstGoal.id)
+              ? { goals: [...prev.goals, firstGoal] }
+              : {}),
+          }),
+          (next, o) => ({
+            key: 'onboarding',
+            run: () => saveOnboarding(o, next.profile, firstGoal),
+          }),
         );
       },
-      flushWrites: () => queue.flush(),
+      flushWrites: async () => {
+        // `mutate` schedules its remote operation after React commits the
+        // snapshot. Yield one macrotask so an onboarding click cannot observe
+        // an empty queue just before that commit enqueues the batch.
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        await queue.flushStrict();
+      },
 
       clearData: async () => {
+        // Let an in-flight mutation finish before the destructive wipe. Merely
+        // clearing the array cannot cancel Firestore: an old write could land
+        // after the delete and resurrect data.
+        await queue.flush();
         queue.clear();
         const blank = freshState();
         if (owner) {
@@ -746,22 +772,32 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
 
       signOutAndForget: async () => {
+        // Do not sign out while a cloud mutation is still in flight. Firebase
+        // may complete it after the auth transition and write the previous
+        // account's data at an unpredictable point in the next session.
+        await queue.flush();
         queue.clear();
-        if (owner) clearLocal(owner);
+        if (owner) {
+          clearLocal(owner);
+          clearRunDraft(owner);
+        }
         clearLocal(null);
+        clearAllRunDrafts();
         setSnapshot(BLANK);
         await signOut();
       },
 
       replaceState: async (next) => {
         const clean = parseState(next);
+        // A replace must not race a queued write, or the old mutation can
+        // recreate a document immediately after the wipe.
+        await queue.flush();
+        queue.clear();
         if (owner) {
-          // A true replace: wipe the remote tree before uploading the backup.
-          // A set-only import would leave every cloud document the file does
-          // not contain in place, and they would resurface on the next reload
-          // — the opposite of what the confirm dialog promises.
-          await wipeUserData(owner);
-          await importState(owner, clean);
+          // Upsert the validated backup and remove stale rows collection by
+          // collection. Unlike the old wipe-then-upload order, a failed
+          // network call cannot turn a healthy account into an empty one.
+          await replaceUserState(owner, clean);
           clearLocal(owner);
         }
         lastSerialized.current = null;

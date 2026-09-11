@@ -5,15 +5,15 @@ import Link from 'next/link';
 const FAQS = [
   {
     q: 'Is SmartFit free?',
-    a: 'Yes — the full training core is free forever with no time limit and no card: unlimited workout logging, plans, goals, streaks, records, achievements and data export. SmartFit Pro ($49.99/year) adds training intelligence on top: adaptive progression targets, a daily readiness score, longer analytics ranges and unlimited routine templates.',
+    a: 'Yes — the full training core is free forever: unlimited workout logging, plans, goals, streaks, records, achievements and data export. The Pro surface is currently a local product preview only; there is no paid subscription or charge in this release.',
   },
   {
     q: 'What does SmartFit Pro add?',
-    a: 'Pro tells you what to do next: every set gets an adaptive target computed from your own history, a daily readiness score tells you when to push or back off, and you unlock quarter/year analytics, unlimited routine templates and watermark-free share cards. Your records, badges and exports stay free either way — Pro never holds your own history hostage. A free 14-day trial needs no card.',
+    a: 'The app contains a Pro preview so the planned premium surfaces can be reviewed, but it is not a purchasable tier yet. Paid entitlements, trials and billing will return only after server-side provisioning, cancellation and restore flows are complete.',
   },
   {
     q: 'Is my data still private on Pro?',
-    a: 'Yes — Pro runs on the same local-first architecture. Progression and readiness are computed on your device from data you entered; upgrading changes what the app computes for you, not where your data lives.',
+    a: 'The current release has no paid Pro accounts. In the local preview, the planned calculations use the same on-device data model; any future paid release must document its billing and entitlement behavior before launch.',
   },
   {
     q: 'Do I need a smartwatch or wearable?',
@@ -29,7 +29,7 @@ const FAQS = [
   },
   {
     q: 'Is my data private?',
-    a: 'Completely. Everything is stored locally on your device with no account and no server. We never build advertising profiles or sell your data.',
+    a: 'Yes. In local mode your data stays in this browser. If you choose account mode, it is stored in your own Firebase account and protected by ownership rules. We do not build advertising profiles or sell your data.',
   },
   {
     q: 'Can I export my data?',
@@ -37,7 +37,7 @@ const FAQS = [
   },
   {
     q: 'How do I delete my data?',
-    a: 'You can permanently erase every workout, goal and measurement from Profile in one tap — no account to close, no emails to send.',
+    a: 'Profile lets you erase your SmartFit data. Cloud users can also delete their Firebase account from the same screen; local users can erase the browser copy without contacting anyone.',
   },
   {
     q: 'How is this different from other fitness apps?',

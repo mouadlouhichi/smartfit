@@ -2,12 +2,13 @@ import type { ProPlan } from '@smartfit/core';
 import type { BillingProvider } from './types';
 
 /**
- * Stripe Payment Links — real money with zero backend for checkout.
+ * Stripe Payment Links — a future checkout contract. Real money stays disabled
+ * until a verified server webhook provisions and manages entitlements.
  *
  * Set `NEXT_PUBLIC_STRIPE_PAYMENT_LINK_MONTHLY` / `_YEARLY` /
- * `_LIFETIME` to links created in the Stripe dashboard. Checkout opens in a
- * new tab; a webhook (see `docs/billing.md`) provisions `profile.pro` on
- * return — the client never writes its own receipt.
+ * `_LIFETIME` only as part of the future launch setup. A webhook (see
+ * `docs/billing.md`) must provision `profile.pro` server-side — the client
+ * never writes its own paid receipt.
  */
 const STRIPE_LINK = /^https:\/\/(buy\.stripe\.com|checkout\.stripe\.com)\//;
 

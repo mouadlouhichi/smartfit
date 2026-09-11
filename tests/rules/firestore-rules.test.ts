@@ -148,6 +148,30 @@ test('the root profile document must carry a profile map', async () => {
   await assertSucceeds(setDoc(doc(alice, 'users', ALICE), { profile: { name: 'A' } }));
 });
 
+test('clients cannot mint paid Pro entitlements', async () => {
+  const alice = env.authenticatedContext(ALICE).firestore();
+  const ref = doc(alice, 'users', ALICE);
+  const paidSince = Date.now();
+  await assertFails(
+    setDoc(ref, {
+      profile: { name: 'A', pro: { plan: 'lifetime', since: paidSince } },
+    }),
+  );
+
+  // A trusted server can provision the stamp (the Admin SDK bypasses rules),
+  // and the owner may still edit ordinary profile fields without stripping it.
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'users', ALICE), {
+      profile: { name: 'A', pro: { plan: 'lifetime', since: paidSince } },
+    });
+  });
+  await assertSucceeds(
+    setDoc(ref, {
+      profile: { name: 'Updated', pro: { plan: 'lifetime', since: paidSince } },
+    }),
+  );
+});
+
 test('everything outside users/{uid} is denied', async () => {
   const alice = env.authenticatedContext(ALICE).firestore();
   await assertFails(setDoc(doc(alice, 'public', 'anything'), { v: 1 }));

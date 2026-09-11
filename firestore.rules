@@ -35,16 +35,28 @@ service cloud.firestore {
       return v in ['low', 'moderate', 'high'];
     }
 
-    // A Pro stamp, when present, must be a real plan + activation time so a
-    // scripted client cannot mint arbitrary tiers — the paywall is enforced at
-    // the database, not just in the app.
+    // A Pro stamp is not client-mintable. A client may start the explicitly
+    // local/sandbox trial, and may keep a paid stamp that was provisioned by a
+    // trusted server, but it cannot create or change a monthly/yearly/lifetime
+    // entitlement by editing its profile document.
     function validPro(profile) {
       return !('pro' in profile)
         || (profile.pro is map
-            && profile.pro.plan in ['monthly', 'yearly', 'lifetime', 'trial']
+            && profile.pro.plan == 'trial'
             && profile.pro.since is number
             && profile.pro.since > 0
             && profile.pro.size() <= 3);
+    }
+
+    function keepsServerProStamp(profile) {
+      return resource.data.profile is map
+        && ('pro' in resource.data.profile)
+        && ('pro' in profile)
+        && profile.pro == resource.data.profile.pro;
+    }
+
+    function validProWrite(profile) {
+      return validPro(profile) || keepsServerProStamp(profile);
     }
 
     // ── account root ─────────────────────────────────────────────────────
@@ -53,7 +65,7 @@ service cloud.firestore {
       // The root document carries the profile map and timestamps only.
       allow create, update: if isOwner(userId)
         && request.resource.data.profile is map
-        && validPro(request.resource.data.profile)
+        && validProWrite(request.resource.data.profile)
         && request.resource.data.size() <= 4;
 
       // ── logged workouts ────────────────────────────────────────────────

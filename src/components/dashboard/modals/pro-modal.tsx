@@ -28,12 +28,7 @@ import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
-import {
-  BILLING_MODE,
-  activeBillingProvider,
-  manageSubscriptionUrl,
-  paymentLinkFor,
-} from '@/lib/billing';
+import { BILLING_MODE, manageSubscriptionUrl, paymentLinkFor } from '@/lib/billing';
 import {
   PRO_GATES,
   PRO_PLANS,
@@ -59,16 +54,17 @@ const GATE_ICONS: Record<string, LucideIcon> = {
 };
 
 /**
- * SmartFit Pro paywall & subscription manager.
+ * SmartFit Pro preview surface (paid billing is deliberately disabled until
+ * server-side entitlements exist).
  *
  * Redesigned as a genuine *premium* surface: a dark ember hero, an anchored
  * yearly plan with a savings ribbon, an honest Free-vs-Pro comparison built
  * from `PRO_GATES` (so the paywall never promises a gate that isn't enforced),
- * and a no-card 7-day trial. With Stripe payment links configured the CTAs open
+ * and a no-card 14-day trial in local sandbox mode. With Stripe payment links configured the CTAs open
  * real checkout; otherwise a clearly-labelled sandbox activates locally.
  */
 export function ProModal() {
-  const { state, updateProfile } = useStore();
+  const { state, updateProfile, cloud } = useStore();
   const { open, payload, closeModal } = useModals();
   const confirm = useConfirm();
   const toast = useToast();
@@ -79,9 +75,14 @@ export function ProModal() {
   const paid = isPro(state);
   const trialing = isTrialing(state);
   const meta = PRO_PLANS.find((p) => p.id === plan) ?? PRO_PLANS[0];
+  const paidCheckoutConfigured = paymentLinkFor(plan) !== null;
 
   async function checkout(useTrial = false) {
     if (useTrial) {
+      if (cloud) {
+        toast('Pro trials are disabled on cloud accounts until billing is connected.', 'info');
+        return;
+      }
       const ok = await confirm({
         title: 'Start your free trial?',
         body: `${PRO_TRIAL_DAYS} days of every Pro feature, no card required (sandbox). You drop back to the free tier automatically when it ends.`,
@@ -94,9 +95,8 @@ export function ProModal() {
       return;
     }
     const link = paymentLinkFor(plan);
-    if (link) {
-      window.open(link, '_blank', 'noopener');
-      toast('Opening Stripe checkout…', 'info');
+    if (link || cloud) {
+      toast('Paid Pro checkout is disabled until secure server-side billing is live.', 'info');
       return;
     }
     const ok = await confirm({
@@ -133,7 +133,7 @@ export function ProModal() {
       <DialogContent
         hideHandle
         hideClose
-        className="pro-surface sheen max-w-lg border-transparent p-0 pb-0"
+        className="pro-surface sheen relative max-w-lg border-transparent p-0 pb-0"
       >
         {/* ── Hero ────────────────────────────────────────────────────── */}
         <div className="relative h-32 shrink-0 sm:h-40">
@@ -187,6 +187,8 @@ export function ProModal() {
             meta={meta}
             onCheckout={() => checkout(false)}
             onTrial={() => checkout(true)}
+            paidDisabled={cloud || paidCheckoutConfigured}
+            trialDisabled={cloud}
           />
         )}
       </DialogContent>
@@ -305,8 +307,8 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
         <p className="pro-muted flex items-center gap-1.5 text-[11px]">
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
           {BILLING_MODE === 'sandbox'
-            ? 'Sandbox — connect a provider to charge for real.'
-            : `Secured by ${activeBillingProvider().label}. Cancel anytime.`}
+            ? 'Local preview — no charges or paid entitlement.'
+            : 'Paid billing is disabled until server-side provisioning is live.'}
         </p>
         <Button
           variant="ghost"
@@ -332,15 +334,20 @@ function UpgradeFooter({
   meta,
   onCheckout,
   onTrial,
+  paidDisabled = false,
+  trialDisabled = false,
 }: {
   meta: (typeof PRO_PLANS)[number];
   onCheckout: () => void;
   onTrial: () => void;
+  paidDisabled?: boolean;
+  trialDisabled?: boolean;
 }) {
   return (
     <DialogFooter className={cn(PRO_FOOTER_BAR, 'flex-col sm:flex-col')}>
       <Button
         onClick={onCheckout}
+        disabled={paidDisabled}
         className="w-full rounded-2xl text-base font-extrabold"
         style={{
           background: 'linear-gradient(120deg,#e05e36,#c4451f)',
@@ -352,11 +359,17 @@ function UpgradeFooter({
       </Button>
       <Button
         onClick={onTrial}
+        disabled={trialDisabled}
         variant="outline"
         className="w-full rounded-2xl border-[rgba(247,242,234,0.25)] bg-transparent text-[rgba(247,242,234,0.9)] hover:bg-[rgba(247,242,234,0.08)] hover:text-[#f7f2ea]"
       >
         Try Pro free for {PRO_TRIAL_DAYS} days
       </Button>
+      {(paidDisabled || trialDisabled) && (
+        <p className="pro-muted text-center text-[11px]">
+          Pro activation is disabled while billing is still a preview.
+        </p>
+      )}
     </DialogFooter>
   );
 }

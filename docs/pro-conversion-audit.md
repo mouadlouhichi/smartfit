@@ -1,4 +1,8 @@
-# SmartFit — Functional & UX Audit with Strava + Competitor Benchmark
+# SmartFit — Functional & UX Audit with Strava + Competitor Benchmark (historical)
+
+> **Superseded on 11 September 2026.** Use [`mvp-audit-2026-09-11.md`](./mvp-audit-2026-09-11.md)
+> for the current implementation and launch decision. This report contains recommendations and
+> pricing assumptions from an earlier tree; Pro is now explicitly a disabled preview.
 
 **Goal of this audit:** make the user *see the benefit* of paying for Pro mode — and map exactly what to build, fix, and say to get there.
 

@@ -171,6 +171,28 @@ export async function ensureUserProfile(
   await batch.commit();
 }
 
+/**
+ * Save the onboarding profile and its first goal together. The dashboard
+ * should never be entered with a profile that says "done" while its promised
+ * first goal is still queued separately.
+ */
+export async function saveOnboarding(
+  uid: string,
+  profile: UserProfile,
+  goal?: FitnessGoal,
+): Promise<void> {
+  const { db } = await requireServices();
+  const { doc, writeBatch } = await import('firebase/firestore');
+  const batch = writeBatch(db);
+  batch.set(
+    doc(db, userDoc(uid)),
+    { profile: sanitize(profile), updatedAt: Date.now() },
+    { merge: true },
+  );
+  if (goal) batch.set(doc(db, colPath(uid, 'goals'), goal.id), stripId(goal));
+  await batch.commit();
+}
+
 /** Persist a profile patch (whole-profile writes are cheap and simple). */
 export async function saveProfile(uid: string, profile: UserProfile): Promise<void> {
   const { db } = await requireServices();
@@ -244,6 +266,23 @@ export async function replaceCollection<T extends { id: string }>(
     }
     await batch.commit();
   }
+}
+
+/**
+ * Replace a cloud account from a validated backup without deleting first.
+ * Each collection is upserted and stale documents are removed only after the
+ * replacement rows are known. If a later network call fails, the account may
+ * be a mixed old/new view, but it is never reduced to an empty account merely
+ * because the import upload failed.
+ */
+export async function replaceUserState(uid: string, state: FitnessState): Promise<void> {
+  await replaceCollection(uid, 'categories', state.categories);
+  await replaceCollection(uid, 'sessions', state.sessions);
+  await replaceCollection(uid, 'schedule', state.schedule);
+  await replaceCollection(uid, 'goals', state.goals);
+  await replaceCollection(uid, 'bodyLogs', state.bodyLogs);
+  // saveProfile also removes optional fields omitted by the backup.
+  await saveProfile(uid, state.profile);
 }
 
 /**

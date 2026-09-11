@@ -29,7 +29,7 @@ interface AuthContextValue {
    * deletion). Done *before* the data wipe so a wrong password can never
    * leave behind an empty-but-alive account.
    */
-  reauthenticate: (password: string) => Promise<void>;
+  reauthenticate: (password?: string) => Promise<void>;
   /**
    * Permanently delete the Firebase Auth account. Firestore data must be
    * wiped first — see `useStore().clearData()`. Google users are
@@ -143,16 +143,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [run]);
 
   const reauthenticate = useCallback(
-    async (password: string) => {
+    async (password?: string) => {
       await run(async () => {
         const svc = await requireAuth();
         const current = svc.auth.currentUser;
-        if (!current?.email) throw new Error('not-signed-in');
+        if (!current) throw new Error('not-signed-in');
         const fb = await import('firebase/auth');
-        await fb.reauthenticateWithCredential(
-          current,
-          fb.EmailAuthProvider.credential(current.email, password),
-        );
+
+        if (password !== undefined) {
+          if (!current.email) throw new Error('password-reauth-unavailable');
+          await fb.reauthenticateWithCredential(
+            current,
+            fb.EmailAuthProvider.credential(current.email, password),
+          );
+          return;
+        }
+
+        // OAuth accounts have no password to collect. Re-authenticate them
+        // before any destructive operation as well; a delete flow must never
+        // wipe Firestore first and only then discover that Google needs a
+        // recent login.
+        const google = current.providerData.some((p) => p.providerId === 'google.com');
+        if (google) {
+          const provider = new fb.GoogleAuthProvider();
+          provider.setCustomParameters({ prompt: 'select_account' });
+          await fb.reauthenticateWithPopup(current, provider);
+          return;
+        }
+        throw Object.assign(new Error('recent-login-required'), {
+          code: 'auth/requires-recent-login',
+        });
       });
     },
     [run],

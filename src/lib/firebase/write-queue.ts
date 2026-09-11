@@ -65,13 +65,41 @@ export class WriteQueue {
     this.emit();
   }
 
-  /** Queue a mutation. Ops sharing a key collapse to the most recent one. */
+  /**
+   * Queue a mutation. Pending ops sharing a key collapse to the most recent
+   * one, but the head is special while a drain is running: it is already in
+   * flight and must never be replaced. Replacing that item used to make the
+   * completion `shift()` remove the newer write, silently losing the latest
+   * profile or schedule change.
+   */
   push(op: QueuedOp) {
-    const existing = this.queue.findIndex((q) => q.key === op.key);
+    const firstPending = this.running ? 1 : 0;
+    const existing = this.queue.findIndex((q, index) => index >= firstPending && q.key === op.key);
     if (existing >= 0) this.queue[existing] = op;
     else this.queue.push(op);
     this.setStatus('saving');
     void this.drain();
+  }
+
+  /**
+   * The forgiving flush above is right for navigation and destructive cleanup:
+   * it never hangs on a rules error. Onboarding also needs to know whether its
+   * atomic finish write succeeded, so it uses this strict variant and stays on
+   * the page when saving failed.
+   */
+  flushStrict(): Promise<void> {
+    if (!this.queue.length && !this.running) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const off = this.subscribe((status, pending) => {
+        if (status === 'error') {
+          off();
+          reject(new Error(this.error ?? 'Cloud write failed.'));
+        } else if (pending === 0 && !this.running) {
+          off();
+          resolve();
+        }
+      });
+    });
   }
 
   /** Retry after a failure — used by the "try again" affordance. */

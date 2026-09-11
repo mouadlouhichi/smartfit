@@ -1,4 +1,9 @@
-# SmartFit — Production-Readiness Audit
+# SmartFit — Production-Readiness Audit (historical)
+
+> **Superseded on 11 September 2026.** This document records the 8 September review of an older
+> tree. Use [`mvp-audit-2026-09-11.md`](./mvp-audit-2026-09-11.md) for the current verdict; in
+> particular, the old claims about billing, deletion, queue semantics, and Firebase setup have been
+> re-verified or changed since this snapshot.
 
 **Date:** 2026-09-08 · **Commit:** `4384ce1` (branch `arena/01a07db2-smartfit`)
 **Scope:** web app (`src/`), mobile app (`apps/mobile/`), shared domain (`packages/core/`),
