@@ -27,8 +27,11 @@ import {
   type WorkoutSession,
 } from '@smartfit/core';
 import { env } from './env';
+import { Button } from '@/components/ui/button';
 import {
   decideCloudHydration,
+  isHydrationReady,
+  offlineHydrationState,
   decideLocalHydration,
   freshState as buildFreshState,
   type PendingMigration,
@@ -234,6 +237,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [hasMoreBodyLogs, setHasMoreBodyLogs] = useState(false);
   const [loadingMore, setLoadingMore] = useState<'sessions' | 'body' | null>(null);
   const [storageFull, setStorageFull] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   const queueRef = useRef<WriteQueue | null>(null);
   if (queueRef.current === null) queueRef.current = new WriteQueue();
@@ -271,6 +276,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const previousOwner = snapshotRef.current.owner;
     if (previousOwner && previousOwner !== uidValue) clearRunDraft(previousOwner);
     setSnapshot(BLANK);
+    setLoadError(null);
     setPendingMigration(null);
     setHasMoreSessions(false);
     setHasMoreBodyLogs(false);
@@ -323,8 +329,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // Offline or Firestore unreachable: fall back to this account's
         // cached copy so the app is usable rather than stuck or empty.
         if (cancelled) return;
-        const cached = readLocal(owner);
-        setSnapshot({ owner, ready: true, state: cached ?? freshState() });
+        const cached = offlineHydrationState(readLocal(owner));
+        if (!cached) {
+          // Never manufacture an incomplete profile after a failed read: it
+          // sends returning users through setup and can overwrite cloud data.
+          setLoadError("We couldn't load your account. Check your connection and try again.");
+          return;
+        }
+        setSnapshot({ owner, ready: true, state: cached });
         // The cache mirrors whatever was loaded before, so it can also be a
         // truncated window. Offer paging when it looks like one; a fetch that
         // comes back empty simply clears the flag.
@@ -340,7 +352,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     // `user.displayName` is intentionally not a dependency — it must not
     // trigger a re-hydration.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uidValue, cloudMode, initializing, queue]);
+  }, [uidValue, cloudMode, initializing, queue, loadAttempt]);
 
   // ── Persistence ──────────────────────────────────────────────────────
   // Writes to the key that belongs to `snapshot.owner`, so cloud data is
@@ -443,7 +455,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
-  const { owner, ready, state } = snapshot;
+  const { owner, state } = snapshot;
+  // Effects reset the snapshot after render; gates must not see the previous
+  // identity's ready state during that render (especially immediately after login).
+  const ready = isHydrationReady(snapshot, uidValue, cloudMode && initializing);
   const cloud = cloudMode && !!owner;
 
   const estimateSessionCalories = useCallback(
@@ -871,7 +886,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     estimateSessionCalories,
   ]);
 
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+  return (
+    <StoreContext.Provider value={value}>
+      {loadError && uidValue && !ready ? (
+        <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
+          <h1 className="text-xl font-semibold">Your account couldn&apos;t be loaded</h1>
+          <p role="alert" className="text-muted-foreground">
+            {loadError}
+          </p>
+          <Button
+            onClick={() => {
+              setLoadError(null);
+              setLoadAttempt((n) => n + 1);
+            }}
+          >
+            Try again
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              void signOut().catch(() => setLoadError('Could not sign out. Please try again.'));
+            }}
+          >
+            Back to sign in
+          </Button>
+        </div>
+      ) : (
+        children
+      )}
+    </StoreContext.Provider>
+  );
 }
 
 export function useStore(): StoreContextValue {

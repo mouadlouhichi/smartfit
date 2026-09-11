@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, Check, Ruler, Target, UserRound } from 'lucide-react';
 import { Logo, Wordmark } from '@/components/brand';
@@ -34,6 +34,11 @@ export default function OnboardingPage() {
   const { state, completeOnboarding, flushWrites, cloud } = useStore();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    // Announce the new step rather than leaving keyboard focus in the footer.
+    if (step > 0) mainRef.current?.querySelector<HTMLElement>('h1, h2')?.focus();
+  }, [step]);
   // Prefill from whatever the account already knows: the profile if it has a
   // name, otherwise the display name the provider gave us (Google always
   // supplies one; email sign-up supplies it when the field was filled in).
@@ -57,7 +62,7 @@ export default function OnboardingPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   async function finish() {
-    if (saving) return;
+    if (saving || !nameOk || !targetWeightOk || !goalOk) return;
     setSaving(true);
     setSaveError(null);
     const goalName = goalMetric === 'workouts' ? 'Train this week' : 'Active minutes this week';
@@ -143,31 +148,35 @@ export default function OnboardingPage() {
       const kg = toKg(Number(targetWeight), weightUnit);
       return Number.isFinite(kg) && kg >= 20 && kg <= 400;
     })();
-  const canNext = step === 1 ? nameOk && targetWeightOk : true;
+  const goalOk = Number.isFinite(Number(goalTarget)) && Number(goalTarget) >= 1;
+  const canNext = step === 1 ? nameOk && targetWeightOk : step === 3 ? goalOk : true;
 
   return (
-    <div className="bg-background flex min-h-dvh flex-col">
+    <div className="onboarding bg-background text-foreground flex min-h-dvh flex-col">
       <header className="flex items-center justify-between px-5 py-4">
         <Wordmark />
-        <span className="text-muted-foreground text-sm">
+        <span aria-live="polite" aria-atomic="true" className="text-muted-foreground text-sm">
           Step {step + 1} of {STEPS.length}
         </span>
       </header>
 
       {/* Progress */}
-      <div className="mx-auto flex w-full max-w-md gap-1.5 px-5">
+      <div aria-hidden="true" className="mx-auto flex w-full max-w-md gap-1.5 px-5">
         {STEPS.map((_, i) => (
           <div
             key={i}
             className={cn(
               'h-1.5 flex-1 rounded-full transition-colors',
-              i <= step ? 'bg-primary' : 'bg-secondary',
+              i <= step ? 'bg-primary' : 'bg-border',
             )}
           />
         ))}
       </div>
 
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-8">
+      <main
+        ref={mainRef}
+        className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-5 py-8"
+      >
         {step === 0 && (
           <div className="animate-fade-in text-center">
             <Logo size={72} className="mx-auto" />
@@ -199,11 +208,15 @@ export default function OnboardingPage() {
           <div className="animate-fade-in grid gap-5">
             <div className="text-primary flex items-center gap-2">
               <UserRound className="h-5 w-5" />
-              <h2 className="text-xl font-bold">About you</h2>
+              <h2 tabIndex={-1} className="text-xl font-bold">
+                About you
+              </h2>
             </div>
             <Field id="ob-name" label="What should we call you?">
               <Input
-                autoFocus
+                className="border-border bg-card"
+                autoComplete="given-name"
+                required
                 placeholder="Your name"
                 value={name}
                 maxLength={80}
@@ -212,6 +225,7 @@ export default function OnboardingPage() {
             </Field>
             <Field id="ob-unit" label="Preferred weight unit">
               <Select
+                className="border-border bg-card"
                 value={weightUnit}
                 onChange={(e) => changeWeightUnit(e.target.value as 'kg' | 'lb')}
               >
@@ -221,6 +235,7 @@ export default function OnboardingPage() {
             </Field>
             <Field id="ob-dist" label="Preferred distance unit">
               <Select
+                className="border-border bg-card"
                 value={distanceUnit}
                 onChange={(e) => setDistanceUnit(e.target.value as 'km' | 'mi')}
               >
@@ -229,7 +244,11 @@ export default function OnboardingPage() {
               </Select>
             </Field>
             <Field id="ob-rest" label="Rest days per week">
-              <Select value={restDays} onChange={(e) => setRestDays(Number(e.target.value))}>
+              <Select
+                className="border-border bg-card"
+                value={restDays}
+                onChange={(e) => setRestDays(Number(e.target.value))}
+              >
                 {[1, 2, 3].map((n) => (
                   <option key={n} value={n}>
                     {n} day{n > 1 ? 's' : ''}
@@ -251,10 +270,11 @@ export default function OnboardingPage() {
               }
             >
               <Input
+                className="border-border bg-card"
                 type="number"
-                min={20}
-                max={400}
-                step="0.5"
+                min={fromKg(20, weightUnit)}
+                max={fromKg(400, weightUnit)}
+                step="any"
                 inputMode="decimal"
                 placeholder="e.g. 78"
                 value={targetWeight}
@@ -268,23 +288,31 @@ export default function OnboardingPage() {
           <div className="animate-fade-in grid gap-4">
             <div className="text-primary flex items-center gap-2">
               <Target className="h-5 w-5" />
-              <h2 className="text-xl font-bold">Choose your strategy</h2>
+              <h2 tabIndex={-1} className="text-xl font-bold">
+                Choose your strategy
+              </h2>
             </div>
             <div className="grid gap-2">
               {PLANS.map((p) => (
                 <button
                   key={p.id}
                   type="button"
+                  aria-pressed={planId === p.id}
                   onClick={() => setPlanId(p.id)}
                   className={cn(
-                    'rounded-2xl border p-4 text-left transition-all',
+                    'focus-visible:ring-ring focus-visible:ring-offset-background rounded-2xl border p-4 text-left transition-all focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:outline-none',
                     planId === p.id
-                      ? 'border-primary bg-primary/5 ring-primary/30 ring-2'
-                      : 'border-border bg-card hover:border-primary/40',
+                      ? 'border-primary bg-card ring-primary ring-2'
+                      : 'border-border bg-card hover:border-primary',
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-semibold">{p.name}</span>
+                    <span className="flex items-center gap-2 font-semibold">
+                      {planId === p.id && (
+                        <Check aria-hidden="true" className="text-primary h-4 w-4 shrink-0" />
+                      )}
+                      {p.name}
+                    </span>
                     <span className="text-muted-foreground text-xs font-medium">
                       {p.sessionsPerWeek}× / week
                     </span>
@@ -298,7 +326,11 @@ export default function OnboardingPage() {
               label="Your gym — optional"
               hint="Picking it unlocks a suggested week built from the gym's real class timetable."
             >
-              <Select value={gymId} onChange={(e) => setGymId(e.target.value)}>
+              <Select
+                className="border-border bg-card"
+                value={gymId}
+                onChange={(e) => setGymId(e.target.value)}
+              >
                 <option value="">No gym — build my week manually</option>
                 {GYM_PROGRAMS.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -314,31 +346,44 @@ export default function OnboardingPage() {
           <div className="animate-fade-in grid gap-5">
             <div className="text-primary flex items-center gap-2">
               <Ruler className="h-5 w-5" />
-              <h2 className="text-xl font-bold">Your first weekly goal</h2>
+              <h2 tabIndex={-1} className="text-xl font-bold">
+                Your first weekly goal
+              </h2>
             </div>
             <div className="grid gap-2">
               {(['workouts', 'minutes'] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
+                  aria-pressed={goalMetric === m}
                   onClick={() => {
                     setGoalMetric(m);
                     setGoalTarget(m === 'workouts' ? '4' : '150');
                   }}
                   className={cn(
-                    'flex items-center justify-between rounded-2xl border p-4 text-left transition-all',
+                    'focus-visible:ring-ring focus-visible:ring-offset-background flex items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:outline-none',
                     goalMetric === m
-                      ? 'border-primary bg-primary/5 ring-primary/30 ring-2'
+                      ? 'border-primary bg-card ring-primary ring-2'
                       : 'border-border bg-card',
                   )}
                 >
-                  <span className="font-semibold">{GOAL_METRIC_META[m].label}</span>
+                  <span className="flex items-center gap-2 font-semibold">
+                    {goalMetric === m && (
+                      <Check aria-hidden="true" className="text-primary h-4 w-4 shrink-0" />
+                    )}
+                    {GOAL_METRIC_META[m].label}
+                  </span>
                   <span className="text-muted-foreground text-sm">per week</span>
                 </button>
               ))}
             </div>
-            <Field id="ob-target" label={`Target (${GOAL_METRIC_META[goalMetric].unit})`}>
+            <Field
+              id="ob-target"
+              label={`Target (${GOAL_METRIC_META[goalMetric].unit})`}
+              error={goalOk ? null : 'Enter a target of at least 1.'}
+            >
               <Input
+                className="border-border bg-card"
                 type="number"
                 min={1}
                 // step="any": the metric step ladders (e.g. 30 min from min=1)
@@ -356,7 +401,9 @@ export default function OnboardingPage() {
             <span className="bg-primary text-primary-foreground mx-auto flex h-16 w-16 items-center justify-center rounded-full">
               <Check className="h-8 w-8" />
             </span>
-            <h2 className="mt-6 text-2xl font-bold">You&apos;re all set, {name.trim()}!</h2>
+            <h2 tabIndex={-1} className="mt-6 text-2xl font-bold">
+              You&apos;re all set, {name.trim()}!
+            </h2>
             <Card className="mt-6 text-left">
               <CardContent className="grid gap-2 p-5 text-sm">
                 <Row label="Strategy" value={PLANS.find((p) => p.id === planId)?.name ?? ''} />
@@ -399,7 +446,7 @@ export default function OnboardingPage() {
         )}
         <Button
           variant="ghost"
-          disabled={step === 0}
+          disabled={step === 0 || saving}
           onClick={() => setStep((s) => Math.max(0, s - 1))}
         >
           <ArrowLeft className="h-4 w-4" /> Back
@@ -409,7 +456,10 @@ export default function OnboardingPage() {
             Continue <ArrowRight className="h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={() => void finish()} disabled={!nameOk || saving}>
+          <Button
+            onClick={() => void finish()}
+            disabled={!nameOk || !targetWeightOk || !goalOk || saving}
+          >
             {saving ? 'Saving…' : 'Enter dashboard'} <ArrowRight className="h-4 w-4" />
           </Button>
         )}
@@ -420,9 +470,9 @@ export default function OnboardingPage() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] items-start gap-4">
       <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold">{value}</span>
+      <span className="min-w-0 text-right font-semibold [overflow-wrap:anywhere]">{value}</span>
     </div>
   );
 }

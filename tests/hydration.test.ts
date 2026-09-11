@@ -2,6 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   decideCloudHydration,
+  isHydrationReady,
+  offlineHydrationState,
   decideLocalHydration,
   freshState,
   migrationFor,
@@ -146,4 +148,22 @@ test('local mode: a returning visitor keeps their data', () => {
 
   assert.equal(d.needsOnboarding, false);
   assert.equal(d.state.sessions.length, 1);
+});
+
+// Login can render before the hydration effect clears the signed-out snapshot.
+test('login waits for the signed-in identity rather than routing from anonymous state', () => {
+  assert.equal(isHydrationReady({ owner: null, ready: true }, 'sam', false), false);
+  assert.equal(isHydrationReady({ owner: 'other', ready: true }, 'sam', false), false);
+  assert.equal(isHydrationReady({ owner: 'sam', ready: false }, 'sam', false), false);
+  assert.equal(isHydrationReady({ owner: 'sam', ready: true }, 'sam', true), false);
+  assert.equal(isHydrationReady({ owner: 'sam', ready: true }, 'sam', false), true);
+  assert.equal(isHydrationReady({ owner: null, ready: true }, null, false), true);
+});
+
+test('a failed cloud read without a completed cache must not start onboarding', () => {
+  assert.equal(offlineHydrationState(null), null);
+  assert.equal(offlineHydrationState(emptyState()), null);
+  const cached = usedState();
+  assert.equal(offlineHydrationState(cached), cached);
+  assert.equal(cached.profile.onboardingDone, true);
 });

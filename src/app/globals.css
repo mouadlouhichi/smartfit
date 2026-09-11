@@ -165,7 +165,12 @@
 
 * {
   box-sizing: border-box;
-  border-color: var(--border);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 /* Dashboard surfaces must shrink with the viewport. In particular, flex/grid
@@ -1058,4 +1063,15 @@ a {
 .leaflet-container .leaflet-control-attribution a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Onboarding needs identifiable controls on the canvas, not just on cards.
+   Keep decorative borders elsewhere soft; these boundaries meet 3:1 against
+   both the onboarding canvas and its form/card surfaces in each theme. */
+.onboarding {
+  --border: #817a72;
+  --ring: var(--primary);
+}
+.dark .onboarding {
+  --border: #94877d;
 }
