@@ -66,7 +66,7 @@ export function HeroSection() {
             <span className="block whitespace-nowrap">
               to{' '}
               <span className="relative inline-block">
-                <span key={wordIndex} className="inline-flex">
+                <span key={wordIndex} className="text-volt inline-flex">
                   {WORDS[wordIndex].split('').map((character, index) => (
                     <span
                       key={`${wordIndex}-${index}`}
@@ -79,7 +79,7 @@ export function HeroSection() {
                 </span>
                 <span
                   aria-hidden="true"
-                  className="absolute inset-x-0 -bottom-2 h-3 bg-[color:var(--foreground)]/10"
+                  className="absolute inset-x-0 -bottom-2 h-3 bg-[color:var(--color-volt)]/20"
                 />
               </span>
             </span>
