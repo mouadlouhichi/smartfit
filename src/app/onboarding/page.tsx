@@ -198,7 +198,7 @@ export default function OnboardingPage() {
                   key={t}
                   className="border-border bg-card flex items-center gap-2.5 rounded-2xl border p-3.5 font-semibold"
                 >
-                  <span className="bg-volt/10 text-volt grid h-6 w-6 shrink-0 place-items-center rounded-full">
+                  <span className="bg-primary/10 text-primary grid h-6 w-6 shrink-0 place-items-center rounded-full">
                     <Check className="h-3.5 w-3.5" strokeWidth={3} />
                   </span>
                   {t}
@@ -417,7 +417,7 @@ export default function OnboardingPage() {
               <Check
                 tabIndex={-1}
                 aria-hidden="true"
-                className="text-volt absolute h-7 w-7"
+                className="text-primary absolute h-7 w-7"
                 strokeWidth={3}
               />
             </div>

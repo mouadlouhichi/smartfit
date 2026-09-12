@@ -148,35 +148,6 @@ export function PillCta({
   );
 }
 
-/* ── Section header ────────────────────────────────────────────────
-   "Health Metrics …… See All" — bold left, volt action right. */
-export function SectionHeader({
-  title,
-  action,
-  onAction,
-  className,
-}: {
-  title: string;
-  action?: string;
-  onAction?: () => void;
-  className?: string;
-}) {
-  return (
-    <div className={cn('flex items-center justify-between gap-3', className)}>
-      <h2 className="text-base font-extrabold tracking-tight sm:text-lg">{title}</h2>
-      {action && (
-        <button
-          type="button"
-          onClick={onAction}
-          className="text-volt-dim hover:text-volt text-sm font-bold transition-colors"
-        >
-          {action}
-        </button>
-      )}
-    </div>
-  );
-}
-
 /* ── Metric card ─────────────────────────────────────────────────────
    The reference health-metric tile: label + icon chip on top, the big
    number, and a unit pill at the bottom (optional sparkline on the right). */
@@ -201,7 +172,7 @@ export function MetricCard({
     <>
       <div className="flex items-start justify-between gap-2">
         <p className="text-muted-foreground truncate text-sm font-semibold">{label}</p>
-        <span className="bg-volt/10 text-volt grid h-8 w-8 shrink-0 place-items-center rounded-lg">
+        <span className="bg-primary/10 text-primary grid h-8 w-8 shrink-0 place-items-center rounded-lg">
           <Icon className="h-4 w-4" />
         </span>
       </div>
@@ -337,48 +308,12 @@ export function GradeRing({
           fill="none"
         />
       </svg>
-      <span className="absolute text-xl font-extrabold tabular-nums">{clamped}</span>
-    </div>
-  );
-}
-
-/* ── Date strip ────────────────────────────────────────────────────────
-   The Daily-Report day picker: a scrollable run of days with the selected
-   one in a volt pill ("Today, 15 Jan"). */
-export function DateStrip({
-  days,
-  selected,
-  onSelect,
-  className,
-}: {
-  days: { iso: string; label: string; sub?: string; today?: boolean }[];
-  selected: string;
-  onSelect: (iso: string) => void;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn('no-scrollbar -mx-1 flex items-center gap-1.5 overflow-x-auto px-1', className)}
-      role="tablist"
-      aria-label="Pick a day"
-    >
-      {days.map((d) => {
-        const active = d.iso === selected;
-        return (
-          <button
-            key={d.iso}
-            role="tab"
-            aria-selected={active}
-            onClick={() => onSelect(d.iso)}
-            className={cn(
-              'focus-visible:ring-ring rounded-full px-3.5 py-2 text-sm font-bold whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none',
-              active ? 'bg-volt text-ink' : 'text-muted-foreground hover:text-foreground',
-            )}
-          >
-            {d.today ? `Today, ${d.label}` : d.label}
-          </button>
-        );
-      })}
+      <span
+        className="absolute font-extrabold tabular-nums"
+        style={{ fontSize: Math.max(13, Math.round(size * 0.24)) }}
+      >
+        {clamped}
+      </span>
     </div>
   );
 }

@@ -627,7 +627,7 @@ export function ProfileScreen() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2.5 text-base">
-            <span className="bg-chart-2/10 text-chart-2 flex h-9 w-9 items-center justify-center rounded-xl">
+            <span className="bg-chart-2/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
               <UserRound className="h-4.5 w-4.5" aria-hidden />
             </span>
             You
@@ -912,7 +912,7 @@ export function ProfileScreen() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2.5 text-base">
-            <span className="bg-chart-4/10 text-chart-4 flex h-9 w-9 items-center justify-center rounded-xl">
+            <span className="bg-chart-4/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
               <Database className="h-4.5 w-4.5" aria-hidden />
             </span>
             Your data

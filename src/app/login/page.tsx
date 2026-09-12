@@ -118,7 +118,7 @@ export default function LoginPage() {
         <OrbitHero size={200} className="mb-6" />
         <Card className="w-full max-w-sm">
           <CardContent className="p-6 text-center">
-            <span className="bg-volt/10 text-volt mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
+            <span className="bg-primary/10 text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
               <ShieldCheck className="h-6 w-6" />
             </span>
             <h1 className="font-display mt-4 text-xl font-bold tracking-tight">
@@ -147,7 +147,7 @@ export default function LoginPage() {
         role="status"
         aria-label="Loading"
       >
-        <Loader2 className="text-volt h-8 w-8 animate-spin" />
+        <Loader2 className="text-primary h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -189,7 +189,10 @@ export default function LoginPage() {
             onClick={() => {
               clearError();
               setView('signup');
-              document.getElementById('email')?.focus({ preventScroll: false });
+              // The field mounts with the new view — focus it on the next frame.
+              requestAnimationFrame(() => {
+                document.getElementById('email')?.focus({ preventScroll: false });
+              });
             }}
           />
         </div>
@@ -258,7 +261,7 @@ export default function LoginPage() {
                         clearError();
                         setView('reset');
                       }}
-                      className="text-volt-dim hover:text-volt text-xs font-medium transition-colors hover:underline"
+                      className="text-primary text-xs font-medium transition-colors hover:underline"
                     >
                       Forgot password?
                     </button>
@@ -319,7 +322,7 @@ export default function LoginPage() {
                     clearError();
                     setView('signin');
                   }}
-                  className="text-volt-dim hover:text-volt font-semibold transition-colors hover:underline"
+                  className="text-primary font-semibold transition-colors hover:underline"
                 >
                   Back to sign in
                 </button>

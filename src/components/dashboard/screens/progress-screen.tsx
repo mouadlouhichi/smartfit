@@ -261,7 +261,7 @@ export function ProgressScreen() {
         />
         <StatCard
           icon={Timer}
-          tile="bg-chart-2/10 text-chart-2"
+          tile="bg-chart-2/10 text-foreground"
           label="Active time"
           value={formatMinutes(rangeAgg.minutes)}
           sub={`last ${days} day${days === 1 ? '' : 's'}`}
@@ -270,7 +270,7 @@ export function ProgressScreen() {
         />
         <StatCard
           icon={Flame}
-          tile="bg-chart-4/10 text-chart-4"
+          tile="bg-chart-4/10 text-foreground"
           label="Calories"
           value={formatCalories(rangeAgg.calories)}
           sub="burned"
@@ -279,7 +279,7 @@ export function ProgressScreen() {
         />
         <StatCard
           icon={Footprints}
-          tile="bg-clay/10 text-clay"
+          tile="bg-clay/10 text-foreground"
           label="Distance"
           value={formatDistance(rangeAgg.distance ?? 0, distanceUnit)}
           sub="covered"
@@ -448,7 +448,7 @@ export function ProgressScreen() {
       {muscles.length > 0 && (
         <Card className="p-5">
           <p className="font-display mb-4 flex items-center gap-2 text-sm font-bold">
-            <span className="bg-chart-4/10 text-chart-4 flex h-8 w-8 items-center justify-center rounded-xl">
+            <span className="bg-chart-4/10 text-foreground flex h-8 w-8 items-center justify-center rounded-xl">
               <DumbbellIcon className="h-4 w-4" aria-hidden />
             </span>
             Volume by muscle · last {days} days

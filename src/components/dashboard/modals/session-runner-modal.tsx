@@ -717,7 +717,7 @@ function LiveScreen(p: LiveProps) {
               className={cn(
                 'press flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold',
                 i === p.activeIndex
-                  ? 'border-transparent text-white'
+                  ? 'border-transparent text-[#141414]'
                   : 'session-tile text-[rgba(245,245,242,0.75)]',
               )}
               style={i === p.activeIndex ? { background: 'var(--chart-1)' } : undefined}
@@ -876,7 +876,7 @@ function LiveScreen(p: LiveProps) {
                             className="press mx-auto flex h-11 w-11 items-center justify-center rounded-full"
                             style={{ background: 'var(--chart-1)' }}
                           >
-                            <Check className="h-4 w-4 text-white" aria-hidden />
+                            <Check className="h-4 w-4 text-[#141414]" aria-hidden />
                           </button>
                         )}
                         {e1rm > 0 && (

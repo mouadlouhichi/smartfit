@@ -54,11 +54,11 @@ import { PillCta } from '@/components/volt/volt-kit';
 /** Tinted tile per measurement family (all AA-contrast inks on cards). */
 const UNIT_STYLE: Record<string, string> = {
   weight: 'bg-primary/10 text-primary',
-  bodyfat: 'bg-chart-2/10 text-chart-2',
-  waist: 'bg-chart-4/10 text-chart-4',
-  chest: 'bg-chart-4/10 text-chart-4',
-  arms: 'bg-clay/10 text-clay',
-  custom: 'bg-clay/10 text-clay',
+  bodyfat: 'bg-chart-2/10 text-foreground',
+  waist: 'bg-chart-4/10 text-foreground',
+  chest: 'bg-chart-4/10 text-foreground',
+  arms: 'bg-clay/10 text-foreground',
+  custom: 'bg-clay/10 text-foreground',
 };
 
 export function BodyScreen() {
@@ -208,7 +208,9 @@ export function BodyScreen() {
                   {delta != null && delta !== 0 && (
                     <span
                       className={`mb-1 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums ${
-                        trendDown ? 'bg-primary/10 text-primary' : 'bg-clay/10 text-clay'
+                        trendDown
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-accent text-accent-foreground'
                       }`}
                     >
                       {trendDown ? (
@@ -438,7 +440,7 @@ function MuscleLab() {
         <div className="bg-card border-border rounded-3xl border p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="bg-volt/10 text-volt grid h-11 w-11 shrink-0 place-items-center rounded-2xl">
+              <span className="bg-primary/10 text-primary grid h-11 w-11 shrink-0 place-items-center rounded-2xl">
                 <Zap className="h-5 w-5" fill="currentColor" />
               </span>
               <div className="min-w-0">

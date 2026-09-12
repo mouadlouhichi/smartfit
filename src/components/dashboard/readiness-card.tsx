@@ -73,7 +73,7 @@ export function ReadinessCard() {
               {ready.score}
             </span>
             <Lock
-              className="bg-primary absolute top-1/2 left-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full p-1 text-white"
+              className="bg-primary text-primary-foreground absolute top-1/2 left-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full p-1"
               aria-hidden
             />
           </button>

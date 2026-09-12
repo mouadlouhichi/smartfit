@@ -206,19 +206,19 @@ export function MuscleMap({
                   onSelect(r.muscle);
                 }
               }}
-              className="cursor-pointer outline-none"
+              className="muscle-region cursor-pointer outline-none"
             >
               {paths.map((p, i) => (
                 <path
                   key={i}
                   d={p.props.d}
                   transform={p.props.transform}
-                  fill={active ? 'var(--primary)' : undefined}
+                  fill={active ? '#f3ff47' : undefined}
                   className={cn(
                     'transition-colors duration-150',
                     !active &&
                       'fill-[#2f2f2f] stroke-[#484848] hover:fill-[#4a5117] hover:stroke-[#5d661d]',
-                    active && 'stroke-[#101010]',
+                    active && 'fill-[#f3ff47] stroke-[#101010]',
                   )}
                   strokeWidth={active ? 2 : 1.5}
                 />

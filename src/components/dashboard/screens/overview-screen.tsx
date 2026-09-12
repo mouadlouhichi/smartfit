@@ -23,7 +23,7 @@ import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
 import { ReadinessCard } from '../readiness-card';
 import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SectionHeader, MetricCard, MiniBars, Chip, GradeRing } from '@/components/volt/volt-kit';
+import { MetricCard, MiniBars, Chip, GradeRing } from '@/components/volt/volt-kit';
 import {
   currentStreak,
   getPlan,
@@ -161,6 +161,7 @@ export function OverviewScreen() {
 
   return (
     <div className="grid max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+      <h1 className="sr-only">Overview</h1>
       {/* ── Center / left column ───────────────────────────────
           Separate surfaces: the white card covers only the greeting and
           weekly progress; start workout, today rings, plan, and summary
@@ -196,7 +197,7 @@ export function OverviewScreen() {
             <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Health Metrics</h2>
             <Link
               href="/dashboard/progress"
-              className="text-volt-dim hover:text-volt text-sm font-bold transition-colors"
+              className="text-primary text-sm font-bold transition-colors hover:underline"
             >
               See All
             </Link>
@@ -239,7 +240,7 @@ export function OverviewScreen() {
             <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Workout Programs</h2>
             <Link
               href="/dashboard/plan"
-              className="text-volt-dim hover:text-volt text-sm font-bold transition-colors"
+              className="text-primary text-sm font-bold transition-colors hover:underline"
             >
               See All
             </Link>
@@ -357,11 +358,11 @@ export function OverviewScreen() {
                         </span>
                       </span>
                       {done ? (
-                        <span className="bg-volt/10 text-volt-dim flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
+                        <span className="bg-primary/10 text-primary flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
                           <Check className="h-3 w-3" /> Done
                         </span>
                       ) : (
-                        <span className="text-volt-dim text-[11px] font-bold">Log it</span>
+                        <span className="text-primary text-[11px] font-bold">Log it</span>
                       )}
                     </button>
                   </li>

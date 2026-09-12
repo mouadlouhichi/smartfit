@@ -362,6 +362,12 @@ input[type='number'] {
 .animate-float {
   animation: float-y 6s ease-in-out infinite;
 }
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-soft {
+    animation: none;
+  }
+}
 
 @keyframes pulse-soft {
   0%,
@@ -1077,4 +1083,11 @@ a {
 }
 .dark .onboarding {
   --border: #6f6f6f;
+}
+
+/* Muscle-map regions need a visible focus indicator for keyboard users —
+   SVG shapes ignore the outline utility, so the stroke carries the ring. */
+.muscle-region:focus-visible path {
+  stroke: var(--primary);
+  stroke-width: 3;
 }
