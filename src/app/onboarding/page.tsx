@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Check, Ruler, Target, UserRound } from 'lucide-react';
-import { Logo, Wordmark } from '@/components/brand';
+import { ArrowLeft, Check, Ruler, Target, UserRound } from 'lucide-react';
+import { Wordmark } from '@/components/brand';
+import { OrbitHero, VoltHeadline, PillCta, GradeRing } from '@/components/volt/volt-kit';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -179,15 +180,15 @@ export default function OnboardingPage() {
       >
         {step === 0 && (
           <div className="animate-fade-in text-center">
-            <Logo size={72} className="mx-auto" />
-            <h1 className="mt-6 text-3xl font-bold tracking-tight">Welcome to SmartFit</h1>
-            <p className="text-muted-foreground mt-3">
+            <OrbitHero size={230} className="mx-auto" />
+            <VoltHeadline className="mx-auto mt-6 max-w-md text-[1.7rem] sm:text-3xl" />
+            <p className="text-muted-foreground mx-auto mt-4 max-w-sm">
               In the next minute we&apos;ll set up your training strategy and your first goal.{' '}
               {cloud
                 ? 'Everything syncs privately to your account — no wearable required.'
                 : 'Your data stays on this device — no account, no wearable required.'}
             </p>
-            <div className="mt-6 grid gap-2 text-left text-sm">
+            <div className="mx-auto mt-6 grid max-w-sm gap-2 text-left text-sm">
               {[
                 'Pick a proven training split',
                 'Schedule your week in one tap',
@@ -195,9 +196,12 @@ export default function OnboardingPage() {
               ].map((t) => (
                 <div
                   key={t}
-                  className="border-border bg-card flex items-center gap-2 rounded-xl border p-3"
+                  className="border-border bg-card flex items-center gap-2.5 rounded-2xl border p-3.5 font-semibold"
                 >
-                  <Check className="text-primary h-4 w-4" /> {t}
+                  <span className="bg-volt/10 text-volt grid h-6 w-6 shrink-0 place-items-center rounded-full">
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  </span>
+                  {t}
                 </div>
               ))}
             </div>
@@ -300,16 +304,21 @@ export default function OnboardingPage() {
                   aria-pressed={planId === p.id}
                   onClick={() => setPlanId(p.id)}
                   className={cn(
-                    'focus-visible:ring-ring focus-visible:ring-offset-background rounded-2xl border p-4 text-left transition-all focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:outline-none',
+                    'focus-visible:ring-ring focus-visible:ring-offset-background rounded-3xl border p-4 text-left transition-all focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:outline-none',
                     planId === p.id
-                      ? 'border-primary bg-card ring-primary ring-2'
-                      : 'border-border bg-card hover:border-primary',
+                      ? 'border-volt bg-volt/[0.06] shadow-[0_0_0_1px_var(--primary)]'
+                      : 'border-border bg-card hover:border-volt/40',
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2 font-semibold">
                       {planId === p.id && (
-                        <Check aria-hidden="true" className="text-primary h-4 w-4 shrink-0" />
+                        <span
+                          aria-hidden="true"
+                          className="bg-volt text-ink grid h-5 w-5 shrink-0 place-items-center rounded-full"
+                        >
+                          <Check className="h-3 w-3" strokeWidth={3.5} />
+                        </span>
                       )}
                       {p.name}
                     </span>
@@ -361,15 +370,20 @@ export default function OnboardingPage() {
                     setGoalTarget(m === 'workouts' ? '4' : '150');
                   }}
                   className={cn(
-                    'focus-visible:ring-ring focus-visible:ring-offset-background flex items-center justify-between gap-3 rounded-2xl border p-4 text-left transition-all focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:outline-none',
+                    'focus-visible:ring-ring focus-visible:ring-offset-background flex items-center justify-between gap-3 rounded-3xl border p-4 text-left transition-all focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:outline-none',
                     goalMetric === m
-                      ? 'border-primary bg-card ring-primary ring-2'
-                      : 'border-border bg-card',
+                      ? 'border-volt bg-volt/[0.06] shadow-[0_0_0_1px_var(--primary)]'
+                      : 'border-border bg-card hover:border-volt/40',
                   )}
                 >
                   <span className="flex items-center gap-2 font-semibold">
                     {goalMetric === m && (
-                      <Check aria-hidden="true" className="text-primary h-4 w-4 shrink-0" />
+                      <span
+                        aria-hidden="true"
+                        className="bg-volt text-ink grid h-5 w-5 shrink-0 place-items-center rounded-full"
+                      >
+                        <Check className="h-3 w-3" strokeWidth={3.5} />
+                      </span>
                     )}
                     {GOAL_METRIC_META[m].label}
                   </span>
@@ -398,9 +412,15 @@ export default function OnboardingPage() {
 
         {step === 4 && (
           <div className="animate-fade-in text-center">
-            <span className="bg-primary text-primary-foreground mx-auto flex h-16 w-16 items-center justify-center rounded-full">
-              <Check className="h-8 w-8" />
-            </span>
+            <div className="relative mx-auto grid w-fit place-items-center">
+              <GradeRing value={100} size={96} label="Setup" />
+              <Check
+                tabIndex={-1}
+                aria-hidden="true"
+                className="text-volt absolute h-7 w-7"
+                strokeWidth={3}
+              />
+            </div>
             <h2 tabIndex={-1} className="mt-6 text-2xl font-bold">
               You&apos;re all set, {name.trim()}!
             </h2>
@@ -452,16 +472,19 @@ export default function OnboardingPage() {
           <ArrowLeft className="h-4 w-4" /> Back
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button onClick={() => canNext && setStep((s) => s + 1)} disabled={!canNext}>
-            Continue <ArrowRight className="h-4 w-4" />
-          </Button>
+          <PillCta
+            label="Continue"
+            cap="arrow"
+            disabled={!canNext}
+            onClick={() => canNext && setStep((s) => s + 1)}
+          />
         ) : (
-          <Button
+          <PillCta
+            label={saving ? 'Saving…' : 'Enter dashboard'}
+            loading={saving}
+            disabled={!nameOk || !targetWeightOk || !goalOk}
             onClick={() => void finish()}
-            disabled={!nameOk || !targetWeightOk || !goalOk || saving}
-          >
-            {saving ? 'Saving…' : 'Enter dashboard'} <ArrowRight className="h-4 w-4" />
-          </Button>
+          />
         )}
       </footer>
     </div>
