@@ -75,7 +75,7 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
         <View className="border-border flex-row items-center justify-between border-b px-5 py-4">
           <Text className="text-foreground text-lg font-bold">Log workout</Text>
           <Pressable onPress={onClose} className="active:bg-muted rounded-full p-2">
-            <X color="#857D75" size={22} />
+            <X color="#a3a3a3" size={22} />
           </Pressable>
         </View>
         <ScrollView className="flex-1 p-5" contentContainerClassName="gap-4">
@@ -94,13 +94,13 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
                     onPress={() => setDate(d)}
                     className="rounded-full border px-3 py-2"
                     style={{
-                      borderColor: selected ? '#D6532F' : '#E7E2DB',
-                      backgroundColor: selected ? '#D6532F14' : 'transparent',
+                      borderColor: selected ? '#f3ff47' : '#2b2b2b',
+                      backgroundColor: selected ? '#f3ff4714' : 'transparent',
                     }}
                   >
                     <Text
                       className="text-sm font-medium"
-                      style={{ color: selected ? '#D6532F' : '#857D75' }}
+                      style={{ color: selected ? '#f3ff47' : '#a3a3a3' }}
                     >
                       {relativeDay(d)}
                     </Text>
@@ -124,12 +124,12 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
                   onPress={() => setCategoryId(c.id)}
                   className="rounded-full border px-3 py-2"
                   style={{
-                    borderColor: categoryId === c.id ? c.color : '#E7E2DB',
+                    borderColor: categoryId === c.id ? c.color : '#2b2b2b',
                     backgroundColor: categoryId === c.id ? `${c.color}14` : 'transparent',
                   }}
                 >
                   <Text
-                    style={{ color: categoryId === c.id ? c.color : '#857D75' }}
+                    style={{ color: categoryId === c.id ? c.color : '#a3a3a3' }}
                     className="text-sm font-medium"
                   >
                     {c.name}
@@ -166,14 +166,14 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
                   onPress={() => setIntensity(k)}
                   className="flex-1 rounded-full border px-3 py-2"
                   style={{
-                    borderColor: intensity === k ? INTENSITY_META[k].color : '#E7E2DB',
+                    borderColor: intensity === k ? INTENSITY_META[k].color : '#2b2b2b',
                     backgroundColor:
                       intensity === k ? `${INTENSITY_META[k].color}14` : 'transparent',
                   }}
                 >
                   <Text
                     className="text-center text-sm font-medium"
-                    style={{ color: intensity === k ? INTENSITY_META[k].color : '#857D75' }}
+                    style={{ color: intensity === k ? INTENSITY_META[k].color : '#a3a3a3' }}
                   >
                     {INTENSITY_META[k].label}
                   </Text>

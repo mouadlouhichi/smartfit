@@ -9,7 +9,7 @@ export interface BarDatum {
 
 export function BarChart({
   data,
-  color = '#D6532F',
+  color = '#f3ff47',
   height = 180,
 }: {
   data: BarDatum[];
@@ -31,7 +31,7 @@ export function BarChart({
           y1={height - padBottom}
           x2={width}
           y2={height - padBottom}
-          stroke="#E7E2DB"
+          stroke="#2b2b2b"
           strokeWidth={1}
         />
         {data.map((d, i) => {
@@ -54,7 +54,7 @@ export function BarChart({
                 x={i * barW + barW / 2}
                 y={height - 6}
                 fontSize={9}
-                fill="#857D75"
+                fill="#a3a3a3"
                 textAnchor="middle"
               >
                 {d.label}

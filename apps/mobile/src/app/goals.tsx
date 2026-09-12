@@ -51,14 +51,14 @@ export default function GoalsScreen() {
             onPress={() => setOpen(true)}
             className="bg-primary h-12 w-12 items-center justify-center rounded-full"
           >
-            <Plus color="#FDF6F2" size={24} />
+            <Plus color="#101010" size={24} />
           </Pressable>
         </View>
 
         {goals.length === 0 && (
           <Card>
             <View className="items-center gap-2 py-6">
-              <Target color="#D6532F" size={32} />
+              <Target color="#f3ff47" size={32} />
               <Text className="text-muted-foreground text-center text-sm">
                 Set a weekly or monthly target to stay accountable.
               </Text>
@@ -73,7 +73,7 @@ export default function GoalsScreen() {
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-row items-center gap-3">
                   <View className="bg-primary/10 h-11 w-11 items-center justify-center rounded-xl">
-                    <CategoryIcon name={meta.icon} color="#D6532F" size={20} />
+                    <CategoryIcon name={meta.icon} color="#f3ff47" size={20} />
                   </View>
                   <View>
                     <Text className="text-foreground font-semibold">{g.name}</Text>
@@ -96,7 +96,7 @@ export default function GoalsScreen() {
                   </Text>
                   {p.done ? (
                     <View className="flex-row items-center gap-1">
-                      <CheckCircle2 color="#D6532F" size={16} />
+                      <CheckCircle2 color="#f3ff47" size={16} />
                       <Text className="text-primary text-xs font-semibold">Done</Text>
                     </View>
                   ) : (
@@ -117,7 +117,7 @@ export default function GoalsScreen() {
           <View className="flex-row items-center justify-between py-2">
             <Text className="text-foreground text-lg font-bold">New goal</Text>
             <Pressable onPress={() => setOpen(false)} className="active:bg-muted rounded-full p-2">
-              <X color="#857D75" size={22} />
+              <X color="#a3a3a3" size={22} />
             </Pressable>
           </View>
           <ScrollView contentContainerClassName="gap-4 pt-4">
@@ -130,12 +130,12 @@ export default function GoalsScreen() {
                     onPress={() => setMetric(m)}
                     className="rounded-full border px-3 py-2"
                     style={{
-                      borderColor: metric === m ? '#D6532F' : '#E7E2DB',
-                      backgroundColor: metric === m ? '#D6532F22' : 'transparent',
+                      borderColor: metric === m ? '#f3ff47' : '#2b2b2b',
+                      backgroundColor: metric === m ? '#f3ff4722' : 'transparent',
                     }}
                   >
                     <Text
-                      style={{ color: metric === m ? '#D6532F' : '#857D75' }}
+                      style={{ color: metric === m ? '#f3ff47' : '#a3a3a3' }}
                       className="text-sm font-medium"
                     >
                       {GOAL_METRIC_META[m].label}
@@ -153,13 +153,13 @@ export default function GoalsScreen() {
                     onPress={() => setCadence(c)}
                     className="flex-1 rounded-full border py-2"
                     style={{
-                      borderColor: cadence === c ? '#D6532F' : '#E7E2DB',
-                      backgroundColor: cadence === c ? '#D6532F22' : 'transparent',
+                      borderColor: cadence === c ? '#f3ff47' : '#2b2b2b',
+                      backgroundColor: cadence === c ? '#f3ff4722' : 'transparent',
                     }}
                   >
                     <Text
                       className="text-center text-sm font-medium capitalize"
-                      style={{ color: cadence === c ? '#D6532F' : '#857D75' }}
+                      style={{ color: cadence === c ? '#f3ff47' : '#a3a3a3' }}
                     >
                       {c}
                     </Text>

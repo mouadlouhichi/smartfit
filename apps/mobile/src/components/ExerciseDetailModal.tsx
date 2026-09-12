@@ -57,7 +57,7 @@ export function ExerciseDetailModal({
             {entry.name}
           </Text>
           <Pressable onPress={onClose} className="active:bg-muted rounded-full p-2">
-            <X color="#857D75" size={22} />
+            <X color="#a3a3a3" size={22} />
           </Pressable>
         </View>
 
@@ -69,24 +69,24 @@ export function ExerciseDetailModal({
                 <View
                   key={m}
                   className="rounded-full px-2.5 py-1"
-                  style={{ backgroundColor: i === 0 ? '#D6532F' : '#ECEAE6' }}
+                  style={{ backgroundColor: i === 0 ? '#f3ff47' : '#262626' }}
                 >
                   <Text
                     className="text-xs font-semibold"
-                    style={{ color: i === 0 ? '#FDF6F2' : '#4E4C4C' }}
+                    style={{ color: i === 0 ? '#101010' : '#a3a3a3' }}
                   >
                     {EXERCISE_MUSCLE_LABELS[m]}
                   </Text>
                 </View>
               ))}
-              <View className="rounded-full bg-[#ECEAE6] px-2.5 py-1">
-                <Text className="text-xs font-semibold" style={{ color: '#4E4C4C' }}>
+              <View className="rounded-full bg-[#262626] px-2.5 py-1">
+                <Text className="text-xs font-semibold" style={{ color: '#a3a3a3' }}>
                   {EXERCISE_EQUIPMENT_LABELS[entry.equipment]}
                 </Text>
               </View>
               {level ? (
-                <View className="rounded-full bg-[#ECEAE6] px-2.5 py-1">
-                  <Text className="text-xs font-semibold" style={{ color: '#4E4C4C' }}>
+                <View className="rounded-full bg-[#262626] px-2.5 py-1">
+                  <Text className="text-xs font-semibold" style={{ color: '#a3a3a3' }}>
                     {level}
                   </Text>
                 </View>
@@ -100,7 +100,7 @@ export function ExerciseDetailModal({
             </Text>
             {!data && !failed && (
               <View className="flex-row items-center gap-2 py-4">
-                <ActivityIndicator color="#D6532F" />
+                <ActivityIndicator color="#f3ff47" />
                 <Text className="text-muted-foreground text-sm">Loading instructions…</Text>
               </View>
             )}
@@ -120,9 +120,9 @@ export function ExerciseDetailModal({
               <View key={i} className="flex-row gap-3 py-1">
                 <View
                   className="h-6 w-6 items-center justify-center rounded-full"
-                  style={{ backgroundColor: '#F6D9CE' }}
+                  style={{ backgroundColor: '#2e3510' }}
                 >
-                  <Text className="text-xs font-bold" style={{ color: '#8A3418' }}>
+                  <Text className="text-xs font-bold" style={{ color: '#eeff54' }}>
                     {i + 1}
                   </Text>
                 </View>
@@ -130,7 +130,7 @@ export function ExerciseDetailModal({
               </View>
             ))}
             <View className="flex-row items-center justify-center gap-1 pt-2">
-              <Info color="#A9A098" size={12} />
+              <Info color="#8a8a8a" size={12} />
               <Text className="text-muted-foreground text-center text-xs">
                 Demo GIFs: ExerciseDB artwork via ExerciseGymGifsDB (personal use). Steps &amp;
                 photo fallbacks: free-exercise-db (Unlicense)

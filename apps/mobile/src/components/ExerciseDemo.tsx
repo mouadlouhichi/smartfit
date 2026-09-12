@@ -73,12 +73,12 @@ export function ExerciseDemo({
           width: size,
           height: size,
           borderRadius: radius,
-          backgroundColor: '#ECEAE6',
+          backgroundColor: '#262626',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Dumbbell color="#857D75" size={size * 0.5} strokeWidth={1.75} />
+        <Dumbbell color="#a3a3a3" size={size * 0.5} strokeWidth={1.75} />
       </View>
     );
   }
@@ -110,12 +110,12 @@ export function ExerciseDemo({
           width: size,
           height: size,
           borderRadius: radius,
-          backgroundColor: '#ECEAE6',
+          backgroundColor: '#262626',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <Dumbbell color="#857D75" size={size * 0.5} strokeWidth={1.75} />
+        <Dumbbell color="#a3a3a3" size={size * 0.5} strokeWidth={1.75} />
       </View>
     );
   }

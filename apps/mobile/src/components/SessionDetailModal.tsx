@@ -53,7 +53,7 @@ export function SessionDetailModal({
           <View className="border-border flex-row items-center justify-between border-b px-5 py-4">
             <Text className="text-foreground text-lg font-bold">{session.title}</Text>
             <Pressable onPress={onClose} className="active:bg-muted rounded-full p-2">
-              <X color="#857D75" size={22} />
+              <X color="#a3a3a3" size={22} />
             </Pressable>
           </View>
 
@@ -113,7 +113,7 @@ export function SessionDetailModal({
                             className="flex-1 flex-row items-center gap-3"
                           >
                             {Row}
-                            <Info color="#857D75" size={18} />
+                            <Info color="#a3a3a3" size={18} />
                           </Pressable>
                         ) : (
                           <View className="flex-1 flex-row items-center gap-3">{Row}</View>
