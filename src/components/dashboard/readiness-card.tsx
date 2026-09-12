@@ -9,9 +9,9 @@ import { hasProAccess, loadSeries, readiness } from '@smartfit/core';
 import { cn } from '@/lib/utils';
 
 const LABEL_TONE: Record<string, string> = {
-  Ready: 'text-[#c8f135]',
-  Steady: 'text-[#f0c882]',
-  'Easy day': 'text-[#f0a37f]',
+  Ready: 'text-[#f3ff47]',
+  Steady: 'text-[#cbe02c]',
+  'Easy day': 'text-[#a8b80f]',
   Calibrating: 'text-muted-foreground',
 };
 

@@ -214,14 +214,14 @@ export function OverviewScreen() {
           />
           <div className="relative flex items-center gap-4 p-5">
             <div className="min-w-0 flex-1">
-              <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#f0a37f' }}>
+              <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#a8b80f' }}>
                 {nextSlot
                   ? 'On today’s plan'
                   : agenda.length > 0
                     ? 'Plan complete'
                     : 'Ready when you are'}
               </p>
-              <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f7f2ea]">
+              <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f5f5f2]">
                 {nextSlot
                   ? nextSlot.slot.title
                   : agenda.length > 0
@@ -233,9 +233,9 @@ export function OverviewScreen() {
               </p>
             </div>
             <span
-              className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-white shadow-lg"
+              className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-[#141414] shadow-lg"
               style={{
-                background: 'linear-gradient(120deg,#e05e36,#c4451f)',
+                background: 'linear-gradient(120deg,#f3ff47,#cbe02c)',
                 width: '3.25rem',
                 height: '3.25rem',
               }}
@@ -246,7 +246,7 @@ export function OverviewScreen() {
         </button>
 
         {/* ── Today's closing rings ─────────────────────────────────────
-            Dark ember hero: gradients + halo need the dark stage, and the
+            Dark volt hero: gradients + halo need the dark stage, and the
             legend reads in hero tones. Stacked on phones, side by side
             once there is room. */}
         <div className="card-hero p-5 sm:p-6">
@@ -582,7 +582,7 @@ function SummaryArc({ activePct, sessPct }: { activePct: number; sessPct: number
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="#2b2725"
+        stroke="#2b2b2b"
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={`${activeLen} ${c}`}

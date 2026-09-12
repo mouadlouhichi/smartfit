@@ -172,7 +172,7 @@ export function MobileNav() {
         ref={navRef}
         className="pointer-events-auto relative flex w-full max-w-md items-center gap-1 rounded-full px-2 py-2 shadow-2xl ring-1 shadow-black/30 ring-white/10"
         style={{
-          background: 'linear-gradient(180deg, #4d4a47 0%, #3d3b39 48%, #353331 100%)',
+          background: 'linear-gradient(180deg, #262626 0%, #1e1e1e 48%, #181818 100%)',
         }}
       >
         {/* Gliding active pill */}
@@ -198,9 +198,9 @@ export function MobileNav() {
           type="button"
           onClick={() => openModal('workout')}
           aria-label="Log workout"
-          className="relative z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-black/5 transition-transform active:scale-90"
+          className="bg-volt relative z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-[0_6px_20px_rgba(243,255,71,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] ring-1 ring-black/20 transition-transform active:scale-90"
         >
-          <Zap className="fill-charcoal text-charcoal h-5 w-5" strokeWidth={1.6} />
+          <Zap className="h-5 w-5 fill-[#141414] text-[#141414]" strokeWidth={1.6} />
         </button>
 
         {RIGHT_TABS.map(renderTab)}

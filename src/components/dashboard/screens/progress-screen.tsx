@@ -172,7 +172,7 @@ export function ProgressScreen() {
         </div>
       </div>
 
-      {/* ── Hero: goal rings on warm charcoal with an ember glow ─────────── */}
+      {/* ── Hero: goal rings on warm charcoal with an volt glow ─────────── */}
       <section className="card-hero p-4 min-[420px]:p-6 sm:p-8" aria-label="Goal rings">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
           <p className="eyebrow hero-muted">
@@ -180,7 +180,7 @@ export function ProgressScreen() {
           </p>
           {streak > 0 && (
             <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-              <Flame className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
+              <Flame className="h-3.5 w-3.5 text-[#a8b80f]" aria-hidden />
               {streak}-day streak
             </span>
           )}
@@ -193,14 +193,14 @@ export function ProgressScreen() {
             label="Exercise"
             value={`${rangeAgg.minutes}/${targets.minutes}min`}
             icon={Timer}
-            color="#f0a37f"
+            color="#a8b80f"
           />
           <RingStat
             pct={calPct}
             label="Burned"
             value={formatCalories(rangeAgg.calories)}
             icon={Flame}
-            color="#ee7d5a"
+            color="#cbe02c"
             big
           />
           <RingStat
@@ -208,7 +208,7 @@ export function ProgressScreen() {
             label="Distance"
             value={formatDistance(rangeAgg.distance ?? 0, distanceUnit)}
             icon={Footprints}
-            color="#cdaca4"
+            color="#8a8a8a"
           />
         </div>
         {targets.calories === 0 && targets.distanceKm === 0 && (

@@ -4,14 +4,14 @@
  * The share-image engine.
  *
  * Every card SmartFit renders goes through here, so they all carry the same
- * brand furniture (the dumbbell mark + the SmartFit wordmark), the same type
+ * brand furniture (the bolt mark + the SmartFit wordmark), the same type
  * scale and the same rules. Three output styles:
  *
  *  - `transparent` — no background at all: the Strava-style story share. The
  *    route, stats and logo are drawn on alpha 0 so they layer over a photo,
  *    every glyph carries a dark halo so it survives a bright image, and the
  *    route gets a shadow glow instead of a panel.
- *  - `dark` — the ember stage (deep charcoal, warm radial glow).
+ *  - `dark` — the volt stage (deep charcoal, warm radial glow).
  *  - `light` — warm paper, for feeds on white timelines.
  *
  * Layout is computed, not hard-coded: blocks reserve their height, the route
@@ -24,6 +24,7 @@
 
 import { drawMapTiles, mapPoint, MAP_ATTRIBUTION, type MapTransform } from './map-tiles';
 import { fmtDuration, fmtPace, projectRoute, type GeoPoint } from '@smartfit/core';
+import { BOLT_PATH, VOLT, VOLT_INK } from '@/lib/brand-mark';
 
 export type ShareStyle = 'transparent' | 'dark' | 'light';
 export type ShareFormat = 'square' | 'story';
@@ -44,7 +45,7 @@ interface ShareTheme {
   equalizerOff: string;
 }
 
-const FONT = '"Plus Jakarta Sans", system-ui, -apple-system, sans-serif';
+const FONT = '"Helvetica Neue", Helvetica, Arial, system-ui, sans-serif';
 const MONO = '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace';
 
 const THEMES: Record<ShareStyle, ShareTheme> = {
@@ -52,8 +53,8 @@ const THEMES: Record<ShareStyle, ShareTheme> = {
     bg: null,
     ink: '#ffffff',
     inkSoft: 'rgba(255,255,255,0.85)',
-    accent: '#ffb08a',
-    highlight: '#d9ff5c',
+    accent: '#f3ff47',
+    highlight: '#f3ff47',
     panel: null,
     panelBorder: 'rgba(255,255,255,0.30)',
     route: '#ffffff',
@@ -62,30 +63,30 @@ const THEMES: Record<ShareStyle, ShareTheme> = {
     equalizerOff: 'rgba(255,255,255,0.38)',
   },
   dark: {
-    bg: '#141110',
-    ink: '#f7f2ea',
-    inkSoft: 'rgba(247,242,234,0.66)',
-    accent: '#f0a37f',
-    highlight: '#c8f135',
+    bg: '#0e0e0e',
+    ink: '#f5f5f2',
+    inkSoft: 'rgba(245,245,242,0.66)',
+    accent: '#f3ff47',
+    highlight: '#f3ff47',
     panel: 'rgba(255,255,255,0.06)',
     panelBorder: 'rgba(255,255,255,0.13)',
-    route: '#ff7a4d',
-    routeGlow: 'rgba(224,94,54,0.55)',
+    route: '#f3ff47',
+    routeGlow: 'rgba(243,255,71,0.55)',
     halo: null,
-    equalizerOff: 'rgba(247,242,234,0.22)',
+    equalizerOff: 'rgba(245,245,242,0.22)',
   },
   light: {
-    bg: '#efedea',
-    ink: '#171615',
-    inkSoft: 'rgba(23,22,21,0.62)',
-    accent: '#bd4220',
-    highlight: '#bd4220',
+    bg: '#f5f5f2',
+    ink: '#131313',
+    inkSoft: 'rgba(19,19,19,0.62)',
+    accent: '#a8b80f',
+    highlight: '#a8b80f',
     panel: '#ffffff',
-    panelBorder: 'rgba(23,22,21,0.08)',
-    route: '#bd4220',
-    routeGlow: 'rgba(224,94,54,0.30)',
+    panelBorder: 'rgba(19,19,19,0.08)',
+    route: '#a8b80f',
+    routeGlow: 'rgba(243,255,71,0.30)',
     halo: null,
-    equalizerOff: 'rgba(23,22,21,0.16)',
+    equalizerOff: 'rgba(19,19,19,0.16)',
   },
 };
 
@@ -212,8 +213,8 @@ function fit(
 /* ── brand furniture ─────────────────────────────────────────────────── */
 
 /**
- * The SmartFit mark: the ember disc with the white flame — the same badge
- * the dashboard header wears, and the geometry of `public/icon.svg`. Drawn as
+ * The SmartFit mark: the volt charge cell with the near-black bolt — the same
+ * badge the dashboard header wears, and the geometry of `public/icon.svg`. Drawn as
  * vectors so there is no image decode, no CORS and no softness at any size.
  */
 export function drawLogoMark(
@@ -225,34 +226,34 @@ export function drawLogoMark(
 ) {
   ctx.save();
   if (opts.halo) {
-    ctx.shadowColor = 'rgba(10,8,7,0.5)';
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
     ctx.shadowBlur = size * 0.22;
   }
+  // Rounded-square charge cell (arcTo keeps canvas compatibility — roundRect
+  // is not available in older Safari).
+  const r = size * 0.3;
   ctx.beginPath();
-  ctx.arc(x + size / 2, y + size / 2, size / 2, 0, Math.PI * 2);
-  ctx.fillStyle = opts.plate ?? '#e05e36';
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + size, y, x + size, y + size, r);
+  ctx.arcTo(x + size, y + size, x, y + size, r);
+  ctx.arcTo(x, y + size, x, y, r);
+  ctx.arcTo(x, y, x + size, y, r);
+  ctx.closePath();
+  ctx.fillStyle = opts.plate ?? VOLT;
   ctx.fill();
   ctx.restore();
 
-  // The flame, in lucide's own 24-box coordinates.
-  const s = (size * 0.58) / 24;
+  // The bolt, in the mark's own 24-box coordinates.
+  const s = (size * 0.6) / 24;
   ctx.save();
   ctx.translate(x + (size - 24 * s) / 2, y + (size - 24 * s) / 2);
   ctx.scale(s, s);
-  ctx.strokeStyle = opts.ink ?? '#ffffff';
-  ctx.lineWidth = 2;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.stroke(
-    new Path2D(
-      'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 ' +
-        '.5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z',
-    ),
-  );
+  ctx.fillStyle = opts.ink ?? VOLT_INK;
+  ctx.fill(new Path2D(BOLT_PATH));
   ctx.restore();
 }
 
-/** "Smart" + italic "Fit" wordmark; `x`/`y` are the left baseline. */
+/** "Smart" + volt "Fit" wordmark; `x`/`y` are the left baseline. */
 export function drawWordmark(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -265,22 +266,25 @@ export function drawWordmark(
   ctx.textBaseline = 'alphabetic';
   ctx.font = font(800, size);
   const headWidth = ctx.measureText('Smart').width;
-  ctx.font = `italic 800 ${size}px ${FONT}`;
   const tailWidth = ctx.measureText('Fit').width;
   ctx.restore();
 
   text(ctx, 'Smart', x, y, { theme, size, weight: 800 });
-  // Italic accent needs its own font pass (canvas has no per-run styling).
-  ctx.save();
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-  ctx.font = `italic 800 ${size}px ${FONT}`;
   if (theme.halo) {
+    ctx.save();
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = font(800, size);
     ctx.lineJoin = 'round';
     ctx.lineWidth = Math.max(6, size * 0.18);
     ctx.strokeStyle = theme.halo;
     ctx.strokeText('Fit', x + headWidth, y);
+    ctx.restore();
   }
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.font = font(800, size);
   ctx.fillStyle = theme.accent;
   ctx.fillText('Fit', x + headWidth, y);
   ctx.restore();
@@ -351,7 +355,7 @@ export function drawRoute(
 
   const r = width * 0.75;
   endpointDot(ctx, start.x + box.x, start.y + box.y, r, '#ffffff', theme.route, theme);
-  endpointDot(ctx, end.x + box.x, end.y + box.y, r, theme.highlight, '#141110', theme);
+  endpointDot(ctx, end.x + box.x, end.y + box.y, r, theme.highlight, '#0e0e0e', theme);
 }
 
 /** Rounded-rectangle clip path, used to frame the basemap like a panel. */
@@ -411,7 +415,7 @@ function drawRouteOnMap(
 
   const r = width * 0.75;
   endpointDot(ctx, points[0].x, points[0].y, r, '#ffffff', theme.route, theme);
-  endpointDot(ctx, points.at(-1)!.x, points.at(-1)!.y, r, theme.highlight, '#141110', theme);
+  endpointDot(ctx, points.at(-1)!.x, points.at(-1)!.y, r, theme.highlight, '#0e0e0e', theme);
 }
 
 function endpointDot(
@@ -539,14 +543,14 @@ export async function renderRunCard(data: RunCardData, opts: RunCardOptions = {}
     ctx.fillRect(0, 0, W, H);
     if (style === 'dark') {
       const glow = ctx.createRadialGradient(W / 2, H * 0.2, 30, W / 2, H * 0.2, W * 0.9);
-      glow.addColorStop(0, 'rgba(224,94,54,0.42)');
-      glow.addColorStop(1, 'rgba(224,94,54,0)');
+      glow.addColorStop(0, 'rgba(243,255,71,0.42)');
+      glow.addColorStop(1, 'rgba(243,255,71,0)');
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, W, H);
     } else {
       const wash = ctx.createLinearGradient(0, 0, W, H);
-      wash.addColorStop(0, 'rgba(224,94,54,0.10)');
-      wash.addColorStop(1, 'rgba(224,94,54,0)');
+      wash.addColorStop(0, 'rgba(243,255,71,0.10)');
+      wash.addColorStop(1, 'rgba(243,255,71,0)');
       ctx.fillStyle = wash;
       ctx.fillRect(0, 0, W, H);
     }
@@ -653,7 +657,7 @@ export async function renderRunCard(data: RunCardData, opts: RunCardOptions = {}
         theme,
         size: 17,
         weight: 600,
-        ink: style === 'dark' ? 'rgba(247,242,234,0.6)' : 'rgba(23,22,21,0.6)',
+        ink: style === 'dark' ? 'rgba(245,245,242,0.6)' : 'rgba(23,22,21,0.6)',
         align: 'right',
       });
     } else {

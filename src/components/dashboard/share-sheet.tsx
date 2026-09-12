@@ -26,7 +26,7 @@ import { cn } from '@/lib/utils';
 
 const STYLES: { id: ShareStyle; label: string; hint: string }[] = [
   { id: 'transparent', label: 'Transparent', hint: 'Layers over a photo — story style' },
-  { id: 'dark', label: 'Ember', hint: 'Dark card, route on a real night map' },
+  { id: 'dark', label: 'volt', hint: 'Dark card, route on a real night map' },
   { id: 'light', label: 'Paper', hint: 'Light card, route on a street map' },
 ];
 
@@ -200,7 +200,7 @@ export function ShareSheet({
                 'relative flex items-center justify-center overflow-hidden rounded-2xl border p-3',
                 format === 'story' ? 'aspect-[9/16]' : 'aspect-[4/5]',
                 transparent
-                  ? 'bg-[repeating-conic-gradient(#e9e7e3_0%_25%,#ffffff_0%_50%)] bg-[length:18px_18px] dark:bg-[repeating-conic-gradient(#2c2523_0%_25%,#201b1a_0%_50%)]'
+                  ? 'bg-[repeating-conic-gradient(#e4e4e0_0%_25%,#ffffff_0%_50%)] bg-[length:18px_18px] dark:bg-[repeating-conic-gradient(#262626_0%_25%,#1a1a1a_0%_50%)]'
                   : 'bg-secondary',
               )}
             >
@@ -256,9 +256,9 @@ export function ShareSheet({
                       className={cn(
                         'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
                         option.id === 'transparent' &&
-                          'bg-[repeating-conic-gradient(#e9e7e3_0%_25%,#ffffff_0%_50%)] bg-[length:12px_12px]',
-                        option.id === 'dark' && 'bg-[#141110]',
-                        option.id === 'light' && 'bg-[#efedea]',
+                          'bg-[repeating-conic-gradient(#e4e4e0_0%_25%,#ffffff_0%_50%)] bg-[length:12px_12px]',
+                        option.id === 'dark' && 'bg-[#0e0e0e]',
+                        option.id === 'light' && 'bg-[#f5f5f2]',
                       )}
                     >
                       {style === option.id && (

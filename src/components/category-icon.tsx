@@ -75,12 +75,12 @@ export function chipAccentStyle(color: string | undefined): {
 }
 
 export const CATEGORY_COLOR_OPTIONS = [
-  '#d6532f',
-  '#b7220f',
-  '#e8a087',
-  '#cdaca4',
-  '#b9804f',
-  '#857d75',
-  '#2b2725',
-  '#c77b52',
+  '#f3ff47',
+  '#cbe02c',
+  '#a8b80f',
+  '#9fb41f',
+  '#6f7d16',
+  '#a3a3a3',
+  '#6f6f6f',
+  '#2b2b2b',
 ];
