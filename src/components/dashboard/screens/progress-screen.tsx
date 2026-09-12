@@ -25,6 +25,7 @@ import { EmptyState } from '../empty-state';
 import { ConsistencyHeatmap } from '../consistency-heatmap';
 import { AchievementWall } from '../achievement-wall';
 import { cn } from '@/lib/utils';
+import { GradeRing } from '@/components/volt/volt-kit';
 import { INTENSITY_META } from '@smartfit/core';
 import {
   sessionsInRange,
@@ -127,6 +128,23 @@ export function ProgressScreen() {
       ? Math.min(100, Math.round(((rangeAgg.distance ?? 0) / targets.distanceKm) * 100))
       : 0;
 
+  // The reference "Health Grade": average completion across the rings that
+  // have targets (minutes always counts; calories/distance only when set).
+  const healthScore = Math.round(
+    [
+      minPct,
+      ...(targets.calories > 0 ? [calPct] : []),
+      ...(targets.distanceKm > 0 ? [distPct] : []),
+    ].reduce((a, b) => a + b, 0) /
+      (1 + (targets.calories > 0 ? 1 : 0) + (targets.distanceKm > 0 ? 1 : 0)),
+  );
+  const gradeCopy =
+    healthScore >= 80
+      ? 'Perfect progress — keep going like this.'
+      : healthScore >= 60
+        ? 'Solid work — one more session moves the needle.'
+        : 'Every session counts. Let’s build momentum.';
+
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -159,7 +177,7 @@ export function ProgressScreen() {
                 className={cn(
                   'flex flex-1 shrink-0 items-center justify-center gap-1 rounded-full px-2.5 py-2 text-xs font-bold whitespace-nowrap transition-all sm:flex-none sm:px-4 sm:text-sm',
                   range === r.key
-                    ? 'bg-card text-foreground shadow-sm'
+                    ? 'bg-volt text-ink shadow-sm'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -172,15 +190,27 @@ export function ProgressScreen() {
         </div>
       </div>
 
-      {/* ── Hero: goal rings on warm charcoal with an volt glow ─────────── */}
-      <section className="card-hero p-4 min-[420px]:p-6 sm:p-8" aria-label="Goal rings">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
+      {/* ── Health Grade — the reference report hero ───────────────────── */}
+      <section
+        className="card-hero p-4 min-[420px]:p-6 sm:p-8"
+        aria-label="Health grade and goal rings"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+              Health Grade
+            </h2>
+            <p className="hero-muted mt-1 max-w-[17rem] text-sm">{gradeCopy}</p>
+          </div>
+          <GradeRing value={healthScore} size={88} label="Health grade" />
+        </div>
+        <div className="mt-5 mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
           <p className="eyebrow hero-muted">
             Last {days} day{days === 1 ? '' : 's'}
           </p>
           {streak > 0 && (
             <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-              <Flame className="h-3.5 w-3.5 text-[#a8b80f]" aria-hidden />
+              <Flame className="text-volt h-3.5" aria-hidden />
               {streak}-day streak
             </span>
           )}
