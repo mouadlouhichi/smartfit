@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-// App typeface (Paperpillar product UI).
-import '@fontsource-variable/plus-jakarta-sans';
-// Landing typefaces — exact match to the reference landing (SmartJib).
-import '@fontsource-variable/instrument-sans/wght.css';
+// Landing mono typeface (data/terminal accents).
 import '@fontsource-variable/jetbrains-mono/wght.css';
 import './globals.css';
 import { AppProviders } from '@/components/app-providers';

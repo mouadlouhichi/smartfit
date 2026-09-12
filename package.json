@@ -26,9 +26,7 @@
     "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project smartfit-rules-ci \"node --import tsx --test tests/rules/firestore-rules.test.ts\""
   },
   "dependencies": {
-    "@fontsource-variable/instrument-sans": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
-    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-progress": "^1.1.7",

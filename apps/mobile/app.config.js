@@ -8,14 +8,14 @@ const config = {
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
 
-  // Brand: terracotta on warm paper, matching the web app and the shared mark.
+  // Brand: volt lime on near-black, matching the web app and the shared mark.
   icon: './assets/icon.png',
-  primaryColor: '#E05E36',
+  primaryColor: '#F3FF47',
 
   splash: {
     image: './assets/splash.png',
     resizeMode: 'contain',
-    backgroundColor: '#EFEDEA',
+    backgroundColor: '#0E0E0E',
   },
 
   ios: {

@@ -8,7 +8,8 @@ import '../global.css';
 export default function RootLayout() {
   return (
     <StoreProvider>
-      <StatusBar style="dark" />
+      {/* The Volt system is dark-first: light content on the near-black ground. */}
+      <StatusBar style="light" />
       <Tabs
         screenOptions={{
           headerShown: false,
