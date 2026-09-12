@@ -40,9 +40,12 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
+    // The marketing page is brand-dark regardless of the OS theme: the `dark`
+    // class scopes the dark token overrides to this subtree (the product app
+    // keeps following the user's theme choice).
     <main
       id="main-content"
-      className="landing noise-overlay relative min-h-screen overflow-x-hidden"
+      className="landing dark noise-overlay relative min-h-screen overflow-x-hidden"
     >
       <Navigation />
       <HeroSection />
