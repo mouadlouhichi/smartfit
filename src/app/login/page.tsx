@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Field } from '@/components/ui/field';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useStore } from '@/lib/store-context';
+import { OrbitHero, VoltHeadline, PillCta } from '@/components/volt/volt-kit';
 
 function GoogleMark() {
   return (
@@ -114,9 +115,10 @@ export default function LoginPage() {
         <Link href="/" className="mb-8">
           <Wordmark />
         </Link>
+        <OrbitHero size={200} className="mb-6" />
         <Card className="w-full max-w-sm">
           <CardContent className="p-6 text-center">
-            <span className="bg-primary/10 text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
+            <span className="bg-volt/10 text-volt mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
               <ShieldCheck className="h-6 w-6" />
             </span>
             <h1 className="font-display mt-4 text-xl font-bold tracking-tight">
@@ -126,9 +128,11 @@ export default function LoginPage() {
               No accounts or servers are configured for this deployment — your training lives in
               this browser only.
             </p>
-            <Button className="mt-5 w-full" onClick={() => router.replace('/dashboard')}>
-              Continue on this device <ArrowRight className="h-4 w-4" />
-            </Button>
+            <PillCta
+              label="Continue on this device"
+              className="mt-5 w-full"
+              onClick={() => router.replace('/dashboard')}
+            />
           </CardContent>
         </Card>
       </div>
@@ -143,179 +147,228 @@ export default function LoginPage() {
         role="status"
         aria-label="Loading"
       >
-        <Loader2 className="text-primary h-8 w-8 animate-spin" />
+        <Loader2 className="text-volt h-8 w-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
-      <Link href="/" className="mb-8">
-        <Wordmark />
-      </Link>
-
-      <Card className="w-full max-w-sm">
-        <CardContent className="p-6">
-          <h1 className="font-display text-2xl font-bold tracking-tight">
-            {isReset ? 'Reset your password' : isSignUp ? 'Create your account' : 'Welcome back'}
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            {isReset
-              ? "Enter your email and we'll send you a reset link."
-              : isSignUp
-                ? 'Sign up to sync your training across every device.'
-                : 'Sign in to pick up right where you left off.'}
-          </p>
-
-          <form onSubmit={handleEmail} className="mt-5 grid gap-4">
-            {isSignUp && (
-              <Field id="name" label="Name">
-                <Input
-                  placeholder="What should we call you?"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoComplete="name"
-                />
-              </Field>
-            )}
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                  className="pl-9"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                />
-              </div>
-            </div>
-
-            {!isReset && (
-              <div className="grid gap-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      clearError();
-                      setView('reset');
-                    }}
-                    className="text-primary text-xs font-medium hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  minLength={6}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                />
-                {isSignUp && (
-                  <p className="text-muted-foreground text-xs">At least 6 characters.</p>
-                )}
-              </div>
-            )}
-
-            {authError && (
-              <p
-                role="alert"
-                className="bg-destructive/10 text-destructive rounded-lg px-3 py-2 text-xs font-medium"
-              >
-                {authError}
-              </p>
-            )}
-            {authInfo && (
-              <p
-                role="status"
-                className="bg-accent text-accent-foreground rounded-lg px-3 py-2 text-xs font-medium"
-              >
-                {authInfo}
-              </p>
-            )}
-
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isReset ? (
-                <>
-                  Send reset link <ArrowRight className="h-4 w-4" />
-                </>
-              ) : (
-                <>
-                  {isSignUp ? 'Create account' : 'Sign in'} <ArrowRight className="h-4 w-4" />
-                </>
-              )}
-            </Button>
-          </form>
-
-          {isReset ? (
-            <p className="text-muted-foreground mt-5 text-center text-sm">
-              <button
-                type="button"
-                onClick={() => {
-                  clearError();
-                  setView('signin');
-                }}
-                className="text-primary font-semibold hover:underline"
-              >
-                Back to sign in
-              </button>
-            </p>
-          ) : (
-            <>
-              <div className="text-muted-foreground my-4 flex items-center gap-3 text-xs">
-                <span className="bg-border h-px flex-1" /> or{' '}
-                <span className="bg-border h-px flex-1" />
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                disabled={loading}
-                onClick={handleGoogle}
-                className="w-full"
-              >
-                <GoogleMark /> Continue with Google
-              </Button>
-
-              <p className="text-muted-foreground mt-5 text-center text-sm">
-                {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  clearError();
-                  setView(isSignUp ? 'signin' : 'signup');
-                }}
-                className="mt-2 w-full"
-              >
-                {isSignUp ? 'Sign in instead' : 'Create an account'}
-              </Button>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <p className="text-muted-foreground mt-6 max-w-sm px-4 text-center text-xs">
-        <ShieldCheck className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
-        Your training data is private to your account. See our{' '}
-        <Link href="/privacy" className="hover:text-foreground underline underline-offset-2">
-          privacy policy
+    // Split screen: the reference welcome art on the left, the form on the
+    // right. On mobile the art stacks above the card as a compact hero.
+    <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
+      {/* ── Brand panel ──────────────────────────────────────────── */}
+      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-center lg:gap-10 lg:pr-16 lg:pl-14">
+        {/* volt glow */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-32 -left-24 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(243,255,71,0.16),transparent_65%)]"
+        />
+        <Link href="/" className="relative" aria-label="SmartFit home">
+          <Wordmark />
         </Link>
-        .
-      </p>
+
+        <div className="relative grid justify-items-start gap-8">
+          <OrbitHero size={300} />
+          <VoltHeadline className="max-w-xl text-[2.6rem]" />
+          <p className="text-muted-foreground max-w-md text-base">
+            Plan your week, log every session and watch the trends build — privately, on your terms.
+            No wearable required.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            {['Plan', 'Log', 'Progress', 'Run'].map((chip) => (
+              <span
+                key={chip}
+                className="border-border text-muted-foreground rounded-full border px-4 py-1.5 text-sm font-bold"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+          <PillCta
+            label={isSignUp ? 'Continue below' : 'Get started'}
+            onClick={() => {
+              clearError();
+              setView('signup');
+              document.getElementById('email')?.focus({ preventScroll: false });
+            }}
+          />
+        </div>
+      </aside>
+
+      {/* ── Form panel ───────────────────────────────────────────── */}
+      <div className="flex flex-col items-center justify-center px-4 py-10 sm:px-8">
+        {/* Mobile hero — same art, compact */}
+        <div className="mb-6 flex flex-col items-center gap-4 text-center lg:hidden">
+          <Link href="/" aria-label="SmartFit home">
+            <Wordmark />
+          </Link>
+          <OrbitHero size={170} />
+          <VoltHeadline className="text-2xl sm:text-3xl" />
+        </div>
+
+        <Card className="w-full max-w-sm">
+          <CardContent className="p-6">
+            <h1 className="font-display text-2xl font-bold tracking-tight">
+              {isReset ? 'Reset your password' : isSignUp ? 'Create your account' : 'Welcome back'}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {isReset
+                ? "Enter your email and we'll send you a reset link."
+                : isSignUp
+                  ? 'Sign up to sync your training across every device.'
+                  : 'Sign in to pick up right where you left off.'}
+            </p>
+
+            <form onSubmit={handleEmail} className="mt-5 grid gap-4">
+              {isSignUp && (
+                <Field id="name" label="Name">
+                  <Input
+                    placeholder="What should we call you?"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoComplete="name"
+                  />
+                </Field>
+              )}
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                  <Input
+                    id="email"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                    className="pl-9"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                  />
+                </div>
+              </div>
+
+              {!isReset && (
+                <div className="grid gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearError();
+                        setView('reset');
+                      }}
+                      className="text-volt-dim hover:text-volt text-xs font-medium transition-colors hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                  <Input
+                    id="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                  />
+                  {isSignUp && (
+                    <p className="text-muted-foreground text-xs">At least 6 characters.</p>
+                  )}
+                </div>
+              )}
+
+              {authError && (
+                <p
+                  role="alert"
+                  className="bg-destructive/10 text-destructive rounded-lg px-3 py-2 text-xs font-medium"
+                >
+                  {authError}
+                </p>
+              )}
+              {authInfo && (
+                <p
+                  role="status"
+                  className="bg-accent text-accent-foreground rounded-lg px-3 py-2 text-xs font-medium"
+                >
+                  {authInfo}
+                </p>
+              )}
+
+              <Button type="submit" disabled={loading} className="w-full">
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isReset ? (
+                  <>
+                    Send reset link <ArrowRight className="h-4 w-4" />
+                  </>
+                ) : (
+                  <>
+                    {isSignUp ? 'Create account' : 'Sign in'} <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {isReset ? (
+              <p className="text-muted-foreground mt-5 text-center text-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearError();
+                    setView('signin');
+                  }}
+                  className="text-volt-dim hover:text-volt font-semibold transition-colors hover:underline"
+                >
+                  Back to sign in
+                </button>
+              </p>
+            ) : (
+              <>
+                <div className="text-muted-foreground my-4 flex items-center gap-3 text-xs">
+                  <span className="bg-border h-px flex-1" /> or{' '}
+                  <span className="bg-border h-px flex-1" />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={loading}
+                  onClick={handleGoogle}
+                  className="w-full"
+                >
+                  <GoogleMark /> Continue with Google
+                </Button>
+
+                <p className="text-muted-foreground mt-5 text-center text-sm">
+                  {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    clearError();
+                    setView(isSignUp ? 'signin' : 'signup');
+                  }}
+                  className="mt-2 w-full"
+                >
+                  {isSignUp ? 'Sign in instead' : 'Create an account'}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <p className="text-muted-foreground mt-6 max-w-sm text-center text-xs">
+          <ShieldCheck className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
+          Your training data is private to your account. See our{' '}
+          <Link href="/privacy" className="hover:text-foreground underline underline-offset-2">
+            privacy policy
+          </Link>
+          .
+        </p>
+      </div>
     </div>
   );
 }
