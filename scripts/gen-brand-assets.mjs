@@ -1,20 +1,21 @@
 /**
- * Regenerates every raster brand asset from the one mark: the charcoal disc
- * with the white flame — the badge that leads the dashboard header greeting.
- * Run with `node scripts/gen-brand-assets.mjs` after touching the mark.
- *
- * The plate is the brand ember (#e05e36) — the colour the mark has always
- * worn — with the white flame from the dashboard header badge on top.
+ * Regenerates every brand asset from the one Volt mark: the rounded-square
+ * charge cell in volt (#F3FF47) with the near-black bolt — the badge that
+ * leads the dashboard header greeting. Run with
+ * `node scripts/gen-brand-assets.mjs` after touching the mark.
  *
  * Two variants, same glyph:
- *   - disc on transparent  → favicon, PWA icons, Expo favicon (the "icon"
- *     look, exactly like the header badge);
- *   - full-bleed ember     → maskable/adaptive tiles and Apple touch icon,
- *     where the OS crops or rounds the canvas itself.
+ *   - charge cell on transparent → favicon, PWA icons, Expo favicon (the
+ *     "icon" look, exactly like the header badge);
+ *   - full-bleed volt tile       → maskable/adaptive tiles and Apple touch
+ *     icon, where the OS crops or rounds the canvas itself.
  *
- * `og.png` and the Expo splash keep their existing composition: the script
- * locates the previous mark by colour, repaints its box with the surrounding
- * background and seats the new mark in the same spot.
+ * `og.png`, its vector source (`assets/og.svg`) and the Expo splash are
+ * composed here from scratch: the wordmark and headline are set from
+ * IBM Plex Sans Bold (OFL, pulled from @fontsource — the closest open
+ * neo-grotesque to Helvetica so the canvas render matches the brand type)
+ * converted to paths with opentype.js, so no fontconfig is involved and the
+ * output is identical on every machine.
  *
  * After running it, bump the `?v=` revision on the icon URLs in
  * `src/app/layout.tsx` and `public/manifest.webmanifest` — home-screen and
@@ -22,107 +23,250 @@
  * phones refetch bytes that kept their path.
  */
 import sharp from 'sharp';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import opentype from 'opentype.js';
 
-const CHARCOAL = '#e05e36'; // the ember plate; name kept for the disc/tile helpers
-const EMBER = { r: 0xe0, g: 0x5e, b: 0x36 }; // previous mark colour, for bbox hunt
-const FLAME =
-  'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 ' +
-  '.5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z';
+const require = createRequire(import.meta.url);
 
-const glyph = (box) => {
-  const s = (box * 0.58) / 24;
-  const t = (512 - 24 * s) / 2;
-  return `<g transform="translate(${t},${t}) scale(${s})" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="${FLAME}"/></g>`;
+/* ── brand constants (mirrors src/lib/brand-mark.ts) ─────────────────── */
+
+const VOLT = '#f3ff47';
+const VOLT_SOFT = '#f7ff85';
+const INK = '#101010';
+const CANVAS = '#0e0e0e';
+const PAPER = '#f5f5f2';
+
+/** The bolt, in a 24×24 box — the shared BOLT_PATH geometry. */
+const BOLT_PATH =
+  'M13 2 L4.6 13.2 Q4.2 13.8 4.9 13.8 L10.4 13.8 L8.9 21.2 Q8.8 21.9 9.4 21.3 L19.4 9.6 Q19.9 9 19.1 9 L13.4 9 Z';
+
+/** Charge cell + bolt at (x,y) with the glyph scaled to `box` px. */
+const markGroup = (x, y, box, { plate = VOLT, ink = INK, rx = 0.3 } = {}) => {
+  const s = (box * 0.6) / 24;
+  const t = (box - 24 * s) / 2;
+  return (
+    `<g transform="translate(${x},${y})">` +
+    `<rect width="${box}" height="${box}" rx="${box * rx}" fill="${plate}"/>` +
+    `<g transform="translate(${t},${t}) scale(${s})"><path d="${BOLT_PATH}" fill="${ink}"/></g>` +
+    `</g>`
+  );
 };
 
-const DISC_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><circle cx="256" cy="256" r="256" fill="${CHARCOAL}"/>${glyph(512)}</svg>`;
-const TILE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="${CHARCOAL}"/>${glyph(512)}</svg>`;
+/** Full-bleed volt tile with the bolt inside the maskable safe zone (~80%). */
+const tileGroup = (box, { plate = VOLT, ink = INK } = {}) => {
+  const inner = box * 0.68;
+  return (
+    `<rect width="${box}" height="${box}" fill="${plate}"/>` +
+    markGroup((box - inner) / 2, (box - inner) / 2, inner, { plate: 'none', ink })
+  );
+};
 
-const svg = (s) => Buffer.from(s);
-const render = (source, size) => sharp(svg(source)).resize(size, size).png().toBuffer();
+const MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">${markGroup(0, 0, 512)}</svg>`;
+const MARK_MASKABLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">${tileGroup(512)}</svg>`;
+const TILE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="${VOLT}"/>${markGroup(0, 0, 512, { plate: 'none' })}</svg>`;
 
-/** Bounding box of pixels close to the previous ember tile. */
-async function emberBox(file, maxY = Infinity) {
-  const { data, info } = await sharp(file)
-    .ensureAlpha()
-    .raw()
-    .toBuffer({ resolveWithObject: true });
-  let x0 = Infinity,
-    y0 = Infinity,
-    x1 = -1,
-    y1 = -1;
-  for (let y = 0; y < Math.min(info.height, maxY); y++) {
-    for (let x = 0; x < info.width; x++) {
-      const i = (y * info.width + x) * 4;
-      if (
-        Math.abs(data[i] - EMBER.r) < 30 &&
-        Math.abs(data[i + 1] - EMBER.g) < 30 &&
-        Math.abs(data[i + 2] - EMBER.b) < 30
-      ) {
-        if (x < x0) x0 = x;
-        if (x > x1) x1 = x;
-        if (y < y0) y0 = y;
-        if (y > y1) y1 = y;
-      }
-    }
-  }
-  if (x1 < 0) throw new Error(`no ember pixels found in ${file}`);
-  return { left: x0, top: y0, width: x1 - x0 + 1, height: y1 - y0 + 1, data, info };
+/* ── typography → vector paths (deterministic, no fontconfig) ─────────── */
+
+function fsWoff(path) {
+  const buf = readFileSync(path);
+  return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
 }
 
-/** Repaint the old tile's box with its surroundings, seat the new mark. */
-async function swapMark(file, maxY) {
-  const { left, top, width, height, data, info } = await emberBox(file, maxY);
-  // Background colour: median of the ring just outside the old box.
-  const ring = [];
-  const at = (x, y) => {
-    const i = (y * info.width + x) * 4;
-    return [data[i], data[i + 1], data[i + 2]];
-  };
-  for (let x = Math.max(0, left - 6); x <= Math.min(info.width - 1, left + width + 5); x++) {
-    if (top - 6 >= 0) ring.push(at(x, top - 6));
-    if (top + height + 5 < info.height) ring.push(at(x, top + height + 5));
+const fontBold = opentype.parse(
+  fsWoff(require.resolve('@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-700-normal.woff')),
+);
+
+/** Text as an SVG path string (x = left, y = baseline). */
+const textPath = (text, x, y, size, fill, { opacity = 1, letterSpacing = 0 } = {}) => {
+  const path = fontBold.getPath(text, x, y, size, { letterSpacing });
+  return `<path d="${path.toPathData(2)}" fill="${fill}"${opacity !== 1 ? ` opacity="${opacity}"` : ''}/>`;
+};
+
+const textWidth = (text, size, letterSpacing = 0) =>
+  fontBold.getAdvanceWidth(text, size, { letterSpacing });
+
+/** Wordmark: white "Smart" + volt "Fit", one shared baseline. */
+const wordmarkPaths = (x, y, size) => {
+  const head = textPath('Smart', x, y, size, PAPER);
+  const w = textWidth('Smart', size);
+  const tail = textPath('Fit', x + w, y, size, VOLT);
+  return { svg: head + tail, width: w + textWidth('Fit', size) };
+};
+
+/* ── the OG share card, 1200×630 ──────────────────────────────────────── */
+
+function ogSvg() {
+  const W = 1200;
+  const H = 630;
+  const pad = 92;
+
+  const markSize = 104;
+  const wm = 62;
+  const wordmark = wordmarkPaths(pad, 78 + markSize / 2 + wm * 0.34, wm);
+
+  const headlineSize = 116;
+  const line1Y = 352;
+  const line2Y = line1Y + headlineSize * 1.06;
+  const line1 = 'Train with';
+  const line2 = 'intention.';
+  // The final word picks up the volt accent, magazine-style.
+  const l1 = textPath(line1, pad, line1Y, headlineSize, PAPER);
+  const l2a = textPath('inten', pad, line2Y, headlineSize, PAPER);
+  const l2b = textPath('tion.', pad + textWidth('inten', headlineSize), line2Y, headlineSize, VOLT);
+
+  const chips = ['Plan', 'Log', 'Progress', 'Run'];
+  const chipSize = 27;
+  const chipH = 52;
+  let cx = pad;
+  const chipY = 548;
+  let chipsSvg = '';
+  for (const c of chips) {
+    const w = textWidth(c, chipSize, 0.01) + 52;
+    chipsSvg +=
+      `<rect x="${cx}" y="${chipY}" width="${w}" height="${chipH}" rx="${chipH / 2}" ` +
+      `fill="none" stroke="rgba(245,245,242,0.22)" stroke-width="2"/>` +
+      textPath(
+        c,
+        cx + 26,
+        chipY + chipH / 2 + chipSize * 0.34,
+        chipSize,
+        'rgba(245,245,242,0.85)',
+        {
+          letterSpacing: 0.01,
+        },
+      );
+    cx += w + 16;
   }
-  ring.sort((a, b) => a[0] - b[0]);
-  const [r, g, b] = ring[Math.floor(ring.length / 2)];
-  const patch = await sharp({
-    create: { width, height, channels: 4, background: { r, g, b, alpha: 1 } },
-  })
-    .png()
-    .toBuffer();
-  const mark = await render(DISC_SVG, width);
-  const out = await sharp(file)
-    .composite([
-      { input: patch, left, top },
-      { input: mark, left, top },
-    ])
-    .png()
-    .toBuffer();
-  writeFileSync(file, out); // sharp refuses same-file in/out; buffer round-trip
-  console.log(`swapped mark in ${file} @${left},${top} ${width}x${height} on rgb(${r},${g},${b})`);
+
+  // Watermark: a giant bolt, ghosted behind the right edge.
+  const boltS = 620 / 24;
+  const watermark =
+    `<g transform="translate(820,60) scale(${boltS})" opacity="0.07">` +
+    `<path d="${BOLT_PATH}" fill="${VOLT}"/></g>` +
+    `<circle cx="1040" cy="315" r="225" fill="none" stroke="${VOLT}" stroke-width="2" opacity="0.16"/>`;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <defs>
+    <radialGradient id="glow" cx="0.88" cy="-0.1" r="0.9">
+      <stop offset="0" stop-color="${VOLT}" stop-opacity="0.22"/>
+      <stop offset="0.55" stop-color="${VOLT}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0.02" cy="1.05" r="0.7">
+      <stop offset="0" stop-color="${VOLT}" stop-opacity="0.07"/>
+      <stop offset="0.6" stop-color="${VOLT}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="${CANVAS}"/>
+  <rect width="${W}" height="${H}" fill="url(#glow)"/>
+  <rect width="${W}" height="${H}" fill="url(#glow2)"/>
+  ${watermark}
+  <rect x="0" y="0" width="${W}" height="6" fill="${VOLT}"/>
+  ${markGroup(pad, 78, markSize)}
+  ${textPath('SMARTFIT', pad + markSize + 26, 78 + markSize / 2 + 9, 21, 'rgba(245,245,242,0.55)', { letterSpacing: 0.32 })}
+  ${l1}${l2a}${l2b}
+  ${chipsSvg}
+</svg>`;
 }
+
+/* ── Expo splash, 1242×2436 ───────────────────────────────────────────── */
+
+function splashSvg() {
+  const W = 1242;
+  const H = 2436;
+  const markSize = 340;
+  const cx = (W - markSize) / 2;
+  const markY = H / 2 - markSize - 60;
+  const wm = 104;
+  const wordmark = wordmarkPaths(0, 0, wm);
+  const wmX = (W - wordmark.width) / 2;
+  const wmY = markY + markSize + 128;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+  <rect width="${W}" height="${H}" fill="${CANVAS}"/>
+  <defs>
+    <radialGradient id="sg" cx="0.5" cy="0.42" r="0.5">
+      <stop offset="0" stop-color="${VOLT}" stop-opacity="0.10"/>
+      <stop offset="0.7" stop-color="${VOLT}" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#sg)"/>
+  ${markGroup(cx, markY, markSize)}
+  <g transform="translate(${wmX},${wmY})">${wordmark.svg}</g>
+</svg>`;
+}
+
+/* ── favicon.ico: a hand-rolled PNG-in-ICO container ──────────────────── */
+
+async function faviconIco() {
+  const sizes = [16, 32, 48];
+  const pngs = [];
+  for (const s of sizes) {
+    pngs.push({
+      size: s,
+      data: await sharp(svgBuffer(MARK_SVG)).resize(s, s).png().toBuffer(),
+    });
+  }
+  // ICONDIR + ICONDIRENTRY table, then the bundled PNG blobs.
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0);
+  header.writeUInt16LE(1, 2);
+  header.writeUInt16LE(pngs.length, 4);
+  const entries = [];
+  let offset = 6 + 16 * pngs.length;
+  for (const { size, data } of pngs) {
+    const e = Buffer.alloc(16);
+    e.writeUInt8(size === 256 ? 0 : size, 0);
+    e.writeUInt8(size === 256 ? 0 : size, 1);
+    e.writeUInt8(0, 2); // colors
+    e.writeUInt8(0, 3); // reserved
+    e.writeUInt16LE(1, 4); // planes
+    e.writeUInt16LE(32, 6); // bpp
+    e.writeUInt32LE(data.length, 8);
+    e.writeUInt32LE(offset, 12);
+    offset += data.length;
+    entries.push(e);
+  }
+  return Buffer.concat([header, ...entries, ...pngs.map((p) => p.data)]);
+}
+
+const svgBuffer = (s) => Buffer.from(s);
+const render = (source, size) => sharp(svgBuffer(source)).resize(size, size).png().toBuffer();
 
 const put = async (buf, path) => {
   writeFileSync(path, buf);
   console.log('wrote', path);
 };
 
-const disc512 = await render(DISC_SVG, 512);
-const tile512 = await render(TILE_SVG, 512);
+/* ── emit everything ──────────────────────────────────────────────────── */
 
-writeFileSync('public/icon.svg', DISC_SVG);
-writeFileSync('apps/mobile/assets/icon.svg', DISC_SVG);
-console.log('wrote public/icon.svg + apps/mobile/assets/icon.svg');
+writeFileSync('public/icon.svg', MARK_SVG);
+writeFileSync('apps/mobile/assets/icon.svg', MARK_SVG);
+writeFileSync('assets/mark.svg', MARK_SVG);
+writeFileSync('assets/mark-maskable.svg', MARK_MASKABLE_SVG);
+console.log('wrote icon/mark SVGs');
+
+const disc512 = await render(MARK_SVG, 512);
+const tile512 = await render(MARK_MASKABLE_SVG, 512);
+const roundedTile = await render(TILE_SVG, 512);
 
 await put(disc512, 'public/icons/icon-512.png');
-await put(await render(DISC_SVG, 192), 'public/icons/icon-192.png');
-await put(await render(DISC_SVG, 32), 'public/icons/icon-32.png');
-await put(await render(DISC_SVG, 64), 'apps/mobile/assets/favicon.png');
+await put(await render(MARK_SVG, 192), 'public/icons/icon-192.png');
+await put(await render(MARK_SVG, 32), 'public/icons/icon-32.png');
+await put(await render(MARK_SVG, 64), 'apps/mobile/assets/favicon.png');
 await put(tile512, 'public/icons/maskable-512.png');
-await put(await render(TILE_SVG, 180), 'public/apple-touch-icon.png');
-await put(tile512, 'apps/mobile/assets/icon.png');
+await put(await render(MARK_MASKABLE_SVG, 180), 'public/apple-touch-icon.png');
+await put(roundedTile, 'apps/mobile/assets/icon.png');
 await put(tile512, 'apps/mobile/assets/adaptive-icon.png');
+await put(await faviconIco(), 'public/favicon.ico');
 
-await swapMark('public/og.png', 400); // the ember underline bar lives lower down
-await swapMark('apps/mobile/assets/splash.png', Infinity);
+await put(Buffer.from(ogSvg()), 'assets/og.svg');
+await put(
+  await sharp(svgBuffer(ogSvg()), { density: 96 }).resize(1200, 630).png().toBuffer(),
+  'public/og.png',
+);
+await put(
+  await sharp(svgBuffer(splashSvg()), { density: 96 }).resize(1242, 2436).png().toBuffer(),
+  'apps/mobile/assets/splash.png',
+);
+
+console.log('done — bump the ?v= revision in src/app/layout.tsx + public/manifest.webmanifest');
