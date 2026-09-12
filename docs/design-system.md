@@ -46,7 +46,7 @@ screens       components/dashboard/screens/*, auth, onboarding, landing
 
 | Component | File | When to use | Notes |
 | --- | --- | --- | --- |
-| `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the ember pulse; mobile-first sizes — default h-11, sm h-9, icon 44px, compacted on sm+ |
+| `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the volt pulse; mobile-first sizes — default h-11, sm h-9, icon 44px, compacted on sm+ |
 | `Input` | `ui/input.tsx` | free text, numbers | h-11 + 16px type on mobile (no iOS focus zoom), h-10 + text-sm on sm+, rounded-xl; `aria-invalid=true` → destructive border |
 | `Select` | `ui/select.tsx` | closed choice sets | styled native `<select>` + chevron; same invalid styling; keep native picker on mobile |
 | `DatePicker` | `ui/date-picker.tsx` | **every** date field | trigger styled like `Select`; the calendar popover is closed until pressed (native date inputs auto-open theirs on some devices). Month paging, Today/Yesterday quick picks, arrow/Home/End keyboard grid, `max` (default today) and `min` bounds, `weekStartsOn` follows the profile |
@@ -119,9 +119,9 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
   where a visible label is genuinely impossible (e.g. the chart unit `Select`).
 - Hints/errors are associated, not adjacent decoration (`aria-describedby`).
 - Errors: `role="alert"` so screen readers announce on commit.
-- Contrast: all token inks are AA in light and dark themes (`--primary #bd4220`,
-  `--muted-foreground #65635d` light; `--accent-foreground #f2c4ae` dark).
-- Motion: `ember-glow`/`dot-typing` keyframes honor `prefers-reduced-motion`.
+- Contrast: all token inks are AA in light and dark themes (dark `--primary #f3ff47`
+  always carries `--primary-foreground #101010`; light `--primary` is ink `#161616`).
+- Motion: `volt-glow`/`dot-typing` keyframes honor `prefers-reduced-motion`.
 
 ## 7. Stability contracts (E2E)
 

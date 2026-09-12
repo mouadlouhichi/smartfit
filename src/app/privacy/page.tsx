@@ -98,7 +98,7 @@ export default function PrivacyPage() {
           <p>
             The live run view draws a labelled basemap from OpenFreeMap&apos;s free vector tiles
             (OpenStreetMap data, no API key, no cookies) — or, on devices where that engine cannot
-            run, from CARTO&apos;s raster tiles of the same OpenStreetMap data — and the Ember/Paper
+            run, from CARTO&apos;s raster tiles of the same OpenStreetMap data — and the Volt/Ink
             share cards draw CARTO raster tiles likewise. All are credited on the map and on the
             card. A tile request carries only the coordinates of the area being displayed, never
             your route as a whole, your account or your identity, and it is made by your browser,

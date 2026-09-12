@@ -133,7 +133,7 @@ export function SessionDetailModal() {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold">Share card</p>
                 <p className="text-muted-foreground text-xs">
-                  Transparent, Ember or Paper — layer it over a photo for Instagram.
+                  Transparent, Volt or Ink — layer it over a photo for Instagram.
                 </p>
               </div>
               <Button size="sm" onClick={() => setShareOpen(true)}>

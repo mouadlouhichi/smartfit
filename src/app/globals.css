@@ -425,7 +425,7 @@ input[type='number'] {
 /* Breathing ember glow — the weekly-goal energy button and the desktop
    global CTA pulse their box-shadow: the ember ring expands and the drop
    glow intensifies, like the button is focussing attention on itself. */
-@keyframes ember-glow {
+@keyframes volt-glow {
   0%,
   100% {
     box-shadow:
@@ -439,7 +439,7 @@ input[type='number'] {
   }
 }
 .zap-glow {
-  animation: ember-glow 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: volt-glow 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .zap-glow {

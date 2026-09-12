@@ -165,7 +165,7 @@ export function OverviewScreen() {
               <button
                 onClick={() => openModal('workout')}
                 aria-label="Log workout"
-                className="zap-glow bg-primary relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-90"
+                className="zap-glow bg-primary text-primary-foreground relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full transition-transform active:scale-90"
               >
                 <Zap className="h-6 w-6" strokeWidth={2.6} fill="currentColor" />
               </button>
