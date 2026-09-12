@@ -22,7 +22,10 @@ export function StatCard({
       <div className="flex items-center gap-3">
         <span
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-          style={{ backgroundColor: `${accent}1a`, color: accent }}
+          style={{
+            backgroundColor: `color-mix(in oklab, ${accent} 12%, transparent)`,
+            color: accent,
+          }}
         >
           <Icon className="h-5 w-5" />
         </span>

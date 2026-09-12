@@ -436,15 +436,15 @@ export function ProfileScreen() {
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
               {cloud ? (
-                <Cloud className="h-3.5 w-3.5 text-[#a8b80f]" aria-hidden />
+                <Cloud className="text-primary h-3.5 w-3.5" aria-hidden />
               ) : (
-                <HardDrive className="h-3.5 w-3.5 text-[#a8b80f]" aria-hidden />
+                <HardDrive className="text-primary h-3.5 w-3.5" aria-hidden />
               )}
               {cloud ? 'Cloud synced' : 'Local mode'}
             </span>
             {streak > 0 && (
               <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-                <Flame className="h-3.5 w-3.5 text-[#a8b80f]" aria-hidden />
+                <Flame className="text-primary h-3.5 w-3.5" aria-hidden />
                 {streak}-day streak
               </span>
             )}
@@ -463,7 +463,7 @@ export function ProfileScreen() {
                 <p className="hero-muted min-w-0 text-[11px] font-semibold tracking-wide uppercase">
                   {t.label}
                 </p>
-                <t.icon className="h-3.5 w-3.5 shrink-0 text-[#a8b80f]" aria-hidden />
+                <t.icon className="text-primary h-3.5 w-3.5 shrink-0" aria-hidden />
               </div>
               <p className="font-display mt-1 text-xl font-extrabold tabular-nums">{t.value}</p>
             </div>
