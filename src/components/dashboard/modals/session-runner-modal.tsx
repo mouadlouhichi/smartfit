@@ -54,6 +54,7 @@ import {
 } from '@smartfit/core';
 import { renderWorkoutPng, shareOrDownloadPng } from '@/lib/route-art';
 import { RouteMap } from '../route-map';
+import { ProgressAchievementModal } from './progress-achievement-modal';
 import { ShareSheet } from '../share-sheet';
 import type { RunCardData } from '@/lib/share-card';
 import { cn } from '@/lib/utils';
@@ -157,6 +158,7 @@ export function SessionRunnerModal() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [draft, setDraft] = useState('');
   const [screen, setScreen] = useState<'live' | 'summary'>('live');
+  const [celebrate, setCelebrate] = useState<{ title: string; prCount: number } | null>(null);
   const nextId = useRef(1);
 
   // GPS walk tracking
@@ -463,14 +465,9 @@ export function SessionRunnerModal() {
       route,
     });
     setRunning(false);
-    closeModal();
     const prCount = summary?.personalRecords.length ?? 0;
-    toast(
-      prCount > 0
-        ? `Session logged — ${durationMin} min and ${prCount} PR${prCount === 1 ? '' : 's'}!`
-        : `Session logged — ${durationMin} min of ${run.title}`,
-      'success',
-    );
+    // Celebrate first (the reference "Today's progress" sheet), then close.
+    setCelebrate({ title: run.title, prCount });
   }
 
   return (
@@ -480,6 +477,22 @@ export function SessionRunnerModal() {
       aria-modal="true"
       aria-label={`Live session: ${run.title}`}
     >
+      {celebrate && (
+        <ProgressAchievementModal
+          workoutTitle={celebrate.title}
+          prCount={celebrate.prCount}
+          onDone={() => {
+            setCelebrate(null);
+            closeModal();
+            toast(
+              celebrate.prCount > 0
+                ? `Session logged — ${celebrate.prCount} PR${celebrate.prCount === 1 ? '' : 's'}!`
+                : `Session logged — keep the streak alive!`,
+              'success',
+            );
+          }}
+        />
+      )}
       {/* ── Header ────────────────────────────────────────────────────── */}
       <header className="relative flex items-center gap-3 px-4 pt-4 pb-3">
         <button
