@@ -15,6 +15,7 @@ import {
   History,
   Loader2,
   Pencil,
+  PersonStanding,
   Plus,
   Ruler,
   Target,
@@ -128,14 +129,14 @@ export function BodyScreen() {
 
       {/* Mode switch: measurements ↔ muscle map */}
       <div
-        className="bg-secondary -mt-2 flex w-fit rounded-full p-1"
+        className="bg-secondary border-border mx-auto flex w-fit rounded-full border p-1 shadow-sm"
         role="tablist"
         aria-label="Body mode"
       >
         {(
           [
-            { key: 'measure', label: 'Measurements' },
-            { key: 'muscles', label: 'Muscle map' },
+            { key: 'measure', label: 'Measurements', icon: Ruler },
+            { key: 'muscles', label: 'Muscle map', icon: PersonStanding },
           ] as const
         ).map((t) => (
           <button
@@ -144,12 +145,13 @@ export function BodyScreen() {
             aria-selected={mode === t.key}
             onClick={() => setMode(t.key)}
             className={cn(
-              'rounded-full px-4 py-1.5 text-sm font-bold transition-colors',
+              'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-colors min-[420px]:px-6',
               mode === t.key
                 ? 'bg-volt text-ink shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
+            <t.icon className="h-4 w-4" aria-hidden />
             {t.label}
           </button>
         ))}
