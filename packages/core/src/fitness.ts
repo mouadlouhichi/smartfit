@@ -443,3 +443,11 @@ export function targetsForDays(state: FitnessState, days: number): ActivityTarge
 export function weeklyTargets(state: FitnessState): ActivityTargets {
   return targetsForDays(state, 7);
 }
+
+/** Streak celebration milestones — the next goal the app cheers toward. */
+export const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100, 365];
+
+/** The next streak milestone above `streak` (streak + 1 when past the last). */
+export function nextStreakMilestone(streak: number): number {
+  return STREAK_MILESTONES.find((m) => m > streak) ?? streak + 1;
+}

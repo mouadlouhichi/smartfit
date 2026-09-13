@@ -48,6 +48,7 @@ import {
 } from '@smartfit/core';
 import type { BodyUnit, ExerciseMuscle } from '@smartfit/core';
 import { MuscleMap } from '@/components/body/muscle-map';
+import { MuscleMapModal } from '@/components/body/muscle-map-modal';
 import { ExerciseImage } from '@/components/exercise-image';
 import { ExerciseDetailDialog } from '@/components/exercise-detail';
 import { PillCta } from '@/components/volt/volt-kit';
@@ -384,6 +385,7 @@ function MuscleLab() {
   const { openWith } = useModals();
   const [muscle, setMuscle] = useState<ExerciseMuscle>('chest');
   const [detailName, setDetailName] = useState<string | null>(null);
+  const [mapOpen, setMapOpen] = useState(false);
 
   // Sets logged this week per primary muscle (catalog-matched exercises).
   const setsByMuscle = useMemo(() => {
@@ -432,7 +434,14 @@ function MuscleLab() {
       {/* The map */}
       <Card className="mx-auto w-full max-w-sm lg:mx-0">
         <CardContent className="p-4 sm:p-6">
-          <MuscleMap selected={muscle} onSelect={setMuscle} />
+          <div className="sr-only">Tap a muscle to open its progress sheet.</div>
+          <MuscleMap
+            selected={muscle}
+            onSelect={(m) => {
+              setMuscle(m);
+              setMapOpen(true);
+            }}
+          />
         </CardContent>
       </Card>
 
@@ -551,6 +560,13 @@ function MuscleLab() {
         open={!!detailName}
         onOpenChange={(o) => !o && setDetailName(null)}
         allowStart
+      />
+
+      <MuscleMapModal
+        open={mapOpen}
+        onOpenChange={setMapOpen}
+        muscle={muscle}
+        onSelect={setMuscle}
       />
     </div>
   );
