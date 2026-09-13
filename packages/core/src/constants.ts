@@ -149,3 +149,9 @@ export const BODY_UNIT_META: Record<string, { label: string; unit: string; icon:
   arms: { label: 'Arms', unit: 'cm', icon: 'ruler' },
   custom: { label: 'Custom measurement', unit: '', icon: 'ruler' },
 };
+
+/**
+ * Weekly set target used by the muscle-map meters — the "N sets of 16"
+ * per-muscle goal shown across the body map and today's-workout card.
+ */
+export const MUSCLE_WEEKLY_SET_TARGET = 16;

@@ -5,6 +5,7 @@ import { ChevronRight, Info, SlidersHorizontal, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   EXERCISES,
+  MUSCLE_WEEKLY_SET_TARGET,
   EXERCISE_MUSCLE_LABELS,
   sessionsInRange,
   startOfWeek,
@@ -41,12 +42,11 @@ export function MuscleMapModal({
   const [showInfo, setShowInfo] = useState(false);
   const [sim, setSim] = useState(false);
 
-  const WEEKLY_SET_TARGET = 16;
   const label = EXERCISE_MUSCLE_LABELS[muscle];
   const groupColor = MUSCLE_GROUP_COLOR[MUSCLE_GROUP[muscle]];
 
   const sets = useMemo(() => {
-    if (sim) return WEEKLY_SET_TARGET;
+    if (sim) return MUSCLE_WEEKLY_SET_TARGET;
     const from = toISODate(startOfWeek(new Date(), weekStartOf(state)));
     const to = toISODate(new Date());
     let total = 0;
@@ -56,7 +56,7 @@ export function MuscleMapModal({
         if (entry?.muscles.includes(muscle)) total += Math.max(1, ex.sets.length);
       }
     }
-    return Math.min(total, WEEKLY_SET_TARGET);
+    return Math.min(total, MUSCLE_WEEKLY_SET_TARGET);
   }, [state, muscle, sim]);
 
   const picks = useMemo(
@@ -181,14 +181,14 @@ export function MuscleMapModal({
                   Focus zone
                 </p>
                 <p className="mt-0.5 text-xs text-white/60">
-                  {sets >= WEEKLY_SET_TARGET
+                  {sets >= MUSCLE_WEEKLY_SET_TARGET
                     ? 'Weekly target complete'
-                    : `${WEEKLY_SET_TARGET - sets} sets until done`}
+                    : `${MUSCLE_WEEKLY_SET_TARGET - sets} sets until done`}
                 </p>
               </div>
               <p className="shrink-0 text-sm font-bold tabular-nums">
                 {sets} sets{' '}
-                <span className="font-medium text-white/55">of {WEEKLY_SET_TARGET}</span>
+                <span className="font-medium text-white/55">of {MUSCLE_WEEKLY_SET_TARGET}</span>
               </p>
             </div>
 
@@ -198,11 +198,11 @@ export function MuscleMapModal({
               role="progressbar"
               aria-valuenow={sets}
               aria-valuemin={0}
-              aria-valuemax={WEEKLY_SET_TARGET}
+              aria-valuemax={MUSCLE_WEEKLY_SET_TARGET}
               aria-label={`Sets this week for ${label}`}
             >
-              {Array.from({ length: WEEKLY_SET_TARGET }, (_, i) => {
-                const t = i / (WEEKLY_SET_TARGET - 1);
+              {Array.from({ length: MUSCLE_WEEKLY_SET_TARGET }, (_, i) => {
+                const t = i / (MUSCLE_WEEKLY_SET_TARGET - 1);
                 const filled = i < sets;
                 return (
                   <span

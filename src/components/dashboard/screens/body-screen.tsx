@@ -30,7 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { CategoryIcon } from '@/components/category-icon';
-import { BODY_UNIT_META, EXERCISES } from '@smartfit/core';
+import { BODY_UNIT_META, EXERCISES, MUSCLE_WEEKLY_SET_TARGET } from '@smartfit/core';
 import {
   bodyDisplayUnit,
   bodyLabel,
@@ -377,8 +377,6 @@ export function BodyScreen() {
    The reference body-map screen: pick a muscle on the mannequin, see the
    week's set count for it and every catalog exercise that trains it, then
    launch the guided runner with a ready-made focus routine. */
-
-const MUSCLE_WEEKLY_SET_TARGET = 16;
 
 function MuscleLab() {
   const { state } = useStore();

@@ -18,6 +18,7 @@ import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { CoachPanel } from '../coach-panel';
 import { EmptyState } from '../empty-state';
+import { TodaysWorkoutCard } from '../todays-workout-card';
 import { CategoryIcon } from '@/components/category-icon';
 import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
 import { ReadinessCard } from '../readiness-card';
@@ -256,59 +257,8 @@ export function OverviewScreen() {
             ))}
           </div>
 
-          {/* ── The featured session card (today's program) ── */}
-          <button
-            type="button"
-            aria-label={nextSlot ? `Start ${nextSlot.slot.title}` : 'Start another workout'}
-            className="pro-surface sheen press relative block w-full overflow-hidden rounded-3xl text-left"
-            onClick={startToday}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
-            <img
-              src="/images/start-workout.jpg"
-              alt=""
-              aria-hidden
-              className="absolute inset-0 h-full w-full object-cover opacity-60"
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                background:
-                  'linear-gradient(90deg, rgba(20,17,16,0.92) 0%, rgba(20,17,16,0.55) 55%, rgba(20,17,16,0.15) 100%)',
-              }}
-            />
-            <div className="relative flex items-center gap-4 p-5">
-              <div className="min-w-0 flex-1">
-                <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#a8b80f' }}>
-                  {nextSlot
-                    ? 'On today’s plan'
-                    : agenda.length > 0
-                      ? 'Plan complete'
-                      : 'Ready when you are'}
-                </p>
-                <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f5f5f2]">
-                  {nextSlot
-                    ? nextSlot.slot.title
-                    : agenda.length > 0
-                      ? 'Start another workout'
-                      : 'Start today’s workout'}
-                </p>
-                <p className="pro-muted mt-0.5 truncate text-xs">
-                  {focus ?? 'Guided session with rest timer, demo clips and PR detection'}
-                </p>
-              </div>
-              <span
-                className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-[#141414] shadow-lg"
-                style={{
-                  background: 'linear-gradient(120deg,#f3ff47,#cbe02c)',
-                  width: '3.25rem',
-                  height: '3.25rem',
-                }}
-              >
-                <Play className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden />
-              </span>
-            </div>
-          </button>
+          {/* ── Today's workout — the reference workout-day sheet ── */}
+          <TodaysWorkoutCard />
           {/* Today's plan — filtered by the chips above */}
           {agendaFiltered.length > 0 && (
             <ul className="mt-3 grid gap-2">
