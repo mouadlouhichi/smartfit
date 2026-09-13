@@ -11,8 +11,8 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
-const EMBER = '#D6532F';
-const INK = '#181615';
+const VOLT = '#f3ff47';
+const INK = '#101010'; // dark ink on the volt pill
 const INACTIVE = 'rgba(255,255,255,0.55)';
 
 const ICONS: Record<string, LucideIcon> = {
@@ -35,7 +35,7 @@ type FloatingTabBarProps = {
   };
 };
 
-/** Floating dark-pill tab bar with a sliding ember indicator. */
+/** Floating dark-pill tab bar with a sliding volt indicator. */
 export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
@@ -73,8 +73,8 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
           alignItems: 'center',
           borderRadius: 999,
           borderWidth: 1,
-          borderColor: 'rgba(0,0,0,0.08)',
-          backgroundColor: 'rgba(24,22,21,0.96)',
+          borderColor: 'rgba(255,255,255,0.08)',
+          backgroundColor: 'rgba(18,18,18,0.96)',
           paddingVertical: 4,
           paddingHorizontal: 6,
           shadowColor: '#000',
@@ -84,7 +84,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
           elevation: 16,
         }}
       >
-        {/* sliding ember pill */}
+        {/* sliding volt pill */}
         <Animated.View
           pointerEvents="none"
           style={[
@@ -94,7 +94,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
               bottom: 4,
               left: 6,
               borderRadius: 999,
-              backgroundColor: EMBER,
+              backgroundColor: VOLT,
             },
             pillStyle,
           ]}

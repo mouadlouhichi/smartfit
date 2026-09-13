@@ -53,7 +53,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         className={cn(
                           'flex h-12 w-12 items-center justify-center rounded-full transition-all',
                           active
-                            ? 'text-primary bg-white shadow-lg shadow-black/20'
+                            ? 'bg-volt text-ink shadow-[0_0_18px_rgba(243,255,71,0.35)] shadow-lg'
                             : 'text-white/55 hover:bg-white/10 hover:text-white',
                         )}
                       >
@@ -111,7 +111,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
 /**
  * Desktop global CTA — a SmartJib-style pill (icon + label + sliding arrow,
- * breathing ember glow) that replaces the old per-tab header "Log workout"
+ * breathing volt glow) that replaces the old per-tab header "Log workout"
  * button. One primary action, reachable from every screen. Mobile already
  * has its global CTA: the raised white bolt in the bottom navigation, so
  * this pill is lg-only and never stacks with it.

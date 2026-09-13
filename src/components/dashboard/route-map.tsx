@@ -38,7 +38,7 @@ export function RouteMap({
         cy={end.y}
         r={5}
         fill="var(--chart-1)"
-        stroke="#141110"
+        stroke="#0e0e0e"
         strokeWidth={2.5}
       />
     </svg>

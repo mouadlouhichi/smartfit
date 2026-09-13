@@ -8,6 +8,7 @@ import {
   formatDistance,
   formatMinutes,
   type WorkoutSession,
+  CATEGORY_FALLBACK_COLOR,
 } from '@smartfit/core';
 import { matchExercise } from '@smartfit/core';
 import { useStore } from '@/lib/store';
@@ -53,7 +54,7 @@ export function SessionDetailModal({
           <View className="border-border flex-row items-center justify-between border-b px-5 py-4">
             <Text className="text-foreground text-lg font-bold">{session.title}</Text>
             <Pressable onPress={onClose} className="active:bg-muted rounded-full p-2">
-              <X color="#857D75" size={22} />
+              <X color="#a3a3a3" size={22} />
             </Pressable>
           </View>
 
@@ -61,11 +62,11 @@ export function SessionDetailModal({
             <View className="flex-row items-center gap-3">
               <View
                 className="h-11 w-11 items-center justify-center rounded-xl"
-                style={{ backgroundColor: `${category?.color ?? '#64748b'}1a` }}
+                style={{ backgroundColor: `${category?.color ?? CATEGORY_FALLBACK_COLOR}1a` }}
               >
                 <CategoryIcon
                   name={category?.icon ?? 'activity'}
-                  color={category?.color ?? '#64748b'}
+                  color={category?.color ?? CATEGORY_FALLBACK_COLOR}
                   size={20}
                 />
               </View>
@@ -113,7 +114,7 @@ export function SessionDetailModal({
                             className="flex-1 flex-row items-center gap-3"
                           >
                             {Row}
-                            <Info color="#857D75" size={18} />
+                            <Info color="#a3a3a3" size={18} />
                           </Pressable>
                         ) : (
                           <View className="flex-1 flex-row items-center gap-3">{Row}</View>

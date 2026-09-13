@@ -54,6 +54,7 @@ import {
 } from '@smartfit/core';
 import { renderWorkoutPng, shareOrDownloadPng } from '@/lib/route-art';
 import { RouteMap } from '../route-map';
+import { ProgressAchievementModal } from './progress-achievement-modal';
 import { ShareSheet } from '../share-sheet';
 import type { RunCardData } from '@/lib/share-card';
 import { cn } from '@/lib/utils';
@@ -157,6 +158,7 @@ export function SessionRunnerModal() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [draft, setDraft] = useState('');
   const [screen, setScreen] = useState<'live' | 'summary'>('live');
+  const [celebrate, setCelebrate] = useState<{ title: string; prCount: number } | null>(null);
   const nextId = useRef(1);
 
   // GPS walk tracking
@@ -262,7 +264,7 @@ export function SessionRunnerModal() {
 
   /**
    * Route sharing hands the frozen trace to the shared share sheet, so a GPS
-   * workout gets the same transparent / Ember / Paper cards as a run recorded
+   * workout gets the same transparent / volt / Paper cards as a run recorded
    * on the run screen.
    */
   function openRouteShare() {
@@ -463,14 +465,9 @@ export function SessionRunnerModal() {
       route,
     });
     setRunning(false);
-    closeModal();
     const prCount = summary?.personalRecords.length ?? 0;
-    toast(
-      prCount > 0
-        ? `Session logged — ${durationMin} min and ${prCount} PR${prCount === 1 ? '' : 's'}!`
-        : `Session logged — ${durationMin} min of ${run.title}`,
-      'success',
-    );
+    // Celebrate first (the reference "Today's progress" sheet), then close.
+    setCelebrate({ title: run.title, prCount });
   }
 
   return (
@@ -480,6 +477,22 @@ export function SessionRunnerModal() {
       aria-modal="true"
       aria-label={`Live session: ${run.title}`}
     >
+      {celebrate && (
+        <ProgressAchievementModal
+          workoutTitle={celebrate.title}
+          prCount={celebrate.prCount}
+          onDone={() => {
+            setCelebrate(null);
+            closeModal();
+            toast(
+              celebrate.prCount > 0
+                ? `Session logged — ${celebrate.prCount} PR${celebrate.prCount === 1 ? '' : 's'}!`
+                : `Session logged — keep the streak alive!`,
+              'success',
+            );
+          }}
+        />
+      )}
       {/* ── Header ────────────────────────────────────────────────────── */}
       <header className="relative flex items-center gap-3 px-4 pt-4 pb-3">
         <button
@@ -508,7 +521,7 @@ export function SessionRunnerModal() {
           <button
             onClick={() => setRunning((r) => !r)}
             className="press mt-1 flex items-center gap-1 text-[11px] font-bold tracking-wide uppercase"
-            style={{ color: running ? 'var(--chart-1)' : 'rgba(247,242,234,0.6)' }}
+            style={{ color: running ? 'var(--chart-1)' : 'rgba(245,245,242,0.6)' }}
           >
             {running ? (
               <Pause className="h-3 w-3" aria-hidden />
@@ -529,7 +542,7 @@ export function SessionRunnerModal() {
               'press flex w-full items-center gap-3 rounded-2xl border p-3 text-left',
               tracking ? 'border-transparent' : 'session-tile border-transparent',
             )}
-            style={tracking ? { background: 'rgba(200,241,53,0.12)' } : undefined}
+            style={tracking ? { background: 'rgba(243,255,71,0.12)' } : undefined}
             aria-pressed={tracking}
           >
             <span
@@ -538,8 +551,8 @@ export function SessionRunnerModal() {
                 tracking && 'animate-pulse-soft',
               )}
               style={{
-                background: tracking ? 'rgba(200,241,53,0.2)' : 'rgba(247,242,234,0.07)',
-                color: tracking ? '#c8f135' : 'rgba(247,242,234,0.6)',
+                background: tracking ? 'rgba(243,255,71,0.2)' : 'rgba(245,245,242,0.07)',
+                color: tracking ? '#f3ff47' : 'rgba(245,245,242,0.6)',
               }}
             >
               <Navigation className="h-5 w-5" aria-hidden />
@@ -557,7 +570,7 @@ export function SessionRunnerModal() {
             </span>
             <span
               className="text-sm font-extrabold tabular-nums"
-              style={{ color: tracking ? '#c8f135' : 'rgba(247,242,234,0.7)' }}
+              style={{ color: tracking ? '#f3ff47' : 'rgba(245,245,242,0.7)' }}
             >
               {distanceKm.toFixed(2)} km
             </span>
@@ -681,8 +694,8 @@ function LiveScreen(p: LiveProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [p.active?.name],
   );
-  // Pro members see the adaptive next target the first set was pre-filled
-  // with; free members see their last numbers only.
+  // Pro mvolts see the adaptive next target the first set was pre-filled
+  // with; free mvolts see their last numbers only.
   const target: ProgressionTarget | null = useMemo(
     () => (p.active && hasProAccess(p.state) ? progressionTarget(p.state, p.active.name) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -717,8 +730,8 @@ function LiveScreen(p: LiveProps) {
               className={cn(
                 'press flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold',
                 i === p.activeIndex
-                  ? 'border-transparent text-white'
-                  : 'session-tile text-[rgba(247,242,234,0.75)]',
+                  ? 'border-transparent text-[#141414]'
+                  : 'session-tile text-[rgba(245,245,242,0.75)]',
               )}
               style={i === p.activeIndex ? { background: 'var(--chart-1)' } : undefined}
             >
@@ -765,7 +778,7 @@ function LiveScreen(p: LiveProps) {
                   {target && target.kind !== 'repeat' && (
                     <p
                       className="mt-0.5 flex items-center gap-1.5 text-xs font-bold"
-                      style={{ color: '#c8f135' }}
+                      style={{ color: '#f3ff47' }}
                     >
                       <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       <span className="truncate">Pro target · {target.rationale}</span>
@@ -775,7 +788,7 @@ function LiveScreen(p: LiveProps) {
                 <button
                   onClick={() => p.removeExercise(p.active!.id)}
                   aria-label={`Remove ${p.active.name}`}
-                  className="press session-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[rgba(247,242,234,0.6)]"
+                  className="press session-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[rgba(245,245,242,0.6)]"
                 >
                   <X className="h-4 w-4" aria-hidden />
                 </button>
@@ -783,7 +796,7 @@ function LiveScreen(p: LiveProps) {
 
               {/* Sets table */}
               <div className="px-3 pb-3">
-                <div className="mb-1 grid grid-cols-[2rem_1fr_1fr_3rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(247,242,234,0.55)] uppercase">
+                <div className="mb-1 grid grid-cols-[2rem_1fr_1fr_3rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(245,245,242,0.55)] uppercase">
                   <span>Set</span>
                   <span className="text-center">Reps</span>
                   <span className="text-center">
@@ -804,11 +817,11 @@ function LiveScreen(p: LiveProps) {
                         key={s.id}
                         className={cn(
                           'grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 rounded-xl px-2 py-1.5',
-                          s.done ? 'bg-[rgba(200,241,53,0.12)]' : 'session-tile',
+                          s.done ? 'bg-[rgba(243,255,71,0.12)]' : 'session-tile',
                           s.isPR && 'pr-flash',
                         )}
                       >
-                        <span className="text-center text-sm font-bold text-[rgba(247,242,234,0.7)]">
+                        <span className="text-center text-sm font-bold text-[rgba(245,245,242,0.7)]">
                           {idx + 1}
                         </span>
                         <input
@@ -862,7 +875,7 @@ function LiveScreen(p: LiveProps) {
                         {s.done ? (
                           <span
                             className="flex items-center justify-center gap-0.5 text-[11px] font-bold"
-                            style={{ color: s.isPR ? 'var(--chart-1)' : '#c8f135' }}
+                            style={{ color: s.isPR ? 'var(--chart-1)' : '#f3ff47' }}
                           >
                             {s.isPR && (
                               <Trophy className="h-3.5 w-3.5" aria-label="Personal record" />
@@ -876,11 +889,11 @@ function LiveScreen(p: LiveProps) {
                             className="press mx-auto flex h-11 w-11 items-center justify-center rounded-full"
                             style={{ background: 'var(--chart-1)' }}
                           >
-                            <Check className="h-4 w-4 text-white" aria-hidden />
+                            <Check className="h-4 w-4 text-[#141414]" aria-hidden />
                           </button>
                         )}
                         {e1rm > 0 && (
-                          <span className="col-span-4 -mt-1 pb-0.5 text-right text-[10px] text-[rgba(247,242,234,0.5)]">
+                          <span className="col-span-4 -mt-1 pb-0.5 text-right text-[10px] text-[rgba(245,245,242,0.5)]">
                             e1RM ≈ {formatWeight(e1rm, unit)}
                           </span>
                         )}
@@ -978,8 +991,8 @@ function LiveScreen(p: LiveProps) {
       <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           onClick={p.finish}
-          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-white shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#e05e36,#c4451f)' }}
+          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#141414] shadow-lg"
+          style={{ background: 'linear-gradient(120deg,#f3ff47,#cbe02c)' }}
         >
           <Flag className="h-5 w-5" aria-hidden /> Finish session
         </button>
@@ -1002,7 +1015,7 @@ function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: 
     <div className="flex h-full flex-col gap-4">
       <div className="flex flex-col items-center gap-2 text-center">
         <span className="session-tile flex h-14 w-14 items-center justify-center rounded-2xl">
-          <Dumbbell className="h-6 w-6 text-[rgba(247,242,234,0.7)]" aria-hidden />
+          <Dumbbell className="h-6 w-6 text-[rgba(245,245,242,0.7)]" aria-hidden />
         </span>
         <p className="text-sm font-bold">No exercises yet</p>
         <p className="session-muted max-w-[18rem] text-xs">
@@ -1077,7 +1090,7 @@ function RestTimerBar({
             {clock(restLeft)}
           </p>
         </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[rgba(247,242,234,0.12)]">
+        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[rgba(245,245,242,0.12)]">
           <div
             className="h-full rounded-full"
             style={{
@@ -1139,7 +1152,7 @@ function SummaryScreen({
           {summary.personalRecords.length > 0 && (
             <div
               className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold"
-              style={{ background: 'rgba(200,241,53,0.15)', color: '#e3f88a' }}
+              style={{ background: 'rgba(243,255,71,0.15)', color: '#f7ff85' }}
             >
               <Sparkles className="h-4 w-4" aria-hidden />
               {summary.personalRecords.length} personal record
@@ -1176,7 +1189,7 @@ function SummaryScreen({
             <button
               onClick={onShare}
               className="press flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold"
-              style={{ background: 'var(--chart-1)', color: '#fff' }}
+              style={{ background: 'var(--chart-1)', color: '#141414' }}
             >
               <Share2 className="h-4 w-4" aria-hidden /> Share
             </button>
@@ -1185,12 +1198,12 @@ function SummaryScreen({
 
         {summary.personalRecords.length > 0 && (
           <div className="session-tile mt-4 rounded-2xl p-4">
-            <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#e3f88a' }}>
+            <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#f7ff85' }}>
               <Trophy className="h-4 w-4" aria-hidden /> New records
             </p>
             <ul className="mt-2 grid gap-1.5">
               {summary.personalRecords.map((name) => (
-                <li key={name} className="text-sm font-semibold text-[rgba(247,242,234,0.85)]">
+                <li key={name} className="text-sm font-semibold text-[rgba(245,245,242,0.85)]">
                   {name}
                 </li>
               ))}
@@ -1208,8 +1221,8 @@ function SummaryScreen({
         </button>
         <button
           onClick={onSave}
-          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-white shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#e05e36,#c4451f)' }}
+          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#141414] shadow-lg"
+          style={{ background: 'linear-gradient(120deg,#f3ff47,#cbe02c)' }}
         >
           <Check className="h-5 w-5" aria-hidden /> Save session
         </button>

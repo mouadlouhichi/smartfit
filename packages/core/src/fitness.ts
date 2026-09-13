@@ -9,6 +9,7 @@ import type {
   WorkoutSession,
 } from './types';
 import { clamp, round } from './utils';
+import { CATEGORY_FALLBACK_COLOR } from './colors';
 
 /** Reference body mass used when the user has never logged a weight. */
 export const DEFAULT_BODY_WEIGHT_KG = 75;
@@ -287,7 +288,7 @@ export const UNKNOWN_CATEGORY: Category = {
   id: '__unknown__',
   name: 'Other',
   icon: 'activity',
-  color: '#857d75',
+  color: CATEGORY_FALLBACK_COLOR,
 };
 
 export function categoryById(state: FitnessState, id: string): Category {
@@ -441,4 +442,12 @@ export function targetsForDays(state: FitnessState, days: number): ActivityTarge
 /** Convenience: this week's targets. */
 export function weeklyTargets(state: FitnessState): ActivityTargets {
   return targetsForDays(state, 7);
+}
+
+/** Streak celebration milestones — the next goal the app cheers toward. */
+export const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100, 365];
+
+/** The next streak milestone above `streak` (streak + 1 when past the last). */
+export function nextStreakMilestone(streak: number): number {
+  return STREAK_MILESTONES.find((m) => m > streak) ?? streak + 1;
 }

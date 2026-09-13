@@ -6,29 +6,29 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['PlusJakartaSans', 'System'],
+        sans: ['Helvetica Neue', 'Helvetica', 'System'],
       },
       colors: {
-        // "Ember" design system — warm light ground, vermilion accent.
-        ember: '#D6532F',
-        'ember-deep': '#B7220F',
-        'ember-bright': '#E8785A',
-        terracotta: '#E8A087',
-        rose: '#CDACA4',
-        clay: '#4E4C4C',
-        paper: '#F2F0EC',
+        // "Volt" design system — near-black ground, electric lime accent.
+        volt: '#F3FF47',
+        'volt-deep': '#CBE02C',
+        'volt-bright': '#F7FF85',
+        terracotta: '#9FB41F',
+        rose: '#8A8A8A',
+        clay: '#6F6F6F',
+        paper: '#0E0E0E',
 
         // Semantic aliases used by components.
-        background: '#F2F0EC',
-        foreground: '#181615',
-        card: '#FFFFFF',
-        muted: '#EDE9E3',
-        'muted-foreground': '#857D75',
-        primary: { DEFAULT: '#D6532F', foreground: '#FDF6F2' },
-        accent: { DEFAULT: '#E9D8D1', foreground: '#7A2A18' },
-        border: '#E7E2DB',
-        secondary: { DEFAULT: '#ECE8E2', foreground: '#3A322D' },
-        destructive: '#C0392B',
+        background: '#0E0E0E',
+        foreground: '#F5F5F2',
+        card: '#1A1A1A',
+        muted: '#232323',
+        'muted-foreground': '#A3A3A3',
+        primary: { DEFAULT: '#F3FF47', foreground: '#101010' },
+        accent: { DEFAULT: '#2E3510', foreground: '#EEFF54' },
+        border: '#2B2B2B',
+        secondary: { DEFAULT: '#262626', foreground: '#F5F5F2' },
+        destructive: '#FF6B5E',
       },
     },
   },

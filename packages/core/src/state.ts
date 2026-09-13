@@ -7,6 +7,7 @@
  * into a valid `FitnessState`, dropping records it cannot repair, so a single
  * malformed row can never white-screen the app.
  */
+import { CATEGORY_FALLBACK_COLOR } from './colors';
 import { DEFAULT_CATEGORIES, DEFAULT_WEEK_START } from './constants';
 import type {
   BodyLog,
@@ -187,7 +188,7 @@ function parseCategory(v: unknown): Category | null {
     id,
     name,
     icon: str(v.icon, 'activity'),
-    color: str(v.color, '#857d75'),
+    color: str(v.color, CATEGORY_FALLBACK_COLOR),
     builtin: v.builtin === true,
   };
 }

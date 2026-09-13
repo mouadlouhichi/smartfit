@@ -3,102 +3,105 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * SmartFit design system — "Ember"
- * A calm, editorial, warm-light fitness interface inspired by Paperpillar's
- * AI-Driven Fitness App: near-black ink (#161313) on warm paper, a single
- * vermilion accent (#B7220F) with terracotta/rose supporting tones. The
- * product app defaults to light; a tuned warm-dark ships for dark mode.
- * The marketing site keeps its own bold "Volt" constants (--color-volt/ink/…),
- * which are retained below for the landing page.
+ * SmartFit design system — "Volt"
+ * A dark-first, high-energy fitness interface: near-black ink (#0E0E0E)
+ * canvases, graphite (#2B2B2B) boundaries and cards lifted off the dark,
+ * and a single electric volt accent (#F3FF47) that always carries
+ * near-black ink on top of it. The product app defaults to dark; a tuned
+ * neutral-light ships for users who override the theme. Helvetica(-style)
+ * grotesque throughout — tight, heavy, athletic.
  */
 
 :root {
   --radius: 1.5rem;
 
-  /* Reference dashboard palette — light warm-gray canvas, white cards,
-     charcoal rail, single orange accent. */
-  --background: #efedea;
-  --foreground: #171615;
+  /* Light theme — clean neutral paper, ink-black primary, volt highlights. */
+  --background: #f5f5f2;
+  --foreground: #131313;
 
   --card: #ffffff;
-  --card-foreground: #1b1a19;
+  --card-foreground: #131313;
 
   --popover: #ffffff;
-  --popover-foreground: #1b1a19;
+  --popover-foreground: #131313;
 
-  /* Deepened from #e05e36 for WCAG AA: white button text and primary-as-text
-     on cards now clear 4.5:1 (5.3:1). The bright ember lives on in --ring,
-     --chart-1 and the hero glows, where only the 3:1 UI/graphic bar applies. */
-  --primary: #bd4220;
-  --primary-foreground: #ffffff;
+  /* Light mode: ink-black primary (editorial Helvetica look). The volt
+     accent appears via --accent chips and --ring focus, where volt-on-white
+     only ever sits next to near-black ink. */
+  --primary: #161616;
+  --primary-foreground: #f5f5f2;
 
-  --secondary: #eceae6;
-  --secondary-foreground: #1b1a19;
+  --secondary: #ecece8;
+  --secondary-foreground: #161616;
 
-  --muted: #e9e7e3;
-  /* Deepened from #87857f (3.1–3.7:1) so small muted text passes AA on
-     every light surface (≥4.86:1). */
-  --muted-foreground: #65635d;
+  --muted: #eeeeea;
+  /* 5.0:1+ on every light surface — AA for small text. */
+  --muted-foreground: #646464;
 
-  --accent: #f6d9ce;
-  --accent-foreground: #8a3418;
+  /* Volt-tinted chip: soft lime surface, dark olive ink (7:1). */
+  --accent: #f4f9c8;
+  --accent-foreground: #454d00;
 
   --destructive: #c0392b;
   --destructive-foreground: #fdf6f2;
 
-  --border: #e5e2dd;
-  --input: #e5e2dd;
-  --ring: #e05e36;
+  --border: #e4e4e0;
+  --input: #e4e4e0;
+  --ring: #aabf00;
 
-  --chart-1: #e05e36;
-  /* Darkened (were #eda07e / #cdaca4, ~2.1:1) so chart strokes and legend
-     swatches clear the 3:1 graphics bar on cards. */
-  --chart-2: #c97449;
-  --chart-3: #b08272;
-  --chart-4: #8a6a58;
-  --chart-5: #2b2725;
+  /* Light chart ramp: olive-lime series that clear the 3:1 graphics bar
+     on white cards, plus neutral grays for secondary series. */
+  --chart-1: #7a8a00;
+  --chart-2: #a8b80f;
+  --chart-3: #8a8a8a;
+  --chart-4: #4a4a4a;
+  --chart-5: #c9d626;
 
-  /* Dark charcoal rail / dark cards */
-  --charcoal: #3f3d3b;
-  --charcoal-2: #4a4846;
+  /* Dark rail / dark cards (also used in light mode for hero surfaces). */
+  --charcoal: #161616;
+  --charcoal-2: #242424;
 }
 
 .dark {
-  --background: #161313;
-  --foreground: #f3ece4;
+  --background: #0e0e0e;
+  --foreground: #f5f5f2;
 
-  --card: #201b1a;
-  --card-foreground: #f3ece4;
+  --card: #1a1a1a;
+  --card-foreground: #f5f5f2;
 
-  --popover: #221c1b;
-  --popover-foreground: #f3ece4;
+  --popover: #202020;
+  --popover-foreground: #f5f5f2;
 
-  --primary: #e0603f;
-  --primary-foreground: #1c0e0a;
+  /* The signature look: volt surface, near-black ink on top (≈15:1). */
+  --primary: #f3ff47;
+  --primary-foreground: #101010;
 
-  --secondary: #2c2523;
-  --secondary-foreground: #f3ece4;
+  --secondary: #262626;
+  --secondary-foreground: #f5f5f2;
 
-  --muted: #27211f;
-  --muted-foreground: #b5a89d;
+  --muted: #232323;
+  --muted-foreground: #a3a3a3;
 
-  /* Was #d38977/#f6e7e0 — light-on-light at 2.3:1. Accent chips in dark mode
-     are now a warm dark surface with a bright terracotta ink (8.4:1). */
-  --accent: #45291e;
-  --accent-foreground: #f2c4ae;
+  /* Accent chips: dark olive-tinted surface, volt ink (≈12:1). */
+  --accent: #2e3510;
+  --accent-foreground: #eeff54;
 
-  --destructive: #f0817a;
+  --destructive: #ff6b5e;
   --destructive-foreground: #2a0d0a;
 
-  --border: #39312d;
-  --input: #39312d;
-  --ring: #e0603f;
+  --border: #2b2b2b;
+  --input: #2b2b2b;
+  --ring: #f3ff47;
 
-  --chart-1: #e0603f;
-  --chart-2: #d38977;
-  --chart-3: #cdaca4;
-  --chart-4: #a98778;
-  --chart-5: #8e857e;
+  /* Volt ramp for series data — every step ≥3:1 on the #1a1a1a card. */
+  --chart-1: #f3ff47;
+  --chart-2: #cbe02c;
+  --chart-3: #9fb41f;
+  --chart-4: #6f7d16;
+  --chart-5: #8a8a8a;
+
+  --charcoal: #141414;
+  --charcoal-2: #222222;
 }
 
 @theme inline {
@@ -127,28 +130,25 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  /* Ember brand accents (product app). */
-  --color-ember: #e05e36;
-  --color-ember-deep: #c4451f;
-  --color-ember-bright: #ee7d5a;
-  --color-terracotta: #e8a087;
-  --color-rose: #cdaca4;
-  --color-clay: #5c5a57;
-  --color-ink-warm: #171615;
-  --color-paper-warm: #efedea;
-  --color-charcoal: #3f3d3b;
-  --color-charcoal-2: #4a4846;
+  /* Volt brand accents (product app). */
+  --color-terracotta: #9fb41f;
+  --color-rose: #8a8a8a;
+  --color-clay: #6f6f6f;
+  --color-ink-warm: #131313;
+  --color-paper-warm: #f5f5f2;
+  --color-charcoal: var(--charcoal);
+  --color-charcoal-2: var(--charcoal-2);
 
-  /* Volt brand constants — retained for the always-dark marketing landing. */
-  --color-volt: #c8f135;
-  --color-volt-soft: #e3f88a;
-  --color-volt-dim: #9dbd1f;
-  --color-ink: #0b0e09;
-  --color-ink-2: #12160c;
-  --color-ink-card: #161b10;
-  --color-paper: #eff3e6;
-  --color-sage: #9ba886;
-  --color-pine: #2b4016;
+  /* Volt brand constants — the always-dark marketing landing + product accent. */
+  --color-volt: #f3ff47;
+  --color-volt-soft: #f7ff85;
+  --color-volt-dim: #cbe02c;
+  --color-ink: #0e0e0e;
+  --color-ink-2: #141414;
+  --color-ink-card: #1a1a1a;
+  --color-paper: #f5f5f2;
+  --color-sage: #a3a3a3;
+  --color-pine: #3a3f0e;
 
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 3px);
@@ -157,10 +157,11 @@
   --radius-2xl: calc(var(--radius) + 14px);
 
   --font-sans:
-    'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system,
-    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
   --font-display:
-    'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
 }
 
 * {
@@ -361,6 +362,12 @@ input[type='number'] {
 .animate-float {
   animation: float-y 6s ease-in-out infinite;
 }
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-soft {
+    animation: none;
+  }
+}
 
 @keyframes pulse-soft {
   0%,
@@ -424,7 +431,7 @@ input[type='number'] {
 /* Breathing ember glow — the weekly-goal energy button and the desktop
    global CTA pulse their box-shadow: the ember ring expands and the drop
    glow intensifies, like the button is focussing attention on itself. */
-@keyframes ember-glow {
+@keyframes volt-glow {
   0%,
   100% {
     box-shadow:
@@ -438,38 +445,38 @@ input[type='number'] {
   }
 }
 .zap-glow {
-  animation: ember-glow 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: volt-glow 2.6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 @media (prefers-reduced-motion: reduce) {
   .zap-glow {
     animation: none;
     box-shadow:
-      0 0 0 6px rgba(224, 94, 54, 0.18),
-      0 10px 24px -6px rgba(224, 94, 54, 0.65);
+      0 0 0 6px rgba(243, 255, 71, 0.22),
+      0 10px 24px -6px rgba(243, 255, 71, 0.55);
   }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   Dashboard card treatments — the "gym app" hero look: warm charcoal
-   gradient with an ember glow, ivory ink. Muted text inside heroes uses
-   ivory at 72%, which keeps ≥ 5:1 against the darkest gradient stop.
+   Dashboard card treatments — the "gym app" hero look: graphite gradient
+   with a volt glow, ink-white type. Muted text inside heroes uses white
+   at 72%, which keeps ≥ 5:1 against the darkest gradient stop.
    ═══════════════════════════════════════════════════════════════════════ */
 .card-hero {
   position: relative;
   overflow: hidden;
   border-radius: 2rem;
-  color: #f7f2ea;
+  color: #f5f5f2;
   background:
-    radial-gradient(115% 135% at 88% -12%, rgba(224, 94, 54, 0.4) 0%, rgba(224, 94, 54, 0) 55%),
-    linear-gradient(140deg, #262322 0%, #34302e 48%, #403934 100%);
-  box-shadow: 0 18px 40px -24px rgba(23, 22, 21, 0.55);
+    radial-gradient(115% 135% at 88% -12%, rgba(243, 255, 71, 0.28) 0%, rgba(243, 255, 71, 0) 55%),
+    linear-gradient(140deg, #1c1c1c 0%, #262626 48%, #303030 100%);
+  box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.8);
 }
 .card-hero .hero-muted {
-  color: rgba(247, 242, 234, 0.72);
+  color: rgba(245, 245, 242, 0.72);
 }
 .card-hero .hero-tile {
-  background: rgba(247, 242, 234, 0.08);
-  border: 1px solid rgba(247, 242, 234, 0.14);
+  background: rgba(245, 245, 242, 0.08);
+  border: 1px solid rgba(245, 245, 242, 0.14);
 }
 
 /* Coach "typing" indicator — three bouncing dots. */
@@ -520,13 +527,15 @@ input[type='number'] {
   font-family: var(--font-sans);
   color: var(--foreground);
   background: var(--background);
-  font-feature-settings: normal;
-  /* Same font stack as the reference landing: Instrument Sans for body +
-     display, JetBrains Mono for mono. Overriding the theme variables here makes
-     every Tailwind font-sans/font-display/font-mono utility resolve to these. */
-  --font-sans: 'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, sans-serif;
+  /* Helvetica grotesque for body + display, JetBrains Mono for mono.
+     Overriding the theme variables here makes every Tailwind
+     font-sans/font-display/font-mono utility resolve to these. */
+  --font-sans:
+    'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
   --font-display:
-    'Instrument Sans Variable', 'Instrument Sans', system-ui, -apple-system, sans-serif;
+    'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    sans-serif;
   --font-mono:
     'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
 }
@@ -781,19 +790,19 @@ input[type='number'] {
   }
 }
 
-/* Gold foil edge for the featured plan card. */
+/* Volt foil edge for the featured plan card. */
 .gold-edge {
   box-shadow:
-    inset 0 0 0 1px rgba(240, 200, 130, 0.5),
-    0 12px 30px -18px rgba(240, 190, 110, 0.55);
+    inset 0 0 0 1px rgba(243, 255, 71, 0.55),
+    0 12px 30px -18px rgba(243, 255, 71, 0.45);
 }
 
 /* Frosted glass — used over imagery (runner header, paywall hero). */
 .glass {
-  background: rgba(20, 17, 16, 0.55);
+  background: rgba(14, 14, 14, 0.6);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid rgba(247, 242, 234, 0.12);
+  border: 1px solid rgba(245, 245, 242, 0.12);
 }
 
 /* Tactile press: scales on active so a sweaty thumb gets confirmation
@@ -1069,9 +1078,16 @@ a {
    Keep decorative borders elsewhere soft; these boundaries meet 3:1 against
    both the onboarding canvas and its form/card surfaces in each theme. */
 .onboarding {
-  --border: #817a72;
+  --border: #8a8a8a;
   --ring: var(--primary);
 }
 .dark .onboarding {
-  --border: #94877d;
+  --border: #6f6f6f;
+}
+
+/* Muscle-map regions need a visible focus indicator for keyboard users —
+   SVG shapes ignore the outline utility, so the stroke carries the ring. */
+.muscle-region:focus-visible path {
+  stroke: var(--primary);
+  stroke-width: 3;
 }

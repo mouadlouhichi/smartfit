@@ -33,15 +33,15 @@ export default function GlobalError({
           gap: '1rem',
           padding: '1.5rem',
           textAlign: 'center',
-          background: '#efedea',
-          color: '#171615',
+          background: '#f5f5f2',
+          color: '#131313',
           fontFamily: 'system-ui, -apple-system, Segoe UI, sans-serif',
         }}
       >
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>
           SmartFit couldn&apos;t start
         </h1>
-        <p style={{ maxWidth: '28rem', color: '#57534e', margin: 0 }}>
+        <p style={{ maxWidth: '28rem', color: '#6f6f6f', margin: 0 }}>
           An unexpected error stopped the app from loading. Your training data is stored on this
           device and has not been touched.
         </p>
@@ -51,8 +51,8 @@ export default function GlobalError({
             border: 0,
             borderRadius: 999,
             padding: '0.65rem 1.4rem',
-            background: '#e05e36',
-            color: '#fff',
+            background: '#f3ff47',
+            color: '#101010',
             fontWeight: 600,
             cursor: 'pointer',
           }}

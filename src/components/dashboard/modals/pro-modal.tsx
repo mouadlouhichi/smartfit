@@ -57,7 +57,7 @@ const GATE_ICONS: Record<string, LucideIcon> = {
  * SmartFit Pro preview surface (paid billing is deliberately disabled until
  * server-side entitlements exist).
  *
- * Redesigned as a genuine *premium* surface: a dark ember hero, an anchored
+ * Redesigned as a genuine *premium* surface: a dark volt hero, an anchored
  * yearly plan with a savings ribbon, an honest Free-vs-Pro comparison built
  * from `PRO_GATES` (so the paywall never promises a gate that isn't enforced),
  * and a no-card 14-day trial in local sandbox mode. Real checkout and cloud
@@ -145,7 +145,7 @@ export function ProModal() {
             className="absolute inset-0 h-full w-full object-cover"
             aria-hidden
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#141110] via-[#141110]/45 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-[#0e0e0e]/45 to-transparent" />
           <button
             onClick={closeModal}
             aria-label="Close"
@@ -157,16 +157,16 @@ export function ProModal() {
             <div className="flex items-center gap-2.5">
               <span
                 className="gold-edge flex h-10 w-10 items-center justify-center rounded-full"
-                style={{ background: 'linear-gradient(135deg,#f0c882,#c4893a)' }}
+                style={{ background: 'linear-gradient(135deg,#f3ff47,#cbe02c)' }}
               >
-                <Crown className="h-5 w-5 text-[#3a2408]" aria-hidden />
+                <Crown className="h-5 w-5 text-[#2a3000]" aria-hidden />
               </span>
               <div>
-                <DialogTitle className="text-xl leading-tight font-extrabold text-[#f7f2ea]">
+                <DialogTitle className="text-xl leading-tight font-extrabold text-[#f5f5f2]">
                   SmartFit Pro
                 </DialogTitle>
-                <DialogDescription className="text-xs text-[rgba(247,242,234,0.75)]">
-                  {pro ? 'Your membership, managed.' : 'Unlock the full engine.'}
+                <DialogDescription className="text-xs text-[rgba(245,245,242,0.75)]">
+                  {pro ? 'Your mvoltship, managed.' : 'Unlock the full engine.'}
                 </DialogDescription>
               </div>
             </div>
@@ -201,10 +201,10 @@ export function ProModal() {
 function ComparisonTable() {
   return (
     <div className="pro-tile overflow-hidden rounded-2xl">
-      <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-[rgba(247,242,234,0.12)] px-3 py-2.5 text-[11px] font-bold tracking-wide uppercase min-[430px]:px-4">
+      <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-[rgba(245,245,242,0.12)] px-3 py-2.5 text-[11px] font-bold tracking-wide uppercase min-[430px]:px-4">
         <span className="pro-muted">Feature</span>
         <span className="pro-muted text-center">Free</span>
-        <span className="text-center" style={{ color: '#f0c882' }}>
+        <span className="text-center" style={{ color: '#f3ff47' }}>
           Pro
         </span>
       </div>
@@ -216,7 +216,7 @@ function ComparisonTable() {
               key={g.label}
               className={cn(
                 'grid grid-cols-[1.4fr_1fr_1fr] items-center gap-1.5 px-3 py-2.5 min-[430px]:gap-2 min-[430px]:px-4',
-                i > 0 && 'border-t border-[rgba(247,242,234,0.08)]',
+                i > 0 && 'border-t border-[rgba(245,245,242,0.08)]',
               )}
             >
               {/* Long single words ("Achievements", "spreadsheets") are wider
@@ -233,8 +233,8 @@ function ComparisonTable() {
               <span className="pro-muted min-w-0 text-center text-[11px] font-medium [overflow-wrap:anywhere] min-[430px]:text-xs">
                 {g.free}
               </span>
-              <span className="flex min-w-0 items-center justify-center gap-1 text-center text-[11px] font-bold [overflow-wrap:anywhere] text-[#f7f2ea] min-[430px]:text-xs">
-                <Check className="h-3.5 w-3.5 shrink-0" style={{ color: '#f0c882' }} aria-hidden />
+              <span className="flex min-w-0 items-center justify-center gap-1 text-center text-[11px] font-bold [overflow-wrap:anywhere] text-[#f5f5f2] min-[430px]:text-xs">
+                <Check className="h-3.5 w-3.5 shrink-0" style={{ color: '#f3ff47' }} aria-hidden />
                 {g.pro}
               </span>
             </li>
@@ -246,9 +246,9 @@ function ComparisonTable() {
 }
 
 /* Pinned action bar for the dark Pro sheet: a flex sibling (not sticky — the
-   sheet itself never scrolls) with an ember divider. On sm+ the base
+   sheet itself never scrolls) with an volt divider. On sm+ the base
    DialogFooter resets apply (transparent, static, unpadded). */
-const PRO_FOOTER_BAR = 'static mx-0 mb-0 border-t-[rgba(247,242,234,0.12)] bg-black/45';
+const PRO_FOOTER_BAR = 'static mx-0 mb-0 border-t-[rgba(245,245,242,0.12)] bg-black/45';
 
 /* ── upgrade content (scrolls) ─────────────────────────────────────────── */
 
@@ -269,14 +269,14 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
               // With an odd plan count the last card spans the row as a banner.
               PRO_PLANS.length % 2 === 1 && i === PRO_PLANS.length - 1 && 'col-span-2',
               plan === p.id
-                ? 'gold-edge border-transparent bg-[rgba(240,200,130,0.1)]'
+                ? 'gold-edge border-transparent bg-[rgba(243,255,71,0.1)]'
                 : 'pro-tile border-transparent',
             )}
           >
             {p.featured && (
               <span
                 className="absolute -top-2.5 right-3 rounded-full px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase"
-                style={{ background: 'linear-gradient(135deg,#f0c882,#c4893a)', color: '#3a2408' }}
+                style={{ background: 'linear-gradient(135deg,#f3ff47,#cbe02c)', color: '#2a3000' }}
               >
                 {p.note}
               </span>
@@ -292,7 +292,7 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
             {p.savePct && (
               <span
                 className="mt-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                style={{ background: 'rgba(200,241,53,0.15)', color: '#e3f88a' }}
+                style={{ background: 'rgba(243,255,71,0.15)', color: '#f7ff85' }}
               >
                 Save {p.savePct}%
               </span>
@@ -313,7 +313,7 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
         <Button
           variant="ghost"
           size="sm"
-          className="text-[rgba(247,242,234,0.8)]"
+          className="text-[rgba(245,245,242,0.8)]"
           onClick={onTrialRestoreNotice}
         >
           <RefreshCw className="h-3.5 w-3.5" /> Restore
@@ -350,8 +350,8 @@ function UpgradeFooter({
         disabled={paidDisabled}
         className="w-full rounded-2xl text-base font-extrabold"
         style={{
-          background: 'linear-gradient(120deg,#e05e36,#c4451f)',
-          color: '#fff',
+          background: 'linear-gradient(120deg,#f3ff47,#cbe02c)',
+          color: '#141414',
           height: '3.25rem',
         }}
       >
@@ -361,7 +361,7 @@ function UpgradeFooter({
         onClick={onTrial}
         disabled={trialDisabled}
         variant="outline"
-        className="w-full rounded-2xl border-[rgba(247,242,234,0.25)] bg-transparent text-[rgba(247,242,234,0.9)] hover:bg-[rgba(247,242,234,0.08)] hover:text-[#f7f2ea]"
+        className="w-full rounded-2xl border-[rgba(245,245,242,0.25)] bg-transparent text-[rgba(245,245,242,0.9)] hover:bg-[rgba(245,245,242,0.08)] hover:text-[#f5f5f2]"
       >
         Try Pro free for {PRO_TRIAL_DAYS} days
       </Button>
@@ -398,13 +398,13 @@ function ManageContent({
             {trialing
               ? `${trialDaysLeft(state)} day${trialDaysLeft(state) === 1 ? '' : 's'} left in your trial`
               : state.profile.pro
-                ? `Member since ${formatDateLabel(toISODate(new Date(state.profile.pro.since)))}`
+                ? `Mvolt since ${formatDateLabel(toISODate(new Date(state.profile.pro.since)))}`
                 : 'Active'}
           </p>
         </div>
         <span
           className="rounded-full px-2.5 py-1 text-[11px] font-bold"
-          style={{ background: 'rgba(200,241,53,0.15)', color: '#e3f88a' }}
+          style={{ background: 'rgba(243,255,71,0.15)', color: '#f7ff85' }}
         >
           Active
         </span>
@@ -424,7 +424,7 @@ function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () =
       <Button
         onClick={onDone}
         className="flex-1 rounded-2xl"
-        style={{ background: 'var(--chart-1)', color: '#fff' }}
+        style={{ background: 'var(--chart-1)', color: '#141414' }}
       >
         Done
       </Button>
@@ -437,7 +437,7 @@ function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () =
           Manage subscription
         </Button>
       )}
-      <Button onClick={onCancel} variant="ghost" className="rounded-2xl text-[#f0817a]">
+      <Button onClick={onCancel} variant="ghost" className="rounded-2xl text-[#ff6b5e]">
         Cancel Pro
       </Button>
     </DialogFooter>

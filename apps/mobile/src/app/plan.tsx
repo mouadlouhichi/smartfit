@@ -21,6 +21,7 @@ import {
   type ExerciseEquipment,
   type ExerciseGroup,
   type ExerciseMuscle,
+  CATEGORY_FALLBACK_COLOR,
 } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 import { Card, SectionTitle } from '@/components/ui';
@@ -75,11 +76,11 @@ function LibraryChip({
       accessibilityState={{ selected: active }}
       className="rounded-full border px-3 py-1.5"
       style={{
-        borderColor: active ? '#D6532F' : '#E7E2DB',
-        backgroundColor: active ? '#D6532F14' : 'transparent',
+        borderColor: active ? '#f3ff47' : '#2b2b2b',
+        backgroundColor: active ? '#f3ff4714' : 'transparent',
       }}
     >
-      <Text className="text-sm font-medium" style={{ color: active ? '#D6532F' : '#857D75' }}>
+      <Text className="text-sm font-medium" style={{ color: active ? '#f3ff47' : '#a3a3a3' }}>
         {label}
         {typeof count === 'number' && count > 0 ? ' ' : null}
         {typeof count === 'number' && count > 0 ? (
@@ -196,18 +197,18 @@ function ExerciseLibrary() {
 
       <View className="flex-row items-center gap-2">
         <View className="border-border bg-card flex-1 flex-row items-center gap-2 rounded-xl border px-3">
-          <Search color="#857D75" size={16} />
+          <Search color="#a3a3a3" size={16} />
           <TextInput
             accessibilityLabel="Search exercises"
             placeholder="Search 1,300+ exercises…"
-            placeholderTextColor="#857D75"
+            placeholderTextColor="#a3a3a3"
             className="text-foreground flex-1 py-2.5 text-sm"
             value={query}
             onChangeText={setQuery}
           />
           {query !== '' && (
             <Pressable accessibilityLabel="Clear search" onPress={() => setQuery('')} hitSlop={8}>
-              <X color="#857D75" size={16} />
+              <X color="#a3a3a3" size={16} />
             </Pressable>
           )}
         </View>
@@ -218,11 +219,11 @@ function ExerciseLibrary() {
           onPress={() => setSort(sort === 'az' ? 'recommended' : 'az')}
           className="bg-card items-center rounded-xl border p-2.5"
           style={{
-            borderColor: sort === 'az' ? '#D6532F' : '#E7E2DB',
-            backgroundColor: sort === 'az' ? '#D6532F14' : 'transparent',
+            borderColor: sort === 'az' ? '#f3ff47' : '#2b2b2b',
+            backgroundColor: sort === 'az' ? '#f3ff4714' : 'transparent',
           }}
         >
-          <ArrowDownAZ color={sort === 'az' ? '#D6532F' : '#857D75'} size={20} />
+          <ArrowDownAZ color={sort === 'az' ? '#f3ff47' : '#a3a3a3'} size={20} />
         </Pressable>
       </View>
 
@@ -261,7 +262,7 @@ function ExerciseLibrary() {
       >
         <Text
           className="pr-1 text-xs font-semibold tracking-wide uppercase"
-          style={{ color: '#857D75' }}
+          style={{ color: '#a3a3a3' }}
         >
           Equipment
         </Text>
@@ -287,7 +288,7 @@ function ExerciseLibrary() {
         >
           <Text
             className="pr-1 text-xs font-semibold tracking-wide uppercase"
-            style={{ color: '#857D75' }}
+            style={{ color: '#a3a3a3' }}
           >
             Focus
           </Text>
@@ -304,25 +305,25 @@ function ExerciseLibrary() {
       )}
 
       <View className="flex-row flex-wrap items-center gap-x-2 gap-y-1">
-        <Text className="text-sm" style={{ color: '#857D75' }}>
+        <Text className="text-sm" style={{ color: '#a3a3a3' }}>
           {list.length} {list.length === 1 ? 'exercise' : 'exercises'}
         </Text>
         {status === 'loading' && (
           <View className="flex-row items-center gap-1.5">
-            <ActivityIndicator size="small" color="#857D75" />
-            <Text className="text-xs" style={{ color: '#857D75' }}>
+            <ActivityIndicator size="small" color="#a3a3a3" />
+            <Text className="text-xs" style={{ color: '#a3a3a3' }}>
               Syncing the full 1,300+ library…
             </Text>
           </View>
         )}
         {status === 'error' && (
-          <Text className="text-xs" style={{ color: '#857D75' }}>
+          <Text className="text-xs" style={{ color: '#a3a3a3' }}>
             Full library offline — showing curated 103
           </Text>
         )}
         {hasFilters && (
           <Pressable onPress={clearFilters} hitSlop={8}>
-            <Text className="text-xs underline" style={{ color: '#D6532F' }}>
+            <Text className="text-xs underline" style={{ color: '#f3ff47' }}>
               Clear all
             </Text>
           </Pressable>
@@ -333,16 +334,16 @@ function ExerciseLibrary() {
         <Card className="items-center gap-1.5 py-8">
           <Dumbbell color="#C9C2B8" size={32} strokeWidth={1.5} />
           <Text className="text-foreground text-sm font-semibold">No exercises match</Text>
-          <Text className="text-xs" style={{ color: '#857D75' }}>
+          <Text className="text-xs" style={{ color: '#a3a3a3' }}>
             Try another name, or loosen the filters.
           </Text>
           {hasFilters && (
             <Pressable
               onPress={clearFilters}
               className="mt-1.5 rounded-full px-3 py-1.5"
-              style={{ backgroundColor: '#F3F0EB' }}
+              style={{ backgroundColor: '#141414' }}
             >
-              <Text className="text-sm font-medium" style={{ color: '#D6532F' }}>
+              <Text className="text-sm font-medium" style={{ color: '#f3ff47' }}>
                 Clear search &amp; filters
               </Text>
             </Pressable>
@@ -381,7 +382,7 @@ function ExerciseLibrary() {
           onPress={() => setVisible((v) => v + PAGE_SIZE)}
           className="border-border bg-card items-center rounded-xl border py-2.5"
         >
-          <Text className="text-sm font-medium" style={{ color: '#D6532F' }}>
+          <Text className="text-sm font-medium" style={{ color: '#f3ff47' }}>
             Show more · {list.length - visible} left
           </Text>
         </Pressable>
@@ -441,11 +442,11 @@ export default function PlanScreen() {
                     >
                       <View
                         className="h-9 w-9 items-center justify-center rounded-lg"
-                        style={{ backgroundColor: `${cat?.color ?? '#64748b'}1a` }}
+                        style={{ backgroundColor: `${cat?.color ?? CATEGORY_FALLBACK_COLOR}1a` }}
                       >
                         <CategoryIcon
                           name={cat?.icon ?? 'activity'}
-                          color={cat?.color ?? '#64748b'}
+                          color={cat?.color ?? CATEGORY_FALLBACK_COLOR}
                           size={16}
                         />
                       </View>
@@ -459,7 +460,7 @@ export default function PlanScreen() {
                       <Switch
                         value={s.active}
                         onValueChange={(v) => updateSchedule(s.id, { active: v })}
-                        trackColor={{ true: '#D6532F', false: '#E7E2DB' }}
+                        trackColor={{ true: '#f3ff47', false: '#2b2b2b' }}
                       />
                     </View>
                   );

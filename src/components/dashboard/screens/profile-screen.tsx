@@ -413,7 +413,7 @@ export function ProfileScreen() {
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3">
           <span
             className="hero-tile flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-extrabold"
-            style={{ boxShadow: '0 0 0 4px rgba(224,94,54,0.25)' }}
+            style={{ boxShadow: '0 0 0 4px rgba(243,255,71,0.25)' }}
             aria-hidden
           >
             {avatar || <UserRound className="h-7 w-7" />}
@@ -436,15 +436,15 @@ export function ProfileScreen() {
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
               {cloud ? (
-                <Cloud className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
+                <Cloud className="text-primary h-3.5 w-3.5" aria-hidden />
               ) : (
-                <HardDrive className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
+                <HardDrive className="text-primary h-3.5 w-3.5" aria-hidden />
               )}
               {cloud ? 'Cloud synced' : 'Local mode'}
             </span>
             {streak > 0 && (
               <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-                <Flame className="h-3.5 w-3.5 text-[#f0a37f]" aria-hidden />
+                <Flame className="text-primary h-3.5 w-3.5" aria-hidden />
                 {streak}-day streak
               </span>
             )}
@@ -463,7 +463,7 @@ export function ProfileScreen() {
                 <p className="hero-muted min-w-0 text-[11px] font-semibold tracking-wide uppercase">
                   {t.label}
                 </p>
-                <t.icon className="h-3.5 w-3.5 shrink-0 text-[#f0a37f]" aria-hidden />
+                <t.icon className="text-primary h-3.5 w-3.5 shrink-0" aria-hidden />
               </div>
               <p className="font-display mt-1 text-xl font-extrabold tabular-nums">{t.value}</p>
             </div>
@@ -627,7 +627,7 @@ export function ProfileScreen() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2.5 text-base">
-            <span className="bg-chart-2/10 text-chart-2 flex h-9 w-9 items-center justify-center rounded-xl">
+            <span className="bg-chart-2/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
               <UserRound className="h-4.5 w-4.5" aria-hidden />
             </span>
             You
@@ -876,7 +876,7 @@ export function ProfileScreen() {
         onOpenChange={(o) => !o && setSuggestDetail(null)}
       />
 
-      {/* SmartFit Pro — membership status & paywall entry */}
+      {/* SmartFit Pro — mvoltship status & paywall entry */}
       <Card className="overflow-hidden">
         <div className="relative flex flex-wrap items-center gap-4 p-5">
           {/* eslint-disable-next-line @next/next/no-img-element -- static export */}
@@ -894,7 +894,7 @@ export function ProfileScreen() {
             <p className="text-sm font-bold text-white">SmartFit Pro</p>
             <p className="truncate text-xs text-white/75">
               {pro
-                ? `Member since ${formatDateLabel(toISODate(new Date(state.profile.pro?.since ?? Date.now())))} — thanks for supporting SmartFit.`
+                ? `Mvolt since ${formatDateLabel(toISODate(new Date(state.profile.pro?.since ?? Date.now())))} — thanks for supporting SmartFit.`
                 : 'Unlimited AI coach, quarter & year analytics, Pro badge.'}
             </p>
           </div>
@@ -912,7 +912,7 @@ export function ProfileScreen() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2.5 text-base">
-            <span className="bg-chart-4/10 text-chart-4 flex h-9 w-9 items-center justify-center rounded-xl">
+            <span className="bg-chart-4/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
               <Database className="h-4.5 w-4.5" aria-hidden />
             </span>
             Your data

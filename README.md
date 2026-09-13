@@ -96,7 +96,7 @@ shared domain package — but applies them to **training** instead of money.
   a fallback chain: devices where GL cannot start (no WebGL, older iOS) get
   Leaflet over CARTO raster tiles instead, and if even that fails the route
   still draws on-device while recording continues untouched. Share cards offer
-  a Strava-style map card (Ember/Paper, route registered to the streets) or a
+  a Strava-style map card (Volt/Ink stages, route registered to the streets) or a
   truly transparent PNG that layers over a photo — logo mark always on.
 - **SmartFit Pro preview** — the dashboard includes the planned paywall and
   gates so the product can be evaluated, but paid checkout, trial activation,

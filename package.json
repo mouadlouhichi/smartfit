@@ -26,9 +26,7 @@
     "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project smartfit-rules-ci \"node --import tsx --test tests/rules/firestore-rules.test.ts\""
   },
   "dependencies": {
-    "@fontsource-variable/instrument-sans": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
-    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-progress": "^1.1.7",
@@ -56,6 +54,7 @@
     "@axe-core/playwright": "^4.13.0",
     "@eslint/eslintrc": "^3.3.7",
     "@firebase/rules-unit-testing": "^5.0.2",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4.1.14",
     "@types/leaflet": "^1.9.22",
@@ -64,6 +63,7 @@
     "@types/react-dom": "19.1.7",
     "eslint": "^9",
     "eslint-config-next": "^15",
+    "opentype.js": "^2.0.0",
     "prettier": "^3",
     "prettier-plugin-tailwindcss": "^0.6",
     "sharp": "^0.35.4",

@@ -8,11 +8,11 @@ import { cn } from '@/lib/utils';
 
 /**
  * Three concentric closing rings — the retention visual the whole category
- * converged on (Apple Fitness+). Order matters: Move (calories, ember) on the
+ * converged on (Apple Fitness+). Order matters: Move (calories, volt) on the
  * outside, Exercise (minutes, terracotta) middle, Sessions (chart gold) core,
  * matching Apple's Move/Exercise/Stand reading order.
  *
- * Rendered for a dark stage (the overview's ember hero): gradient strokes,
+ * Rendered for a dark stage (the overview's volt hero): gradient strokes,
  * tinted tracks and a soft halo under each arc that brightens once the ring
  * closes. Arcs sweep from 0 on mount (instant under reduced motion).
  *
@@ -163,7 +163,7 @@ export function ActivityRingsGraphic({
 /**
  * The legend beside the rings — icon, label, value/target plus a % pill for
  * each dial, using the same colour mapping as the graphic. `onDark` reads in
- * hero tones on the ember card; `default` suits light surfaces.
+ * hero tones on the volt card; `default` suits light surfaces.
  */
 export function ActivityRingsLegend({
   rings,

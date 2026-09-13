@@ -24,10 +24,16 @@ compose, and the rules that keep screens consistent (and the E2E suite green).
 3. **Tokens over one-offs.** Colors/radii/ink come from the CSS custom
    properties in `globals.css` (AA-contrast in light *and* dark). Components
    never hardcode hex values.
-4. **Accessibility by construction.** Every control has a visible label; hints
+4. **Data colors live in a verified band.** Category/intensity colors render on
+   adaptive surfaces, so they come from `CATEGORY_SWATCHES` /
+   `INTENSITY_META` in `@smartfit/core` — every value clears ≥3:1 on white
+   (graphics) *and* ≥4.5:1 on the #1a1a1a card (AA text on the dark theme).
+   `tests/contrast.test.ts` enforces this in CI; to add a swatch, verify it
+   against both reference surfaces first.
+5. **Accessibility by construction.** Every control has a visible label; hints
    and errors are announced (`aria-describedby`); invalid state is exposed to AT
    (`aria-invalid`) *and* visible (destructive border).
-5. **Stability contracts are API.** E2E locates fields by **label text** and
+6. **Stability contracts are API.** E2E locates fields by **label text** and
    **stable ids** (`p-weight`, `log-filter`, …). Renaming either is a breaking
    change — update `e2e/smoke.spec.ts` in the same PR.
 
@@ -46,7 +52,7 @@ screens       components/dashboard/screens/*, auth, onboarding, landing
 
 | Component | File | When to use | Notes |
 | --- | --- | --- | --- |
-| `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the ember pulse; mobile-first sizes — default h-11, sm h-9, icon 44px, compacted on sm+ |
+| `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the volt pulse; mobile-first sizes — default h-11, sm h-9, icon 44px, compacted on sm+ |
 | `Input` | `ui/input.tsx` | free text, numbers | h-11 + 16px type on mobile (no iOS focus zoom), h-10 + text-sm on sm+, rounded-xl; `aria-invalid=true` → destructive border |
 | `Select` | `ui/select.tsx` | closed choice sets | styled native `<select>` + chevron; same invalid styling; keep native picker on mobile |
 | `DatePicker` | `ui/date-picker.tsx` | **every** date field | trigger styled like `Select`; the calendar popover is closed until pressed (native date inputs auto-open theirs on some devices). Month paging, Today/Yesterday quick picks, arrow/Home/End keyboard grid, `max` (default today) and `min` bounds, `weekStartsOn` follows the profile |
@@ -119,9 +125,9 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
   where a visible label is genuinely impossible (e.g. the chart unit `Select`).
 - Hints/errors are associated, not adjacent decoration (`aria-describedby`).
 - Errors: `role="alert"` so screen readers announce on commit.
-- Contrast: all token inks are AA in light and dark themes (`--primary #bd4220`,
-  `--muted-foreground #65635d` light; `--accent-foreground #f2c4ae` dark).
-- Motion: `ember-glow`/`dot-typing` keyframes honor `prefers-reduced-motion`.
+- Contrast: all token inks are AA in light and dark themes (dark `--primary #f3ff47`
+  always carries `--primary-foreground #101010`; light `--primary` is ink `#161616`).
+- Motion: `volt-glow`/`dot-typing` keyframes honor `prefers-reduced-motion`.
 
 ## 7. Stability contracts (E2E)
 

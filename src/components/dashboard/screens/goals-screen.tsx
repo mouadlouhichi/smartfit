@@ -30,9 +30,9 @@ function goalDisplay(value: number, metric: GoalMetric, profile: UserProfile): n
 /** Per-metric identity: ring stroke + tinted icon tile (all AA on cards). */
 const METRIC_STYLE: Record<GoalMetric, { ring: string; tile: string }> = {
   workouts: { ring: 'var(--primary)', tile: 'bg-primary/10 text-primary' },
-  minutes: { ring: 'var(--chart-2)', tile: 'bg-chart-2/10 text-chart-2' },
-  calories: { ring: 'var(--chart-4)', tile: 'bg-chart-4/10 text-chart-4' },
-  distance: { ring: 'var(--clay)', tile: 'bg-clay/10 text-clay' },
+  minutes: { ring: 'var(--chart-2)', tile: 'bg-chart-2/10 text-foreground' },
+  calories: { ring: 'var(--chart-4)', tile: 'bg-chart-4/10 text-foreground' },
+  distance: { ring: 'var(--chart-3)', tile: 'bg-clay/10 text-foreground' },
 };
 
 export function GoalsScreen() {

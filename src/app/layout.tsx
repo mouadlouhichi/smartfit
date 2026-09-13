@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-// App typeface (Paperpillar product UI).
-import '@fontsource-variable/plus-jakarta-sans';
-// Landing typefaces — exact match to the reference landing (SmartJib).
-import '@fontsource-variable/instrument-sans/wght.css';
+// Landing mono typeface (data/terminal accents).
 import '@fontsource-variable/jetbrains-mono/wght.css';
 import './globals.css';
 import { AppProviders } from '@/components/app-providers';
@@ -28,7 +25,7 @@ export const metadata: Metadata = {
   // `?v=` busts the OS/browser icon caches whenever the mark is regenerated
   // (scripts/gen-brand-assets.mjs) — home-screen icons are cached by URL and
   // otherwise survive every deploy. Keep in sync with manifest.webmanifest.
-  manifest: '/manifest.webmanifest?v=3',
+  manifest: '/manifest.webmanifest?v=4',
   appleWebApp: {
     capable: true,
     title: appName,
@@ -36,11 +33,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico?v=3', sizes: '32x32' },
-      { url: '/icon.svg?v=3', type: 'image/svg+xml' },
-      { url: '/icons/icon-192.png?v=3', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.ico?v=4', sizes: '32x32' },
+      { url: '/icon.svg?v=4', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png?v=4', sizes: '192x192', type: 'image/png' },
     ],
-    apple: [{ url: '/apple-touch-icon.png?v=3', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: '/apple-touch-icon.png?v=4', sizes: '180x180', type: 'image/png' }],
   },
   openGraph: {
     title: `${appName} — Train with intention`,
@@ -50,7 +47,7 @@ export const metadata: Metadata = {
     url: '/',
     images: [
       {
-        url: '/og.png?v=3',
+        url: '/og.png?v=4',
         width: 1200,
         height: 630,
         alt: `${appName} — train with intention`,
@@ -61,13 +58,13 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `${appName} — Train with intention`,
     description: 'Plan, log and understand your training. A calm, private fitness companion.',
-    images: ['/og.png?v=3'],
+    images: ['/og.png?v=4'],
   },
 };
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#efedea' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f5f2' },
     { media: '(prefers-color-scheme: dark)', color: '#161313' },
   ],
   width: 'device-width',

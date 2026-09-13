@@ -11,16 +11,20 @@ import {
   Sparkles,
   Check,
   ChevronRight,
+  Timer,
+  ArrowUpRight,
 } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { CoachPanel } from '../coach-panel';
 import { EmptyState } from '../empty-state';
+import { TodaysWorkoutCard } from '../todays-workout-card';
 import { CategoryIcon } from '@/components/category-icon';
 import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
 import { ReadinessCard } from '../readiness-card';
 import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MetricCard, MiniBars, Chip, GradeRing } from '@/components/volt/volt-kit';
 import {
   currentStreak,
   getPlan,
@@ -47,6 +51,7 @@ export function OverviewScreen() {
   const { state } = useStore();
   const { openModal, openWith } = useModals();
   const [range, setRange] = useState<Range>('Weekly');
+  const [programFilter, setProgramFilter] = useState('All type');
 
   const week = useMemo(() => thisWeek(state), [state]);
   const series = useMemo(() => weeklySeries(state, 8), [state]);
@@ -84,6 +89,19 @@ export function OverviewScreen() {
 
   // Today's closing rings (Apple-style) from the athlete's own goals.
   const rings = useMemo(() => activityRings(state, targetsForDays(state, 1)), [state]);
+
+  // Per-day distance for the metric tile's mini bars (last 7 days).
+  const dayDistances = useMemo(() => {
+    const out: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - i);
+      const iso = toISODate(d);
+      out.push(aggregate(sessionsInRange(state, iso, iso)).distance);
+    }
+    return out;
+  }, [state]);
 
   // Today's next un-done scheduled slot. If the plan is already complete,
   // start a fresh session instead of showing a completed slot as if it were
@@ -130,123 +148,182 @@ export function OverviewScreen() {
     window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
   }, [openModal]);
 
+  const agendaFiltered = useMemo(
+    () =>
+      programFilter === 'All type'
+        ? agenda
+        : agenda.filter((a) => categoryById(state, a.slot.categoryId)?.name === programFilter),
+    [agenda, programFilter, state],
+  );
+
   const hasData = state.sessions.length > 0;
   const recent = useMemo(() => state.sessions.slice(0, 4), [state.sessions]);
   const firstName = state.profile.name?.trim().split(' ')[0];
 
   return (
     <div className="grid max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+      <h1 className="sr-only">Overview</h1>
       {/* ── Center / left column ───────────────────────────────
           Separate surfaces: the white card covers only the greeting and
           weekly progress; start workout, today rings, plan, and summary
           live outside it as their own sections. */}
       <div className="grid max-w-full min-w-0 content-start gap-6">
-        <div className="bg-card rounded-[2rem] p-4 shadow-sm min-[420px]:p-6 sm:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <h1 className="font-display text-[2rem] leading-[1.05] font-extrabold tracking-tight sm:text-4xl lg:text-[2.75rem]">
-              {firstName ? `Let's go,` : `Let's start`}
-              <br />
-              {firstName ? `${firstName}!` : 'strong!'}
-            </h1>
-            <p className="eyebrow text-muted-foreground hidden sm:block">{plan.name}</p>
+        {/* ── Streak card — the reference "Running 7 days" tile ────────── */}
+        <div className="bg-card border-border flex items-center gap-4 rounded-3xl border p-4 sm:p-5">
+          <span className="bg-volt text-ink grid h-14 w-14 shrink-0 place-items-center rounded-2xl">
+            <Footprints className="h-6 w-6" strokeWidth={2.4} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-lg leading-tight font-extrabold tracking-tight sm:text-xl">
+              Training {streak} day{streak === 1 ? '' : 's'}
+            </p>
+            <p className="text-muted-foreground mt-0.5 truncate text-xs sm:text-sm">
+              {week.workouts} session{week.workouts === 1 ? '' : 's'} · {week.distance.toFixed(1)}{' '}
+              {distanceUnit} · {formatMinutes(week.minutes)}
+            </p>
           </div>
-
-          {/* Weekly goal card */}
-          <div className="bg-secondary/70 mt-8 rounded-3xl p-5 sm:p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="max-w-[16rem] text-base leading-snug font-bold sm:text-[17px]">
-                  You&apos;re {goalPct}% to your weekly goal
-                </p>
-                <p className="text-muted-foreground mt-1 text-sm">
-                  {focus ?? 'Rest & recover day'}
-                </p>
-              </div>
-              <button
-                onClick={() => openModal('workout')}
-                aria-label="Log workout"
-                className="zap-glow bg-primary relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-white transition-transform active:scale-90"
-              >
-                <Zap className="h-6 w-6" strokeWidth={2.6} fill="currentColor" />
-              </button>
-            </div>
-            <div className="mt-5 flex items-center gap-3 min-[420px]:gap-4">
-              <div
-                className="h-3.5 flex-1 overflow-hidden rounded-full bg-white/80"
-                role="progressbar"
-                aria-valuenow={goalPct}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-label="Weekly goal progress"
-              >
-                <div
-                  className="bg-foreground h-full rounded-full transition-all duration-700"
-                  style={{ width: `${Math.max(4, goalPct)}%` }}
-                />
-              </div>
-              <span className="text-muted-foreground shrink-0 text-sm font-semibold">
-                {week.workouts.toLocaleString()}/{weeklyTarget.toLocaleString()} workouts
-              </span>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={startToday}
+            aria-label={nextSlot ? `Start ${nextSlot.slot.title}` : 'Start another workout'}
+            className="bg-volt text-ink press grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-[0_6px_18px_-8px_rgba(243,255,71,0.7)] transition-transform hover:-translate-y-0.5 active:scale-95"
+          >
+            <ArrowUpRight className="h-5 w-5" strokeWidth={2.75} />
+          </button>
         </div>
 
-        {/* ── Start today's workout (the "start exercise" entry point) ── */}
-        <button
-          type="button"
-          aria-label={nextSlot ? `Start ${nextSlot.slot.title}` : 'Start another workout'}
-          className="pro-surface sheen press relative block w-full overflow-hidden rounded-3xl text-left"
-          onClick={startToday}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element -- static export, pre-optimised asset */}
-          <img
-            src="/images/start-workout.jpg"
-            alt=""
-            aria-hidden
-            className="absolute inset-0 h-full w-full object-cover opacity-60"
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                'linear-gradient(90deg, rgba(20,17,16,0.92) 0%, rgba(20,17,16,0.55) 55%, rgba(20,17,16,0.15) 100%)',
-            }}
-          />
-          <div className="relative flex items-center gap-4 p-5">
-            <div className="min-w-0 flex-1">
-              <p className="eyebrow text-[11px] font-extrabold" style={{ color: '#f0a37f' }}>
-                {nextSlot
-                  ? 'On today’s plan'
-                  : agenda.length > 0
-                    ? 'Plan complete'
-                    : 'Ready when you are'}
-              </p>
-              <p className="font-display mt-1 truncate text-xl font-extrabold text-[#f7f2ea]">
-                {nextSlot
-                  ? nextSlot.slot.title
-                  : agenda.length > 0
-                    ? 'Start another workout'
-                    : 'Start today’s workout'}
-              </p>
-              <p className="pro-muted mt-0.5 truncate text-xs">
-                {focus ?? 'Guided session with rest timer, demo clips and PR detection'}
-              </p>
-            </div>
-            <span
-              className="flex h-13 w-13 shrink-0 items-center justify-center rounded-full text-white shadow-lg"
-              style={{
-                background: 'linear-gradient(120deg,#e05e36,#c4451f)',
-                width: '3.25rem',
-                height: '3.25rem',
-              }}
+        {/* ── Health metrics — the reference 2×2 tile grid ─────────────── */}
+        <section aria-label="Health metrics">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Health Metrics</h2>
+            <Link
+              href="/dashboard/progress"
+              className="text-primary text-sm font-bold transition-colors hover:underline"
             >
-              <Play className="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden />
-            </span>
+              See All
+            </Link>
           </div>
-        </button>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <MetricCard
+              icon={Timer}
+              label="Active minutes"
+              value={rangeAgg.minutes}
+              unit="min"
+              chart={<MiniBars values={series.slice(-7).map((x) => x.minutes)} />}
+            />
+            <MetricCard
+              icon={Dumbbell}
+              label="Sessions"
+              value={rangeAgg.workouts}
+              unit="workouts"
+              chart={<MiniBars values={series.slice(-7).map((x) => x.workouts)} />}
+            />
+            <MetricCard
+              icon={Footprints}
+              label="Distance"
+              value={week.distance.toFixed(1)}
+              unit={distanceUnit}
+              chart={<MiniBars values={dayDistances} />}
+            />
+            <MetricCard
+              icon={Target}
+              label="Weekly goal"
+              value={`${goalPct}%`}
+              unit="of target"
+              chart={<GradeRing value={goalPct} size={44} stroke={6} label="Weekly goal" />}
+            />
+          </div>
+        </section>
+
+        {/* ── Workout programs: chips + the featured session card ──────── */}
+        <section aria-label="Workout programs">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Workout Programs</h2>
+            <Link
+              href="/dashboard/plan"
+              className="text-primary text-sm font-bold transition-colors hover:underline"
+            >
+              See All
+            </Link>
+          </div>
+          <div className="no-scrollbar -mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
+            {['All type', ...state.categories.map((c) => c.name)].map((name) => (
+              <Chip
+                key={name}
+                label={name}
+                selected={programFilter === name}
+                onClick={() => setProgramFilter(name)}
+              />
+            ))}
+          </div>
+
+          {/* ── Today's workout — the reference workout-day sheet ── */}
+          <TodaysWorkoutCard />
+          {/* Today's plan — filtered by the chips above */}
+          {agendaFiltered.length > 0 && (
+            <ul className="mt-3 grid gap-2">
+              {agendaFiltered.map(({ slot, done }) => {
+                const cat = categoryById(state, slot.categoryId);
+                return (
+                  <li key={slot.id}>
+                    <button
+                      onClick={() =>
+                        done
+                          ? openWith({ kind: 'session-detail', session: done })
+                          : openWith({
+                              kind: 'workout',
+                              prefill: {
+                                title: slot.title,
+                                categoryId: slot.categoryId,
+                                durationMin: slot.durationMin,
+                                intensity: slot.intensity,
+                                scheduleId: slot.id,
+                              },
+                            })
+                      }
+                      className={cn(
+                        'flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
+                        done
+                          ? 'bg-secondary/60 border-transparent'
+                          : 'border-border bg-card hover:border-volt/40',
+                      )}
+                    >
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: `${cat.color}1f`, color: cat.color }}
+                      >
+                        <CategoryIcon name={cat.icon} size={16} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={cn(
+                            'block truncate text-sm font-semibold',
+                            done && 'text-muted-foreground line-through',
+                          )}
+                        >
+                          {slot.title}
+                        </span>
+                        <span className="text-muted-foreground block text-xs">
+                          {slot.timeOfDay} · {formatMinutes(slot.durationMin)}
+                        </span>
+                      </span>
+                      {done ? (
+                        <span className="bg-primary/10 text-primary flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
+                          <Check className="h-3 w-3" /> Done
+                        </span>
+                      ) : (
+                        <span className="text-primary text-[11px] font-bold">Log it</span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
 
         {/* ── Today's closing rings ─────────────────────────────────────
-            Dark ember hero: gradients + halo need the dark stage, and the
+            Dark volt hero: gradients + halo need the dark stage, and the
             legend reads in hero tones. Stacked on phones, side by side
             once there is room. */}
         <div className="card-hero p-5 sm:p-6">
@@ -295,10 +372,10 @@ export function OverviewScreen() {
           {quickActions.map((a) => {
             const inner = (
               <div className="group flex flex-col items-center gap-2 sm:gap-2.5">
-                <span className="bg-secondary text-clay group-hover:bg-primary mx-auto flex aspect-square w-full max-w-14 items-center justify-center rounded-full shadow-sm transition-colors group-hover:text-white sm:aspect-auto sm:h-16 sm:w-16 sm:max-w-none">
+                <span className="bg-secondary text-foreground group-hover:bg-volt group-hover:text-ink mx-auto flex aspect-square w-full max-w-14 items-center justify-center rounded-full shadow-sm transition-colors sm:aspect-auto sm:h-16 sm:w-16 sm:max-w-none">
                   <a.icon className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2} />
                 </span>
-                <span className="text-clay text-center text-[10px] leading-tight font-semibold sm:text-xs">
+                <span className="text-muted-foreground text-center text-[10px] leading-tight font-semibold sm:text-xs">
                   {a.label}
                 </span>
               </div>
@@ -314,74 +391,6 @@ export function OverviewScreen() {
             );
           })}
         </div>
-
-        {/* Today's plan — the bridge between the schedule and the log.
-            A standalone section now, separated from the card above. */}
-        {agenda.length > 0 && (
-          <section aria-label="On today's plan">
-            <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-[1.35rem]">
-              On today&apos;s plan
-            </h2>
-            <ul className="mt-4 grid gap-2">
-              {agenda.map(({ slot, done }) => {
-                const cat = categoryById(state, slot.categoryId);
-                return (
-                  <li key={slot.id}>
-                    <button
-                      onClick={() =>
-                        done
-                          ? openWith({ kind: 'session-detail', session: done })
-                          : openWith({
-                              kind: 'workout',
-                              prefill: {
-                                title: slot.title,
-                                categoryId: slot.categoryId,
-                                durationMin: slot.durationMin,
-                                intensity: slot.intensity,
-                                scheduleId: slot.id,
-                              },
-                            })
-                      }
-                      className={cn(
-                        'flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
-                        done
-                          ? 'bg-secondary/60 border-transparent'
-                          : 'border-border bg-card hover:border-primary/50',
-                      )}
-                    >
-                      <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${cat.color}1f`, color: cat.color }}
-                      >
-                        <CategoryIcon name={cat.icon} size={16} />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span
-                          className={cn(
-                            'block truncate text-sm font-semibold',
-                            done && 'text-muted-foreground line-through',
-                          )}
-                        >
-                          {slot.title}
-                        </span>
-                        <span className="text-muted-foreground block text-xs">
-                          {slot.timeOfDay} · {formatMinutes(slot.durationMin)}
-                        </span>
-                      </span>
-                      {done ? (
-                        <span className="bg-primary/10 text-primary flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
-                          <Check className="h-3 w-3" /> Done
-                        </span>
-                      ) : (
-                        <span className="text-primary text-[11px] font-bold">Log it</span>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        )}
 
         {/* Summary — its own section, separated from the plan items above. */}
         <section aria-label="Summary">
@@ -530,7 +539,7 @@ function RangeToggle({ value, onChange }: { value: Range; onChange: (r: Range) =
           onClick={() => onChange(r)}
           className={cn(
             'rounded-full px-3 py-1.5 text-[13px] font-semibold transition-all min-[420px]:px-5 min-[420px]:py-2 min-[420px]:text-sm',
-            value === r ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground',
+            value === r ? 'bg-volt text-ink shadow-sm' : 'text-muted-foreground',
           )}
         >
           {r}
@@ -582,7 +591,7 @@ function SummaryArc({ activePct, sessPct }: { activePct: number; sessPct: number
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="#2b2725"
+        stroke="#2b2b2b"
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={`${activeLen} ${c}`}

@@ -47,15 +47,15 @@ export function ExercisePickerModal({
           <View className="border-border flex-row items-center justify-between border-b px-5 py-4">
             <Text className="text-foreground text-lg font-bold">Exercise library</Text>
             <Pressable onPress={onClose} className="active:bg-muted rounded-full p-2">
-              <X color="#857D75" size={22} />
+              <X color="#a3a3a3" size={22} />
             </Pressable>
           </View>
 
           <View className="border-border flex-row items-center gap-2 border-b px-5 pb-3">
-            <Search color="#857D75" size={18} />
+            <Search color="#a3a3a3" size={18} />
             <TextInput
               autoFocus
-              placeholderTextColor="#A9A098"
+              placeholderTextColor="#8a8a8a"
               className="text-foreground flex-1 text-base"
               placeholder="Search exercises, muscles or equipment…"
               value={query}
@@ -90,7 +90,7 @@ export function ExercisePickerModal({
                   onPress={() => setDetailName(item.name)}
                   className="active:bg-muted rounded-full p-2"
                 >
-                  <Info color="#857D75" size={18} />
+                  <Info color="#a3a3a3" size={18} />
                 </Pressable>
               </View>
             )}

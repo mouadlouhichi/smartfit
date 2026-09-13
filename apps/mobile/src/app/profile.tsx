@@ -33,7 +33,7 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
         <View className="flex-row items-center justify-between py-2">
           <Text className="text-foreground text-lg font-bold">Log measurement</Text>
           <Pressable onPress={onClose} className="active:bg-muted rounded-full p-2">
-            <X color="#857D75" size={22} />
+            <X color="#a3a3a3" size={22} />
           </Pressable>
         </View>
         <ScrollView contentContainerClassName="gap-4 pt-4">
@@ -46,12 +46,12 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                   onPress={() => setUnit(u)}
                   className="rounded-full border px-3 py-2"
                   style={{
-                    borderColor: unit === u ? '#D6532F' : '#E7E2DB',
-                    backgroundColor: unit === u ? '#D6532F22' : 'transparent',
+                    borderColor: unit === u ? '#f3ff47' : '#2b2b2b',
+                    backgroundColor: unit === u ? '#f3ff4722' : 'transparent',
                   }}
                 >
                   <Text
-                    style={{ color: unit === u ? '#D6532F' : '#857D75' }}
+                    style={{ color: unit === u ? '#f3ff47' : '#a3a3a3' }}
                     className="text-sm font-medium"
                   >
                     {BODY_UNIT_META[u].label}
@@ -87,7 +87,7 @@ function ProCard() {
     return (
       <Card>
         <View className="flex-row items-center gap-2">
-          <Crown color="#C4893A" size={18} />
+          <Crown color="#cbe02c" size={18} />
           <Text className="text-foreground font-semibold">
             SmartFit Pro{trialing ? ' Trial' : planName ? ` · ${planName}` : ''}
           </Text>
@@ -104,7 +104,7 @@ function ProCard() {
   return (
     <Card>
       <View className="flex-row items-center gap-2">
-        <Crown color="#C4893A" size={18} />
+        <Crown color="#cbe02c" size={18} />
         <Text className="text-foreground font-semibold">SmartFit Pro</Text>
       </View>
       <Text className="text-muted-foreground mt-1 text-sm">
@@ -134,7 +134,7 @@ export default function ProfileScreen() {
 
         <Card>
           <View className="mb-3 flex-row items-center gap-2">
-            <UserRound color="#D6532F" size={18} />
+            <UserRound color="#f3ff47" size={18} />
             <Text className="text-foreground font-semibold">You</Text>
           </View>
           <Label>Name</Label>
@@ -156,7 +156,7 @@ export default function ProfileScreen() {
 
         <Card>
           <View className="mb-2 flex-row items-center gap-2">
-            <Database color="#D6532F" size={18} />
+            <Database color="#f3ff47" size={18} />
             <Text className="text-foreground font-semibold">Your data</Text>
           </View>
           <Text className="text-muted-foreground text-sm">
@@ -186,7 +186,7 @@ export default function ProfileScreen() {
         </Card>
 
         <View className="flex-row items-center justify-center gap-2 py-4">
-          <RefreshCw color="#857D75" size={14} />
+          <RefreshCw color="#a3a3a3" size={14} />
           <Text className="text-muted-foreground text-xs">
             Local-first · no account · no trackers
           </Text>

@@ -25,7 +25,7 @@ export function Label({ children }: { children: React.ReactNode }) {
 export function Input(props: TextInputProps) {
   return (
     <RNTextInput
-      placeholderTextColor="#A9A098"
+      placeholderTextColor="#8a8a8a"
       className="border-border bg-background text-foreground h-11 rounded-xl border px-3 text-base"
       {...props}
     />
@@ -67,7 +67,7 @@ export function Button({
       {...rest}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#FDF6F2' : '#D6532F'} />
+        <ActivityIndicator color={variant === 'primary' ? '#101010' : '#f3ff47'} />
       ) : (
         <Text className={cn('text-sm font-semibold', textColor[variant])}>{label}</Text>
       )}
@@ -79,16 +79,16 @@ export function Badge({ children, color }: { children: React.ReactNode; color?: 
   return (
     <View
       className="rounded-full px-2.5 py-1"
-      style={{ backgroundColor: color ? `${color}1a` : '#E7E2DB' }}
+      style={{ backgroundColor: color ? `${color}1a` : '#2b2b2b' }}
     >
-      <Text className="text-xs font-semibold" style={{ color: color ?? '#4E4C4C' }}>
+      <Text className="text-xs font-semibold" style={{ color: color ?? '#a3a3a3' }}>
         {children}
       </Text>
     </View>
   );
 }
 
-export function ProgressBar({ value, color = '#D6532F' }: { value: number; color?: string }) {
+export function ProgressBar({ value, color = '#f3ff47' }: { value: number; color?: string }) {
   return (
     <View className="bg-muted h-2.5 w-full overflow-hidden rounded-full">
       <View

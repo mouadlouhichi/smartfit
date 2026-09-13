@@ -287,7 +287,7 @@ export function RunMap({
       type: 'line',
       source: 'run-route',
       filter: ['==', ['get', 'kind'], 'line'],
-      paint: { 'line-color': '#ff7a4d', 'line-width': 12, 'line-opacity': 0.28, 'line-blur': 4 },
+      paint: { 'line-color': '#f3ff47', 'line-width': 12, 'line-opacity': 0.28, 'line-blur': 4 },
       layout: { 'line-cap': 'round', 'line-join': 'round' },
     });
     map.addLayer({
@@ -296,7 +296,7 @@ export function RunMap({
       source: 'run-route',
       filter: ['==', ['get', 'kind'], 'line'],
       paint: {
-        'line-color': ['interpolate', ['linear'], ['line-progress'], 0, '#ff7a4d', 1, '#f0a37f'],
+        'line-color': ['interpolate', ['linear'], ['line-progress'], 0, '#f3ff47', 1, '#f7ff85'],
         'line-width': 4.5,
       },
       layout: { 'line-cap': 'round', 'line-join': 'round' },
@@ -309,7 +309,7 @@ export function RunMap({
       paint: {
         'circle-radius': 6,
         'circle-color': '#ffffff',
-        'circle-stroke-color': '#ff7a4d',
+        'circle-stroke-color': '#f3ff47',
         'circle-stroke-width': 3,
       },
     });
@@ -320,8 +320,8 @@ export function RunMap({
       filter: ['==', ['get', 'kind'], 'head'],
       paint: {
         'circle-radius': 6.5,
-        'circle-color': '#d9ff5c',
-        'circle-stroke-color': '#141110',
+        'circle-color': '#f3ff47',
+        'circle-stroke-color': '#0e0e0e',
         'circle-stroke-width': 3,
       },
     });
@@ -331,7 +331,7 @@ export function RunMap({
     c.height = 56;
     const g = c.getContext('2d');
     if (g) {
-      g.strokeStyle = '#f7f2ea';
+      g.strokeStyle = '#f5f5f2';
       g.lineWidth = 4;
       g.lineCap = 'round';
       g.beginPath();
@@ -340,7 +340,7 @@ export function RunMap({
       g.stroke();
       for (let y = 0; y < 4; y++) {
         for (let x = 0; x < 6; x++) {
-          g.fillStyle = (x + y) % 2 === 0 ? '#141110' : '#f7f2ea';
+          g.fillStyle = (x + y) % 2 === 0 ? '#0e0e0e' : '#f5f5f2';
           g.fillRect(8 + x * 5, 6 + y * 5, 5, 5);
         }
       }
@@ -534,7 +534,7 @@ export function RunMap({
     const latlngs = pts.map((p) => [p.lat, p.lng]);
     if (!map.__glow) {
       map.__glow = L.polyline(latlngs, {
-        color: '#ff7a4d',
+        color: '#f3ff47',
         weight: 11,
         opacity: 0.28,
         lineJoin: 'round',
@@ -542,7 +542,7 @@ export function RunMap({
         interactive: false,
       }).addTo(map);
       map.__line = L.polyline(latlngs, {
-        color: '#ff7a4d',
+        color: '#f3ff47',
         weight: 5,
         opacity: 0.95,
         lineJoin: 'round',
@@ -551,7 +551,7 @@ export function RunMap({
       }).addTo(map);
       map.__start = L.circleMarker(latlngs[0], {
         radius: 6,
-        color: '#ff7a4d',
+        color: '#f3ff47',
         weight: 3,
         fillColor: '#ffffff',
         fillOpacity: 1,
@@ -559,9 +559,9 @@ export function RunMap({
       }).addTo(map);
       map.__head = L.circleMarker(latlngs.at(-1), {
         radius: 7,
-        color: '#141110',
+        color: '#0e0e0e',
         weight: 3,
-        fillColor: '#d9ff5c',
+        fillColor: '#f3ff47',
         fillOpacity: 1,
         interactive: false,
       }).addTo(map);

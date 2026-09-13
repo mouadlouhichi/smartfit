@@ -1,5 +1,7 @@
 'use client';
 
+import { CATEGORY_SWATCHES } from '@smartfit/core';
+
 import {
   Dumbbell,
   HeartPulse,
@@ -74,13 +76,8 @@ export function chipAccentStyle(color: string | undefined): {
   return { color: 'var(--primary)', backgroundColor: 'var(--accent)' };
 }
 
-export const CATEGORY_COLOR_OPTIONS = [
-  '#d6532f',
-  '#b7220f',
-  '#e8a087',
-  '#cdaca4',
-  '#b9804f',
-  '#857d75',
-  '#2b2725',
-  '#c77b52',
-];
+/**
+ * User-pickable swatches — the AA band from @smartfit/core, verified
+ * against both themes by tests/contrast.test.ts.
+ */
+export const CATEGORY_COLOR_OPTIONS: string[] = [...CATEGORY_SWATCHES];
