@@ -27,6 +27,7 @@ import {
   relativeDay,
   toISODate,
   INTENSITY_META,
+  CATEGORY_FALLBACK_COLOR,
 } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 import { Card, ProgressBar } from '@/components/ui';
@@ -267,11 +268,11 @@ export default function HomeScreen() {
                     >
                       <View
                         className="h-10 w-10 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${cat?.color ?? '#64748b'}1a` }}
+                        style={{ backgroundColor: `${cat?.color ?? CATEGORY_FALLBACK_COLOR}1a` }}
                       >
                         <CategoryIcon
                           name={cat?.icon ?? 'activity'}
-                          color={cat?.color ?? '#64748b'}
+                          color={cat?.color ?? CATEGORY_FALLBACK_COLOR}
                           size={18}
                         />
                       </View>

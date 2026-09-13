@@ -1,3 +1,4 @@
+import { CATEGORY_FALLBACK_COLOR, CATEGORY_SWATCHES } from './colors';
 import type { Category, Intensity, Plan, WeekStart } from './types';
 
 export const STORAGE_KEY = 'smartfit.state.v1';
@@ -10,18 +11,42 @@ export const STORAGE_KEY = 'smartfit.state.v1';
 export const DEFAULT_WEEK_START: WeekStart = 1;
 
 export const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'cat-strength', name: 'Strength', icon: 'dumbbell', color: '#d6532f', builtin: true },
-  { id: 'cat-cardio', name: 'Cardio', icon: 'heart-pulse', color: '#e8a087', builtin: true },
-  { id: 'cat-hiit', name: 'HIIT', icon: 'flame', color: '#b7220f', builtin: true },
+  {
+    id: 'cat-strength',
+    name: 'Strength',
+    icon: 'dumbbell',
+    color: CATEGORY_SWATCHES[0],
+    builtin: true,
+  },
+  {
+    id: 'cat-cardio',
+    name: 'Cardio',
+    icon: 'heart-pulse',
+    color: CATEGORY_SWATCHES[2],
+    builtin: true,
+  },
+  { id: 'cat-hiit', name: 'HIIT', icon: 'flame', color: '#be7855', builtin: true },
   {
     id: 'cat-mobility',
     name: 'Mobility',
     icon: 'stretch-horizontal',
-    color: '#cdaca4',
+    color: CATEGORY_SWATCHES[4],
     builtin: true,
   },
-  { id: 'cat-sports', name: 'Sports', icon: 'volleyball', color: '#b9804f', builtin: true },
-  { id: 'cat-rest', name: 'Active Rest', icon: 'moon', color: '#857d75', builtin: true },
+  {
+    id: 'cat-sports',
+    name: 'Sports',
+    icon: 'volleyball',
+    color: CATEGORY_SWATCHES[7],
+    builtin: true,
+  },
+  {
+    id: 'cat-rest',
+    name: 'Active Rest',
+    icon: 'moon',
+    color: CATEGORY_FALLBACK_COLOR,
+    builtin: true,
+  },
 ];
 
 /**
@@ -30,9 +55,11 @@ export const DEFAULT_CATEGORIES: Category[] = [
  * intervals / heavy strength (9).
  */
 export const INTENSITY_META: Record<Intensity, { label: string; met: number; color: string }> = {
-  low: { label: 'Low', met: 3.5, color: '#e8a087' },
-  moderate: { label: 'Moderate', met: 6, color: '#d6532f' },
-  high: { label: 'High', met: 9, color: '#9e1f0e' },
+  // Colors from the shared AA band: readable as text on the dark theme and
+  // as dots/fills on light cards (see colors.ts).
+  low: { label: 'Low', met: 3.5, color: '#319b78' },
+  moderate: { label: 'Moderate', met: 6, color: '#b27f38' },
+  high: { label: 'High', met: 9, color: '#d06c6c' },
 };
 
 export const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;

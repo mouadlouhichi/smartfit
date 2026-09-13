@@ -24,10 +24,16 @@ compose, and the rules that keep screens consistent (and the E2E suite green).
 3. **Tokens over one-offs.** Colors/radii/ink come from the CSS custom
    properties in `globals.css` (AA-contrast in light *and* dark). Components
    never hardcode hex values.
-4. **Accessibility by construction.** Every control has a visible label; hints
+4. **Data colors live in a verified band.** Category/intensity colors render on
+   adaptive surfaces, so they come from `CATEGORY_SWATCHES` /
+   `INTENSITY_META` in `@smartfit/core` — every value clears ≥3:1 on white
+   (graphics) *and* ≥4.5:1 on the #1a1a1a card (AA text on the dark theme).
+   `tests/contrast.test.ts` enforces this in CI; to add a swatch, verify it
+   against both reference surfaces first.
+5. **Accessibility by construction.** Every control has a visible label; hints
    and errors are announced (`aria-describedby`); invalid state is exposed to AT
    (`aria-invalid`) *and* visible (destructive border).
-5. **Stability contracts are API.** E2E locates fields by **label text** and
+6. **Stability contracts are API.** E2E locates fields by **label text** and
    **stable ids** (`p-weight`, `log-filter`, …). Renaming either is a breaking
    change — update `e2e/smoke.spec.ts` in the same PR.
 

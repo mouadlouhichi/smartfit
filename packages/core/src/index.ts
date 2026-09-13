@@ -14,6 +14,7 @@
  * NOTE: the demo-data generator lives behind the `@smartfit/core/seed` subpath
  * so it is never pulled into an app bundle. Import it only from scripts/tests.
  */
+export * from './colors';
 export * from './types';
 export * from './constants';
 export * from './utils';

@@ -21,6 +21,7 @@ import {
   type ExerciseEquipment,
   type ExerciseGroup,
   type ExerciseMuscle,
+  CATEGORY_FALLBACK_COLOR,
 } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 import { Card, SectionTitle } from '@/components/ui';
@@ -441,11 +442,11 @@ export default function PlanScreen() {
                     >
                       <View
                         className="h-9 w-9 items-center justify-center rounded-lg"
-                        style={{ backgroundColor: `${cat?.color ?? '#64748b'}1a` }}
+                        style={{ backgroundColor: `${cat?.color ?? CATEGORY_FALLBACK_COLOR}1a` }}
                       >
                         <CategoryIcon
                           name={cat?.icon ?? 'activity'}
-                          color={cat?.color ?? '#64748b'}
+                          color={cat?.color ?? CATEGORY_FALLBACK_COLOR}
                           size={16}
                         />
                       </View>

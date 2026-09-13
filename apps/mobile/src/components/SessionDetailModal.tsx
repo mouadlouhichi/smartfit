@@ -8,6 +8,7 @@ import {
   formatDistance,
   formatMinutes,
   type WorkoutSession,
+  CATEGORY_FALLBACK_COLOR,
 } from '@smartfit/core';
 import { matchExercise } from '@smartfit/core';
 import { useStore } from '@/lib/store';
@@ -61,11 +62,11 @@ export function SessionDetailModal({
             <View className="flex-row items-center gap-3">
               <View
                 className="h-11 w-11 items-center justify-center rounded-xl"
-                style={{ backgroundColor: `${category?.color ?? '#64748b'}1a` }}
+                style={{ backgroundColor: `${category?.color ?? CATEGORY_FALLBACK_COLOR}1a` }}
               >
                 <CategoryIcon
                   name={category?.icon ?? 'activity'}
-                  color={category?.color ?? '#64748b'}
+                  color={category?.color ?? CATEGORY_FALLBACK_COLOR}
                   size={20}
                 />
               </View>
