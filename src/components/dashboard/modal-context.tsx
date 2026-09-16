@@ -32,6 +32,8 @@ export type ModalPayload =
       title: string;
       categoryId: string;
       intensity: WorkoutSession['intensity'];
+      /** Planned class/session length when launched from a schedule. */
+      durationMin?: number;
       scheduleId?: string;
       /** The routine's exercise list, pre-loaded into the guided runner. */
       exercises?: WorkoutExercise[];

@@ -126,6 +126,7 @@ export function OverviewScreen() {
           title: nextSlot.slot.title,
           categoryId: nextSlot.slot.categoryId,
           intensity: nextSlot.slot.intensity,
+          durationMin: nextSlot.slot.durationMin,
           scheduleId: nextSlot.slot.id,
           exercises: nextSlot.slot.exercises,
         })

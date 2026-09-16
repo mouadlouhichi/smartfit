@@ -163,6 +163,7 @@ export function TodaysWorkoutCard() {
       title: day.title,
       categoryId: day.category,
       intensity: day.intensity,
+      durationMin: day.durationMin,
       exercises: day.exercises,
       scheduleId: day.todaySlot?.id,
     });
