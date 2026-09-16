@@ -8,7 +8,6 @@ import {
   Dumbbell,
   FastForward,
   Flame,
-  Footprints,
   Gift,
   HeartPulse,
   Leaf,
@@ -43,9 +42,8 @@ const PROGRAM_VISUALS: Record<
     icon: LucideIcon;
     metric: string;
     titleColor: string;
-    shell: string;
-    glow: string;
-    figure: string;
+    image: string;
+    objectPosition: string;
     panel: string;
     track: string;
     bars: number[];
@@ -55,10 +53,8 @@ const PROGRAM_VISUALS: Record<
     icon: Dumbbell,
     metric: '5×5',
     titleColor: 'text-white',
-    shell:
-      'bg-[radial-gradient(circle_at_28%_18%,rgba(156,255,0,0.3),transparent_28%),linear-gradient(148deg,#232323_0%,#111_48%,#050505_100%)]',
-    glow: 'bg-primary/50',
-    figure: 'from-[#f6f7f1] via-[#bfc7c4] to-[#5a625e]',
+    image: '/images/cat-strength.jpg',
+    objectPosition: '44% 44%',
     panel: 'bg-primary text-primary-foreground',
     track: 'bg-primary',
     bars: [38, 64, 46, 80, 54],
@@ -67,10 +63,8 @@ const PROGRAM_VISUALS: Record<
     icon: HeartPulse,
     metric: '45m',
     titleColor: 'text-white',
-    shell:
-      'bg-[radial-gradient(circle_at_75%_12%,rgba(207,255,85,0.24),transparent_30%),linear-gradient(145deg,#1a2715_0%,#101411_44%,#050505_100%)]',
-    glow: 'bg-[#cfff55]/45',
-    figure: 'from-[#f0f5dd] via-[#aeb99c] to-[#49513f]',
+    image: '/images/cat-cardio.jpg',
+    objectPosition: '58% 38%',
     panel: 'bg-white/12 text-white',
     track: 'bg-[#cfff55]',
     bars: [52, 70, 44, 66, 88],
@@ -79,10 +73,8 @@ const PROGRAM_VISUALS: Record<
     icon: Flame,
     metric: '12 rnd',
     titleColor: 'text-white',
-    shell:
-      'bg-[radial-gradient(circle_at_48%_15%,rgba(255,255,255,0.16),transparent_25%),linear-gradient(145deg,#26201a_0%,#14110d_46%,#050505_100%)]',
-    glow: 'bg-orange-300/45',
-    figure: 'from-[#fff2dc] via-[#d1ab72] to-[#5b4121]',
+    image: '/images/cat-hiit.jpg',
+    objectPosition: '42% 44%',
     panel: 'bg-orange-200 text-black',
     track: 'bg-orange-200',
     bars: [76, 42, 92, 58, 70],
@@ -91,10 +83,8 @@ const PROGRAM_VISUALS: Record<
     icon: StretchHorizontal,
     metric: '20m',
     titleColor: 'text-white',
-    shell:
-      'bg-[radial-gradient(circle_at_35%_18%,rgba(156,255,0,0.18),transparent_26%),linear-gradient(145deg,#1d2028_0%,#111318_50%,#050505_100%)]',
-    glow: 'bg-sky-200/35',
-    figure: 'from-[#ecf7ff] via-[#99a8c0] to-[#3d4554]',
+    image: '/images/cat-mobility.jpg',
+    objectPosition: '55% 42%',
     panel: 'bg-sky-200 text-black',
     track: 'bg-sky-200',
     bars: [34, 48, 58, 42, 62],
@@ -258,11 +248,7 @@ export function AxelWorkoutHero({
   return (
     <section className={cn('axel-card overflow-hidden rounded-[1.8rem]', className)}>
       <div className="relative min-h-[19rem] overflow-hidden bg-[#070807] p-4 sm:min-h-[23rem] sm:p-6">
-        <AxelProgramBackdrop tone="strength" />
-        <AxelMotionFigure
-          tone="strength"
-          className="absolute right-0 bottom-2 h-56 w-40 sm:h-72 sm:w-52"
-        />
+        <AxelPhotoLayer src="/images/start-workout.jpg" objectPosition="54% 45%" priority />
         <div className="absolute right-4 bottom-5 z-10 hidden rounded-3xl bg-black/55 p-3 ring-1 ring-white/10 backdrop-blur sm:block">
           <div className="flex items-end gap-1.5" aria-hidden>
             {PROGRAM_VISUALS.strength.bars.map((height, index) => (
@@ -330,10 +316,10 @@ export function AxelProgramDetail({ className }: { className?: string }) {
   return (
     <section className={cn('axel-card overflow-hidden rounded-[1.8rem]', className)}>
       <div className="relative min-h-[18rem] overflow-hidden bg-[#070807] p-5 sm:min-h-[23rem] sm:p-7">
-        <AxelProgramBackdrop tone="cardio" />
-        <AxelMotionFigure
-          tone="cardio"
-          className="absolute right-2 bottom-0 h-64 w-44 sm:h-80 sm:w-56"
+        <AxelPhotoLayer
+          src={PROGRAM_VISUALS.cardio.image}
+          objectPosition={PROGRAM_VISUALS.cardio.objectPosition}
+          priority
         />
         <div className="relative z-20 mt-auto flex min-h-[15rem] flex-col justify-end sm:min-h-[19rem]">
           <h2 className="axel-italic text-[4rem] text-white sm:text-[5.5rem]">Cardio</h2>
@@ -453,11 +439,7 @@ export function AxelAppShowcase({ className }: { className?: string }) {
         </div>
 
         <div className="relative mt-3 min-h-0 flex-1 overflow-hidden rounded-[1.5rem] bg-[#0d0f0c] p-3 ring-1 ring-white/10">
-          <AxelProgramBackdrop tone="strength" />
-          <AxelMotionFigure
-            tone="strength"
-            className="absolute right-[-0.75rem] bottom-[-1rem] h-44 w-32"
-          />
+          <AxelPhotoLayer src="/images/start-workout.jpg" objectPosition="58% 46%" />
           <div className="relative z-20 flex h-full flex-col justify-between">
             <div className="flex items-center justify-between text-white">
               <span className="grid h-8 w-8 place-items-center rounded-full bg-white/10">
@@ -508,7 +490,7 @@ function AxelProgramVisual({
 
   return (
     <div className={cn('relative overflow-hidden bg-[#070807]', className)}>
-      <AxelProgramBackdrop tone={tone} />
+      <AxelPhotoLayer src={visual.image} objectPosition={visual.objectPosition} />
       <div
         className={cn(
           'absolute top-3 left-3 z-20 grid h-10 w-10 place-items-center rounded-2xl shadow-[0_18px_34px_-22px_rgba(255,255,255,0.5)]',
@@ -520,10 +502,6 @@ function AxelProgramVisual({
       <div className="absolute top-3 right-3 z-20 rounded-full bg-black/45 px-2.5 py-1 text-[10px] font-black text-white ring-1 ring-white/10 backdrop-blur">
         {visual.metric}
       </div>
-      <AxelMotionFigure
-        tone={tone}
-        className="absolute right-[-1.25rem] bottom-[-0.8rem] h-[78%] w-[74%] transition-transform duration-500 group-hover:scale-105"
-      />
       <div className="absolute right-4 bottom-4 z-20 flex items-end gap-1" aria-hidden>
         {visual.bars.map((height, index) => (
           <span
@@ -545,70 +523,32 @@ function AxelProgramVisual({
   );
 }
 
-function AxelProgramBackdrop({ tone }: { tone: ProgramTone }) {
-  const visual = PROGRAM_VISUALS[tone];
+function AxelPhotoLayer({
+  src,
+  objectPosition = '50% 50%',
+  priority = false,
+}: {
+  src: string;
+  objectPosition?: string;
+  priority?: boolean;
+}) {
   return (
     <>
-      <div className={cn('absolute inset-0', visual.shell)} />
-      <div className={cn('absolute top-8 right-4 h-28 w-28 rounded-full blur-3xl', visual.glow)} />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0)_30%,rgba(0,0,0,0.84)_100%)]" />
-      <div
-        className="absolute inset-0 opacity-[0.17]"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.38) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.22) 1px, transparent 1px)',
-          backgroundSize: '26px 26px',
-        }}
+      {/* eslint-disable-next-line @next/next/no-img-element -- generated editorial app art */}
+      <img
+        src={src}
+        alt=""
+        aria-hidden
+        loading={priority ? 'eager' : 'lazy'}
+        decoding="async"
+        className="absolute inset-0 h-full w-full scale-[1.03] object-cover transition-transform duration-700 group-hover:scale-110"
+        style={{ objectPosition }}
       />
+      <div className="absolute inset-0 bg-[radial-gradient(32rem_24rem_at_72%_14%,rgba(156,255,0,0.18),transparent_58%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,0.68)_0%,rgba(0,0,0,0.26)_48%,rgba(0,0,0,0.08)_100%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0)_26%,rgba(0,0,0,0.84)_100%)]" />
+      <div className="bg-primary/75 absolute inset-x-0 top-0 h-1" />
     </>
-  );
-}
-
-function AxelMotionFigure({ tone, className }: { tone: ProgramTone; className?: string }) {
-  const visual = PROGRAM_VISUALS[tone];
-  return (
-    <div className={cn('pointer-events-none z-10', className)} aria-hidden>
-      <div className="relative h-full w-full">
-        <span
-          className={cn(
-            'absolute inset-x-[23%] bottom-[8%] h-[66%] rounded-full blur-3xl',
-            visual.glow,
-          )}
-        />
-        <span className="absolute top-[8%] left-[42%] h-[15%] w-[15%] rounded-full bg-[#f6f7f1] shadow-[0_0_42px_rgba(255,255,255,0.2)]" />
-        <span
-          className={cn(
-            'absolute top-[24%] left-[35%] h-[32%] w-[23%] rotate-[-10deg] rounded-[45%_45%_38%_38%] bg-gradient-to-b shadow-[0_22px_50px_rgba(0,0,0,0.45)]',
-            visual.figure,
-          )}
-        />
-        <span
-          className={cn(
-            'absolute top-[28%] left-[21%] h-[9%] w-[34%] rotate-[-34deg] rounded-full bg-gradient-to-r',
-            visual.figure,
-          )}
-        />
-        <span
-          className={cn(
-            'absolute top-[31%] left-[49%] h-[9%] w-[34%] rotate-[34deg] rounded-full bg-gradient-to-r',
-            visual.figure,
-          )}
-        />
-        <span
-          className={cn(
-            'absolute top-[52%] left-[31%] h-[36%] w-[10%] rotate-[18deg] rounded-full bg-gradient-to-b',
-            visual.figure,
-          )}
-        />
-        <span
-          className={cn(
-            'absolute top-[52%] left-[49%] h-[40%] w-[10%] rotate-[-22deg] rounded-full bg-gradient-to-b',
-            visual.figure,
-          )}
-        />
-        <span className="absolute right-[12%] bottom-[10%] left-[12%] h-[1px] bg-white/20" />
-      </div>
-    </div>
   );
 }
 
