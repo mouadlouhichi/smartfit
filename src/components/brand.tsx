@@ -14,7 +14,7 @@ export function Logo({ className, size = 36 }: { className?: string; size?: numb
   return (
     <span
       className={cn(
-        'bg-volt text-ink inline-flex shrink-0 items-center justify-center rounded-[30%] shadow-[0_0_18px_rgba(243,255,71,0.35)]',
+        'bg-volt text-ink inline-flex shrink-0 items-center justify-center rounded-[30%] shadow-[0_0_18px_rgba(138,210,0,0.35)]',
         className,
       )}
       style={{ width: size, height: size }}

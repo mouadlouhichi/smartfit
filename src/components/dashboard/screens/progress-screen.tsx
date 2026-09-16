@@ -148,7 +148,10 @@ export function ProgressScreen() {
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
+          <p className="text-volt-ink text-[11px] font-bold tracking-[0.18em] uppercase">
+            Progress
+          </p>
           <h1 className="font-display-tight text-xl font-extrabold tracking-tight sm:text-2xl">
             Your Stats
           </h1>
@@ -210,7 +213,7 @@ export function ProgressScreen() {
           </p>
           {streak > 0 && (
             <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-              <Flame className="text-volt h-3.5" aria-hidden />
+              <Flame className="text-volt-ink h-3.5" aria-hidden />
               {streak}-day streak
             </span>
           )}
@@ -230,7 +233,7 @@ export function ProgressScreen() {
             label="Burned"
             value={formatCalories(rangeAgg.calories)}
             icon={Flame}
-            color="#cbe02c"
+            color="#699E00"
             big
           />
           <RingStat

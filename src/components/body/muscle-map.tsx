@@ -51,6 +51,24 @@ export const MUSCLE_GROUP: Record<ExerciseMuscle, keyof typeof MUSCLE_GROUP_COLO
   calves: 'legs',
 };
 
+/** Every selectable muscle, ordered the way the body reads (top → bottom). */
+export const MUSCLES: ExerciseMuscle[] = [
+  'chest',
+  'shoulders',
+  'biceps',
+  'triceps',
+  'forearms',
+  'traps',
+  'lats',
+  'middle back',
+  'abdominals',
+  'lower back',
+  'quadriceps',
+  'glutes',
+  'hamstrings',
+  'calves',
+];
+
 /** Fill+stroke for every shape of a region (selection ring included). */
 function RegionShapes({
   region,
@@ -112,6 +130,7 @@ export function MuscleMap({
   className,
   showLegend = true,
   showChips = true,
+  compact = false,
 }: {
   selected: ExerciseMuscle | null;
   onSelect: (m: ExerciseMuscle) => void;
@@ -120,6 +139,8 @@ export function MuscleMap({
   showLegend?: boolean;
   /** Per-muscle chip selector (also the keyboard path). */
   showChips?: boolean;
+  /** Smaller figure + tighter spacing for embedding in a hero module. */
+  compact?: boolean;
 }) {
   const [view, setView] = useState<'front' | 'back'>('front');
   const gradId = useId();
@@ -128,7 +149,7 @@ export function MuscleMap({
   const musclesInView = Array.from(new Set(regions.map((r) => r.muscle))) as ExerciseMuscle[];
 
   return (
-    <div className={cn('flex flex-col items-center gap-4', className)}>
+    <div className={cn('flex flex-col items-center gap-3', compact ? 'gap-2' : 'gap-4', className)}>
       {/* View toggle */}
       <div className="bg-secondary flex rounded-full p-1" role="tablist" aria-label="Body view">
         {(['front', 'back'] as const).map((v) => (
@@ -151,14 +172,17 @@ export function MuscleMap({
 
       <svg
         viewBox="0 0 220 385"
-        className="h-[400px] w-auto max-w-full sm:h-[480px]"
+        className={cn(
+          'h-[400px] w-auto max-w-full sm:h-[480px]',
+          compact && 'h-[300px] sm:h-[336px]',
+        )}
         role="group"
         aria-label={`${view} view body map — tap a muscle to see its exercises`}
       >
         <defs>
           <radialGradient id={gradId} cx="0.5" cy="0.35" r="0.75">
-            <stop offset="0%" stopColor="rgba(243,255,71,0.07)" />
-            <stop offset="70%" stopColor="rgba(243,255,71,0)" />
+            <stop offset="0%" stopColor="rgba(138,210,0,0.07)" />
+            <stop offset="70%" stopColor="rgba(138,210,0,0)" />
           </radialGradient>
         </defs>
         <rect width="220" height="385" fill={`url(#${gradId})`} rx="24" />

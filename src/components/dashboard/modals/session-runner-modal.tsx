@@ -3,13 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Check,
-  ChevronLeft,
   ChevronRight,
-  Coffee,
   Dumbbell,
   Flag,
   Flame,
   History,
+  Minus,
   Navigation,
   Pause,
   Play,
@@ -510,10 +509,10 @@ export function SessionRunnerModal() {
             exercises
           </p>
         </div>
-        {/* The running clock is the one thing you must always see. */}
+        {/* The running clock stays visible even when the ring scrolls away. */}
         <div className="text-right">
           <p
-            className="font-display text-3xl leading-none font-extrabold tabular-nums"
+            className="font-display text-xl leading-none font-extrabold tabular-nums"
             aria-label="Elapsed time"
           >
             {clock(seconds)}
@@ -521,7 +520,7 @@ export function SessionRunnerModal() {
           <button
             onClick={() => setRunning((r) => !r)}
             className="press mt-1 flex items-center gap-1 text-[11px] font-bold tracking-wide uppercase"
-            style={{ color: running ? 'var(--chart-1)' : 'rgba(245,245,242,0.6)' }}
+            style={{ color: running ? 'var(--chart-1)' : 'rgba(237,235,230,0.6)' }}
           >
             {running ? (
               <Pause className="h-3 w-3" aria-hidden />
@@ -535,14 +534,14 @@ export function SessionRunnerModal() {
 
       {/* ── GPS walk-tracking chip (live screen only) ────────────────── */}
       {screen === 'live' && (
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-2">
           <button
             onClick={toggleTracking}
             className={cn(
-              'press flex w-full items-center gap-3 rounded-2xl border p-3 text-left',
+              'press flex w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left',
               tracking ? 'border-transparent' : 'session-tile border-transparent',
             )}
-            style={tracking ? { background: 'rgba(243,255,71,0.12)' } : undefined}
+            style={tracking ? { background: 'rgba(138,210,0,0.12)' } : undefined}
             aria-pressed={tracking}
           >
             <span
@@ -551,8 +550,8 @@ export function SessionRunnerModal() {
                 tracking && 'animate-pulse-soft',
               )}
               style={{
-                background: tracking ? 'rgba(243,255,71,0.2)' : 'rgba(245,245,242,0.07)',
-                color: tracking ? '#f3ff47' : 'rgba(245,245,242,0.6)',
+                background: tracking ? 'rgba(138,210,0,0.2)' : 'rgba(237,235,230,0.07)',
+                color: tracking ? '#8AD200' : 'rgba(237,235,230,0.6)',
               }}
             >
               <Navigation className="h-5 w-5" aria-hidden />
@@ -570,7 +569,7 @@ export function SessionRunnerModal() {
             </span>
             <span
               className="text-sm font-extrabold tabular-nums"
-              style={{ color: tracking ? '#f3ff47' : 'rgba(245,245,242,0.7)' }}
+              style={{ color: tracking ? '#8AD200' : 'rgba(237,235,230,0.7)' }}
             >
               {distanceKm.toFixed(2)} km
             </span>
@@ -611,6 +610,9 @@ export function SessionRunnerModal() {
           restTotal={restTotal}
           setRestLeft={setRestLeft}
           setRestTotal={setRestTotal}
+          seconds={seconds}
+          running={running}
+          setRunning={setRunning}
           finish={finishToSummary}
         />
       )}
@@ -684,6 +686,10 @@ interface LiveProps {
   restTotal: number;
   setRestLeft: (n: number) => void;
   setRestTotal: (n: number) => void;
+  /** Live session clock (shared with the header). */
+  seconds: number;
+  running: boolean;
+  setRunning: (r: boolean) => void;
   finish: () => void;
 }
 
@@ -694,309 +700,621 @@ function LiveScreen(p: LiveProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [p.active?.name],
   );
-  // Pro mvolts see the adaptive next target the first set was pre-filled
-  // with; free mvolts see their last numbers only.
+  // Pro members see the adaptive next target the first set was pre-filled
+  // with; free members see their last numbers only.
   const target: ProgressionTarget | null = useMemo(
     () => (p.active && hasProAccess(p.state) ? progressionTarget(p.state, p.active.name) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [p.active?.name],
   );
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const isDistance = p.active ? measureForExerciseName(p.active.name) === 'distance' : false;
+
+  // The set the athlete is working right now: first un-done, else the last.
+  const currentSet =
+    p.active?.sets.find((s) => !s.done) ?? (p.active?.sets.length ? p.active.sets.at(-1) : null);
+  const currentNo = currentSet ? p.active!.sets.indexOf(currentSet) + 1 : 0;
+  const doneCount = p.active?.sets.filter((s) => s.done).length ?? 0;
+  const nextExercise = p.exercises[p.activeIndex + 1];
+
+  /** Bump a numeric set field by `step` (clamped ≥ 0), writing back as text. */
+  function bump(field: 'reps' | 'weight' | 'distanceM', step: number) {
+    if (!p.active || !currentSet) return;
+    const raw = currentSet[field];
+    const base = raw === '' ? 0 : Number(raw);
+    const next = Math.max(0, Math.round((base + step) * 100) / 100);
+    p.setRep(p.active.id, currentSet.id, field, next === 0 ? '' : String(next));
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* ── Rest timer bar (sits just under the header, always visible) ─ */}
-      {p.restLeft > 0 && (
-        <div className="px-4 pb-3">
-          <RestTimerBar
-            restLeft={p.restLeft}
-            restTotal={p.restTotal}
-            onSkip={() => {
-              p.setRestLeft(0);
-              p.setRestTotal(0);
-            }}
-            onAdd={() => p.setRestLeft(p.restLeft + REST_STEP_SECONDS)}
-          />
+      {/* ── Exercise queue rail — snap-scrolling, edge-faded ──────────────
+          The old rail clipped its pills at the sheet edge with no hint of
+          more content ("the modal exceeds the mobile width"). Snap + a
+          gradient mask make the overflow an obvious scroll. */}
+      <div className="relative px-4 pb-3">
+        <div
+          className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4"
+          role="tablist"
+          aria-label="Exercises in this session"
+        >
+          {p.exercises.map((x, i) => {
+            const done = x.sets.length > 0 && x.sets.every((s) => s.done);
+            return (
+              <button
+                key={x.id}
+                role="tab"
+                aria-selected={i === p.activeIndex}
+                onClick={() => p.setActiveIndex(i)}
+                className={cn(
+                  'press flex shrink-0 snap-start items-center gap-2 rounded-full border py-2 pr-3.5 pl-2 text-sm font-semibold',
+                  i === p.activeIndex
+                    ? 'border-transparent text-[#0d1102]'
+                    : 'session-tile text-[rgba(237,235,230,0.75)]',
+                )}
+                style={i === p.activeIndex ? { background: 'var(--chart-1)' } : undefined}
+              >
+                <span
+                  className={cn(
+                    'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold tabular-nums',
+                    i === p.activeIndex
+                      ? 'bg-[#0d1102]/20'
+                      : done
+                        ? 'bg-[color-mix(in_oklab,var(--chart-1)_30%,transparent)]'
+                        : 'bg-white/10',
+                  )}
+                  aria-hidden
+                >
+                  {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                </span>
+                <span className="max-w-[8.5rem] truncate">{x.name}</span>
+              </button>
+            );
+          })}
         </div>
-      )}
-
-      {/* ── Exercise stepper ─────────────────────────────────────────── */}
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3">
-        {p.exercises.map((x, i) => {
-          const done = x.sets.some((s) => s.done);
-          return (
-            <button
-              key={x.id}
-              onClick={() => p.setActiveIndex(i)}
-              className={cn(
-                'press flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold',
-                i === p.activeIndex
-                  ? 'border-transparent text-[#141414]'
-                  : 'session-tile text-[rgba(245,245,242,0.75)]',
-              )}
-              style={i === p.activeIndex ? { background: 'var(--chart-1)' } : undefined}
-            >
-              {done ? (
-                <Check className="h-4 w-4" aria-hidden />
-              ) : (
-                <ExerciseImage name={x.name} className="h-6 w-6 rounded-md" animated={false} />
-              )}
-              <span className="max-w-[9rem] truncate">{x.name}</span>
-            </button>
-          );
-        })}
+        {/* Edge fades — the affordance that the rail continues. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[#050404] to-transparent"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-[#050404] to-transparent"
+        />
       </div>
 
-      {/* ── Active exercise card ─────────────────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {p.active ? (
           <div key={p.active.id} className="slide-in-right">
-            {/* Demo image + name + last performance */}
-            <div className="session-tile overflow-hidden rounded-2xl">
-              <div className="flex items-center gap-3 p-3">
+            {/* ── Cinematic exercise hero — the Axel live-workout stage ── */}
+            <div className="relative overflow-hidden rounded-3xl bg-[#0d0f08]">
+              <div className="flex aspect-[4/3] max-h-64 w-full items-center justify-center p-4">
                 <ExerciseImage
                   name={p.active.name}
-                  className="h-16 w-16 shrink-0 rounded-xl"
+                  variant="full"
+                  className="h-full w-full rounded-2xl"
                   animated
                 />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-base font-extrabold">{p.active.name}</p>
-                  {last ? (
-                    <p className="session-muted mt-0.5 flex items-center gap-1.5 text-xs">
-                      <History className="h-3.5 w-3.5" aria-hidden />
-                      {measureForExerciseName(p.active.name) === 'distance' ? (
-                        <>Last: {formatSet(last.sets[0])}</>
-                      ) : (
-                        <>
-                          Last: {last.bestReps} × {formatWeight(last.bestWeight, unit)} ·{' '}
-                          {formatSet(last.sets[0])}
-                        </>
-                      )}
-                    </p>
-                  ) : (
-                    <p className="session-muted mt-0.5 text-xs">First time logging this one.</p>
-                  )}
-                  {target && target.kind !== 'repeat' && (
-                    <p
-                      className="mt-0.5 flex items-center gap-1.5 text-xs font-bold"
-                      style={{ color: '#f3ff47' }}
-                    >
-                      <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                      <span className="truncate">Pro target · {target.rationale}</span>
-                    </p>
-                  )}
+              </div>
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    'linear-gradient(180deg, rgba(5,4,4,0.55) 0%, rgba(5,4,4,0) 34%, rgba(5,4,4,0.82) 100%)',
+                }}
+              />
+              {/* Set progress + remove, over the art */}
+              <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  {p.active.sets.map((s, i) => (
+                    <span
+                      key={s.id}
+                      aria-hidden
+                      className={cn('h-1.5 w-5 rounded-full', s.done ? 'bg-volt' : 'bg-white/25')}
+                      style={
+                        i + 1 === currentNo && !s.done
+                          ? { background: 'rgba(237,235,230,0.75)' }
+                          : undefined
+                      }
+                    />
+                  ))}
                 </div>
                 <button
                   onClick={() => p.removeExercise(p.active!.id)}
                   aria-label={`Remove ${p.active.name}`}
-                  className="press session-tile flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[rgba(245,245,242,0.6)]"
+                  className="glass press flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[rgba(237,235,230,0.75)]"
                 >
                   <X className="h-4 w-4" aria-hidden />
                 </button>
               </div>
+              {/* Name + history, anchored to the art's base */}
+              <div className="absolute inset-x-4 bottom-3">
+                <p className="session-muted text-[11px] font-bold tracking-[0.18em] uppercase">
+                  {currentSet
+                    ? `Set ${currentNo} of ${p.active.sets.length}`
+                    : `${p.active.sets.length} sets`}
+                </p>
+                <p className="font-display mt-0.5 text-2xl leading-tight font-extrabold tracking-tight">
+                  {p.active.name}
+                </p>
+                <p className="session-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+                  {last ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <History className="h-3.5 w-3.5" aria-hidden />
+                      {isDistance
+                        ? `Last: ${formatSet(last.sets[0])}`
+                        : `Last: ${last.bestReps} × ${formatWeight(last.bestWeight, unit)}`}
+                    </span>
+                  ) : (
+                    <span>First time logging this one.</span>
+                  )}
+                  {target && target.kind !== 'repeat' && (
+                    <span
+                      className="inline-flex items-center gap-1.5 font-bold"
+                      style={{ color: '#B4E761' }}
+                    >
+                      <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span className="truncate">Pro target · {target.rationale}</span>
+                    </span>
+                  )}
+                </p>
+              </div>
+            </div>
 
-              {/* Sets table */}
-              <div className="px-3 pb-3">
-                <div className="mb-1 grid grid-cols-[2rem_1fr_1fr_3rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(245,245,242,0.55)] uppercase">
-                  <span>Set</span>
-                  <span className="text-center">Reps</span>
-                  <span className="text-center">
-                    {measureForExerciseName(p.active.name) === 'distance'
-                      ? 'Distance (m)'
-                      : `Weight (${unit})`}
+            {/* ── Control deck: steppers flank the ring timer ───────────── */}
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <SetStepper
+                label={isDistance ? ' reps ' : 'Reps'}
+                value={currentSet?.reps || ''}
+                step={1}
+                onMinus={() => bump('reps', -1)}
+                onPlus={() => bump('reps', 1)}
+              />
+              <RingTimer
+                seconds={p.seconds}
+                running={p.running}
+                restLeft={p.restLeft}
+                restTotal={p.restTotal}
+                onToggle={() => p.setRunning(!p.running)}
+                onSkip={() => {
+                  p.setRestLeft(0);
+                  p.setRestTotal(0);
+                }}
+                onAdd={() => p.setRestLeft(p.restLeft + REST_STEP_SECONDS)}
+              />
+              {isDistance ? (
+                <SetStepper
+                  label="Metres"
+                  value={currentSet?.distanceM || ''}
+                  step={50}
+                  onMinus={() => bump('distanceM', -50)}
+                  onPlus={() => bump('distanceM', 50)}
+                />
+              ) : (
+                <SetStepper
+                  label={`Weight (${unit})`}
+                  value={currentSet?.weight || ''}
+                  step={2.5}
+                  onMinus={() => bump('weight', -2.5)}
+                  onPlus={() => bump('weight', 2.5)}
+                />
+              )}
+            </div>
+
+            {/* Complete-set CTA */}
+            {currentSet && !currentSet.done ? (
+              <button
+                onClick={() => p.completeSet(p.active!, currentSet)}
+                aria-label={`Complete set ${currentNo}`}
+                className="press mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
+                style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
+              >
+                <Check className="h-5 w-5" strokeWidth={3} aria-hidden /> Complete set {currentNo}
+              </button>
+            ) : (
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => p.addSet(p.active!.id)}
+                  className="press session-tile flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
+                >
+                  <Plus className="h-4 w-4" aria-hidden /> Add set
+                </button>
+                {nextExercise ? (
+                  <button
+                    onClick={() => p.setActiveIndex(p.activeIndex + 1)}
+                    className="press flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
+                    style={{ background: 'rgba(138,210,0,0.14)', color: '#B4E761' }}
+                  >
+                    Next exercise <ChevronRight className="h-4 w-4" aria-hidden />
+                  </button>
+                ) : (
+                  <button
+                    onClick={p.finish}
+                    className="press flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
+                    style={{ background: 'rgba(138,210,0,0.14)', color: '#B4E761' }}
+                  >
+                    <Flag className="h-4 w-4" aria-hidden /> Wrap up
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Next up — the queued exercise, one tap away. */}
+            {nextExercise && (
+              <button
+                onClick={() => p.setActiveIndex(p.activeIndex + 1)}
+                className="session-tile press mt-3 flex w-full items-center gap-3 rounded-2xl p-2.5 text-left"
+                aria-label={`Next exercise: ${nextExercise.name}`}
+              >
+                <ExerciseImage
+                  name={nextExercise.name}
+                  className="h-10 w-10 shrink-0 rounded-lg"
+                  animated={false}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="session-muted block text-[10px] font-bold tracking-[0.18em] uppercase">
+                    Next up
                   </span>
-                  <span className="text-center">✓</span>
-                </div>
-                <div className="grid gap-2">
-                  {p.active.sets.map((s, idx) => {
-                    const e1rm =
-                      s.kind !== 'warmup' && Number(s.weight) > 0 && Number(s.reps) > 0
-                        ? estimatedOneRepMax(Number(s.weight), Number(s.reps))
-                        : 0;
-                    return (
-                      <div
-                        key={s.id}
-                        className={cn(
-                          'grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 rounded-xl px-2 py-1.5',
-                          s.done ? 'bg-[rgba(243,255,71,0.12)]' : 'session-tile',
-                          s.isPR && 'pr-flash',
-                        )}
-                      >
-                        <span className="text-center text-sm font-bold text-[rgba(245,245,242,0.7)]">
-                          {idx + 1}
-                        </span>
+                  <span className="block truncate text-sm font-bold">{nextExercise.name}</span>
+                </span>
+                <ChevronRight
+                  className="h-4 w-4 shrink-0 text-[rgba(237,235,230,0.55)]"
+                  aria-hidden
+                />
+              </button>
+            )}
+
+            {/* ── Sets table ─────────────────────────────────────────────── */}
+            <div className="mt-4">
+              <div className="mb-1 grid grid-cols-[2rem_1fr_1fr_3rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(237,235,230,0.55)] uppercase">
+                <span>Set</span>
+                <span className="text-center">Reps</span>
+                <span className="text-center">
+                  {isDistance ? 'Distance (m)' : `Weight (${unit})`}
+                </span>
+                <span className="text-center">✓</span>
+              </div>
+              <div className="grid gap-2">
+                {p.active.sets.map((s, idx) => {
+                  const e1rm =
+                    s.kind !== 'warmup' && Number(s.weight) > 0 && Number(s.reps) > 0
+                      ? estimatedOneRepMax(Number(s.weight), Number(s.reps))
+                      : 0;
+                  return (
+                    <div
+                      key={s.id}
+                      className={cn(
+                        'grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 rounded-xl px-2 py-1.5',
+                        s.done ? 'bg-[rgba(138,210,0,0.12)]' : 'session-tile',
+                        s.isPR && 'pr-flash',
+                      )}
+                    >
+                      <span className="text-center text-sm font-bold text-[rgba(237,235,230,0.7)]">
+                        {idx + 1}
+                      </span>
+                      <input
+                        inputMode="numeric"
+                        value={s.reps}
+                        onChange={(e) =>
+                          p.setRep(p.active!.id, s.id, 'reps', e.target.value.replace(/[^\d]/g, ''))
+                        }
+                        placeholder="8"
+                        aria-label={`Reps, set ${idx + 1}`}
+                        className="session-input h-11 w-full text-base"
+                      />
+                      {isDistance ? (
                         <input
                           inputMode="numeric"
-                          value={s.reps}
+                          value={s.distanceM}
                           onChange={(e) =>
                             p.setRep(
                               p.active!.id,
                               s.id,
-                              'reps',
+                              'distanceM',
                               e.target.value.replace(/[^\d]/g, ''),
                             )
                           }
-                          placeholder="8"
-                          aria-label={`Reps, set ${idx + 1}`}
+                          placeholder="400"
+                          aria-label={`Distance in metres, set ${idx + 1}`}
                           className="session-input h-11 w-full text-base"
                         />
-                        {measureForExerciseName(p.active!.name) === 'distance' ? (
-                          <input
-                            inputMode="numeric"
-                            value={s.distanceM}
-                            onChange={(e) =>
-                              p.setRep(
-                                p.active!.id,
-                                s.id,
-                                'distanceM',
-                                e.target.value.replace(/[^\d]/g, ''),
-                              )
-                            }
-                            placeholder="400"
-                            aria-label={`Distance in metres, set ${idx + 1}`}
-                            className="session-input h-11 w-full text-base"
-                          />
-                        ) : (
-                          <input
-                            inputMode="decimal"
-                            value={s.weight}
-                            onChange={(e) =>
-                              p.setRep(
-                                p.active!.id,
-                                s.id,
-                                'weight',
-                                e.target.value.replace(/[^\d.]/g, ''),
-                              )
-                            }
-                            placeholder="60"
-                            aria-label={`Weight, set ${idx + 1}`}
-                            className="session-input h-11 w-full text-base"
-                          />
-                        )}
-                        {s.done ? (
-                          <span
-                            className="flex items-center justify-center gap-0.5 text-[11px] font-bold"
-                            style={{ color: s.isPR ? 'var(--chart-1)' : '#f3ff47' }}
-                          >
-                            {s.isPR && (
-                              <Trophy className="h-3.5 w-3.5" aria-label="Personal record" />
-                            )}
-                            <Check className="h-4 w-4" aria-hidden />
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => p.completeSet(p.active!, s)}
-                            aria-label={`Complete set ${idx + 1}`}
-                            className="press mx-auto flex h-11 w-11 items-center justify-center rounded-full"
-                            style={{ background: 'var(--chart-1)' }}
-                          >
-                            <Check className="h-4 w-4 text-[#141414]" aria-hidden />
-                          </button>
-                        )}
-                        {e1rm > 0 && (
-                          <span className="col-span-4 -mt-1 pb-0.5 text-right text-[10px] text-[rgba(245,245,242,0.5)]">
-                            e1RM ≈ {formatWeight(e1rm, unit)}
-                          </span>
-                        )}
-                        <div className="col-span-4 grid grid-cols-2 gap-2">
-                          <select
-                            value={s.kind}
-                            aria-label={`Set type, set ${idx + 1}`}
-                            onChange={(e) =>
-                              p.setKind(p.active!.id, s.id, e.target.value as WorkoutSetKind)
-                            }
-                            className="session-input h-9 w-full text-xs"
-                          >
-                            <option value="working">Working set</option>
-                            <option value="warmup">Warm-up</option>
-                            <option value="drop">Drop set</option>
-                            <option value="failure">Failure set</option>
-                          </select>
-                          <input
-                            type="number"
-                            min={1}
-                            max={10}
-                            step={1}
-                            inputMode="numeric"
-                            value={s.rpe}
-                            onChange={(e) =>
-                              p.setRpe(
-                                p.active!.id,
-                                s.id,
-                                e.target.value.replace(/[^\d]/g, '').slice(0, 2),
-                              )
-                            }
-                            placeholder="RPE (optional)"
-                            aria-label={`RPE 1 to 10, set ${idx + 1}`}
-                            className="session-input h-9 w-full text-xs"
-                          />
-                        </div>
+                      ) : (
+                        <input
+                          inputMode="decimal"
+                          value={s.weight}
+                          onChange={(e) =>
+                            p.setRep(
+                              p.active!.id,
+                              s.id,
+                              'weight',
+                              e.target.value.replace(/[^\d.]/g, ''),
+                            )
+                          }
+                          placeholder="60"
+                          aria-label={`Weight, set ${idx + 1}`}
+                          className="session-input h-11 w-full text-base"
+                        />
+                      )}
+                      {s.done ? (
+                        <span
+                          className="flex items-center justify-center gap-0.5 text-[11px] font-bold"
+                          style={{ color: s.isPR ? 'var(--chart-1)' : '#8AD200' }}
+                        >
+                          {s.isPR && (
+                            <Trophy className="h-3.5 w-3.5" aria-label="Personal record" />
+                          )}
+                          <Check className="h-4 w-4" aria-hidden />
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => p.completeSet(p.active!, s)}
+                          aria-label={`Complete set ${idx + 1}`}
+                          className="press mx-auto flex h-11 w-11 items-center justify-center rounded-full"
+                          style={{ background: 'var(--chart-1)' }}
+                        >
+                          <Check className="h-4 w-4 text-[#0d1102]" aria-hidden />
+                        </button>
+                      )}
+                      {e1rm > 0 && (
+                        <span className="col-span-4 -mt-1 pb-0.5 text-right text-[10px] text-[rgba(237,235,230,0.5)]">
+                          e1RM ≈ {formatWeight(e1rm, unit)}
+                        </span>
+                      )}
+                      <div className="col-span-4 grid grid-cols-2 gap-2">
+                        <select
+                          value={s.kind}
+                          aria-label={`Set type, set ${idx + 1}`}
+                          onChange={(e) =>
+                            p.setKind(p.active!.id, s.id, e.target.value as WorkoutSetKind)
+                          }
+                          className="session-input h-9 w-full text-xs"
+                        >
+                          <option value="working">Working set</option>
+                          <option value="warmup">Warm-up</option>
+                          <option value="drop">Drop set</option>
+                          <option value="failure">Failure set</option>
+                        </select>
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
+                          step={1}
+                          inputMode="numeric"
+                          value={s.rpe}
+                          onChange={(e) =>
+                            p.setRpe(
+                              p.active!.id,
+                              s.id,
+                              e.target.value.replace(/[^\d]/g, '').slice(0, 2),
+                            )
+                          }
+                          placeholder="RPE (optional)"
+                          aria-label={`RPE 1 to 10, set ${idx + 1}`}
+                          className="session-input h-9 w-full text-xs"
+                        />
                       </div>
-                    );
-                  })}
-                </div>
-                <button
-                  onClick={() => p.addSet(p.active!.id)}
-                  className="press session-tile mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold"
-                >
-                  <Plus className="h-4 w-4" aria-hidden /> Add set
-                </button>
+                    </div>
+                  );
+                })}
               </div>
+              <button
+                onClick={() => p.addSet(p.active!.id)}
+                className="press session-tile mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold"
+              >
+                <Plus className="h-4 w-4" aria-hidden /> Add set
+              </button>
             </div>
 
-            {/* Exercise stepper nav */}
-            <div className="mt-3 flex items-center justify-between">
-              <button
-                disabled={p.activeIndex === 0}
-                onClick={() => p.setActiveIndex(p.activeIndex - 1)}
-                className="press session-tile flex h-11 items-center gap-1 rounded-full px-4 text-sm font-bold disabled:opacity-40"
-              >
-                <ChevronLeft className="h-4 w-4" aria-hidden /> Prev
-              </button>
-              <span className="session-muted text-sm font-semibold tabular-nums">
-                {p.activeIndex + 1} / {p.exercises.length}
-              </span>
-              <button
-                disabled={p.activeIndex >= p.exercises.length - 1}
-                onClick={() => p.setActiveIndex(p.activeIndex + 1)}
-                className="press session-tile flex h-11 items-center gap-1 rounded-full px-4 text-sm font-bold disabled:opacity-40"
-              >
-                Next <ChevronRight className="h-4 w-4" aria-hidden />
-              </button>
+            {/* Add-exercise — collapsed by default (mid-workout calm). */}
+            <div className="mt-3">
+              {pickerOpen ? (
+                <div className="session-tile rounded-2xl p-3">
+                  <ExercisePicker
+                    value={p.draft}
+                    onChange={p.setDraft}
+                    placeholder="Add an exercise (e.g. Bench press)"
+                    ariaLabel="Add exercise"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => p.addExercise(p.draft)}
+                      disabled={!p.draft.trim()}
+                      className="press flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-bold disabled:opacity-40"
+                      style={{ background: 'var(--chart-1)', color: '#0d1102' }}
+                    >
+                      <Plus className="h-4 w-4" aria-hidden /> Add exercise
+                    </button>
+                    <button
+                      onClick={() => setPickerOpen(false)}
+                      className="press session-tile flex h-11 items-center justify-center rounded-xl px-4 text-sm font-bold"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setPickerOpen(true)}
+                  className="press session-tile flex h-11 w-full items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
+                >
+                  <Plus className="h-4 w-4" aria-hidden /> Add exercise to session
+                </button>
+              )}
             </div>
           </div>
         ) : (
           <EmptyRunner categoryId={p.run.categoryId} onAdd={(name) => p.addExercise(name)} />
         )}
-
-        {/* Add-exercise field */}
-        <div className="mt-4">
-          <ExercisePicker
-            value={p.draft}
-            onChange={p.setDraft}
-            placeholder="Add an exercise (e.g. Bench press)"
-            ariaLabel="Add exercise"
-          />
-          <button
-            onClick={() => p.addExercise(p.draft)}
-            disabled={!p.draft.trim()}
-            className="press mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold disabled:opacity-40"
-            style={{ background: 'var(--chart-1)' }}
-          >
-            <Plus className="h-4 w-4" aria-hidden /> Add exercise
-          </button>
-        </div>
       </div>
 
       {/* ── Thumb-zone finish bar ────────────────────────────────────── */}
       <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           onClick={p.finish}
-          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#141414] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#f3ff47,#cbe02c)' }}
+          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
+          style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
         >
           <Flag className="h-5 w-5" aria-hidden /> Finish session
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ── steppers flanking the ring ────────────────────────────────────────── */
+
+function SetStepper({
+  label,
+  value,
+  step,
+  onMinus,
+  onPlus,
+}: {
+  label: string;
+  value: string;
+  step: number;
+  onMinus: () => void;
+  onPlus: () => void;
+}) {
+  return (
+    <div className="flex w-[5.4rem] flex-col items-center gap-1.5">
+      <button
+        type="button"
+        onClick={onPlus}
+        aria-label={`Increase ${label.trim()} by ${step}`}
+        className="press session-tile grid h-11 w-full place-items-center rounded-2xl"
+      >
+        <Plus className="h-4 w-4" aria-hidden />
+      </button>
+      <div className="text-center">
+        <p className="font-display text-xl leading-none font-extrabold tabular-nums">
+          {value || '—'}
+        </p>
+        <p className="session-muted mt-0.5 text-[10px] font-bold tracking-wide uppercase">
+          {label}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onMinus}
+        aria-label={`Decrease ${label.trim()} by ${step}`}
+        className="press session-tile grid h-11 w-full place-items-center rounded-2xl"
+      >
+        <Minus className="h-4 w-4" aria-hidden />
+      </button>
+    </div>
+  );
+}
+
+/* ── the ring timer — the Axel countdown centerpiece ───────────────────── */
+
+function RingTimer({
+  seconds,
+  running,
+  restLeft,
+  restTotal,
+  onToggle,
+  onSkip,
+  onAdd,
+}: {
+  seconds: number;
+  running: boolean;
+  restLeft: number;
+  restTotal: number;
+  onToggle: () => void;
+  onSkip: () => void;
+  onAdd: () => void;
+}) {
+  const resting = restLeft > 0;
+  const urgent = resting && restLeft <= 10;
+  // Ring geometry: 168px disc, 12px stroke.
+  const R = 66;
+  const C = 2 * Math.PI * R;
+  const fraction = resting
+    ? restTotal > 0
+      ? restLeft / restTotal
+      : 0
+    : running
+      ? (seconds % 60) / 60
+      : 0;
+
+  return (
+    <div className="relative grid shrink-0 place-items-center">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={running ? 'Pause session clock' : 'Resume session clock'}
+        className="press relative grid h-[168px] w-[168px] place-items-center rounded-full"
+      >
+        <svg
+          viewBox="0 0 168 168"
+          className="absolute inset-0 h-full w-full -rotate-90"
+          aria-hidden
+        >
+          <circle
+            cx="84"
+            cy="84"
+            r={R}
+            fill="none"
+            stroke="rgba(237,235,230,0.10)"
+            strokeWidth="12"
+          />
+          <circle
+            cx="84"
+            cy="84"
+            r={R}
+            fill="none"
+            stroke={resting ? (urgent ? '#B4E761' : '#87764D') : '#8AD200'}
+            strokeWidth="12"
+            strokeLinecap="round"
+            strokeDasharray={C}
+            strokeDashoffset={C * (1 - fraction)}
+            style={{ transition: 'stroke-dashoffset 0.95s linear' }}
+            className={urgent ? 'rest-beat origin-center' : undefined}
+          />
+        </svg>
+        <span className="relative grid place-items-center">
+          <span className="session-muted text-[10px] font-bold tracking-[0.2em] uppercase">
+            {resting ? 'Rest' : running ? 'Session' : 'Paused'}
+          </span>
+          <span
+            className={cn(
+              'font-display text-[2rem] leading-none font-extrabold tabular-nums',
+              urgent && 'rest-beat',
+            )}
+          >
+            {clock(resting ? restLeft : seconds)}
+          </span>
+          <span className="mt-1 grid h-9 w-9 place-items-center rounded-full bg-white/10">
+            {running ? (
+              <Pause className="h-4 w-4" aria-hidden />
+            ) : (
+              <Play className="h-4 w-4" aria-hidden />
+            )}
+          </span>
+        </span>
+      </button>
+
+      {/* Rest actions orbit the ring while it counts down. */}
+      {resting && (
+        <div className="absolute -bottom-2 flex gap-1.5">
+          <button
+            type="button"
+            onClick={onAdd}
+            className="glass press rounded-full px-3 py-1.5 text-[11px] font-bold"
+          >
+            +{REST_STEP_SECONDS}s
+          </button>
+          <button
+            type="button"
+            onClick={onSkip}
+            className="glass press rounded-full px-3 py-1.5 text-[11px] font-bold"
+          >
+            Skip rest
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -1015,7 +1333,7 @@ function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: 
     <div className="flex h-full flex-col gap-4">
       <div className="flex flex-col items-center gap-2 text-center">
         <span className="session-tile flex h-14 w-14 items-center justify-center rounded-2xl">
-          <Dumbbell className="h-6 w-6 text-[rgba(245,245,242,0.7)]" aria-hidden />
+          <Dumbbell className="h-6 w-6 text-[rgba(237,235,230,0.7)]" aria-hidden />
         </span>
         <p className="text-sm font-bold">No exercises yet</p>
         <p className="session-muted max-w-[18rem] text-xs">
@@ -1043,77 +1361,6 @@ function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: 
             <Plus className="h-4 w-4 shrink-0" style={{ color: 'var(--chart-1)' }} aria-hidden />
           </button>
         ))}
-      </div>
-    </div>
-  );
-}
-
-/* ── rest timer ────────────────────────────────────────────────────────── */
-
-function RestTimerBar({
-  restLeft,
-  restTotal,
-  onSkip,
-  onAdd,
-}: {
-  restLeft: number;
-  restTotal: number;
-  onSkip: () => void;
-  onAdd: () => void;
-}) {
-  const pct = restTotal > 0 ? Math.min(100, (restLeft / restTotal) * 100) : 0;
-  const urgent = restLeft <= 10;
-  return (
-    <div className="glass flex items-center gap-3 rounded-2xl p-3">
-      <span
-        className={cn(
-          'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-          urgent && 'rest-beat',
-        )}
-        style={{
-          background: 'color-mix(in oklab, var(--chart-1) 25%, transparent)',
-          color: 'var(--chart-1)',
-        }}
-      >
-        <Coffee className="h-5 w-5" aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between">
-          <p className="text-sm font-bold">Rest</p>
-          <p
-            className={cn(
-              'font-display text-xl font-extrabold tabular-nums',
-              urgent && 'rest-beat',
-            )}
-            style={{ color: 'var(--chart-1)' }}
-          >
-            {clock(restLeft)}
-          </p>
-        </div>
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[rgba(245,245,242,0.12)]">
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${pct}%`,
-              background: 'var(--chart-1)',
-              transition: 'width 0.4s linear',
-            }}
-          />
-        </div>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <button
-          onClick={onAdd}
-          className="press session-tile min-h-11 rounded-full px-3 py-1 text-xs font-bold"
-        >
-          +{REST_STEP_SECONDS}s
-        </button>
-        <button
-          onClick={onSkip}
-          className="press session-tile min-h-11 rounded-full px-3 py-1 text-xs font-bold"
-        >
-          Skip
-        </button>
       </div>
     </div>
   );
@@ -1152,7 +1399,7 @@ function SummaryScreen({
           {summary.personalRecords.length > 0 && (
             <div
               className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold"
-              style={{ background: 'rgba(243,255,71,0.15)', color: '#f7ff85' }}
+              style={{ background: 'rgba(138,210,0,0.15)', color: '#B4E761' }}
             >
               <Sparkles className="h-4 w-4" aria-hidden />
               {summary.personalRecords.length} personal record
@@ -1189,7 +1436,7 @@ function SummaryScreen({
             <button
               onClick={onShare}
               className="press flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold"
-              style={{ background: 'var(--chart-1)', color: '#141414' }}
+              style={{ background: 'var(--chart-1)', color: '#0d1102' }}
             >
               <Share2 className="h-4 w-4" aria-hidden /> Share
             </button>
@@ -1198,12 +1445,12 @@ function SummaryScreen({
 
         {summary.personalRecords.length > 0 && (
           <div className="session-tile mt-4 rounded-2xl p-4">
-            <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#f7ff85' }}>
+            <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#B4E761' }}>
               <Trophy className="h-4 w-4" aria-hidden /> New records
             </p>
             <ul className="mt-2 grid gap-1.5">
               {summary.personalRecords.map((name) => (
-                <li key={name} className="text-sm font-semibold text-[rgba(245,245,242,0.85)]">
+                <li key={name} className="text-sm font-semibold text-[rgba(237,235,230,0.85)]">
                   {name}
                 </li>
               ))}
@@ -1221,8 +1468,8 @@ function SummaryScreen({
         </button>
         <button
           onClick={onSave}
-          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#141414] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#f3ff47,#cbe02c)' }}
+          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
+          style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
         >
           <Check className="h-5 w-5" aria-hidden /> Save session
         </button>

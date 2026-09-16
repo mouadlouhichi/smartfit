@@ -1,5 +1,14 @@
 # SmartFit Design System
 
+> **Theme: "Axel"** (after Callour Studio's Axel Personal Fitness App,
+> dribbble.com/shots/27304268). Near-black `#050404` canvas, graphite cards
+> with olive `#23241A` boundaries, warm gray `#C4C1BB` secondary text, and a
+> single electric green `#8AD200` accent that always carries near-black ink.
+> Gold `#87764D` highlights premium surfaces. Screen headers follow the
+> `ScreenHeader` editorial pattern (volt eyebrow + display title + sage
+> subtitle); the guided runner centers a circular ring timer with reps/weight
+> steppers flanking it.
+
 The reusable-component contract for the web app: what exists, how the pieces
 compose, and the rules that keep screens consistent (and the E2E suite green).
 
@@ -125,8 +134,8 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
   where a visible label is genuinely impossible (e.g. the chart unit `Select`).
 - Hints/errors are associated, not adjacent decoration (`aria-describedby`).
 - Errors: `role="alert"` so screen readers announce on commit.
-- Contrast: all token inks are AA in light and dark themes (dark `--primary #f3ff47`
-  always carries `--primary-foreground #101010`; light `--primary` is ink `#161616`).
+- Contrast: all token inks are AA in light and dark themes (dark `--primary #8AD200`
+  always carries `--primary-foreground #0d1102`; light `--primary` is ink `#161616`).
 - Motion: `volt-glow`/`dot-typing` keyframes honor `prefers-reduced-motion`.
 
 ## 7. Stability contracts (E2E)

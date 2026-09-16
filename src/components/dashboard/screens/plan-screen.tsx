@@ -42,6 +42,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { ScheduledWorkout } from '@smartfit/core';
 import { ExerciseLibrary } from '../exercise-library';
+import { ScreenHeader } from '../screen-header';
 
 /** Small neutral metadata pill used across rows. */
 function MetaChip({ children }: { children: React.ReactNode }) {
@@ -123,17 +124,16 @@ export function PlanScreen() {
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Training plan</h1>
-          <p className="text-muted-foreground text-sm">
-            Your weekly structure, exercise library and complete workout log.
-          </p>
-        </div>
-        <Button onClick={() => openModal('schedule')}>
-          <Plus className="h-4 w-4" /> Schedule session
-        </Button>
-      </div>
+      <ScreenHeader
+        eyebrow="Training"
+        title="Training plan"
+        subtitle="Your weekly structure, exercise library and complete workout log."
+        action={
+          <Button onClick={() => openModal('schedule')}>
+            <Plus className="h-4 w-4" /> Schedule session
+          </Button>
+        }
+      />
 
       {/* ── Plan strategy ──────────────────────────────────────────────── */}
       <Card>

@@ -66,7 +66,7 @@ export function HeroSection() {
             <span className="block whitespace-nowrap">
               to{' '}
               <span className="relative inline-block">
-                <span key={wordIndex} className="text-volt inline-flex">
+                <span key={wordIndex} className="text-volt-ink inline-flex">
                   {WORDS[wordIndex].split('').map((character, index) => (
                     <span
                       key={`${wordIndex}-${index}`}

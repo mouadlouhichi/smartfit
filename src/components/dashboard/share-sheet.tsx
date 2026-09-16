@@ -200,7 +200,7 @@ export function ShareSheet({
                 'relative flex items-center justify-center overflow-hidden rounded-2xl border p-3',
                 format === 'story' ? 'aspect-[9/16]' : 'aspect-[4/5]',
                 transparent
-                  ? 'bg-[repeating-conic-gradient(#e4e4e0_0%_25%,#ffffff_0%_50%)] bg-[length:18px_18px] dark:bg-[repeating-conic-gradient(#262626_0%_25%,#1a1a1a_0%_50%)]'
+                  ? 'bg-[repeating-conic-gradient(#e2e2d6_0%_25%,#ffffff_0%_50%)] bg-[length:18px_18px] dark:bg-[repeating-conic-gradient(#1a1b13_0%_25%,#101210_0%_50%)]'
                   : 'bg-secondary',
               )}
             >
@@ -256,9 +256,9 @@ export function ShareSheet({
                       className={cn(
                         'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
                         option.id === 'transparent' &&
-                          'bg-[repeating-conic-gradient(#e4e4e0_0%_25%,#ffffff_0%_50%)] bg-[length:12px_12px]',
-                        option.id === 'dark' && 'bg-[#0e0e0e]',
-                        option.id === 'light' && 'bg-[#f5f5f2]',
+                          'bg-[repeating-conic-gradient(#e2e2d6_0%_25%,#ffffff_0%_50%)] bg-[length:12px_12px]',
+                        option.id === 'dark' && 'bg-[#050404]',
+                        option.id === 'light' && 'bg-[#edebe6]',
                       )}
                     >
                       {style === option.id && (

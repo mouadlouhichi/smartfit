@@ -10,10 +10,12 @@ import {
   exerciseGifUrl,
   exerciseImages,
   exerciseInstructionsUrl,
+  exerciseMeasure,
   allExercises,
   matchExercise,
   measureForExerciseName,
   searchExercises,
+  strengthEntriesForMuscle,
   type ExerciseEquipment,
   type ExerciseGroup,
   type ExerciseMuscle,
@@ -353,4 +355,31 @@ test('cardio machines log distance, not load', () => {
   assert.equal(measureForExerciseName('Morning run'), 'distance');
   assert.equal(measureForExerciseName('Barbell Row'), 'weight');
   assert.equal(measureForExerciseName("Farmer's Walk"), 'weight');
+});
+
+test('strength routines for a muscle never include distance-measured cardio', () => {
+  for (const muscle of ['quadriceps', 'calves', 'glutes'] as ExerciseMuscle[]) {
+    const entries = strengthEntriesForMuscle(muscle);
+    assert.ok(entries.length > 0, `${muscle} has strength entries`);
+    for (const e of entries) {
+      assert.ok(
+        exerciseMeasure(e) === 'weight',
+        `${e.name} is set-loggable (no runs/swims in a ${muscle} routine)`,
+      );
+      assert.ok(e.muscles.includes(muscle), `${e.name} trains ${muscle}`);
+    }
+    assert.ok(
+      !entries.some((e) => e.equipment === 'running' || e.equipment === 'pool'),
+      `no running/pool gear in the ${muscle} routine`,
+    );
+  }
+  // Ordering: primary-muscle lifts first, popular leading each tier.
+  const chest = strengthEntriesForMuscle('chest');
+  assert.equal(chest[0]?.muscles[0], 'chest');
+});
+
+test('browse lists still surface cardio that trains the legs', () => {
+  // The filter is for *routines*; browsing keeps the full catalog.
+  const quadsAll = EXERCISES.filter((e) => e.muscles.includes('quadriceps'));
+  assert.ok(quadsAll.some((e) => e.equipment === 'running'));
 });

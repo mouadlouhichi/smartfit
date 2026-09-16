@@ -161,7 +161,7 @@ export default function LoginPage() {
         {/* volt glow */}
         <div
           aria-hidden
-          className="pointer-events-none absolute -top-32 -left-24 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(243,255,71,0.16),transparent_65%)]"
+          className="pointer-events-none absolute -top-32 -left-24 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(138,210,0,0.16),transparent_65%)]"
         />
         <Link href="/" className="relative" aria-label="SmartFit home">
           <Wordmark />

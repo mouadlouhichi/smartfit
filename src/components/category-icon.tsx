@@ -16,6 +16,7 @@ import {
   Timer,
   Route,
   CheckCircle2,
+  LayoutGrid,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -33,6 +34,7 @@ const ICONS: Record<string, LucideIcon> = {
   timer: Timer,
   route: Route,
   'check-circle': CheckCircle2,
+  'layout-grid': LayoutGrid,
 };
 
 export function CategoryIcon({

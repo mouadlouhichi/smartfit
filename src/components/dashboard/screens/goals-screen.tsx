@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Ring } from '../ring';
+import { ScreenHeader } from '../screen-header';
 import { CategoryIcon } from '@/components/category-icon';
 import { GOAL_METRIC_META } from '@smartfit/core';
 import { formatNumber, fromKm, goalProgress } from '@smartfit/core';
@@ -45,17 +46,16 @@ export function GoalsScreen() {
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Goals</h1>
-          <p className="text-muted-foreground text-sm">
-            {done}/{goals.length} hit this period · goals reset weekly or monthly.
-          </p>
-        </div>
-        <Button onClick={() => openModal('goal')}>
-          <Plus className="h-4 w-4" /> New goal
-        </Button>
-      </div>
+      <ScreenHeader
+        eyebrow="Goals"
+        title="Your goals"
+        subtitle={`${done}/${goals.length} hit this period · goals reset weekly or monthly.`}
+        action={
+          <Button onClick={() => openModal('goal')}>
+            <Plus className="h-4 w-4" /> New goal
+          </Button>
+        }
+      />
 
       {/* Period summary strip */}
       {goals.length > 0 && (

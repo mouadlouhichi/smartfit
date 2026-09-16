@@ -3,105 +3,114 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * SmartFit design system — "Volt"
- * A dark-first, high-energy fitness interface: near-black ink (#0E0E0E)
- * canvases, graphite (#2B2B2B) boundaries and cards lifted off the dark,
- * and a single electric volt accent (#F3FF47) that always carries
- * near-black ink on top of it. The product app defaults to dark; a tuned
- * neutral-light ships for users who override the theme. Helvetica(-style)
- * grotesque throughout — tight, heavy, athletic.
+ * SmartFit design system — "Axel"
+ * A dark-first, editorial fitness interface (after Callour Studio's Axel
+ * Personal Fitness App, dribbble.com/shots/27304268): a near-black ink
+ * (#050404) canvas, graphite cards with olive (#23241A) boundaries, warm
+ * gray (#C4C1BB) secondary text and a single electric green accent
+ * (#8AD200) that always carries near-black ink on top of it. The product
+ * app defaults to dark; a tuned warm-light ships for users who override
+ * the theme. Helvetica(-style) grotesque throughout — tight, heavy,
+ * athletic.
  */
 
 :root {
   --radius: 1.5rem;
 
-  /* Light theme — clean neutral paper, ink-black primary, volt highlights. */
-  --background: #f5f5f2;
-  --foreground: #131313;
+  /* Light theme — warm neutral paper, ink-black primary, green highlights. */
+  --background: #f4f3ee;
+  --foreground: #131311;
 
   --card: #ffffff;
-  --card-foreground: #131313;
+  --card-foreground: #131311;
 
   --popover: #ffffff;
-  --popover-foreground: #131313;
+  --popover-foreground: #131311;
 
-  /* Light mode: ink-black primary (editorial Helvetica look). The volt
-     accent appears via --accent chips and --ring focus, where volt-on-white
+  /* Light mode: ink-black primary (editorial look). The green accent
+     appears via --accent chips and --ring focus, where green on white
      only ever sits next to near-black ink. */
   --primary: #161616;
-  --primary-foreground: #f5f5f2;
+  --primary-foreground: #f4f3ee;
 
-  --secondary: #ecece8;
+  /* Text-safe volt: deep olive on light surfaces (5.6:1 on white). Never
+     render raw --color-volt as text on light surfaces — it fails contrast. */
+  --volt-ink: #4e7200;
+
+  --secondary: #ebeadf;
   --secondary-foreground: #161616;
 
-  --muted: #eeeeea;
+  --muted: #edede4;
   /* 5.0:1+ on every light surface — AA for small text. */
-  --muted-foreground: #646464;
+  --muted-foreground: #63635c;
 
-  /* Volt-tinted chip: soft lime surface, dark olive ink (7:1). */
-  --accent: #f4f9c8;
-  --accent-foreground: #454d00;
+  /* Green-tinted chip: soft lime surface, deep olive ink (7:1). */
+  --accent: #e9f2c4;
+  --accent-foreground: #3d5300;
 
   --destructive: #c0392b;
   --destructive-foreground: #fdf6f2;
 
-  --border: #e4e4e0;
-  --input: #e4e4e0;
-  --ring: #aabf00;
+  --border: #e2e2d6;
+  --input: #e2e2d6;
+  --ring: #6e9a00;
 
-  /* Light chart ramp: olive-lime series that clear the 3:1 graphics bar
+  /* Light chart ramp: olive-green series that clear the 3:1 graphics bar
      on white cards, plus neutral grays for secondary series. */
-  --chart-1: #7a8a00;
-  --chart-2: #a8b80f;
-  --chart-3: #8a8a8a;
-  --chart-4: #4a4a4a;
-  --chart-5: #c9d626;
+  --chart-1: #5c8500;
+  --chart-2: #7fa614;
+  --chart-3: #8a8a82;
+  --chart-4: #4a4a44;
+  --chart-5: #a9c23a;
 
   /* Dark rail / dark cards (also used in light mode for hero surfaces). */
-  --charcoal: #161616;
-  --charcoal-2: #242424;
+  --charcoal: #0a0a09;
+  --charcoal-2: #16170f;
 }
 
 .dark {
-  --background: #0e0e0e;
-  --foreground: #f5f5f2;
+  /* The Axel palette — near-black canvas, electric green accent, warm gray
+     text, olive boundaries. (dribbble.com/shots/27304268) */
+  --background: #050404;
+  --foreground: #edebe6;
 
-  --card: #1a1a1a;
-  --card-foreground: #f5f5f2;
+  --card: #101210;
+  --card-foreground: #edebe6;
 
-  --popover: #202020;
-  --popover-foreground: #f5f5f2;
+  --popover: #15160f;
+  --popover-foreground: #edebe6;
 
-  /* The signature look: volt surface, near-black ink on top (≈15:1). */
-  --primary: #f3ff47;
-  --primary-foreground: #101010;
+  /* The signature look: electric green surface, near-black ink on top (≈10:1). */
+  --primary: #8ad200;
+  --primary-foreground: #0d1102;
+  --volt-ink: #8ad200;
 
-  --secondary: #262626;
-  --secondary-foreground: #f5f5f2;
+  --secondary: #1a1b13;
+  --secondary-foreground: #edebe6;
 
-  --muted: #232323;
-  --muted-foreground: #a3a3a3;
+  --muted: #171810;
+  --muted-foreground: #c4c1bb;
 
-  /* Accent chips: dark olive-tinted surface, volt ink (≈12:1). */
-  --accent: #2e3510;
-  --accent-foreground: #eeff54;
+  /* Accent chips: olive-tinted surface, bright green ink (≈9:1). */
+  --accent: #262e10;
+  --accent-foreground: #c8f053;
 
   --destructive: #ff6b5e;
   --destructive-foreground: #2a0d0a;
 
-  --border: #2b2b2b;
-  --input: #2b2b2b;
-  --ring: #f3ff47;
+  --border: #23241a;
+  --input: #23241a;
+  --ring: #8ad200;
 
-  /* Volt ramp for series data — every step ≥3:1 on the #1a1a1a card. */
-  --chart-1: #f3ff47;
-  --chart-2: #cbe02c;
-  --chart-3: #9fb41f;
-  --chart-4: #6f7d16;
-  --chart-5: #8a8a8a;
+  /* Green ramp for series data — every step ≥3:1 on the #101210 card. */
+  --chart-1: #8ad200;
+  --chart-2: #b4e761;
+  --chart-3: #699e00;
+  --chart-4: #87764d;
+  --chart-5: #c4c1bb;
 
-  --charcoal: #141414;
-  --charcoal-2: #222222;
+  --charcoal: #0a0a09;
+  --charcoal-2: #16170f;
 }
 
 @theme inline {
@@ -130,25 +139,28 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  /* Volt brand accents (product app). */
-  --color-terracotta: #9fb41f;
-  --color-rose: #8a8a8a;
-  --color-clay: #6f6f6f;
-  --color-ink-warm: #131313;
-  --color-paper-warm: #f5f5f2;
+  /* Green brand accents (product app). */
+  --color-terracotta: #699e00;
+  --color-rose: #8a8a82;
+  --color-clay: #6f6f68;
+  --color-ink-warm: #131311;
+  --color-paper-warm: #f4f3ee;
   --color-charcoal: var(--charcoal);
   --color-charcoal-2: var(--charcoal-2);
 
-  /* Volt brand constants — the always-dark marketing landing + product accent. */
-  --color-volt: #f3ff47;
-  --color-volt-soft: #f7ff85;
-  --color-volt-dim: #cbe02c;
-  --color-ink: #0e0e0e;
-  --color-ink-2: #141414;
-  --color-ink-card: #1a1a1a;
-  --color-paper: #f5f5f2;
-  --color-sage: #a3a3a3;
-  --color-pine: #3a3f0e;
+  /* Axel brand constants — the always-dark marketing landing + product accent. */
+  --color-volt: #8ad200;
+  --color-volt-soft: #b4e761;
+  --color-volt-dim: #699e00;
+  --color-volt-ink: var(--volt-ink);
+  --color-ink: #050404;
+  --color-ink-2: #0a0a09;
+  --color-ink-card: #101210;
+  --color-paper: #f4f3ee;
+  --color-sage: #c4c1bb;
+  --color-pine: #262e10;
+  --color-gold: #87764d;
+  --color-olive: #575e3c;
 
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 3px);
@@ -428,20 +440,20 @@ input[type='number'] {
   }
 }
 
-/* Breathing ember glow — the weekly-goal energy button and the desktop
-   global CTA pulse their box-shadow: the ember ring expands and the drop
+/* Breathing green glow — the weekly-goal energy button and the desktop
+   global CTA pulse their box-shadow: the green ring expands and the drop
    glow intensifies, like the button is focussing attention on itself. */
 @keyframes volt-glow {
   0%,
   100% {
     box-shadow:
-      0 0 0 6px rgba(224, 94, 54, 0.18),
-      0 10px 24px -6px rgba(224, 94, 54, 0.65);
+      0 0 0 6px rgba(138, 210, 0, 0.18),
+      0 10px 24px -6px rgba(138, 210, 0, 0.55);
   }
   50% {
     box-shadow:
-      0 0 0 13px rgba(224, 94, 54, 0.08),
-      0 16px 38px -6px rgba(224, 94, 54, 0.9);
+      0 0 0 13px rgba(138, 210, 0, 0.08),
+      0 16px 38px -6px rgba(138, 210, 0, 0.7);
   }
 }
 .zap-glow {
@@ -451,8 +463,8 @@ input[type='number'] {
   .zap-glow {
     animation: none;
     box-shadow:
-      0 0 0 6px rgba(243, 255, 71, 0.22),
-      0 10px 24px -6px rgba(243, 255, 71, 0.55);
+      0 0 0 6px rgba(138, 210, 0, 0.22),
+      0 10px 24px -6px rgba(138, 210, 0, 0.55);
   }
 }
 
@@ -465,18 +477,18 @@ input[type='number'] {
   position: relative;
   overflow: hidden;
   border-radius: 2rem;
-  color: #f5f5f2;
+  color: #edebe6;
   background:
-    radial-gradient(115% 135% at 88% -12%, rgba(243, 255, 71, 0.28) 0%, rgba(243, 255, 71, 0) 55%),
-    linear-gradient(140deg, #1c1c1c 0%, #262626 48%, #303030 100%);
+    radial-gradient(115% 135% at 88% -12%, rgba(138, 210, 0, 0.22) 0%, rgba(138, 210, 0, 0) 55%),
+    linear-gradient(140deg, #0d0e0a 0%, #171811 48%, #1f2117 100%);
   box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.8);
 }
 .card-hero .hero-muted {
-  color: rgba(245, 245, 242, 0.72);
+  color: rgba(237, 235, 230, 0.72);
 }
 .card-hero .hero-tile {
-  background: rgba(245, 245, 242, 0.08);
-  border: 1px solid rgba(245, 245, 242, 0.14);
+  background: rgba(237, 235, 230, 0.08);
+  border: 1px solid rgba(237, 235, 230, 0.14);
 }
 
 /* Coach "typing" indicator — three bouncing dots. */
@@ -721,9 +733,9 @@ input[type='number'] {
 
 /* ═══════════════════════════════════════════════════════════════════════
    PREMIUM / PRO surfaces — the paid tier has to *look* paid for.
-   Deep warm-charcoal with an ember-to-gold wash, a slow sheen sweep and a
+   Deep charcoal with a green-to-gold wash, a slow sheen sweep and a
    fine grain so the surface reads as material rather than a flat div.
-   Ink inside is ivory (#f7f2ea); muted copy sits at 72% (≥5:1 on the
+   Ink inside is warm white (#edebe6); muted copy sits at 72% (≥5:1 on the
    darkest stop) so it stays AA-legible under gym lighting.
    ═══════════════════════════════════════════════════════════════════════ */
 .pro-surface {
@@ -732,11 +744,11 @@ input[type='number'] {
      paywall would render in-flow at the page bottom. Call sites that need a
      positioning context for the sheen/grain add `relative` themselves. */
   overflow: hidden;
-  color: #f7f2ea;
+  color: #edebe6;
   background:
-    radial-gradient(120% 140% at 85% -20%, rgba(224, 94, 54, 0.5) 0%, rgba(224, 94, 54, 0) 52%),
-    radial-gradient(90% 100% at 8% 110%, rgba(200, 241, 53, 0.12) 0%, rgba(200, 241, 53, 0) 60%),
-    linear-gradient(150deg, #1a1716 0%, #2a2422 46%, #3a2f28 100%);
+    radial-gradient(120% 140% at 85% -20%, rgba(138, 210, 0, 0.28) 0%, rgba(138, 210, 0, 0) 52%),
+    radial-gradient(90% 100% at 8% 110%, rgba(135, 118, 77, 0.35) 0%, rgba(135, 118, 77, 0) 60%),
+    linear-gradient(150deg, #0c0d09 0%, #1a1c12 46%, #2a2c1d 100%);
 }
 .pro-surface::after {
   /* Fine grain: breaks up the gradient so large dark areas do not band. */
@@ -749,11 +761,11 @@ input[type='number'] {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
 }
 .pro-surface .pro-muted {
-  color: rgba(247, 242, 234, 0.72);
+  color: rgba(237, 235, 230, 0.72);
 }
 .pro-surface .pro-tile {
-  background: rgba(247, 242, 234, 0.07);
-  border: 1px solid rgba(247, 242, 234, 0.14);
+  background: rgba(237, 235, 230, 0.07);
+  border: 1px solid rgba(237, 235, 230, 0.14);
 }
 
 /* Slow diagonal sheen — the "premium" tell on the paywall hero and the
@@ -790,19 +802,19 @@ input[type='number'] {
   }
 }
 
-/* Volt foil edge for the featured plan card. */
+/* Green foil edge for the featured plan card. */
 .gold-edge {
   box-shadow:
-    inset 0 0 0 1px rgba(243, 255, 71, 0.55),
-    0 12px 30px -18px rgba(243, 255, 71, 0.45);
+    inset 0 0 0 1px rgba(138, 210, 0, 0.55),
+    0 12px 30px -18px rgba(138, 210, 0, 0.45);
 }
 
 /* Frosted glass — used over imagery (runner header, paywall hero). */
 .glass {
-  background: rgba(14, 14, 14, 0.6);
+  background: rgba(5, 4, 4, 0.6);
   backdrop-filter: blur(14px) saturate(140%);
   -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid rgba(245, 245, 242, 0.12);
+  border: 1px solid rgba(237, 235, 230, 0.12);
 }
 
 /* Tactile press: scales on active so a sweaty thumb gets confirmation
@@ -907,23 +919,23 @@ input[type='number'] {
    ═══════════════════════════════════════════════════════════════════════ */
 .session-shell {
   background:
-    radial-gradient(130% 90% at 50% -20%, rgba(224, 94, 54, 0.28) 0%, rgba(224, 94, 54, 0) 58%),
-    linear-gradient(180deg, #141110 0%, #1b1716 55%, #141110 100%);
-  color: #f7f2ea;
+    radial-gradient(130% 90% at 50% -20%, rgba(138, 210, 0, 0.16) 0%, rgba(138, 210, 0, 0) 58%),
+    linear-gradient(180deg, #050404 0%, #0d0f08 55%, #050404 100%);
+  color: #edebe6;
 }
 .session-shell .session-muted {
-  color: rgba(247, 242, 234, 0.62);
+  color: rgba(196, 193, 187, 0.72);
 }
 .session-shell .session-tile {
-  background: rgba(247, 242, 234, 0.06);
-  border: 1px solid rgba(247, 242, 234, 0.1);
+  background: rgba(237, 235, 230, 0.06);
+  border: 1px solid rgba(237, 235, 230, 0.1);
 }
 /* Numeric fields inside the runner are always light-on-dark, so they get
    their own surface instead of inheriting the app's input tokens. */
 .session-input {
-  background: rgba(247, 242, 234, 0.07);
-  border: 1px solid rgba(247, 242, 234, 0.14);
-  color: #f7f2ea;
+  background: rgba(237, 235, 230, 0.07);
+  border: 1px solid rgba(237, 235, 230, 0.14);
+  color: #edebe6;
   border-radius: 0.85rem;
   font-variant-numeric: tabular-nums;
   text-align: center;

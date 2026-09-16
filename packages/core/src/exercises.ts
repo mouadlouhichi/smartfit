@@ -1630,6 +1630,23 @@ export function exerciseMeasure(entry: ExerciseCatalogEntry): 'weight' | 'distan
 }
 
 /**
+ * The strength entries that train a muscle, in routine order — primary-muscle
+ * lifts first, then popular ones, then alphabetical. Distance-measured
+ * conditioning (runs, swims) is excluded: a set-based focus routine logs
+ * reps × load, so "Easy Run · 4 sets" must never appear in a muscle program.
+ */
+export function strengthEntriesForMuscle(muscle: ExerciseMuscle): ExerciseCatalogEntry[] {
+  return EXERCISES.filter(
+    (e) => e.muscles.includes(muscle) && exerciseMeasure(e) !== 'distance',
+  ).sort(
+    (a, b) =>
+      (a.muscles[0] === muscle ? 0 : 1) - (b.muscles[0] === muscle ? 0 : 1) ||
+      (b.popular ? 1 : 0) - (a.popular ? 1 : 0) ||
+      a.name.localeCompare(b.name),
+  );
+}
+
+/**
  * Cardio verbs for free-typed names no catalog entry covers ("Morning run",
  * "Evening ride"). Deliberately narrow — "row" would catch the barbell row
  * and "walk" the weighted farmer's walk, so those stay load-measured.

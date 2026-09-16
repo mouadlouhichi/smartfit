@@ -26,7 +26,7 @@ for (const theme of ['light', 'dark']) {
           const nameBorder = await page
             .getByLabel('What should we call you?')
             .evaluate((el) => getComputedStyle(el).borderColor);
-          expect(nameBorder).toBe(theme === 'light' ? 'rgb(129, 122, 114)' : 'rgb(148, 135, 125)');
+          expect(nameBorder).toBe(theme === 'light' ? 'rgb(138, 138, 138)' : 'rgb(111, 111, 111)');
           await page.getByLabel('What should we call you?').fill('A'.repeat(80));
           const unit = page.getByLabel('Preferred weight unit');
           await unit.click();
