@@ -6,102 +6,94 @@
  * SmartFit design system — "Volt"
  * A dark-first, high-energy fitness interface: near-black ink (#0E0E0E)
  * canvases, graphite (#2B2B2B) boundaries and cards lifted off the dark,
- * and a single electric volt accent (#F3FF47) that always carries
+ * and a single electric volt accent (#9CFF00) that always carries
  * near-black ink on top of it. The product app defaults to dark; a tuned
  * neutral-light ships for users who override the theme. Helvetica(-style)
  * grotesque throughout — tight, heavy, athletic.
  */
 
 :root {
-  --radius: 1.5rem;
+  --radius: 1.35rem;
 
-  /* Light theme — clean neutral paper, ink-black primary, volt highlights. */
-  --background: #f5f5f2;
-  --foreground: #131313;
+  /* AXEL-inspired mobile-first app skin: deep black stage, graphite cards,
+     high-contrast white type and the single lime performance accent seen in
+     the reference assets. The root tokens intentionally match dark mode so
+     the product never flashes a pale surface on first paint or system light. */
+  --background: #050505;
+  --foreground: #f4f4ef;
 
-  --card: #ffffff;
-  --card-foreground: #131313;
+  --card: #111111;
+  --card-foreground: #f4f4ef;
 
-  --popover: #ffffff;
-  --popover-foreground: #131313;
+  --popover: #161616;
+  --popover-foreground: #f4f4ef;
 
-  /* Light mode: ink-black primary (editorial Helvetica look). The volt
-     accent appears via --accent chips and --ring focus, where volt-on-white
-     only ever sits next to near-black ink. */
-  --primary: #161616;
-  --primary-foreground: #f5f5f2;
+  --primary: #9cff00;
+  --primary-foreground: #050505;
 
-  --secondary: #ecece8;
-  --secondary-foreground: #161616;
+  --secondary: #202020;
+  --secondary-foreground: #f4f4ef;
 
-  --muted: #eeeeea;
-  /* 5.0:1+ on every light surface — AA for small text. */
-  --muted-foreground: #646464;
+  --muted: #181818;
+  --muted-foreground: #a8a8a0;
 
-  /* Volt-tinted chip: soft lime surface, dark olive ink (7:1). */
-  --accent: #f4f9c8;
-  --accent-foreground: #454d00;
+  --accent: #172400;
+  --accent-foreground: #b6ff1c;
 
-  --destructive: #c0392b;
-  --destructive-foreground: #fdf6f2;
+  --destructive: #ff6b5e;
+  --destructive-foreground: #250605;
 
-  --border: #e4e4e0;
-  --input: #e4e4e0;
-  --ring: #aabf00;
+  --border: #303030;
+  --input: #252525;
+  --ring: #9cff00;
 
-  /* Light chart ramp: olive-lime series that clear the 3:1 graphics bar
-     on white cards, plus neutral grays for secondary series. */
-  --chart-1: #7a8a00;
-  --chart-2: #a8b80f;
-  --chart-3: #8a8a8a;
-  --chart-4: #4a4a4a;
-  --chart-5: #c9d626;
+  --chart-1: #9cff00;
+  --chart-2: #c8ff2e;
+  --chart-3: #73c900;
+  --chart-4: #f4f4ef;
+  --chart-5: #7b7b74;
 
-  /* Dark rail / dark cards (also used in light mode for hero surfaces). */
-  --charcoal: #161616;
-  --charcoal-2: #242424;
+  --charcoal: #090909;
+  --charcoal-2: #151515;
 }
 
 .dark {
-  --background: #0e0e0e;
-  --foreground: #f5f5f2;
+  --background: #050505;
+  --foreground: #f4f4ef;
 
-  --card: #1a1a1a;
-  --card-foreground: #f5f5f2;
+  --card: #111111;
+  --card-foreground: #f4f4ef;
 
-  --popover: #202020;
-  --popover-foreground: #f5f5f2;
+  --popover: #161616;
+  --popover-foreground: #f4f4ef;
 
-  /* The signature look: volt surface, near-black ink on top (≈15:1). */
-  --primary: #f3ff47;
-  --primary-foreground: #101010;
+  --primary: #9cff00;
+  --primary-foreground: #050505;
 
-  --secondary: #262626;
-  --secondary-foreground: #f5f5f2;
+  --secondary: #202020;
+  --secondary-foreground: #f4f4ef;
 
-  --muted: #232323;
-  --muted-foreground: #a3a3a3;
+  --muted: #181818;
+  --muted-foreground: #a8a8a0;
 
-  /* Accent chips: dark olive-tinted surface, volt ink (≈12:1). */
-  --accent: #2e3510;
-  --accent-foreground: #eeff54;
+  --accent: #172400;
+  --accent-foreground: #b6ff1c;
 
   --destructive: #ff6b5e;
-  --destructive-foreground: #2a0d0a;
+  --destructive-foreground: #250605;
 
-  --border: #2b2b2b;
-  --input: #2b2b2b;
-  --ring: #f3ff47;
+  --border: #303030;
+  --input: #252525;
+  --ring: #9cff00;
 
-  /* Volt ramp for series data — every step ≥3:1 on the #1a1a1a card. */
-  --chart-1: #f3ff47;
-  --chart-2: #cbe02c;
-  --chart-3: #9fb41f;
-  --chart-4: #6f7d16;
-  --chart-5: #8a8a8a;
+  --chart-1: #9cff00;
+  --chart-2: #c8ff2e;
+  --chart-3: #73c900;
+  --chart-4: #f4f4ef;
+  --chart-5: #7b7b74;
 
-  --charcoal: #141414;
-  --charcoal-2: #222222;
+  --charcoal: #090909;
+  --charcoal-2: #151515;
 }
 
 @theme inline {
@@ -140,14 +132,14 @@
   --color-charcoal-2: var(--charcoal-2);
 
   /* Volt brand constants — the always-dark marketing landing + product accent. */
-  --color-volt: #f3ff47;
-  --color-volt-soft: #f7ff85;
-  --color-volt-dim: #cbe02c;
-  --color-ink: #0e0e0e;
-  --color-ink-2: #141414;
-  --color-ink-card: #1a1a1a;
-  --color-paper: #f5f5f2;
-  --color-sage: #a3a3a3;
+  --color-volt: #9cff00;
+  --color-volt-soft: #cfff55;
+  --color-volt-dim: #76b900;
+  --color-ink: #050505;
+  --color-ink-2: #0b0b0b;
+  --color-ink-card: #111111;
+  --color-paper: #f4f4ef;
+  --color-sage: #a8a8a0;
   --color-pine: #3a3f0e;
 
   --radius-sm: calc(var(--radius) - 6px);
@@ -157,11 +149,11 @@
   --radius-2xl: calc(var(--radius) + 14px);
 
   --font-sans:
-    'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
+    'Inter', 'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
   --font-display:
-    'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
+    'Teko Variable', Teko, Impact, Haettenschweiler, 'Arial Narrow Bold', 'Roboto Condensed',
+    'Helvetica Neue Condensed', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
@@ -217,7 +209,9 @@ body {
 }
 
 body {
-  background-color: var(--background);
+  background:
+    radial-gradient(80rem 40rem at 50% -20rem, rgba(156, 255, 0, 0.12), transparent 55%),
+    var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
   font-feature-settings: 'cv11', 'ss01';
@@ -228,12 +222,13 @@ body {
 /* Base typography. Kept in @layer base so per-page overrides and font-weight
    utilities (font-medium/semibold/bold) can win the cascade. */
 @layer base {
-  /* Product app: heavy Jakarta grotesque for headings. */
+  /* Product app: condensed sport-display headings inspired by the AXEL assets. */
   h1,
   h2 {
     font-family: var(--font-display);
-    font-weight: 800;
-    letter-spacing: -0.025em;
+    font-weight: 900;
+    letter-spacing: -0.055em;
+    text-transform: uppercase;
   }
 
   /* Landing: mirrors the reference (SmartJib) — Instrument Sans headings default
@@ -246,9 +241,10 @@ body {
 }
 .font-display-tight {
   font-family: var(--font-display);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 0.92;
+  font-weight: 900;
+  letter-spacing: -0.075em;
+  line-height: 0.86;
+  text-transform: uppercase;
 }
 .eyebrow {
   font-family: var(--font-sans);
@@ -256,6 +252,67 @@ body {
   letter-spacing: 0.18em;
   font-size: 0.68rem;
   font-weight: 600;
+}
+
+/* AXEL reference utilities ------------------------------------------------- */
+.axel-title {
+  overflow-wrap: normal;
+  font-family: var(--font-display);
+  font-weight: 900;
+  line-height: 0.82;
+  letter-spacing: -0.075em;
+  text-transform: uppercase;
+  word-break: normal;
+}
+.axel-italic {
+  overflow-wrap: normal;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 900;
+  line-height: 0.86;
+  letter-spacing: -0.07em;
+  word-break: normal;
+}
+.axel-card {
+  border: 1px solid rgba(244, 244, 239, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)), #111111;
+  box-shadow: 0 20px 45px -30px rgba(0, 0, 0, 0.9);
+}
+.axel-card-soft {
+  border: 1px solid rgba(244, 244, 239, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+}
+.axel-neon-glow {
+  box-shadow:
+    0 0 0 1px rgba(156, 255, 0, 0.22),
+    0 0 28px rgba(156, 255, 0, 0.24);
+}
+.axel-photo {
+  position: relative;
+  overflow: hidden;
+  background: #101010;
+}
+.axel-photo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent 28%, rgba(0, 0, 0, 0.42) 62%, rgba(0, 0, 0, 0.86) 100%),
+    radial-gradient(75% 70% at 88% 18%, rgba(156, 255, 0, 0.22), transparent 56%);
+}
+.axel-phone-stage {
+  background:
+    radial-gradient(18rem 18rem at 50% 0%, rgba(156, 255, 0, 0.2), transparent 65%),
+    linear-gradient(180deg, #0b0b0b 0%, #050505 100%);
+}
+.axel-screen-frame {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #050505;
+  box-shadow:
+    inset 0 0 0 8px #0a0a0a,
+    0 24px 60px -28px rgba(0, 0, 0, 0.95);
 }
 
 input[type='number']::-webkit-outer-spin-button,
@@ -435,13 +492,13 @@ input[type='number'] {
   0%,
   100% {
     box-shadow:
-      0 0 0 6px rgba(224, 94, 54, 0.18),
-      0 10px 24px -6px rgba(224, 94, 54, 0.65);
+      0 0 0 6px rgba(156, 255, 0, 0.18),
+      0 10px 24px -6px rgba(156, 255, 0, 0.55);
   }
   50% {
     box-shadow:
-      0 0 0 13px rgba(224, 94, 54, 0.08),
-      0 16px 38px -6px rgba(224, 94, 54, 0.9);
+      0 0 0 13px rgba(156, 255, 0, 0.08),
+      0 16px 38px -6px rgba(156, 255, 0, 0.75);
   }
 }
 .zap-glow {
@@ -451,8 +508,8 @@ input[type='number'] {
   .zap-glow {
     animation: none;
     box-shadow:
-      0 0 0 6px rgba(243, 255, 71, 0.22),
-      0 10px 24px -6px rgba(243, 255, 71, 0.55);
+      0 0 0 6px rgba(156, 255, 0, 0.22),
+      0 10px 24px -6px rgba(156, 255, 0, 0.55);
   }
 }
 
@@ -467,8 +524,8 @@ input[type='number'] {
   border-radius: 2rem;
   color: #f5f5f2;
   background:
-    radial-gradient(115% 135% at 88% -12%, rgba(243, 255, 71, 0.28) 0%, rgba(243, 255, 71, 0) 55%),
-    linear-gradient(140deg, #1c1c1c 0%, #262626 48%, #303030 100%);
+    radial-gradient(115% 135% at 88% -12%, rgba(156, 255, 0, 0.24) 0%, rgba(156, 255, 0, 0) 55%),
+    linear-gradient(140deg, #090909 0%, #111111 48%, #191919 100%);
   box-shadow: 0 18px 40px -24px rgba(0, 0, 0, 0.8);
 }
 .card-hero .hero-muted {
@@ -531,11 +588,11 @@ input[type='number'] {
      Overriding the theme variables here makes every Tailwind
      font-sans/font-display/font-mono utility resolve to these. */
   --font-sans:
-    'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
+    'Inter', 'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', Roboto, sans-serif;
   --font-display:
-    'Helvetica Neue', Helvetica, Arial, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
+    'Teko Variable', Teko, Impact, Haettenschweiler, 'Arial Narrow Bold', 'Roboto Condensed',
+    'Helvetica Neue Condensed', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
   --font-mono:
     'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
 }
@@ -734,9 +791,9 @@ input[type='number'] {
   overflow: hidden;
   color: #f7f2ea;
   background:
-    radial-gradient(120% 140% at 85% -20%, rgba(224, 94, 54, 0.5) 0%, rgba(224, 94, 54, 0) 52%),
-    radial-gradient(90% 100% at 8% 110%, rgba(200, 241, 53, 0.12) 0%, rgba(200, 241, 53, 0) 60%),
-    linear-gradient(150deg, #1a1716 0%, #2a2422 46%, #3a2f28 100%);
+    radial-gradient(120% 140% at 85% -20%, rgba(156, 255, 0, 0.28) 0%, rgba(156, 255, 0, 0) 52%),
+    radial-gradient(90% 100% at 8% 110%, rgba(156, 255, 0, 0.1) 0%, rgba(156, 255, 0, 0) 60%),
+    linear-gradient(150deg, #090909 0%, #111111 46%, #1a1a1a 100%);
 }
 .pro-surface::after {
   /* Fine grain: breaks up the gradient so large dark areas do not band. */
@@ -793,8 +850,8 @@ input[type='number'] {
 /* Volt foil edge for the featured plan card. */
 .gold-edge {
   box-shadow:
-    inset 0 0 0 1px rgba(243, 255, 71, 0.55),
-    0 12px 30px -18px rgba(243, 255, 71, 0.45);
+    inset 0 0 0 1px rgba(156, 255, 0, 0.55),
+    0 12px 30px -18px rgba(156, 255, 0, 0.45);
 }
 
 /* Frosted glass — used over imagery (runner header, paywall hero). */
@@ -907,8 +964,8 @@ input[type='number'] {
    ═══════════════════════════════════════════════════════════════════════ */
 .session-shell {
   background:
-    radial-gradient(130% 90% at 50% -20%, rgba(224, 94, 54, 0.28) 0%, rgba(224, 94, 54, 0) 58%),
-    linear-gradient(180deg, #141110 0%, #1b1716 55%, #141110 100%);
+    radial-gradient(130% 90% at 50% -20%, rgba(156, 255, 0, 0.2) 0%, rgba(156, 255, 0, 0) 58%),
+    linear-gradient(180deg, #050505 0%, #111111 55%, #050505 100%);
   color: #f7f2ea;
 }
 .session-shell .session-muted {

@@ -79,7 +79,7 @@ test('achievement tints carry readable ink in both polarities', () => {
       `tint ${tint} too dark for its ink icon (${contrastRatio(ink, tint).toFixed(2)})`,
     );
   }
-  assert.ok(contrastRatio(ink, '#f3ff47') >= 7, 'ink on volt dropped below AAA');
+  assert.ok(contrastRatio(ink, '#9cff00') >= 7, 'ink on volt dropped below AAA');
 });
 
 test('contrastRatio sanity: pure black vs pure white is 21:1', () => {

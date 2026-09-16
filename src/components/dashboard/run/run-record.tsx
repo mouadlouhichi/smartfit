@@ -673,7 +673,7 @@ function LiveStage({
               /* Vector underlay: the route is visible before tiles or WebGL are. */
               <RouteMap
                 route={points}
-                stroke="#f3ff47"
+                stroke="#9cff00"
                 className="absolute inset-0 z-0 h-full w-full p-6 opacity-70"
               />
             )}
@@ -694,7 +694,7 @@ function LiveStage({
         ) : (
           <div className="absolute inset-0 grid place-items-center">
             <p className="flex items-center gap-2 text-xs font-bold text-white/60">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[#f3ff47]" aria-hidden />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[#9cff00]" aria-hidden />
               {gps === 'error'
                 ? 'No GPS yet — the map appears with your first fix.'
                 : 'Finding your position — the map appears with your first fix.'}
@@ -970,7 +970,7 @@ function RunSummary({
       <div className="card-hero relative overflow-hidden p-5 text-white sm:p-7">
         <span
           aria-hidden
-          className="pointer-events-none absolute -top-20 right-0 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(243,255,71,0.5),transparent_70%)]"
+          className="pointer-events-none absolute -top-20 right-0 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(156,255,0,0.5),transparent_70%)]"
         />
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -1008,7 +1008,7 @@ function RunSummary({
             {records.map((record) => (
               <span
                 key={record.label}
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#f3ff47] px-3 py-1.5 text-xs font-extrabold text-[#0e0e0e]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[#9cff00] px-3 py-1.5 text-xs font-extrabold text-[#0e0e0e]"
               >
                 <Zap className="h-3.5 w-3.5" aria-hidden /> {record.label}
               </span>
@@ -1035,7 +1035,7 @@ function RunSummary({
           <div className="relative h-64 w-full overflow-hidden rounded-2xl">
             <RouteMap
               route={points}
-              stroke="#f3ff47"
+              stroke="#9cff00"
               className="absolute inset-0 z-0 h-full w-full p-4 opacity-70"
             />
             <RunMap points={points} follow={false} className="absolute inset-0 z-[1]" />

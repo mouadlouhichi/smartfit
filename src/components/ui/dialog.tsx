@@ -132,8 +132,8 @@ const DialogContent = React.forwardRef<
           // vertically: `overflow-x-clip` makes sideways panning impossible,
           // so a width bug clips instead of adding a horizontal scrollbar.
           // (Vertical `sticky` footers/headers are unaffected.)
-          'border-border bg-card sheet-in fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] w-full flex-col gap-4 overflow-x-clip overflow-y-auto overscroll-contain rounded-t-[1.75rem] border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl',
-          'dialog-in sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-[calc(100vw-2rem)] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6 sm:pb-6',
+          'bg-card sheet-in fixed inset-x-0 bottom-0 z-50 flex max-h-[92dvh] w-full flex-col gap-4 overflow-x-clip overflow-y-auto overscroll-contain rounded-t-[2rem] border border-white/10 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl shadow-black/60',
+          'dialog-in sm:inset-x-auto sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:w-[calc(100vw-2rem)] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[1.6rem] sm:p-6 sm:pb-6',
           className,
         )}
         {...props}
@@ -191,7 +191,10 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn('text-lg leading-6 font-semibold tracking-tight text-balance', className)}
+    className={cn(
+      'font-display text-2xl leading-none font-black tracking-[-0.055em] text-balance uppercase',
+      className,
+    )}
     {...props}
   />
 ));

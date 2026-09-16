@@ -287,7 +287,7 @@ export function RunMap({
       type: 'line',
       source: 'run-route',
       filter: ['==', ['get', 'kind'], 'line'],
-      paint: { 'line-color': '#f3ff47', 'line-width': 12, 'line-opacity': 0.28, 'line-blur': 4 },
+      paint: { 'line-color': '#9cff00', 'line-width': 12, 'line-opacity': 0.28, 'line-blur': 4 },
       layout: { 'line-cap': 'round', 'line-join': 'round' },
     });
     map.addLayer({
@@ -296,7 +296,7 @@ export function RunMap({
       source: 'run-route',
       filter: ['==', ['get', 'kind'], 'line'],
       paint: {
-        'line-color': ['interpolate', ['linear'], ['line-progress'], 0, '#f3ff47', 1, '#f7ff85'],
+        'line-color': ['interpolate', ['linear'], ['line-progress'], 0, '#9cff00', 1, '#cfff55'],
         'line-width': 4.5,
       },
       layout: { 'line-cap': 'round', 'line-join': 'round' },
@@ -309,7 +309,7 @@ export function RunMap({
       paint: {
         'circle-radius': 6,
         'circle-color': '#ffffff',
-        'circle-stroke-color': '#f3ff47',
+        'circle-stroke-color': '#9cff00',
         'circle-stroke-width': 3,
       },
     });
@@ -320,7 +320,7 @@ export function RunMap({
       filter: ['==', ['get', 'kind'], 'head'],
       paint: {
         'circle-radius': 6.5,
-        'circle-color': '#f3ff47',
+        'circle-color': '#9cff00',
         'circle-stroke-color': '#0e0e0e',
         'circle-stroke-width': 3,
       },
@@ -534,7 +534,7 @@ export function RunMap({
     const latlngs = pts.map((p) => [p.lat, p.lng]);
     if (!map.__glow) {
       map.__glow = L.polyline(latlngs, {
-        color: '#f3ff47',
+        color: '#9cff00',
         weight: 11,
         opacity: 0.28,
         lineJoin: 'round',
@@ -542,7 +542,7 @@ export function RunMap({
         interactive: false,
       }).addTo(map);
       map.__line = L.polyline(latlngs, {
-        color: '#f3ff47',
+        color: '#9cff00',
         weight: 5,
         opacity: 0.95,
         lineJoin: 'round',
@@ -551,7 +551,7 @@ export function RunMap({
       }).addTo(map);
       map.__start = L.circleMarker(latlngs[0], {
         radius: 6,
-        color: '#f3ff47',
+        color: '#9cff00',
         weight: 3,
         fillColor: '#ffffff',
         fillOpacity: 1,
@@ -561,7 +561,7 @@ export function RunMap({
         radius: 7,
         color: '#0e0e0e',
         weight: 3,
-        fillColor: '#f3ff47',
+        fillColor: '#9cff00',
         fillOpacity: 1,
         interactive: false,
       }).addTo(map);

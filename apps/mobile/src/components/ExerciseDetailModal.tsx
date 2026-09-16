@@ -69,7 +69,7 @@ export function ExerciseDetailModal({
                 <View
                   key={m}
                   className="rounded-full px-2.5 py-1"
-                  style={{ backgroundColor: i === 0 ? '#f3ff47' : '#262626' }}
+                  style={{ backgroundColor: i === 0 ? '#9cff00' : '#262626' }}
                 >
                   <Text
                     className="text-xs font-semibold"
@@ -100,7 +100,7 @@ export function ExerciseDetailModal({
             </Text>
             {!data && !failed && (
               <View className="flex-row items-center gap-2 py-4">
-                <ActivityIndicator color="#f3ff47" />
+                <ActivityIndicator color="#9cff00" />
                 <Text className="text-muted-foreground text-sm">Loading instructions…</Text>
               </View>
             )}

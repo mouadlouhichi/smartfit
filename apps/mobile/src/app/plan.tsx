@@ -76,11 +76,11 @@ function LibraryChip({
       accessibilityState={{ selected: active }}
       className="rounded-full border px-3 py-1.5"
       style={{
-        borderColor: active ? '#f3ff47' : '#2b2b2b',
-        backgroundColor: active ? '#f3ff4714' : 'transparent',
+        borderColor: active ? '#9cff00' : '#2b2b2b',
+        backgroundColor: active ? '#9cff0014' : 'transparent',
       }}
     >
-      <Text className="text-sm font-medium" style={{ color: active ? '#f3ff47' : '#a3a3a3' }}>
+      <Text className="text-sm font-medium" style={{ color: active ? '#9cff00' : '#a3a3a3' }}>
         {label}
         {typeof count === 'number' && count > 0 ? ' ' : null}
         {typeof count === 'number' && count > 0 ? (
@@ -219,11 +219,11 @@ function ExerciseLibrary() {
           onPress={() => setSort(sort === 'az' ? 'recommended' : 'az')}
           className="bg-card items-center rounded-xl border p-2.5"
           style={{
-            borderColor: sort === 'az' ? '#f3ff47' : '#2b2b2b',
-            backgroundColor: sort === 'az' ? '#f3ff4714' : 'transparent',
+            borderColor: sort === 'az' ? '#9cff00' : '#2b2b2b',
+            backgroundColor: sort === 'az' ? '#9cff0014' : 'transparent',
           }}
         >
-          <ArrowDownAZ color={sort === 'az' ? '#f3ff47' : '#a3a3a3'} size={20} />
+          <ArrowDownAZ color={sort === 'az' ? '#9cff00' : '#a3a3a3'} size={20} />
         </Pressable>
       </View>
 
@@ -323,7 +323,7 @@ function ExerciseLibrary() {
         )}
         {hasFilters && (
           <Pressable onPress={clearFilters} hitSlop={8}>
-            <Text className="text-xs underline" style={{ color: '#f3ff47' }}>
+            <Text className="text-xs underline" style={{ color: '#9cff00' }}>
               Clear all
             </Text>
           </Pressable>
@@ -343,7 +343,7 @@ function ExerciseLibrary() {
               className="mt-1.5 rounded-full px-3 py-1.5"
               style={{ backgroundColor: '#141414' }}
             >
-              <Text className="text-sm font-medium" style={{ color: '#f3ff47' }}>
+              <Text className="text-sm font-medium" style={{ color: '#9cff00' }}>
                 Clear search &amp; filters
               </Text>
             </Pressable>
@@ -382,7 +382,7 @@ function ExerciseLibrary() {
           onPress={() => setVisible((v) => v + PAGE_SIZE)}
           className="border-border bg-card items-center rounded-xl border py-2.5"
         >
-          <Text className="text-sm font-medium" style={{ color: '#f3ff47' }}>
+          <Text className="text-sm font-medium" style={{ color: '#9cff00' }}>
             Show more · {list.length - visible} left
           </Text>
         </Pressable>
@@ -460,7 +460,7 @@ export default function PlanScreen() {
                       <Switch
                         value={s.active}
                         onValueChange={(v) => updateSchedule(s.id, { active: v })}
-                        trackColor={{ true: '#f3ff47', false: '#2b2b2b' }}
+                        trackColor={{ true: '#9cff00', false: '#2b2b2b' }}
                       />
                     </View>
                   );

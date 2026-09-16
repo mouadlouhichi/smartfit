@@ -60,7 +60,7 @@ export function RunHome({ runs, onStart }: { runs: WorkoutSession[]; onStart: ()
     <div className="card-hero relative overflow-hidden p-5 text-white sm:p-7">
       <span
         aria-hidden
-        className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(243,255,71,0.5),transparent_70%)]"
+        className="pointer-events-none absolute -top-24 -right-16 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(156,255,0,0.5),transparent_70%)]"
       />
       <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:items-center">
         {/* Copy + the one button that matters */}
@@ -71,7 +71,7 @@ export function RunHome({ runs, onStart }: { runs: WorkoutSession[]; onStart: ()
               : `Good ${timeOfDayLabel().toLowerCase()}`}
             {streak > 0 && (
               <span className="hero-tile inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px]">
-                <Flame className="h-3 w-3 text-[#f3ff47]" aria-hidden />
+                <Flame className="h-3 w-3 text-[#9cff00]" aria-hidden />
                 {streak}-day streak
               </span>
             )}
@@ -115,7 +115,7 @@ export function RunHome({ runs, onStart }: { runs: WorkoutSession[]; onStart: ()
 
         {/* The week, at a glance */}
         <div className="grid gap-3">
-          <div className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#f3ff47,#cbe02c)] p-5 text-[#141414] shadow-lg">
+          <div className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#9cff00,#76b900)] p-5 text-[#141414] shadow-lg">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/10 px-2.5 py-1 text-[11px] font-bold">
               <Footprints className="h-3 w-3" aria-hidden /> Your distance · this week
             </span>
@@ -223,9 +223,9 @@ function WeekBars({ days }: { days: DayBar[] }) {
                 className={cn(
                   'w-full rounded-lg transition-all duration-500',
                   d.today
-                    ? 'bg-[linear-gradient(180deg,#f3ff47,#f3ff47)]'
+                    ? 'bg-[linear-gradient(180deg,#9cff00,#9cff00)]'
                     : d.distanceKm > 0
-                      ? 'bg-[#f3ff47]/45'
+                      ? 'bg-[#9cff00]/45'
                       : 'bg-white/10',
                 )}
                 style={{
@@ -236,7 +236,7 @@ function WeekBars({ days }: { days: DayBar[] }) {
             <span
               className={cn(
                 'text-[10px] font-bold tracking-wide uppercase',
-                d.today ? 'text-[#f3ff47]' : 'text-white/45',
+                d.today ? 'text-[#9cff00]' : 'text-white/45',
               )}
             >
               {d.label.slice(0, 3)}

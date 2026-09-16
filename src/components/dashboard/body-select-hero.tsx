@@ -61,7 +61,7 @@ export function BodySelectHero() {
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 opacity-70"
         style={{
-          background: 'radial-gradient(60% 80% at 78% 30%, rgba(243,255,71,0.10), transparent 70%)',
+          background: 'radial-gradient(60% 80% at 78% 30%, rgba(156,255,0,0.10), transparent 70%)',
         }}
       />
       <div className="relative grid items-center gap-6 sm:grid-cols-2">

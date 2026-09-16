@@ -60,7 +60,7 @@ export function ProgressAchievementModal({
         {prCount > 0 && (
           <p
             className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold"
-            style={{ background: 'rgba(243,255,71,0.14)', color: '#f3ff47' }}
+            style={{ background: 'rgba(156,255,0,0.14)', color: '#9cff00' }}
           >
             ⭐ {prCount} personal record{prCount === 1 ? '' : 's'}
           </p>

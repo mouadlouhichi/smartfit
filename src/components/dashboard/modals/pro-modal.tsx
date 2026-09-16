@@ -157,7 +157,7 @@ export function ProModal() {
             <div className="flex items-center gap-2.5">
               <span
                 className="gold-edge flex h-10 w-10 items-center justify-center rounded-full"
-                style={{ background: 'linear-gradient(135deg,#f3ff47,#cbe02c)' }}
+                style={{ background: 'linear-gradient(135deg,#9cff00,#76b900)' }}
               >
                 <Crown className="h-5 w-5 text-[#2a3000]" aria-hidden />
               </span>
@@ -204,7 +204,7 @@ function ComparisonTable() {
       <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-[rgba(245,245,242,0.12)] px-3 py-2.5 text-[11px] font-bold tracking-wide uppercase min-[430px]:px-4">
         <span className="pro-muted">Feature</span>
         <span className="pro-muted text-center">Free</span>
-        <span className="text-center" style={{ color: '#f3ff47' }}>
+        <span className="text-center" style={{ color: '#9cff00' }}>
           Pro
         </span>
       </div>
@@ -234,7 +234,7 @@ function ComparisonTable() {
                 {g.free}
               </span>
               <span className="flex min-w-0 items-center justify-center gap-1 text-center text-[11px] font-bold [overflow-wrap:anywhere] text-[#f5f5f2] min-[430px]:text-xs">
-                <Check className="h-3.5 w-3.5 shrink-0" style={{ color: '#f3ff47' }} aria-hidden />
+                <Check className="h-3.5 w-3.5 shrink-0" style={{ color: '#9cff00' }} aria-hidden />
                 {g.pro}
               </span>
             </li>
@@ -269,14 +269,14 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
               // With an odd plan count the last card spans the row as a banner.
               PRO_PLANS.length % 2 === 1 && i === PRO_PLANS.length - 1 && 'col-span-2',
               plan === p.id
-                ? 'gold-edge border-transparent bg-[rgba(243,255,71,0.1)]'
+                ? 'gold-edge border-transparent bg-[rgba(156,255,0,0.1)]'
                 : 'pro-tile border-transparent',
             )}
           >
             {p.featured && (
               <span
                 className="absolute -top-2.5 right-3 rounded-full px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase"
-                style={{ background: 'linear-gradient(135deg,#f3ff47,#cbe02c)', color: '#2a3000' }}
+                style={{ background: 'linear-gradient(135deg,#9cff00,#76b900)', color: '#2a3000' }}
               >
                 {p.note}
               </span>
@@ -292,7 +292,7 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
             {p.savePct && (
               <span
                 className="mt-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                style={{ background: 'rgba(243,255,71,0.15)', color: '#f7ff85' }}
+                style={{ background: 'rgba(156,255,0,0.15)', color: '#cfff55' }}
               >
                 Save {p.savePct}%
               </span>
@@ -350,7 +350,7 @@ function UpgradeFooter({
         disabled={paidDisabled}
         className="w-full rounded-2xl text-base font-extrabold"
         style={{
-          background: 'linear-gradient(120deg,#f3ff47,#cbe02c)',
+          background: 'linear-gradient(120deg,#9cff00,#76b900)',
           color: '#141414',
           height: '3.25rem',
         }}
@@ -404,7 +404,7 @@ function ManageContent({
         </div>
         <span
           className="rounded-full px-2.5 py-1 text-[11px] font-bold"
-          style={{ background: 'rgba(243,255,71,0.15)', color: '#f7ff85' }}
+          style={{ background: 'rgba(156,255,0,0.15)', color: '#cfff55' }}
         >
           Active
         </span>

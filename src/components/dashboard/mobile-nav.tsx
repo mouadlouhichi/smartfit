@@ -2,23 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { ClipboardList, CalendarCheck, Footprints, Zap, UserRound } from 'lucide-react';
+import { Dumbbell, Globe2, Home, PlaySquare, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useModals } from './modal-context';
 
-/** Brand target mark — the ringed-dot icon used on the Dashboard tab. */
-function TargetMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="2.4" />
-      <circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="2.4" />
-      <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-    </svg>
-  );
-}
-
-type TabId = 'dashboard' | 'progress' | 'run' | 'training' | 'profile';
+type TabId = 'home' | 'programs' | 'clips' | 'community' | 'profile';
 
 interface Tab {
   id: TabId;
@@ -27,183 +14,65 @@ interface Tab {
   Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
 }
 
-// Left pair (before the bolt) and right pair (after it).
-const LEFT_TABS: Tab[] = [
-  { id: 'dashboard', href: '/dashboard', label: 'Dashboard', Icon: TargetMark },
-  { id: 'progress', href: '/dashboard/progress', label: 'Progress', Icon: ClipboardList },
-];
-const RIGHT_TABS: Tab[] = [
-  { id: 'run', href: '/dashboard/run', label: 'Run', Icon: Footprints },
-  { id: 'training', href: '/dashboard/plan', label: 'Training', Icon: CalendarCheck },
+const TABS: Tab[] = [
+  { id: 'home', href: '/dashboard', label: 'Home', Icon: Home },
+  { id: 'programs', href: '/dashboard/plan', label: 'Programs', Icon: Dumbbell },
+  { id: 'clips', href: '/dashboard/progress', label: 'Clips', Icon: PlaySquare },
+  { id: 'community', href: '/dashboard/goals', label: 'Community', Icon: Globe2 },
   { id: 'profile', href: '/dashboard/profile', label: 'Profile', Icon: UserRound },
 ];
 
 function activeIdFor(pathname: string): TabId | null {
-  if (pathname === '/dashboard') return 'dashboard';
-  if (pathname.startsWith('/dashboard/progress') || pathname.startsWith('/dashboard/body'))
-    return 'progress';
-  if (pathname.startsWith('/dashboard/run')) return 'run';
-  if (pathname.startsWith('/dashboard/plan')) return 'training';
+  if (pathname === '/dashboard') return 'home';
+  if (pathname.startsWith('/dashboard/plan') || pathname.startsWith('/dashboard/body'))
+    return 'programs';
+  if (pathname.startsWith('/dashboard/progress') || pathname.startsWith('/dashboard/run'))
+    return 'clips';
+  if (pathname.startsWith('/dashboard/goals') || pathname.startsWith('/dashboard/coach'))
+    return 'community';
   if (pathname.startsWith('/dashboard/profile')) return 'profile';
-  return null; // coach / goals / other screens: no tab highlighted
-}
-
-interface PillRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  return null;
 }
 
 /**
- * Mobile bottom navigation — Dashboard, Progress, a raised center bolt (logs a
- * workout), Run, Training and Profile. Run sits next to the bolt so the
- * dedicated run screen is one tap away on a phone.
- *
- * A single white "active" pill is measured from the active tab's position in
- * the bar and animated with a spring transition, so it glides horizontally
- * between tabs (the same technique as the reference app). The center bolt is
- * fixed and raised and is never part of the pill path.
+ * Mobile bottom navigation matching the reference assets: five evenly-spaced
+ * icon tabs on a near-black bar. No hidden overflow, no raised centre item, so
+ * every page keeps the same predictable 390px-first layout.
  */
 export function MobileNav() {
   const pathname = usePathname();
-  const { openModal } = useModals();
-  const onCoach = pathname.startsWith('/dashboard/coach');
-
-  const navRef = useRef<HTMLElement | null>(null);
-  const tabRefs = useRef<Partial<Record<TabId, HTMLAnchorElement | null>>>({});
-  const [pill, setPill] = useState<PillRect | null>(null);
-  const [animate, setAnimate] = useState(false);
-
   const activeId = activeIdFor(pathname);
 
-  const measure = useCallback(() => {
-    const nav = navRef.current;
-    const el = activeId ? tabRefs.current[activeId] : null;
-    if (!nav || !el) {
-      setPill(null);
-      return;
-    }
-    const navBox = nav.getBoundingClientRect();
-    const box = el.getBoundingClientRect();
-    setPill({
-      x: box.left - navBox.left,
-      y: box.top - navBox.top,
-      width: box.width,
-      height: box.height,
-    });
-  }, [activeId]);
-
-  useLayoutEffect(() => {
-    measure();
-    const raf = requestAnimationFrame(measure);
-    window.addEventListener('resize', measure);
-    if (document.fonts?.ready) document.fonts.ready.then(measure).catch(() => {});
-    const t = setTimeout(() => setAnimate(true), 80);
-
-    // The active tab is sized to its own content, so the pill must follow any
-    // geometry change — late webfont swap, container resize, label change —
-    // rather than trusting a single measurement taken on mount.
-    let ro: ResizeObserver | undefined;
-    if (typeof ResizeObserver !== 'undefined') {
-      ro = new ResizeObserver(measure);
-      if (navRef.current) ro.observe(navRef.current);
-      const activeEl = activeId ? tabRefs.current[activeId] : null;
-      if (activeEl) ro.observe(activeEl);
-    }
-
-    return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(t);
-      window.removeEventListener('resize', measure);
-      ro?.disconnect();
-    };
-  }, [measure, activeId]);
-
-  if (onCoach) return null;
-
-  const renderTab = (tab: Tab) => {
-    const isActive = activeId === tab.id;
-    const Icon = tab.Icon;
-    return (
-      <Link
-        key={tab.id}
-        ref={(el) => {
-          tabRefs.current[tab.id] = el;
-        }}
-        href={tab.href}
-        data-nav-item={tab.id}
-        aria-label={tab.label}
-        aria-current={isActive ? 'page' : undefined}
-        className={cn(
-          'relative z-10 flex items-center justify-center rounded-full py-2 transition-colors duration-300 active:scale-95',
-          // Only the active tab renders a label, so size it to its content and
-          // let the icon-only tabs absorb the remaining space. Equal `flex-1`
-          // widths sized every tab for a bare icon and then overflowed the
-          // active one, pushing its icon outside the measured pill.
-          isActive ? 'flex-initial px-2' : 'flex-1',
-          'min-w-0',
-          isActive ? 'text-primary' : 'text-white/55 hover:text-white/85',
-        )}
-      >
-        <span className={cn('flex min-w-0 items-center', isActive ? 'gap-1.5' : 'gap-0')}>
-          <Icon className="h-5 w-5 shrink-0" strokeWidth={2.3} />
-          <span
-            className={cn(
-              // `truncate` (not a bare max-width clip) so a narrow phone
-              // ellipsizes the label instead of slicing it mid-word.
-              // Only opacity is transitioned: the tab is sized to its content,
-              // so animating max-width would animate the tab's own geometry and
-              // the pill would measure a half-open label.
-              'text-charcoal min-w-0 truncate text-xs font-bold transition-opacity duration-300 ease-out',
-              isActive ? 'max-w-[84px] opacity-100' : 'max-w-0 opacity-0',
-            )}
-          >
-            {tab.label}
-          </span>
-        </span>
-      </Link>
-    );
-  };
-
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),14px)] lg:hidden">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 lg:hidden">
       <nav
-        ref={navRef}
-        className="pointer-events-auto relative flex w-full max-w-md items-center gap-1 rounded-full px-2 py-2 shadow-2xl ring-1 shadow-black/30 ring-white/10"
-        style={{
-          background: 'linear-gradient(180deg, #262626 0%, #1e1e1e 48%, #181818 100%)',
-        }}
+        aria-label="Primary"
+        className="pointer-events-auto mx-auto grid w-full max-w-md grid-cols-5 border-t border-white/10 bg-[#111111]/95 px-2 pt-2 pb-[max(env(safe-area-inset-bottom),0.75rem)] shadow-[0_-16px_34px_rgba(0,0,0,0.55)] backdrop-blur-xl"
       >
-        {/* Gliding active pill */}
-        {pill && (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute top-0 left-0 rounded-full bg-white shadow-sm"
-            style={{
-              transform: `translate(${pill.x}px, ${pill.y}px)`,
-              width: pill.width,
-              height: pill.height,
-              transition: animate
-                ? 'transform 380ms cubic-bezier(0.34, 1.32, 0.46, 1), width 380ms cubic-bezier(0.34, 1.32, 0.46, 1)'
-                : 'none',
-            }}
-          />
-        )}
-
-        {LEFT_TABS.map(renderTab)}
-
-        {/* Center: raised white bolt — log workout (fixed, raised, not a tab) */}
-        <button
-          type="button"
-          onClick={() => openModal('workout')}
-          aria-label="Log workout"
-          className="bg-volt relative z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-[0_6px_20px_rgba(243,255,71,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] ring-1 ring-black/20 transition-transform active:scale-90"
-        >
-          <Zap className="h-5 w-5 fill-[#141414] text-[#141414]" strokeWidth={1.6} />
-        </button>
-
-        {RIGHT_TABS.map(renderTab)}
+        {TABS.map((tab) => {
+          const active = activeId === tab.id;
+          const Icon = tab.Icon;
+          return (
+            <Link
+              key={tab.id}
+              href={tab.href}
+              aria-current={active ? 'page' : undefined}
+              className={cn(
+                'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 transition-colors active:scale-95',
+                active ? 'text-white' : 'text-white/42 hover:text-white/80',
+              )}
+            >
+              <Icon
+                className={cn('h-5 w-5', active && 'drop-shadow-[0_0_10px_rgba(255,255,255,0.35)]')}
+                strokeWidth={active ? 2.8 : 2.2}
+                aria-hidden
+              />
+              <span className="w-full truncate text-center text-[10px] leading-none font-black">
+                {tab.label}
+              </span>
+            </Link>
+          );
+        })}
       </nav>
     </div>
   );

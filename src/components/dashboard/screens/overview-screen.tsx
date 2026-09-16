@@ -27,6 +27,14 @@ import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetricCard, MiniBars, Chip, GradeRing } from '@/components/volt/volt-kit';
 import {
+  AxelCategoryGrid,
+  AxelExplorePrograms,
+  AxelProgramDetail,
+  AxelSearchBar,
+  AxelSummaryTile,
+  AxelWorkoutHero,
+} from '@/components/axel/design-components';
+import {
   currentStreak,
   getPlan,
   goalProgress,
@@ -165,14 +173,38 @@ export function OverviewScreen() {
     <div className="grid max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       <h1 className="sr-only">Overview</h1>
 
-      {/* ── Body-select training hero ────────────────────────────────────
-          The app's primary training action: pick a muscle, train it. Sits
-          first so "train by body part" is the headline flow, not a tab. */}
+      {/* ── AXEL component surface: search, category grid, program cards and
+          a guided-workout hero recreated from the design language. This is the
+          first thing on mobile so the whole dashboard matches the reference
+          before any analytics content appears. */}
+      <div className="grid max-w-full min-w-0 gap-5 lg:col-span-2">
+        <AxelSearchBar />
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(320px,0.92fr)]">
+          <AxelWorkoutHero
+            title={firstName ? `${firstName}'s routine` : 'Build your routine'}
+            subtitle="Start a guided set, switch categories, and keep the dark neon component language across SmartFit."
+          />
+          <AxelProgramDetail className="hidden xl:block" />
+        </div>
+        <AxelCategoryGrid />
+        <AxelExplorePrograms />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <AxelSummaryTile label="Minutes" value={week.minutes} sub="this week" icon="timer" />
+          <AxelSummaryTile label="Sessions" value={week.workouts} sub="completed" icon="dumbbell" />
+          <AxelSummaryTile
+            label="Distance"
+            value={week.distance.toFixed(1)}
+            sub={distanceUnit}
+            icon="route"
+          />
+          <AxelSummaryTile label="Goal" value={`${goalPct}%`} sub="weekly" icon="check-circle" />
+        </div>
+      </div>
+
+      {/* ── Body-select training hero ──────────────────────────────────── */}
       <BodySelectHero />
-      {/* ── Center / left column ───────────────────────────────
-          Separate surfaces: the white card covers only the greeting and
-          weekly progress; start workout, today rings, plan, and summary
-          live outside it as their own sections. */}
+
+      {/* ── Center / left column ─────────────────────────────── */}
       <div className="grid max-w-full min-w-0 content-start gap-6">
         {/* ── Streak card — the reference "Running 7 days" tile ────────── */}
         <div className="bg-card border-border flex items-center gap-4 rounded-3xl border p-4 sm:p-5">
@@ -192,7 +224,7 @@ export function OverviewScreen() {
             type="button"
             onClick={startToday}
             aria-label={nextSlot ? `Start ${nextSlot.slot.title}` : 'Start another workout'}
-            className="bg-volt text-ink press grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-[0_6px_18px_-8px_rgba(243,255,71,0.7)] transition-transform hover:-translate-y-0.5 active:scale-95"
+            className="bg-volt text-ink press grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-[0_6px_18px_-8px_rgba(156,255,0,0.7)] transition-transform hover:-translate-y-0.5 active:scale-95"
           >
             <ArrowUpRight className="h-5 w-5" strokeWidth={2.75} />
           </button>

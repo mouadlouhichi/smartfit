@@ -379,7 +379,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       name: 'First Blood',
       description: 'Log your very first session.',
       icon: 'flag',
-      tint: '#f3ff47',
+      tint: '#9cff00',
       unlocked: count >= TIERS.first,
       unlockedAt: first?.date,
       progress: count >= TIERS.first ? 100 : 0,

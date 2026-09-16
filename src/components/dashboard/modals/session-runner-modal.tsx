@@ -542,7 +542,7 @@ export function SessionRunnerModal() {
               'press flex w-full items-center gap-3 rounded-2xl border p-3 text-left',
               tracking ? 'border-transparent' : 'session-tile border-transparent',
             )}
-            style={tracking ? { background: 'rgba(243,255,71,0.12)' } : undefined}
+            style={tracking ? { background: 'rgba(156,255,0,0.12)' } : undefined}
             aria-pressed={tracking}
           >
             <span
@@ -551,8 +551,8 @@ export function SessionRunnerModal() {
                 tracking && 'animate-pulse-soft',
               )}
               style={{
-                background: tracking ? 'rgba(243,255,71,0.2)' : 'rgba(245,245,242,0.07)',
-                color: tracking ? '#f3ff47' : 'rgba(245,245,242,0.6)',
+                background: tracking ? 'rgba(156,255,0,0.2)' : 'rgba(245,245,242,0.07)',
+                color: tracking ? '#9cff00' : 'rgba(245,245,242,0.6)',
               }}
             >
               <Navigation className="h-5 w-5" aria-hidden />
@@ -570,7 +570,7 @@ export function SessionRunnerModal() {
             </span>
             <span
               className="text-sm font-extrabold tabular-nums"
-              style={{ color: tracking ? '#f3ff47' : 'rgba(245,245,242,0.7)' }}
+              style={{ color: tracking ? '#9cff00' : 'rgba(245,245,242,0.7)' }}
             >
               {distanceKm.toFixed(2)} km
             </span>
@@ -778,7 +778,7 @@ function LiveScreen(p: LiveProps) {
                   {target && target.kind !== 'repeat' && (
                     <p
                       className="mt-0.5 flex items-center gap-1.5 text-xs font-bold"
-                      style={{ color: '#f3ff47' }}
+                      style={{ color: '#9cff00' }}
                     >
                       <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       <span className="truncate">Pro target · {target.rationale}</span>
@@ -817,7 +817,7 @@ function LiveScreen(p: LiveProps) {
                         key={s.id}
                         className={cn(
                           'grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 rounded-xl px-2 py-1.5',
-                          s.done ? 'bg-[rgba(243,255,71,0.12)]' : 'session-tile',
+                          s.done ? 'bg-[rgba(156,255,0,0.12)]' : 'session-tile',
                           s.isPR && 'pr-flash',
                         )}
                       >
@@ -875,7 +875,7 @@ function LiveScreen(p: LiveProps) {
                         {s.done ? (
                           <span
                             className="flex items-center justify-center gap-0.5 text-[11px] font-bold"
-                            style={{ color: s.isPR ? 'var(--chart-1)' : '#f3ff47' }}
+                            style={{ color: s.isPR ? 'var(--chart-1)' : '#9cff00' }}
                           >
                             {s.isPR && (
                               <Trophy className="h-3.5 w-3.5" aria-label="Personal record" />
@@ -992,7 +992,7 @@ function LiveScreen(p: LiveProps) {
         <button
           onClick={p.finish}
           className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#141414] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#f3ff47,#cbe02c)' }}
+          style={{ background: 'linear-gradient(120deg,#9cff00,#76b900)' }}
         >
           <Flag className="h-5 w-5" aria-hidden /> Finish session
         </button>
@@ -1152,7 +1152,7 @@ function SummaryScreen({
           {summary.personalRecords.length > 0 && (
             <div
               className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold"
-              style={{ background: 'rgba(243,255,71,0.15)', color: '#f7ff85' }}
+              style={{ background: 'rgba(156,255,0,0.15)', color: '#cfff55' }}
             >
               <Sparkles className="h-4 w-4" aria-hidden />
               {summary.personalRecords.length} personal record
@@ -1198,7 +1198,7 @@ function SummaryScreen({
 
         {summary.personalRecords.length > 0 && (
           <div className="session-tile mt-4 rounded-2xl p-4">
-            <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#f7ff85' }}>
+            <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#cfff55' }}>
               <Trophy className="h-4 w-4" aria-hidden /> New records
             </p>
             <ul className="mt-2 grid gap-1.5">
@@ -1222,7 +1222,7 @@ function SummaryScreen({
         <button
           onClick={onSave}
           className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#141414] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#f3ff47,#cbe02c)' }}
+          style={{ background: 'linear-gradient(120deg,#9cff00,#76b900)' }}
         >
           <Check className="h-5 w-5" aria-hidden /> Save session
         </button>

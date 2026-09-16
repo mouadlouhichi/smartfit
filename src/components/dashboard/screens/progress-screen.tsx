@@ -230,7 +230,7 @@ export function ProgressScreen() {
             label="Burned"
             value={formatCalories(rangeAgg.calories)}
             icon={Flame}
-            color="#cbe02c"
+            color="#76b900"
             big
           />
           <RingStat

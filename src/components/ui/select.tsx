@@ -117,11 +117,11 @@ const Select = React.forwardRef<
         onKeyDown={onKeyDown}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'bg-secondary text-foreground hover:bg-secondary/70 focus-visible:ring-ring focus-visible:border-ring focus-visible:bg-background',
-          // Mobile-first: 44px trigger + 16px type; compact on sm+ (§5).
-          'flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-transparent pr-3 pl-3 text-left text-base font-medium transition-colors sm:h-10 sm:text-sm',
+          'bg-input text-foreground hover:bg-secondary focus-visible:ring-ring focus-visible:border-ring focus-visible:bg-[#0c0c0c]',
+          // Mobile-first: 48px trigger + 16px type; compact on sm+.
+          'flex h-12 w-full items-center justify-between gap-2 rounded-full border border-white/10 pr-4 pl-4 text-left text-base font-semibold transition-colors sm:h-11 sm:text-sm',
           'focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
-          'aria-[invalid=true]:border-destructive aria-[invalid=true]:bg-destructive/5',
+          'aria-[invalid=true]:border-destructive aria-[invalid=true]:bg-destructive/10',
           className,
         )}
         {...rest}
@@ -147,7 +147,7 @@ const Select = React.forwardRef<
           // modal's ~127px Intensity cell), clipping the panel and adding a
           // horizontal scrollbar to the sheet. Labels truncate like the
           // trigger itself, so panel and trigger always agree.
-          className="bg-popover text-popover-foreground border-border animate-fade-in absolute z-50 mt-1.5 max-h-64 w-full overflow-auto rounded-xl border p-1 shadow-lg shadow-black/10"
+          className="bg-popover text-popover-foreground animate-fade-in absolute z-50 mt-1.5 max-h-64 w-full overflow-auto rounded-2xl border border-white/10 p-1.5 shadow-2xl shadow-black/50"
         >
           {options.map((o, i) => {
             const isSel = o.value === String(value);
@@ -162,7 +162,7 @@ const Select = React.forwardRef<
                 onClick={() => commit(o)}
                 className={cn(
                   // min-h-11: every option is a 44px touch target on mobile.
-                  'flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  'flex min-h-11 cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
                   i === active && 'bg-secondary',
                   o.disabled && 'text-muted-foreground cursor-not-allowed opacity-50',
                 )}

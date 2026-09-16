@@ -125,7 +125,7 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
   where a visible label is genuinely impossible (e.g. the chart unit `Select`).
 - Hints/errors are associated, not adjacent decoration (`aria-describedby`).
 - Errors: `role="alert"` so screen readers announce on commit.
-- Contrast: all token inks are AA in light and dark themes (dark `--primary #f3ff47`
+- Contrast: all token inks are AA in light and dark themes (dark `--primary #9cff00`
   always carries `--primary-foreground #101010`; light `--primary` is ink `#161616`).
 - Motion: `volt-glow`/`dot-typing` keyframes honor `prefers-reduced-motion`.
 

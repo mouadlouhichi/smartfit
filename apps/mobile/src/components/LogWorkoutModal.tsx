@@ -94,13 +94,13 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
                     onPress={() => setDate(d)}
                     className="rounded-full border px-3 py-2"
                     style={{
-                      borderColor: selected ? '#f3ff47' : '#2b2b2b',
-                      backgroundColor: selected ? '#f3ff4714' : 'transparent',
+                      borderColor: selected ? '#9cff00' : '#2b2b2b',
+                      backgroundColor: selected ? '#9cff0014' : 'transparent',
                     }}
                   >
                     <Text
                       className="text-sm font-medium"
-                      style={{ color: selected ? '#f3ff47' : '#a3a3a3' }}
+                      style={{ color: selected ? '#9cff00' : '#a3a3a3' }}
                     >
                       {relativeDay(d)}
                     </Text>
