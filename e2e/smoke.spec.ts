@@ -116,13 +116,18 @@ test('the full local-mode journey: log, edit, delete, plan, goals, body, units, 
   await page.getByRole('button', { name: 'New goal' }).click();
   const goalDialog = page.getByRole('dialog').filter({ hasText: 'Set a goal' });
   await goalDialog.getByLabel('Name').fill('E2E distance goal');
-  await goalDialog.getByLabel('Track').selectOption('distance');
+  // Track is the design-system Select (a listbox), not a native <select>.
+  await goalDialog.getByLabel('Track').click();
+  await page.getByRole('option', { name: 'Distance' }).click();
   await goalDialog.getByLabel(/Target/).fill('20');
   await goalDialog.getByRole('button', { name: 'Create goal' }).click();
   await expect(page.getByText('E2E distance goal')).toBeVisible();
 
   // ── Body: log a measurement, see the trend ─────────────────────────────
   await page.goto('/dashboard/body');
+  // The screen opens on "Train by muscle" (the primary flow) — switch to
+  // the measurements tab before logging.
+  await page.getByRole('tab', { name: 'Measurements' }).click();
   await page.getByRole('button', { name: 'Log measurement' }).click();
   const bodyDialog = page.getByRole('dialog').filter({ hasText: 'Log a measurement' });
   await bodyDialog.getByLabel(/Value/).fill('80');
@@ -131,8 +136,10 @@ test('the full local-mode journey: log, edit, delete, plan, goals, body, units, 
 
   // ── Progress honours the distance unit and never invents targets ──────
   await page.goto('/dashboard/profile');
-  await page.getByLabel('Distance unit').selectOption('mi');
-  await page.getByLabel('Weight unit').selectOption('lb');
+  await page.getByLabel('Distance unit').click();
+  await page.getByRole('option', { name: 'Miles (mi)' }).click();
+  await page.getByLabel('Weight unit').click();
+  await page.getByRole('option', { name: 'Pounds (lb)' }).click();
   await expect(page.getByText(/Body measurements follow this: inches/)).toBeVisible();
   await page.goto('/dashboard/progress');
   await expect(page.getByText('0 mi').first()).toBeVisible();

@@ -6,6 +6,7 @@ import {
   EXERCISE_MUSCLE_LABELS,
   MUSCLE_WEEKLY_SET_TARGET,
   allExercises,
+  exerciseMeasure,
   categoryById,
   currentStreak,
   formatMinutes,
@@ -52,9 +53,10 @@ function splitForTitle(title: string): ExerciseMuscle[] | null {
   return ['chest', 'lats', 'quadriceps'];
 }
 
-/* Suggest a routine for a split: the most popular lift per muscle. */
+/* Suggest a routine for a split: the most popular lift per muscle.
+ * Distance-measured conditioning never joins a set-based routine. */
 function suggestRoutine(split: ExerciseMuscle[]): WorkoutExercise[] {
-  const catalog = allExercises();
+  const catalog = allExercises().filter((e) => exerciseMeasure(e) !== 'distance');
   const out: WorkoutExercise[] = [];
   for (const m of split) {
     const entry = catalog
@@ -174,7 +176,7 @@ export function TodaysWorkoutCard() {
   });
 
   return (
-    <div className="border-border overflow-hidden rounded-3xl border bg-[#141414]">
+    <div className="border-border overflow-hidden rounded-3xl border bg-[#0a0a09]">
       <div className="p-5 sm:p-6">
         {/* ── Day switcher — the reference segmented control ─────────── */}
         {programs.length > 1 && (
@@ -314,7 +316,7 @@ export function TodaysWorkoutCard() {
         <button
           type="button"
           onClick={startDay}
-          className="press mt-4 h-13 w-full rounded-full bg-white text-[15px] font-extrabold text-[#141414] shadow-xl transition-transform hover:-translate-y-0.5"
+          className="press mt-4 h-13 w-full rounded-full bg-white text-[15px] font-extrabold text-[#0d1102] shadow-xl transition-transform hover:-translate-y-0.5"
         >
           Set as Today&apos;s workout
         </button>

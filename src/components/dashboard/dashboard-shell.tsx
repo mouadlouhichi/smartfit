@@ -53,7 +53,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         className={cn(
                           'flex h-12 w-12 items-center justify-center rounded-full transition-all',
                           active
-                            ? 'bg-volt text-ink shadow-[0_0_18px_rgba(243,255,71,0.35)] shadow-lg'
+                            ? 'bg-volt text-ink shadow-[0_0_18px_rgba(138,210,0,0.35)] shadow-lg'
                             : 'text-white/55 hover:bg-white/10 hover:text-white',
                         )}
                       >

@@ -410,10 +410,13 @@ export function ProfileScreen() {
     <div className="grid max-w-full min-w-0 gap-5">
       {/* ── Hero identity card ─────────────────────────────────────────── */}
       <section className="card-hero max-w-full min-w-0 p-4 sm:p-8" aria-label="Profile summary">
+        <p className="text-volt-ink mb-3 text-[11px] font-bold tracking-[0.18em] uppercase">
+          Profile
+        </p>
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3">
           <span
             className="hero-tile flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-extrabold"
-            style={{ boxShadow: '0 0 0 4px rgba(243,255,71,0.25)' }}
+            style={{ boxShadow: '0 0 0 4px rgba(138,210,0,0.25)' }}
             aria-hidden
           >
             {avatar || <UserRound className="h-7 w-7" />}
@@ -876,7 +879,7 @@ export function ProfileScreen() {
         onOpenChange={(o) => !o && setSuggestDetail(null)}
       />
 
-      {/* SmartFit Pro — mvoltship status & paywall entry */}
+      {/* SmartFit Pro — membership status & paywall entry */}
       <Card className="overflow-hidden">
         <div className="relative flex flex-wrap items-center gap-4 p-5">
           {/* eslint-disable-next-line @next/next/no-img-element -- static export */}

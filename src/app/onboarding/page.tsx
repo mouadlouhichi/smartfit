@@ -306,7 +306,7 @@ export default function OnboardingPage() {
                   className={cn(
                     'focus-visible:ring-ring focus-visible:ring-offset-background rounded-3xl border p-4 text-left transition-all focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:outline-none',
                     planId === p.id
-                      ? 'border-volt bg-volt/[0.06] shadow-[0_0_0_1px_var(--primary)]'
+                      ? 'border-primary bg-volt/[0.06]'
                       : 'border-border bg-card hover:border-volt/40',
                   )}
                 >
@@ -372,7 +372,7 @@ export default function OnboardingPage() {
                   className={cn(
                     'focus-visible:ring-ring focus-visible:ring-offset-background flex items-center justify-between gap-3 rounded-3xl border p-4 text-left transition-all focus-visible:ring-2 focus-visible:ring-offset-4 focus-visible:outline-none',
                     goalMetric === m
-                      ? 'border-volt bg-volt/[0.06] shadow-[0_0_0_1px_var(--primary)]'
+                      ? 'border-primary bg-volt/[0.06]'
                       : 'border-border bg-card hover:border-volt/40',
                   )}
                 >

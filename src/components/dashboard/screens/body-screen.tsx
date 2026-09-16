@@ -29,8 +29,14 @@ import { useModals } from '../modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
+import { ScreenHeader } from '../screen-header';
 import { CategoryIcon } from '@/components/category-icon';
-import { BODY_UNIT_META, EXERCISES, MUSCLE_WEEKLY_SET_TARGET } from '@smartfit/core';
+import {
+  BODY_UNIT_META,
+  EXERCISES,
+  MUSCLE_WEEKLY_SET_TARGET,
+  strengthEntriesForMuscle,
+} from '@smartfit/core';
 import {
   bodyDisplayUnit,
   bodyLabel,
@@ -67,7 +73,7 @@ export function BodyScreen() {
   const { state, hasMoreBodyLogs, loadingMore, loadEarlierBodyLogs } = useStore();
   const { openModal, openWith } = useModals();
   const [pageError, setPageError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'measure' | 'muscles'>('measure');
+  const [mode, setMode] = useState<'measure' | 'muscles'>('muscles');
 
   async function loadMore() {
     setPageError(null);
@@ -112,23 +118,24 @@ export function BodyScreen() {
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight sm:text-2xl">Body</h1>
-          <p className="text-muted-foreground text-sm">
-            {mode === 'muscles'
-              ? 'Tap a muscle on the map to see every exercise for it.'
-              : 'Track weight and measurements to see real change.'}
-          </p>
-        </div>
-        {mode === 'measure' && (
-          <Button onClick={() => openModal('body')}>
-            <Plus className="h-4 w-4" /> Log measurement
-          </Button>
-        )}
-      </div>
+      <ScreenHeader
+        eyebrow="Body"
+        title={mode === 'muscles' ? 'Train by muscle' : 'Measurements'}
+        subtitle={
+          mode === 'muscles'
+            ? 'Select a muscle to see its exercises and start a focus workout.'
+            : 'Track weight and measurements to see real change.'
+        }
+        action={
+          mode === 'measure' ? (
+            <Button onClick={() => openModal('body')}>
+              <Plus className="h-4 w-4" /> Log measurement
+            </Button>
+          ) : undefined
+        }
+      />
 
-      {/* Mode switch: measurements ↔ muscle map */}
+      {/* Mode switch: measurements ↔ train by muscle */}
       <div
         className="bg-secondary border-border mx-auto flex w-fit rounded-full border p-1 shadow-sm"
         role="tablist"
@@ -137,7 +144,7 @@ export function BodyScreen() {
         {(
           [
             { key: 'measure', label: 'Measurements', icon: Ruler },
-            { key: 'muscles', label: 'Muscle map', icon: PersonStanding },
+            { key: 'muscles', label: 'Train by muscle', icon: PersonStanding },
           ] as const
         ).map((t) => (
           <button
@@ -402,15 +409,8 @@ function MuscleLab() {
 
   const label = EXERCISE_MUSCLE_LABELS[muscle];
   const sets = setsByMuscle[muscle] ?? 0;
-  const entries = useMemo(
-    () =>
-      EXERCISES.filter((e) => e.muscles.includes(muscle)).sort(
-        (a, b) =>
-          (a.muscles[0] === muscle ? 0 : 1) - (b.muscles[0] === muscle ? 0 : 1) ||
-          (b.popular ? 1 : 0) - (a.popular ? 1 : 0),
-      ),
-    [muscle],
-  );
+  /** Strength-only routine candidates — no runs/swims in a set-based focus. */
+  const entries = useMemo(() => strengthEntriesForMuscle(muscle), [muscle]);
   const picks = entries.slice(0, 5);
 
   function startFocusRoutine() {
@@ -428,129 +428,145 @@ function MuscleLab() {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
-      {/* The map */}
-      <Card className="mx-auto w-full max-w-sm lg:mx-0">
-        <CardContent className="p-4 sm:p-6">
-          <div className="sr-only">Tap a muscle to open its progress sheet.</div>
-          <MuscleMap
-            selected={muscle}
-            onSelect={(m) => {
-              setMuscle(m);
-              setMapOpen(true);
-            }}
-          />
-        </CardContent>
-      </Card>
+    <div className="grid gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-muted-foreground text-[11px] font-bold tracking-[0.18em] uppercase">
+            Train by body part
+          </p>
+          <h2 className="text-lg font-extrabold tracking-tight sm:text-xl">
+            Pick a muscle, build the session
+          </h2>
+        </div>
+        <p className="text-muted-foreground hidden text-sm sm:block">
+          Tap a region to open its weekly progress and exercises.
+        </p>
+      </div>
 
-      {/* Selection panel */}
-      <div className="grid min-w-0 content-start gap-4">
-        {/* Weekly progress for the selected muscle */}
-        <div className="bg-card border-border rounded-3xl border p-4 sm:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="bg-primary/10 text-primary grid h-11 w-11 shrink-0 place-items-center rounded-2xl">
-                <Zap className="h-5 w-5" fill="currentColor" />
-              </span>
-              <div className="min-w-0">
-                <p className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
-                  {label}
-                </p>
-                <p className="truncate text-sm font-bold">Focus zone</p>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
+        {/* The map */}
+        <Card className="mx-auto w-full max-w-sm lg:mx-0">
+          <CardContent className="p-4 sm:p-6">
+            <div className="sr-only">Tap a muscle to open its progress sheet.</div>
+            <MuscleMap
+              selected={muscle}
+              onSelect={(m) => {
+                setMuscle(m);
+                setMapOpen(true);
+              }}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Selection panel */}
+        <div className="grid min-w-0 content-start gap-4">
+          {/* Weekly progress for the selected muscle */}
+          <div className="bg-card border-border rounded-3xl border p-4 sm:p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="bg-primary/10 text-primary grid h-11 w-11 shrink-0 place-items-center rounded-2xl">
+                  <Zap className="h-5 w-5" fill="currentColor" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
+                    {label}
+                  </p>
+                  <p className="truncate text-sm font-bold">Focus zone</p>
+                </div>
               </div>
+              <p className="shrink-0 text-sm font-bold tabular-nums">
+                {sets} sets{' '}
+                <span className="text-muted-foreground font-medium">
+                  of {MUSCLE_WEEKLY_SET_TARGET}
+                </span>
+              </p>
             </div>
-            <p className="shrink-0 text-sm font-bold tabular-nums">
-              {sets} sets{' '}
-              <span className="text-muted-foreground font-medium">
-                of {MUSCLE_WEEKLY_SET_TARGET}
-              </span>
+            {/* Segmented week bar */}
+            <div
+              className="mt-3 flex gap-1"
+              role="progressbar"
+              aria-valuenow={sets}
+              aria-valuemin={0}
+              aria-valuemax={MUSCLE_WEEKLY_SET_TARGET}
+              aria-label={`Sets this week for ${label}`}
+            >
+              {Array.from({ length: MUSCLE_WEEKLY_SET_TARGET }, (_, i) => (
+                <span
+                  key={i}
+                  className={cn('h-2 flex-1 rounded-full', i < sets ? 'bg-volt' : 'bg-secondary')}
+                />
+              ))}
+            </div>
+            <p className="text-muted-foreground mt-2 text-xs">
+              {sets === 0
+                ? `No ${label.toLowerCase()} sets logged this week yet.`
+                : sets >= MUSCLE_WEEKLY_SET_TARGET
+                  ? `Weekly target hit — ${label.toLowerCase()} is fully fuelled.`
+                  : 'Keep going — every set this week fills the bar.'}
             </p>
           </div>
-          {/* Segmented week bar */}
-          <div
-            className="mt-3 flex gap-1"
-            role="progressbar"
-            aria-valuenow={sets}
-            aria-valuemin={0}
-            aria-valuemax={MUSCLE_WEEKLY_SET_TARGET}
-            aria-label={`Sets this week for ${label}`}
-          >
-            {Array.from({ length: MUSCLE_WEEKLY_SET_TARGET }, (_, i) => (
-              <span
-                key={i}
-                className={cn('h-2 flex-1 rounded-full', i < sets ? 'bg-volt' : 'bg-secondary')}
-              />
-            ))}
-          </div>
-          <p className="text-muted-foreground mt-2 text-xs">
-            {sets === 0
-              ? `No ${label.toLowerCase()} sets logged this week yet.`
-              : sets >= MUSCLE_WEEKLY_SET_TARGET
-                ? `Weekly target hit — ${label.toLowerCase()} is fully fuelled.`
-                : 'Keep going — every set this week fills the bar.'}
-          </p>
-        </div>
 
-        {/* Exercise list */}
-        <div>
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-extrabold tracking-tight sm:text-lg">
-              {label} exercises
-            </h2>
-            <span className="text-muted-foreground text-sm font-semibold">
-              {entries.length} exercise{entries.length === 1 ? '' : 's'}
-            </span>
-          </div>
+          {/* Exercise list */}
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-base font-extrabold tracking-tight sm:text-lg">
+                {label} exercises
+              </h2>
+              <span className="text-muted-foreground text-sm font-semibold">
+                {entries.length} exercise{entries.length === 1 ? '' : 's'}
+              </span>
+            </div>
 
-          {entries.length === 0 ? (
-            <Card className="mt-3">
-              <CardContent className="text-muted-foreground p-5 text-sm">
-                No catalog exercises target {label.toLowerCase()} yet — log it as a custom exercise
-                from the workout logger.
-              </CardContent>
-            </Card>
-          ) : (
-            <ul className="mt-3 grid gap-2">
-              {entries.slice(0, 8).map((e) => (
-                <li key={e.id}>
-                  <button
-                    type="button"
-                    onClick={() => setDetailName(e.name)}
-                    className="border-border bg-card hover:border-volt/40 flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors"
-                  >
-                    <ExerciseImage
-                      name={e.name}
-                      animated={false}
-                      className="h-12 w-12 shrink-0 rounded-xl"
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold">{e.name}</span>
-                      <span className="text-muted-foreground block truncate text-xs">
-                        {e.muscles
-                          .slice(0, 3)
-                          .map((m) => EXERCISE_MUSCLE_LABELS[m])
-                          .join(' · ')}
+            {entries.length === 0 ? (
+              <Card className="mt-3">
+                <CardContent className="text-muted-foreground p-5 text-sm">
+                  No catalog exercises target {label.toLowerCase()} yet — log it as a custom
+                  exercise from the workout logger.
+                </CardContent>
+              </Card>
+            ) : (
+              <ul className="mt-3 grid gap-2">
+                {entries.slice(0, 8).map((e) => (
+                  <li key={e.id}>
+                    <button
+                      type="button"
+                      onClick={() => setDetailName(e.name)}
+                      className="border-border bg-card hover:border-volt/40 flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-colors"
+                    >
+                      <ExerciseImage
+                        name={e.name}
+                        animated={false}
+                        className="h-12 w-12 shrink-0 rounded-xl"
+                      />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">{e.name}</span>
+                        <span className="text-muted-foreground block truncate text-xs">
+                          {e.muscles
+                            .slice(0, 3)
+                            .map((m) => EXERCISE_MUSCLE_LABELS[m])
+                            .join(' · ')}
+                        </span>
                       </span>
-                    </span>
-                    <span className="bg-secondary text-muted-foreground shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold">
-                      {EXERCISE_EQUIPMENT_LABELS[e.equipment]}
-                    </span>
-                    <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
-                  </button>
-                </li>
-              ))}
-            </ul>
+                      <span className="bg-secondary text-muted-foreground shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold">
+                        {EXERCISE_EQUIPMENT_LABELS[e.equipment]}
+                      </span>
+                      <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Launch the focus routine */}
+          {picks.length > 0 && (
+            <PillCta
+              label="Set as Today's workout"
+              className="w-full justify-center sm:w-fit"
+              onClick={startFocusRoutine}
+            />
           )}
         </div>
-
-        {/* Launch the focus routine */}
-        {picks.length > 0 && (
-          <PillCta
-            label="Set as Today's workout"
-            className="w-full justify-center sm:w-fit"
-            onClick={startFocusRoutine}
-          />
-        )}
       </div>
 
       <ExerciseDetailDialog

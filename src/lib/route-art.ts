@@ -71,14 +71,14 @@ export async function renderWorkoutPng(
 
   // ── volt stage ────────────────────────────────────────────────────
   const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#161616');
-  bg.addColorStop(0.55, '#0e0e0e');
+  bg.addColorStop(0, '#050404');
+  bg.addColorStop(0.55, '#050404');
   bg.addColorStop(1, '#0a0a0a');
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
   const glow = ctx.createRadialGradient(W / 2, 300, 40, W / 2, 300, 520);
-  glow.addColorStop(0, 'rgba(243, 255, 71, 0.5)');
-  glow.addColorStop(1, 'rgba(243, 255, 71, 0)');
+  glow.addColorStop(0, 'rgba(138, 210, 0, 0.5)');
+  glow.addColorStop(1, 'rgba(138, 210, 0, 0)');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
@@ -93,11 +93,11 @@ export async function renderWorkoutPng(
   ctx.fillText('SMARTFIT SESSION', 80, y);
   y += 96;
   ctx.font = font(800, 84);
-  ctx.fillStyle = '#f5f5f2';
+  ctx.fillStyle = '#edebe6';
   ctx.fillText(truncate(ctx, stats.title.toUpperCase(), W - 160), 80, y);
   y += 56;
   ctx.font = font(600, 40);
-  ctx.fillStyle = 'rgba(245,245,242,0.6)';
+  ctx.fillStyle = 'rgba(237,235,230,0.6)';
   ctx.fillText(`${stats.dateLabel}  ·  ${stats.durationMin} min`, 80, y);
   y += 110;
 
@@ -108,11 +108,11 @@ export async function renderWorkoutPng(
       : `${stats.distance < 1 ? `${Math.round(stats.distance * 1000)} m` : `${round1(stats.distance)} km`}`;
   const headlineSub = stats.volume > 0 ? 'TOTAL VOLUME' : 'TOTAL DISTANCE';
   ctx.font = font(800, 150);
-  ctx.fillStyle = '#f3ff47';
+  ctx.fillStyle = '#8AD200';
   ctx.fillText(headline, 80, y);
   y += 60;
   ctx.font = font(800, 36);
-  ctx.fillStyle = 'rgba(243,255,71,0.75)';
+  ctx.fillStyle = 'rgba(138,210,0,0.75)';
   ctx.fillText(headlineSub, 82, y);
   y += 110;
 
@@ -124,9 +124,9 @@ export async function renderWorkoutPng(
     ['Duration', `${stats.durationMin} min`],
   ];
   for (const [label, val] of rows) {
-    ctx.fillStyle = 'rgba(245,245,242,0.55)';
+    ctx.fillStyle = 'rgba(237,235,230,0.55)';
     ctx.fillText(label.toUpperCase(), 80, y);
-    ctx.fillStyle = '#f5f5f2';
+    ctx.fillStyle = '#edebe6';
     ctx.textAlign = 'right';
     ctx.fillText(val, W - 80, y);
     ctx.textAlign = 'left';
@@ -137,12 +137,12 @@ export async function renderWorkoutPng(
   if (stats.personalRecords.length > 0) {
     y += 30;
     ctx.font = font(800, 44);
-    ctx.fillStyle = '#f3ff47';
+    ctx.fillStyle = '#8AD200';
     const prLine = `★ ${stats.personalRecords.length} PERSONAL RECORD${stats.personalRecords.length === 1 ? '' : 'S'}`;
     ctx.fillText(prLine, 80, y);
     y += 62;
     ctx.font = font(600, 40);
-    ctx.fillStyle = 'rgba(245,245,242,0.85)';
+    ctx.fillStyle = 'rgba(237,235,230,0.85)';
     for (const pr of stats.personalRecords.slice(0, 4)) {
       ctx.fillText(truncate(ctx, `• ${pr}`, W - 160), 80, y);
       y += 58;

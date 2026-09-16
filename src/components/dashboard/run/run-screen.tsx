@@ -37,6 +37,7 @@ export function RunScreen() {
     <div className="grid max-w-full min-w-0 gap-5">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
+          <p className="text-volt-ink text-[11px] font-bold tracking-[0.18em] uppercase">Cardio</p>
           <h1 className="font-display text-2xl leading-tight font-extrabold tracking-tight sm:text-3xl">
             Run
           </h1>

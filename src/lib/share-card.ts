@@ -53,8 +53,8 @@ const THEMES: Record<ShareStyle, ShareTheme> = {
     bg: null,
     ink: '#ffffff',
     inkSoft: 'rgba(255,255,255,0.85)',
-    accent: '#f3ff47',
-    highlight: '#f3ff47',
+    accent: '#8AD200',
+    highlight: '#8AD200',
     panel: null,
     panelBorder: 'rgba(255,255,255,0.30)',
     route: '#ffffff',
@@ -63,20 +63,20 @@ const THEMES: Record<ShareStyle, ShareTheme> = {
     equalizerOff: 'rgba(255,255,255,0.38)',
   },
   dark: {
-    bg: '#0e0e0e',
-    ink: '#f5f5f2',
-    inkSoft: 'rgba(245,245,242,0.66)',
-    accent: '#f3ff47',
-    highlight: '#f3ff47',
+    bg: '#050404',
+    ink: '#edebe6',
+    inkSoft: 'rgba(237,235,230,0.66)',
+    accent: '#8AD200',
+    highlight: '#8AD200',
     panel: 'rgba(255,255,255,0.06)',
     panelBorder: 'rgba(255,255,255,0.13)',
-    route: '#f3ff47',
-    routeGlow: 'rgba(243,255,71,0.55)',
+    route: '#8AD200',
+    routeGlow: 'rgba(138,210,0,0.55)',
     halo: null,
-    equalizerOff: 'rgba(245,245,242,0.22)',
+    equalizerOff: 'rgba(237,235,230,0.22)',
   },
   light: {
-    bg: '#f5f5f2',
+    bg: '#edebe6',
     ink: '#131313',
     inkSoft: 'rgba(19,19,19,0.62)',
     accent: '#a8b80f',
@@ -84,7 +84,7 @@ const THEMES: Record<ShareStyle, ShareTheme> = {
     panel: '#ffffff',
     panelBorder: 'rgba(19,19,19,0.08)',
     route: '#a8b80f',
-    routeGlow: 'rgba(243,255,71,0.30)',
+    routeGlow: 'rgba(138,210,0,0.30)',
     halo: null,
     equalizerOff: 'rgba(19,19,19,0.16)',
   },
@@ -355,7 +355,7 @@ export function drawRoute(
 
   const r = width * 0.75;
   endpointDot(ctx, start.x + box.x, start.y + box.y, r, '#ffffff', theme.route, theme);
-  endpointDot(ctx, end.x + box.x, end.y + box.y, r, theme.highlight, '#0e0e0e', theme);
+  endpointDot(ctx, end.x + box.x, end.y + box.y, r, theme.highlight, '#050404', theme);
 }
 
 /** Rounded-rectangle clip path, used to frame the basemap like a panel. */
@@ -415,7 +415,7 @@ function drawRouteOnMap(
 
   const r = width * 0.75;
   endpointDot(ctx, points[0].x, points[0].y, r, '#ffffff', theme.route, theme);
-  endpointDot(ctx, points.at(-1)!.x, points.at(-1)!.y, r, theme.highlight, '#0e0e0e', theme);
+  endpointDot(ctx, points.at(-1)!.x, points.at(-1)!.y, r, theme.highlight, '#050404', theme);
 }
 
 function endpointDot(
@@ -543,14 +543,14 @@ export async function renderRunCard(data: RunCardData, opts: RunCardOptions = {}
     ctx.fillRect(0, 0, W, H);
     if (style === 'dark') {
       const glow = ctx.createRadialGradient(W / 2, H * 0.2, 30, W / 2, H * 0.2, W * 0.9);
-      glow.addColorStop(0, 'rgba(243,255,71,0.42)');
-      glow.addColorStop(1, 'rgba(243,255,71,0)');
+      glow.addColorStop(0, 'rgba(138,210,0,0.42)');
+      glow.addColorStop(1, 'rgba(138,210,0,0)');
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, W, H);
     } else {
       const wash = ctx.createLinearGradient(0, 0, W, H);
-      wash.addColorStop(0, 'rgba(243,255,71,0.10)');
-      wash.addColorStop(1, 'rgba(243,255,71,0)');
+      wash.addColorStop(0, 'rgba(138,210,0,0.10)');
+      wash.addColorStop(1, 'rgba(138,210,0,0)');
       ctx.fillStyle = wash;
       ctx.fillRect(0, 0, W, H);
     }
@@ -657,7 +657,7 @@ export async function renderRunCard(data: RunCardData, opts: RunCardOptions = {}
         theme,
         size: 17,
         weight: 600,
-        ink: style === 'dark' ? 'rgba(245,245,242,0.6)' : 'rgba(23,22,21,0.6)',
+        ink: style === 'dark' ? 'rgba(237,235,230,0.6)' : 'rgba(23,22,21,0.6)',
         align: 'right',
       });
     } else {

@@ -22,9 +22,10 @@ import { TodaysWorkoutCard } from '../todays-workout-card';
 import { CategoryIcon } from '@/components/category-icon';
 import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
 import { ReadinessCard } from '../readiness-card';
+import { BodySelectHero } from '../body-select-hero';
 import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { MetricCard, MiniBars, Chip, GradeRing } from '@/components/volt/volt-kit';
+import { MetricCard, MiniBars, GradeRing } from '@/components/volt/volt-kit';
 import {
   currentStreak,
   getPlan,
@@ -128,7 +129,7 @@ export function OverviewScreen() {
         });
 
   const quickActions = [
-    { label: 'Workout', icon: Dumbbell, onClick: () => openModal('workout') },
+    { label: 'Log workout', icon: Dumbbell, onClick: () => openModal('workout') },
     { label: 'Run', icon: Footprints, href: '/dashboard/run' },
     { label: 'Goals', icon: Target, href: '/dashboard/goals' },
     { label: 'Plan', icon: CalendarCheck, href: '/dashboard/plan' },
@@ -163,6 +164,11 @@ export function OverviewScreen() {
   return (
     <div className="grid max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       <h1 className="sr-only">Overview</h1>
+
+      {/* ── Body-select training hero ────────────────────────────────────
+          The app's primary training action: pick a muscle, train it. Sits
+          first so "train by body part" is the headline flow, not a tab. */}
+      <BodySelectHero />
       {/* ── Center / left column ───────────────────────────────
           Separate surfaces: the white card covers only the greeting and
           weekly progress; start workout, today rings, plan, and summary
@@ -186,7 +192,7 @@ export function OverviewScreen() {
             type="button"
             onClick={startToday}
             aria-label={nextSlot ? `Start ${nextSlot.slot.title}` : 'Start another workout'}
-            className="bg-volt text-ink press grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-[0_6px_18px_-8px_rgba(243,255,71,0.7)] transition-transform hover:-translate-y-0.5 active:scale-95"
+            className="bg-volt text-ink press grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-[0_6px_18px_-8px_rgba(138,210,0,0.7)] transition-transform hover:-translate-y-0.5 active:scale-95"
           >
             <ArrowUpRight className="h-5 w-5" strokeWidth={2.75} />
           </button>
@@ -246,15 +252,54 @@ export function OverviewScreen() {
               See All
             </Link>
           </div>
-          <div className="no-scrollbar -mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1">
-            {['All type', ...state.categories.map((c) => c.name)].map((name) => (
-              <Chip
-                key={name}
-                label={name}
-                selected={programFilter === name}
-                onClick={() => setProgramFilter(name)}
-              />
-            ))}
+          {/* Icon-forward category tiles — the Axel program-library pattern.
+              A snap rail on phones, a wrap grid from sm up. */}
+          <div
+            className="no-scrollbar -mx-1 mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7"
+            role="tablist"
+            aria-label="Program category"
+          >
+            {[
+              {
+                name: 'All type',
+                icon: 'layout-grid',
+                color: 'var(--primary)',
+                count: state.sessions.length,
+              },
+              ...state.categories.map((c) => ({
+                name: c.name,
+                icon: c.icon,
+                color: c.color,
+                count: state.sessions.filter((s) => s.categoryId === c.id).length,
+              })),
+            ].map((c) => {
+              const selected = programFilter === c.name;
+              return (
+                <button
+                  key={c.name}
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setProgramFilter(c.name)}
+                  className={cn(
+                    'group flex min-w-[5.5rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-2xl border px-3 py-3.5 text-center transition-all sm:min-w-0',
+                    selected
+                      ? 'border-volt/60 bg-charcoal shadow-[0_0_0_1px_var(--primary)]'
+                      : 'border-border bg-card hover:border-volt/40 hover:bg-secondary/40',
+                  )}
+                >
+                  <span
+                    className="grid h-10 w-10 place-items-center rounded-xl"
+                    style={{ backgroundColor: `${c.color}1f`, color: c.color }}
+                  >
+                    <CategoryIcon name={c.icon} size={19} />
+                  </span>
+                  <span className="w-full truncate text-xs font-bold">{c.name}</span>
+                  <span className="text-muted-foreground text-[10px] font-semibold tabular-nums">
+                    {c.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* ── Today's workout — the reference workout-day sheet ── */}
