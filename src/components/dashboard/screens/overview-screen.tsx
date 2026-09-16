@@ -22,6 +22,7 @@ import { TodaysWorkoutCard } from '../todays-workout-card';
 import { CategoryIcon } from '@/components/category-icon';
 import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
 import { ReadinessCard } from '../readiness-card';
+import { BodySelectHero } from '../body-select-hero';
 import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetricCard, MiniBars, Chip, GradeRing } from '@/components/volt/volt-kit';
@@ -163,6 +164,11 @@ export function OverviewScreen() {
   return (
     <div className="grid max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
       <h1 className="sr-only">Overview</h1>
+
+      {/* ── Body-select training hero ────────────────────────────────────
+          The app's primary training action: pick a muscle, train it. Sits
+          first so "train by body part" is the headline flow, not a tab. */}
+      <BodySelectHero />
       {/* ── Center / left column ───────────────────────────────
           Separate surfaces: the white card covers only the greeting and
           weekly progress; start workout, today rings, plan, and summary

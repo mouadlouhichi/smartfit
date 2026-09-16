@@ -31,14 +31,18 @@ export const NAV_ITEMS: NavItem[] = [
 /**
  * Dark rail — used by both the desktop sidebar and the expandable mobile
  * menu. One item per app route, circular icons, matching labels.
+ *
+ * Order is intentional: Overview first, then **Body** — the body-select
+ * training hub — surfaced immediately so "train by muscle" is a first tap,
+ * not a buried tab.
  */
 export const RAIL_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/body', label: 'Body', icon: Ruler },
   { href: '/dashboard/run', label: 'Run', icon: Footprints },
+  { href: '/dashboard/plan', label: 'Training', icon: CalendarCheck },
   { href: '/dashboard/progress', label: 'Progress', icon: LineChart },
   { href: '/dashboard/coach', label: 'Insights', icon: Sparkles },
-  { href: '/dashboard/plan', label: 'Training', icon: CalendarCheck },
   { href: '/dashboard/goals', label: 'Goals', icon: Target },
-  { href: '/dashboard/body', label: 'Body', icon: Ruler },
   { href: '/dashboard/profile', label: 'Profile', icon: UserRound },
 ];
