@@ -11,6 +11,9 @@ importers:
       '@fontsource-variable/jetbrains-mono':
         specifier: ^5.3.0
         version: 5.3.0
+      '@fontsource-variable/teko':
+        specifier: ^5.3.0
+        version: 5.3.0
       '@radix-ui/react-dialog':
         specifier: ^1.1.14
         version: 1.1.23(@types/react-dom@19.1.7(@types/react@19.1.10))(@types/react@19.1.10)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -1530,6 +1533,9 @@ packages:
 
   '@fontsource-variable/jetbrains-mono@5.3.0':
     resolution: {integrity: sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw==}
+
+  '@fontsource-variable/teko@5.3.0':
+    resolution: {integrity: sha512-/Pq5z/kpf3QgAIjuGXRnSt9boC/jeIEsXtQnxfNlAov9mpwsznCZikofAuZMU8JCphWwjtZwugkvlq0iyq8Ywg==}
 
   '@fontsource/ibm-plex-sans@5.3.0':
     resolution: {integrity: sha512-CbE4CbbEEZJX860XyUiRpsksXIQR8Rp2XDva2VO53NJox9tVNtusrysd2x5YkUEY3ErQ66W1IiiQL8/wihhw5w==}
@@ -8741,6 +8747,8 @@ snapshots:
   '@floating-ui/utils@0.2.12': {}
 
   '@fontsource-variable/jetbrains-mono@5.3.0': {}
+
+  '@fontsource-variable/teko@5.3.0': {}
 
   '@fontsource/ibm-plex-sans@5.3.0': {}
 

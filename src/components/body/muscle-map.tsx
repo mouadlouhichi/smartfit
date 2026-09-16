@@ -163,8 +163,8 @@ export function MuscleMap({
       >
         <defs>
           <radialGradient id={gradId} cx="0.5" cy="0.35" r="0.75">
-            <stop offset="0%" stopColor="rgba(243,255,71,0.07)" />
-            <stop offset="70%" stopColor="rgba(243,255,71,0)" />
+            <stop offset="0%" stopColor="rgba(156,255,0,0.07)" />
+            <stop offset="70%" stopColor="rgba(156,255,0,0)" />
           </radialGradient>
         </defs>
         <rect width="220" height="385" fill={`url(#${gradId})`} rx="24" />

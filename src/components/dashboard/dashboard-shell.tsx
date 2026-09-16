@@ -28,10 +28,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <ConfirmProvider>
       <ModalProvider>
         <ToastProvider>
-          {/* Desktop layout: canvas-flushed content with a floating pill rail */}
-          <div className="mx-auto flex min-h-dvh w-full max-w-[1500px] gap-0 p-0">
+          {/* Mobile-first AXEL shell: black canvas, condensed rail on desktop, reference bottom tabs on phones. */}
+          <div className="bg-background text-foreground relative mx-auto flex min-h-dvh w-full max-w-[1480px] gap-0 p-0">
             {/* Dark rail (desktop) — floating rounded pill, per the reference */}
-            <aside className="bg-charcoal sticky top-3 ml-3 hidden h-[calc(100dvh-1.5rem)] w-24 shrink-0 flex-col items-center rounded-[2.75rem] px-2 py-5 lg:flex">
+            <aside className="sticky top-3 ml-3 hidden h-[calc(100dvh-1.5rem)] w-24 shrink-0 flex-col items-center rounded-[2.75rem] border border-white/10 bg-[#111111] px-2 py-5 shadow-2xl shadow-black/40 lg:flex">
               <Link
                 href="/"
                 aria-label="SmartFit home"
@@ -53,8 +53,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                         className={cn(
                           'flex h-12 w-12 items-center justify-center rounded-full transition-all',
                           active
-                            ? 'bg-volt text-ink shadow-[0_0_18px_rgba(243,255,71,0.35)] shadow-lg'
-                            : 'text-white/55 hover:bg-white/10 hover:text-white',
+                            ? 'bg-primary text-primary-foreground shadow-[0_0_18px_rgba(156,255,0,0.35)] shadow-lg'
+                            : 'text-white/45 hover:bg-white/10 hover:text-white',
                         )}
                       >
                         <item.icon
@@ -86,7 +86,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <MigrationPrompt />
               <SyncBanner />
               <StorageWarningBanner />
-              <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-6 lg:pt-5">
+              <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-7 lg:pt-5">
                 <div
                   key={pathname}
                   className="animate-page-in mx-auto w-full max-w-[1300px] min-w-0"

@@ -168,7 +168,7 @@ export default function HomeScreen() {
                     {m.label}
                   </Text>
                   <View className="bg-primary/10 h-8 w-8 items-center justify-center rounded-lg">
-                    <m.icon color="#F3FF47" size={16} />
+                    <m.icon color="#9CFF00" size={16} />
                   </View>
                 </View>
                 <Text className="text-foreground mt-3 text-2xl font-extrabold">{m.value}</Text>
@@ -196,7 +196,7 @@ export default function HomeScreen() {
           <Card>
             <View className="flex-row items-center justify-between">
               <View className="flex-1 flex-row items-center gap-2">
-                <Target color="#F3FF47" size={16} />
+                <Target color="#9CFF00" size={16} />
                 <Text className="text-foreground font-semibold">{topGoal.name}</Text>
               </View>
               <Text className="text-muted-foreground text-sm">

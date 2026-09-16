@@ -37,12 +37,12 @@ export const NAV_ITEMS: NavItem[] = [
  * not a buried tab.
  */
 export const RAIL_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { href: '/dashboard/plan', label: 'Programs', icon: CalendarCheck },
+  { href: '/dashboard/progress', label: 'Clips', icon: LineChart },
+  { href: '/dashboard/goals', label: 'Community', icon: Target },
   { href: '/dashboard/body', label: 'Body', icon: Ruler },
   { href: '/dashboard/run', label: 'Run', icon: Footprints },
-  { href: '/dashboard/plan', label: 'Training', icon: CalendarCheck },
-  { href: '/dashboard/progress', label: 'Progress', icon: LineChart },
-  { href: '/dashboard/coach', label: 'Insights', icon: Sparkles },
-  { href: '/dashboard/goals', label: 'Goals', icon: Target },
+  { href: '/dashboard/coach', label: 'Coach', icon: Sparkles },
   { href: '/dashboard/profile', label: 'Profile', icon: UserRound },
 ];

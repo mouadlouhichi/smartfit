@@ -148,7 +148,7 @@ export function MuscleMapModal({
                 onClick={() => setSim((v) => !v)}
                 className={cn(
                   'rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors',
-                  sim ? 'bg-[#f3ff47] text-[#141414]' : 'bg-white/8 text-white/70 hover:text-white',
+                  sim ? 'bg-[#9cff00] text-[#141414]' : 'bg-white/8 text-white/70 hover:text-white',
                 )}
               >
                 Sim. today

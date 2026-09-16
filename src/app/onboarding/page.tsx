@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Ruler, Target, UserRound } from 'lucide-react';
 import { Wordmark } from '@/components/brand';
-import { OrbitHero, VoltHeadline, PillCta, GradeRing } from '@/components/volt/volt-kit';
+import { PillCta, GradeRing } from '@/components/volt/volt-kit';
+import { AxelAppShowcase } from '@/components/axel/design-components';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -154,9 +155,13 @@ export default function OnboardingPage() {
 
   return (
     <div className="onboarding bg-background text-foreground flex min-h-dvh flex-col">
-      <header className="flex items-center justify-between px-5 py-4">
+      <header className="mx-auto flex w-full max-w-md items-center justify-between px-5 py-4">
         <Wordmark />
-        <span aria-live="polite" aria-atomic="true" className="text-muted-foreground text-sm">
+        <span
+          aria-live="polite"
+          aria-atomic="true"
+          className="text-muted-foreground rounded-full bg-white/[0.06] px-3 py-1.5 text-xs font-black"
+        >
           Step {step + 1} of {STEPS.length}
         </span>
       </header>
@@ -168,7 +173,7 @@ export default function OnboardingPage() {
             key={i}
             className={cn(
               'h-1.5 flex-1 rounded-full transition-colors',
-              i <= step ? 'bg-primary' : 'bg-border',
+              i <= step ? 'bg-primary' : 'bg-white/10',
             )}
           />
         ))}
@@ -180,9 +185,14 @@ export default function OnboardingPage() {
       >
         {step === 0 && (
           <div className="animate-fade-in text-center">
-            <OrbitHero size={230} className="mx-auto" />
-            <VoltHeadline className="mx-auto mt-6 max-w-md text-[1.7rem] sm:text-3xl" />
-            <p className="text-muted-foreground mx-auto mt-4 max-w-sm">
+            <AxelAppShowcase className="mx-auto h-56 w-full max-w-md sm:h-72" />
+            <p className="text-primary mt-5 text-xs font-black tracking-[0.22em] uppercase">
+              Feel the change
+            </p>
+            <h1 tabIndex={-1} className="axel-title mx-auto mt-2 max-w-sm text-[4.2rem] text-white">
+              Build your routine
+            </h1>
+            <p className="text-muted-foreground mx-auto mt-4 max-w-sm text-sm leading-relaxed">
               In the next minute we&apos;ll set up your training strategy and your first goal.{' '}
               {cloud
                 ? 'Everything syncs privately to your account — no wearable required.'
@@ -196,9 +206,9 @@ export default function OnboardingPage() {
               ].map((t) => (
                 <div
                   key={t}
-                  className="border-border bg-card flex items-center gap-2.5 rounded-2xl border p-3.5 font-semibold"
+                  className="axel-card-soft flex items-center gap-2.5 rounded-2xl p-3.5 font-bold"
                 >
-                  <span className="bg-primary/10 text-primary grid h-6 w-6 shrink-0 place-items-center rounded-full">
+                  <span className="bg-primary text-primary-foreground grid h-6 w-6 shrink-0 place-items-center rounded-full">
                     <Check className="h-3.5 w-3.5" strokeWidth={3} />
                   </span>
                   {t}

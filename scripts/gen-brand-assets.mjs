@@ -1,6 +1,6 @@
 /**
  * Regenerates every brand asset from the one Volt mark: the rounded-square
- * charge cell in volt (#F3FF47) with the near-black bolt — the badge that
+ * charge cell in volt (#9CFF00) with the near-black bolt — the badge that
  * leads the dashboard header greeting. Run with
  * `node scripts/gen-brand-assets.mjs` after touching the mark.
  *
@@ -31,11 +31,11 @@ const require = createRequire(import.meta.url);
 
 /* ── brand constants (mirrors src/lib/brand-mark.ts) ─────────────────── */
 
-const VOLT = '#f3ff47';
-const VOLT_SOFT = '#f7ff85';
+const VOLT = '#9cff00';
+const VOLT_SOFT = '#cfff55';
 const INK = '#101010';
-const CANVAS = '#0e0e0e';
-const PAPER = '#f5f5f2';
+const CANVAS = '#050505';
+const PAPER = '#f4f4ef';
 
 /** The bolt, in a 24×24 box — the shared BOLT_PATH geometry. */
 const BOLT_PATH =

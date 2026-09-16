@@ -58,7 +58,7 @@ export default function GoalsScreen() {
         {goals.length === 0 && (
           <Card>
             <View className="items-center gap-2 py-6">
-              <Target color="#f3ff47" size={32} />
+              <Target color="#9cff00" size={32} />
               <Text className="text-muted-foreground text-center text-sm">
                 Set a weekly or monthly target to stay accountable.
               </Text>
@@ -73,7 +73,7 @@ export default function GoalsScreen() {
               <View className="flex-row items-start justify-between gap-3">
                 <View className="flex-row items-center gap-3">
                   <View className="bg-primary/10 h-11 w-11 items-center justify-center rounded-xl">
-                    <CategoryIcon name={meta.icon} color="#f3ff47" size={20} />
+                    <CategoryIcon name={meta.icon} color="#9cff00" size={20} />
                   </View>
                   <View>
                     <Text className="text-foreground font-semibold">{g.name}</Text>
@@ -96,7 +96,7 @@ export default function GoalsScreen() {
                   </Text>
                   {p.done ? (
                     <View className="flex-row items-center gap-1">
-                      <CheckCircle2 color="#f3ff47" size={16} />
+                      <CheckCircle2 color="#9cff00" size={16} />
                       <Text className="text-primary text-xs font-semibold">Done</Text>
                     </View>
                   ) : (
@@ -130,12 +130,12 @@ export default function GoalsScreen() {
                     onPress={() => setMetric(m)}
                     className="rounded-full border px-3 py-2"
                     style={{
-                      borderColor: metric === m ? '#f3ff47' : '#2b2b2b',
-                      backgroundColor: metric === m ? '#f3ff4722' : 'transparent',
+                      borderColor: metric === m ? '#9cff00' : '#2b2b2b',
+                      backgroundColor: metric === m ? '#9cff0022' : 'transparent',
                     }}
                   >
                     <Text
-                      style={{ color: metric === m ? '#f3ff47' : '#a3a3a3' }}
+                      style={{ color: metric === m ? '#9cff00' : '#a3a3a3' }}
                       className="text-sm font-medium"
                     >
                       {GOAL_METRIC_META[m].label}
@@ -153,13 +153,13 @@ export default function GoalsScreen() {
                     onPress={() => setCadence(c)}
                     className="flex-1 rounded-full border py-2"
                     style={{
-                      borderColor: cadence === c ? '#f3ff47' : '#2b2b2b',
-                      backgroundColor: cadence === c ? '#f3ff4722' : 'transparent',
+                      borderColor: cadence === c ? '#9cff00' : '#2b2b2b',
+                      backgroundColor: cadence === c ? '#9cff0022' : 'transparent',
                     }}
                   >
                     <Text
                       className="text-center text-sm font-medium capitalize"
-                      style={{ color: cadence === c ? '#f3ff47' : '#a3a3a3' }}
+                      style={{ color: cadence === c ? '#9cff00' : '#a3a3a3' }}
                     >
                       {c}
                     </Text>

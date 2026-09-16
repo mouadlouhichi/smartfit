@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 
-const VOLT = '#f3ff47';
+const VOLT = '#9cff00';
 const INK = '#101010'; // dark ink on the volt pill
 const INACTIVE = 'rgba(255,255,255,0.55)';
 

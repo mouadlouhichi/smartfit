@@ -413,7 +413,7 @@ export function ProfileScreen() {
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3">
           <span
             className="hero-tile flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-lg font-extrabold"
-            style={{ boxShadow: '0 0 0 4px rgba(243,255,71,0.25)' }}
+            style={{ boxShadow: '0 0 0 4px rgba(156,255,0,0.25)' }}
             aria-hidden
           >
             {avatar || <UserRound className="h-7 w-7" />}
@@ -888,7 +888,7 @@ export function ProfileScreen() {
           />
           <div className="absolute inset-0 bg-black/60" />
           <span className="bg-primary relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-lg shadow-black/30">
-            <Crown className="h-5 w-5 text-white" aria-hidden />
+            <Crown className="text-primary-foreground h-5 w-5" aria-hidden />
           </span>
           <div className="relative min-w-0 flex-1">
             <p className="text-sm font-bold text-white">SmartFit Pro</p>

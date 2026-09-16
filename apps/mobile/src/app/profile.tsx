@@ -46,12 +46,12 @@ function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
                   onPress={() => setUnit(u)}
                   className="rounded-full border px-3 py-2"
                   style={{
-                    borderColor: unit === u ? '#f3ff47' : '#2b2b2b',
-                    backgroundColor: unit === u ? '#f3ff4722' : 'transparent',
+                    borderColor: unit === u ? '#9cff00' : '#2b2b2b',
+                    backgroundColor: unit === u ? '#9cff0022' : 'transparent',
                   }}
                 >
                   <Text
-                    style={{ color: unit === u ? '#f3ff47' : '#a3a3a3' }}
+                    style={{ color: unit === u ? '#9cff00' : '#a3a3a3' }}
                     className="text-sm font-medium"
                   >
                     {BODY_UNIT_META[u].label}
@@ -87,7 +87,7 @@ function ProCard() {
     return (
       <Card>
         <View className="flex-row items-center gap-2">
-          <Crown color="#cbe02c" size={18} />
+          <Crown color="#76b900" size={18} />
           <Text className="text-foreground font-semibold">
             SmartFit Pro{trialing ? ' Trial' : planName ? ` · ${planName}` : ''}
           </Text>
@@ -104,7 +104,7 @@ function ProCard() {
   return (
     <Card>
       <View className="flex-row items-center gap-2">
-        <Crown color="#cbe02c" size={18} />
+        <Crown color="#76b900" size={18} />
         <Text className="text-foreground font-semibold">SmartFit Pro</Text>
       </View>
       <Text className="text-muted-foreground mt-1 text-sm">
@@ -134,7 +134,7 @@ export default function ProfileScreen() {
 
         <Card>
           <View className="mb-3 flex-row items-center gap-2">
-            <UserRound color="#f3ff47" size={18} />
+            <UserRound color="#9cff00" size={18} />
             <Text className="text-foreground font-semibold">You</Text>
           </View>
           <Label>Name</Label>
@@ -156,7 +156,7 @@ export default function ProfileScreen() {
 
         <Card>
           <View className="mb-2 flex-row items-center gap-2">
-            <Database color="#f3ff47" size={18} />
+            <Database color="#9cff00" size={18} />
             <Text className="text-foreground font-semibold">Your data</Text>
           </View>
           <Text className="text-muted-foreground text-sm">

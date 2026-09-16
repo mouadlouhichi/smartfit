@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ArrowRight, Loader2, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Loader2, Mail, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { Wordmark } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Field } from '@/components/ui/field';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useStore } from '@/lib/store-context';
-import { OrbitHero, VoltHeadline, PillCta } from '@/components/volt/volt-kit';
+import { AxelAppShowcase } from '@/components/axel/design-components';
 
 function GoogleMark() {
   return (
@@ -79,7 +79,6 @@ export default function LoginPage() {
       } else {
         await signIn(email.trim(), password);
       }
-      // The gateway effect below routes once auth state settles.
     } catch {
       /* surfaced via authError */
     }
@@ -94,56 +93,50 @@ export default function LoginPage() {
     }
   }
 
-  /**
-   * Gateway.
-   *
-   * Only an already-authenticated visitor is redirected: a signed-out one
-   * came here to sign in, so they must always get the form. A profile that
-   * hasn't finished setup goes to onboarding; everyone else to the dashboard.
-   */
   useEffect(() => {
     if (!cloud || initializing || !user || !ready) return;
     router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
   }, [cloud, initializing, user, ready, state.profile.onboardingDone, router]);
 
-  // A local-mode deployment has no accounts at all — showing a sign-in form
-  // that can only fail with a configuration error sends visitors in circles.
-  // The dashboard is open in this mode, so offer the one useful action.
   if (!cloud) {
     return (
-      <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-10">
-        <Link href="/" className="mb-8">
-          <Wordmark />
-        </Link>
-        <OrbitHero size={200} className="mb-6" />
-        <Card className="w-full max-w-sm">
-          <CardContent className="p-6 text-center">
-            <span className="bg-primary/10 text-primary mx-auto flex h-12 w-12 items-center justify-center rounded-2xl">
-              <ShieldCheck className="h-6 w-6" />
-            </span>
-            <h1 className="font-display mt-4 text-xl font-bold tracking-tight">
-              This SmartFit runs on-device
-            </h1>
-            <p className="text-muted-foreground mt-2 text-sm">
-              No accounts or servers are configured for this deployment — your training lives in
-              this browser only.
+      <AuthStage>
+        <Card className="w-full max-w-md overflow-hidden">
+          <CardContent className="p-5 sm:p-7">
+            <div className="mb-5 flex items-center justify-between gap-3">
+              <span className="bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black tracking-[0.16em] uppercase">
+                <ShieldCheck className="h-3.5 w-3.5" /> Local access
+              </span>
+              <span className="text-xs font-extrabold text-white/40">9:41</span>
+            </div>
+            <h1 className="axel-title text-[3.2rem] sm:text-[3.8rem]">Welcome back</h1>
+            <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+              No accounts or servers are configured for this preview — the login UI keeps the
+              extracted component language, and your training continues on this device.
             </p>
-            <PillCta
-              label="Continue on this device"
-              className="mt-5 w-full"
-              onClick={() => router.replace('/dashboard')}
-            />
+            <div className="mt-6 grid gap-4" aria-hidden="true">
+              <div className="grid gap-1.5">
+                <Label>Email</Label>
+                <Input value="local@smartfit.app" disabled readOnly />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>Password</Label>
+                <Input value="••••••••" disabled readOnly />
+              </div>
+            </div>
+            <Button className="mt-6 w-full" onClick={() => router.replace('/dashboard')}>
+              Continue on this device <ArrowRight className="h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
-      </div>
+      </AuthStage>
     );
   }
 
-  // Only while auth is resolving, or while bouncing an already-signed-in user.
   if (cloud && (initializing || user)) {
     return (
       <div
-        className="flex min-h-dvh items-center justify-center"
+        className="bg-background flex min-h-dvh items-center justify-center"
         role="status"
         aria-label="Loading"
       >
@@ -153,225 +146,209 @@ export default function LoginPage() {
   }
 
   return (
-    // Split screen: the reference welcome art on the left, the form on the
-    // right. On mobile the art stacks above the card as a compact hero.
-    <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
-      {/* ── Brand panel ──────────────────────────────────────────── */}
-      <aside className="relative hidden overflow-hidden lg:flex lg:flex-col lg:justify-center lg:gap-10 lg:pr-16 lg:pl-14">
-        {/* volt glow */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -top-32 -left-24 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(243,255,71,0.16),transparent_65%)]"
-        />
-        <Link href="/" className="relative" aria-label="SmartFit home">
-          <Wordmark />
-        </Link>
-
-        <div className="relative grid justify-items-start gap-8">
-          <OrbitHero size={300} />
-          <VoltHeadline className="max-w-xl text-[2.6rem]" />
-          <p className="text-muted-foreground max-w-md text-base">
-            Plan your week, log every session and watch the trends build — privately, on your terms.
-            No wearable required.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            {['Plan', 'Log', 'Progress', 'Run'].map((chip) => (
-              <span
-                key={chip}
-                className="border-border text-muted-foreground rounded-full border px-4 py-1.5 text-sm font-bold"
-              >
-                {chip}
-              </span>
-            ))}
+    <AuthStage>
+      <Card className="w-full max-w-md overflow-hidden">
+        <CardContent className="p-5 sm:p-7">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <span className="bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-black tracking-[0.16em] uppercase">
+              <Sparkles className="h-3.5 w-3.5" /> Mobile first
+            </span>
+            <span className="text-xs font-extrabold text-white/40">9:41</span>
           </div>
-          <PillCta
-            label={isSignUp ? 'Continue below' : 'Get started'}
-            onClick={() => {
-              clearError();
-              setView('signup');
-              // The field mounts with the new view — focus it on the next frame.
-              requestAnimationFrame(() => {
-                document.getElementById('email')?.focus({ preventScroll: false });
-              });
-            }}
-          />
-        </div>
-      </aside>
 
-      {/* ── Form panel ───────────────────────────────────────────── */}
-      <div className="flex flex-col items-center justify-center px-4 py-10 sm:px-8">
-        {/* Mobile hero — same art, compact */}
-        <div className="mb-6 flex flex-col items-center gap-4 text-center lg:hidden">
-          <Link href="/" aria-label="SmartFit home">
-            <Wordmark />
-          </Link>
-          <OrbitHero size={170} />
-          <VoltHeadline className="text-2xl sm:text-3xl" />
-        </div>
+          <h1 className="axel-title text-[3.2rem] sm:text-[3.8rem]">
+            {isReset ? 'Reset access' : isSignUp ? 'Build your routine' : 'Welcome back'}
+          </h1>
+          <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
+            {isReset
+              ? "Enter your email and we'll send you a reset link."
+              : isSignUp
+                ? 'Create your account and keep the AXEL-style SmartFit components across every page.'
+                : 'Sign in to pick up your program, guided sets and progress exactly where you left off.'}
+          </p>
 
-        <Card className="w-full max-w-sm">
-          <CardContent className="p-6">
-            <h1 className="font-display text-2xl font-bold tracking-tight">
-              {isReset ? 'Reset your password' : isSignUp ? 'Create your account' : 'Welcome back'}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {isReset
-                ? "Enter your email and we'll send you a reset link."
-                : isSignUp
-                  ? 'Sign up to sync your training across every device.'
-                  : 'Sign in to pick up right where you left off.'}
-            </p>
+          <form onSubmit={handleEmail} className="mt-6 grid gap-4">
+            {isSignUp && (
+              <Field id="name" label="Name">
+                <Input
+                  placeholder="What should we call you?"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                />
+              </Field>
+            )}
 
-            <form onSubmit={handleEmail} className="mt-5 grid gap-4">
-              {isSignUp && (
-                <Field id="name" label="Name">
-                  <Input
-                    placeholder="What should we call you?"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    autoComplete="name"
-                  />
-                </Field>
-              )}
+            <div className="grid gap-1.5">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2" />
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  className="pl-11"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                />
+              </div>
+            </div>
 
+            {!isReset && (
               <div className="grid gap-1.5">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    placeholder="you@example.com"
-                    className="pl-9"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    autoComplete="email"
-                  />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearError();
+                      setView('reset');
+                    }}
+                    className="text-primary text-xs font-extrabold transition-colors hover:underline"
+                  >
+                    Forgot password?
+                  </button>
                 </div>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  minLength={6}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                />
+                {isSignUp && (
+                  <p className="text-muted-foreground text-xs">At least 6 characters.</p>
+                )}
+              </div>
+            )}
+
+            {authError && (
+              <p
+                role="alert"
+                className="bg-destructive/10 text-destructive rounded-2xl px-3 py-2 text-xs font-bold"
+              >
+                {authError}
+              </p>
+            )}
+            {authInfo && (
+              <p
+                role="status"
+                className="bg-accent text-accent-foreground rounded-2xl px-3 py-2 text-xs font-bold"
+              >
+                {authInfo}
+              </p>
+            )}
+
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : isReset ? (
+                <>
+                  Send reset link <ArrowRight className="h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  {isSignUp ? 'Create account' : 'Sign in'} <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          {isReset ? (
+            <p className="text-muted-foreground mt-5 text-center text-sm">
+              <button
+                type="button"
+                onClick={() => {
+                  clearError();
+                  setView('signin');
+                }}
+                className="text-primary font-extrabold transition-colors hover:underline"
+              >
+                Back to sign in
+              </button>
+            </p>
+          ) : (
+            <>
+              <div className="text-muted-foreground my-5 flex items-center gap-3 text-xs font-bold">
+                <span className="h-px flex-1 bg-white/10" /> or{' '}
+                <span className="h-px flex-1 bg-white/10" />
               </div>
 
-              {!isReset && (
-                <div className="grid gap-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        clearError();
-                        setView('reset');
-                      }}
-                      className="text-primary text-xs font-medium transition-colors hover:underline"
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    required
-                    minLength={6}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete={isSignUp ? 'new-password' : 'current-password'}
-                  />
-                  {isSignUp && (
-                    <p className="text-muted-foreground text-xs">At least 6 characters.</p>
-                  )}
-                </div>
-              )}
-
-              {authError && (
-                <p
-                  role="alert"
-                  className="bg-destructive/10 text-destructive rounded-lg px-3 py-2 text-xs font-medium"
-                >
-                  {authError}
-                </p>
-              )}
-              {authInfo && (
-                <p
-                  role="status"
-                  className="bg-accent text-accent-foreground rounded-lg px-3 py-2 text-xs font-medium"
-                >
-                  {authInfo}
-                </p>
-              )}
-
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : isReset ? (
-                  <>
-                    Send reset link <ArrowRight className="h-4 w-4" />
-                  </>
-                ) : (
-                  <>
-                    {isSignUp ? 'Create account' : 'Sign in'} <ArrowRight className="h-4 w-4" />
-                  </>
-                )}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+                onClick={handleGoogle}
+                className="w-full"
+              >
+                <GoogleMark /> Continue with Google
               </Button>
-            </form>
 
-            {isReset ? (
               <p className="text-muted-foreground mt-5 text-center text-sm">
-                <button
-                  type="button"
-                  onClick={() => {
-                    clearError();
-                    setView('signin');
-                  }}
-                  className="text-primary font-semibold transition-colors hover:underline"
-                >
-                  Back to sign in
-                </button>
+                {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}
               </p>
-            ) : (
-              <>
-                <div className="text-muted-foreground my-4 flex items-center gap-3 text-xs">
-                  <span className="bg-border h-px flex-1" /> or{' '}
-                  <span className="bg-border h-px flex-1" />
-                </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  clearError();
+                  setView(isSignUp ? 'signin' : 'signup');
+                }}
+                className="mt-2 w-full"
+              >
+                {isSignUp ? 'Sign in instead' : 'Create an account'}
+              </Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={loading}
-                  onClick={handleGoogle}
-                  className="w-full"
-                >
-                  <GoogleMark /> Continue with Google
-                </Button>
+      <p className="text-muted-foreground mt-5 max-w-md text-center text-xs leading-relaxed">
+        <ShieldCheck className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
+        Your training data is private to your account. See our{' '}
+        <Link href="/privacy" className="hover:text-foreground underline underline-offset-2">
+          privacy policy
+        </Link>
+        .
+      </p>
+    </AuthStage>
+  );
+}
 
-                <p className="text-muted-foreground mt-5 text-center text-sm">
-                  {isSignUp ? 'Already have an account?' : 'New to SmartFit?'}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    clearError();
-                    setView(isSignUp ? 'signin' : 'signup');
-                  }}
-                  className="mt-2 w-full"
-                >
-                  {isSignUp ? 'Sign in instead' : 'Create an account'}
-                </Button>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
-        <p className="text-muted-foreground mt-6 max-w-sm text-center text-xs">
-          <ShieldCheck className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />
-          Your training data is private to your account. See our{' '}
-          <Link href="/privacy" className="hover:text-foreground underline underline-offset-2">
-            privacy policy
+function AuthStage({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="bg-background text-foreground grid min-h-dvh overflow-hidden lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,0.92fr)]">
+      <section className="relative min-h-[42dvh] overflow-hidden px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-10 sm:px-8 lg:min-h-dvh lg:px-12 lg:py-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(28rem_28rem_at_50%_10%,rgba(156,255,0,0.18),transparent_62%)]" />
+        <div className="relative z-10 flex h-full min-h-[22rem] flex-col justify-between gap-6 lg:min-h-0">
+          <Link href="/" aria-label="SmartFit home" className="w-fit">
+            <Wordmark />
           </Link>
-          .
-        </p>
-      </div>
-    </div>
+
+          <div className="grid gap-5">
+            <p className="text-right text-xs font-bold text-white/50 lg:text-sm">Callour Studio</p>
+            <h2 className="axel-title max-w-[16rem] text-[4.1rem] text-white sm:max-w-xl sm:text-[5.8rem] lg:text-[7.5rem]">
+              Build your routine
+            </h2>
+            <AxelAppShowcase className="h-[15rem] w-full sm:h-[22rem] lg:h-[36rem]" />
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-bold text-white/55">Callour Studio</span>
+              <span className="text-primary inline-flex items-center gap-2 text-sm font-black tracking-tight uppercase">
+                <Zap className="h-4 w-4 fill-current" /> Feel the change
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-background relative z-20 -mt-8 flex flex-col items-center justify-center rounded-t-[2rem] px-4 py-8 shadow-[0_-24px_60px_rgba(0,0,0,0.55)] sm:px-8 lg:mt-0 lg:rounded-none lg:px-10">
+        {children}
+      </section>
+    </main>
   );
 }

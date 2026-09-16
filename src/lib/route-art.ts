@@ -77,8 +77,8 @@ export async function renderWorkoutPng(
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
   const glow = ctx.createRadialGradient(W / 2, 300, 40, W / 2, 300, 520);
-  glow.addColorStop(0, 'rgba(243, 255, 71, 0.5)');
-  glow.addColorStop(1, 'rgba(243, 255, 71, 0)');
+  glow.addColorStop(0, 'rgba(156, 255, 0, 0.5)');
+  glow.addColorStop(1, 'rgba(156, 255, 0, 0)');
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
@@ -108,11 +108,11 @@ export async function renderWorkoutPng(
       : `${stats.distance < 1 ? `${Math.round(stats.distance * 1000)} m` : `${round1(stats.distance)} km`}`;
   const headlineSub = stats.volume > 0 ? 'TOTAL VOLUME' : 'TOTAL DISTANCE';
   ctx.font = font(800, 150);
-  ctx.fillStyle = '#f3ff47';
+  ctx.fillStyle = '#9cff00';
   ctx.fillText(headline, 80, y);
   y += 60;
   ctx.font = font(800, 36);
-  ctx.fillStyle = 'rgba(243,255,71,0.75)';
+  ctx.fillStyle = 'rgba(156,255,0,0.75)';
   ctx.fillText(headlineSub, 82, y);
   y += 110;
 
@@ -137,7 +137,7 @@ export async function renderWorkoutPng(
   if (stats.personalRecords.length > 0) {
     y += 30;
     ctx.font = font(800, 44);
-    ctx.fillStyle = '#f3ff47';
+    ctx.fillStyle = '#9cff00';
     const prLine = `★ ${stats.personalRecords.length} PERSONAL RECORD${stats.personalRecords.length === 1 ? '' : 'S'}`;
     ctx.fillText(prLine, 80, y);
     y += 62;

@@ -35,12 +35,12 @@ export function OrbitHero({
       <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full" fill="none" aria-hidden>
         <defs>
           <linearGradient id="orbit-a" x1="0" y1="0" x2="200" y2="200">
-            <stop offset="0%" stopColor="#f3ff47" />
-            <stop offset="100%" stopColor="#f7ff85" stopOpacity="0.25" />
+            <stop offset="0%" stopColor="#9cff00" />
+            <stop offset="100%" stopColor="#cfff55" stopOpacity="0.25" />
           </linearGradient>
           <linearGradient id="orbit-b" x1="200" y1="0" x2="0" y2="200">
-            <stop offset="0%" stopColor="#cbe02c" />
-            <stop offset="100%" stopColor="#f3ff47" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="#76b900" />
+            <stop offset="100%" stopColor="#9cff00" stopOpacity="0.2" />
           </linearGradient>
         </defs>
         <ellipse
@@ -61,9 +61,9 @@ export function OrbitHero({
           stroke="url(#orbit-b)"
           strokeWidth="2.5"
         />
-        <circle cx="100" cy="100" r="3.5" fill="#f3ff47" opacity="0.9" />
-        <circle cx="31" cy="150" r="3" fill="#f7ff85" opacity="0.7" />
-        <circle cx="172" cy="56" r="3" fill="#cbe02c" opacity="0.7" />
+        <circle cx="100" cy="100" r="3.5" fill="#9cff00" opacity="0.9" />
+        <circle cx="31" cy="150" r="3" fill="#cfff55" opacity="0.7" />
+        <circle cx="172" cy="56" r="3" fill="#76b900" opacity="0.7" />
       </svg>
       {children ?? (
         <span className="animate-float relative">
@@ -118,7 +118,7 @@ export function PillCta({
       disabled={disabled || loading}
       className={cn(
         'press bg-volt text-ink relative inline-flex h-14 items-center rounded-full pr-16 pl-7 text-base font-extrabold tracking-tight',
-        'shadow-[0_10px_30px_-10px_rgba(243,255,71,0.55)] transition-transform hover:-translate-y-0.5 active:translate-y-0',
+        'shadow-[0_10px_30px_-10px_rgba(156,255,0,0.55)] transition-transform hover:-translate-y-0.5 active:translate-y-0',
         'focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none',
         'disabled:pointer-events-none disabled:opacity-50',
         className,
@@ -251,7 +251,7 @@ export function Chip({
       className={cn(
         'focus-visible:ring-ring rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors focus-visible:ring-2 focus-visible:outline-none',
         selected
-          ? 'bg-volt text-ink shadow-[0_4px_16px_-6px_rgba(243,255,71,0.6)]'
+          ? 'bg-volt text-ink shadow-[0_4px_16px_-6px_rgba(156,255,0,0.6)]'
           : 'bg-secondary text-muted-foreground hover:text-foreground',
         className,
       )}

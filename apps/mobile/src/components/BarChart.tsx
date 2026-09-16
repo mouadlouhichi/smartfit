@@ -9,7 +9,7 @@ export interface BarDatum {
 
 export function BarChart({
   data,
-  color = '#f3ff47',
+  color = '#9cff00',
   height = 180,
 }: {
   data: BarDatum[];

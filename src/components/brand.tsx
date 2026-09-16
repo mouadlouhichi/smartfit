@@ -2,19 +2,16 @@ import { cn } from '@/lib/utils';
 import { BOLT_PATH } from '@/lib/brand-mark';
 
 /**
- * The one SmartFit mark: the volt bolt on a rounded-square charge cell — the
- * badge that leads the dashboard header greeting, and the geometry of
- * `public/icon.svg`, the PWA/Expo icons (`scripts/gen-brand-assets.mjs`) and
- * the share-card canvas mark. One mark everywhere: favicon, splash, share
- * cards, shell, onboarding, wordmarks. The bolt path lives in
- * `lib/brand-mark.ts` so canvas and SVG renderers share one source of truth.
+ * SmartFit mark in the AXEL reference language: a compact charged cell, neon
+ * on the black product canvas, with a condensed athletic wordmark everywhere
+ * from login through the dashboard shell.
  */
 
 export function Logo({ className, size = 36 }: { className?: string; size?: number }) {
   return (
     <span
       className={cn(
-        'bg-volt text-ink inline-flex shrink-0 items-center justify-center rounded-[30%] shadow-[0_0_18px_rgba(243,255,71,0.35)]',
+        'bg-primary text-primary-foreground inline-flex shrink-0 items-center justify-center rounded-[30%] shadow-[0_0_24px_rgba(156,255,0,0.32)]',
         className,
       )}
       style={{ width: size, height: size }}
@@ -35,8 +32,8 @@ export function Logo({ className, size = 36 }: { className?: string; size?: numb
 export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={cn('inline-flex items-center gap-2.5 tracking-tight', className)}>
-      <Logo size={28} />
-      <span className="text-xl font-extrabold tracking-tighter">
+      <Logo size={30} />
+      <span className="font-display text-foreground text-[1.55rem] leading-none font-black tracking-[-0.08em] uppercase">
         Smart<span className="text-primary">Fit</span>
       </span>
     </span>

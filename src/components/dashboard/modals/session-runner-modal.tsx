@@ -44,7 +44,6 @@ import {
   computeRunStats,
   routeDistanceKm,
   simplifyRoute,
-  suggestedExercisesForCategory,
   suggestedRestSeconds,
   summariseLiveSession,
   type GeoPoint,
@@ -74,6 +73,13 @@ function buzz(pattern: number | number[]) {
   } catch {
     /* no haptics — fine */
   }
+}
+
+function isRouteTrackable(title: string, categoryId: string): boolean {
+  if (categoryId !== 'cat-cardio' && categoryId !== 'cat-sports') return false;
+  const text = title.toLowerCase();
+  if (/(spin|spinning|treadmill|elliptical|rower|aqua|swim|pool)/.test(text)) return false;
+  return /(run|running|walk|walking|jog|hike|route|outdoor|cycle|cycling|bike|ride)/.test(text);
 }
 
 /** A soft two-tone "rest is over" chime via WebAudio; never blocks the UI. */
@@ -325,6 +331,14 @@ export function SessionRunnerModal() {
 
   const category = categoryById(state, run.categoryId);
   const active = exercises[activeIndex] ?? null;
+  const completedExerciseCount = exercises.filter((x) => x.sets.some((s) => s.done)).length;
+  const sessionMeta =
+    exercises.length > 0
+      ? `${completedExerciseCount} of ${exercises.length} exercises`
+      : run.durationMin
+        ? `${run.durationMin} min timed session`
+        : 'timed session';
+  const canTrackRoute = isRouteTrackable(run.title, run.categoryId);
   const summary: SessionSummary | null =
     screen === 'summary' ? summariseLiveSession(state, exercises.map(toCoreExercise)) : null;
 
@@ -505,9 +519,7 @@ export function SessionRunnerModal() {
         <div className="min-w-0 flex-1">
           <p className="truncate text-base leading-tight font-extrabold">{run.title}</p>
           <p className="session-muted text-xs">
-            {category?.name ?? 'Session'} ·{' '}
-            {exercises.filter((x) => x.sets.some((s) => s.done)).length} of {exercises.length}{' '}
-            exercises
+            {category?.name ?? 'Session'} · {sessionMeta}
           </p>
         </div>
         {/* The running clock is the one thing you must always see. */}
@@ -534,7 +546,7 @@ export function SessionRunnerModal() {
       </header>
 
       {/* ── GPS walk-tracking chip (live screen only) ────────────────── */}
-      {screen === 'live' && (
+      {screen === 'live' && canTrackRoute && (
         <div className="px-4 pb-3">
           <button
             onClick={toggleTracking}
@@ -542,7 +554,7 @@ export function SessionRunnerModal() {
               'press flex w-full items-center gap-3 rounded-2xl border p-3 text-left',
               tracking ? 'border-transparent' : 'session-tile border-transparent',
             )}
-            style={tracking ? { background: 'rgba(243,255,71,0.12)' } : undefined}
+            style={tracking ? { background: 'rgba(156,255,0,0.12)' } : undefined}
             aria-pressed={tracking}
           >
             <span
@@ -551,8 +563,8 @@ export function SessionRunnerModal() {
                 tracking && 'animate-pulse-soft',
               )}
               style={{
-                background: tracking ? 'rgba(243,255,71,0.2)' : 'rgba(245,245,242,0.07)',
-                color: tracking ? '#f3ff47' : 'rgba(245,245,242,0.6)',
+                background: tracking ? 'rgba(156,255,0,0.2)' : 'rgba(245,245,242,0.07)',
+                color: tracking ? '#9cff00' : 'rgba(245,245,242,0.6)',
               }}
             >
               <Navigation className="h-5 w-5" aria-hidden />
@@ -570,7 +582,7 @@ export function SessionRunnerModal() {
             </span>
             <span
               className="text-sm font-extrabold tabular-nums"
-              style={{ color: tracking ? '#f3ff47' : 'rgba(245,245,242,0.7)' }}
+              style={{ color: tracking ? '#9cff00' : 'rgba(245,245,242,0.7)' }}
             >
               {distanceKm.toFixed(2)} km
             </span>
@@ -597,6 +609,8 @@ export function SessionRunnerModal() {
           exercises={exercises}
           activeIndex={activeIndex}
           active={active}
+          timedOnly={Boolean(run.scheduleId) && exercises.length === 0}
+          categoryName={category?.name ?? 'Session'}
           setActiveIndex={setActiveIndex}
           draft={draft}
           setDraft={setDraft}
@@ -660,11 +674,14 @@ interface LiveProps {
     title: string;
     categoryId: string;
     intensity: 'low' | 'moderate' | 'high';
+    durationMin?: number;
     scheduleId?: string;
   };
   exercises: LiveExercise[];
   activeIndex: number;
   active: LiveExercise | null;
+  timedOnly: boolean;
+  categoryName: string;
   setActiveIndex: (i: number) => void;
   draft: string;
   setDraft: (s: string) => void;
@@ -720,31 +737,33 @@ function LiveScreen(p: LiveProps) {
       )}
 
       {/* ── Exercise stepper ─────────────────────────────────────────── */}
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3">
-        {p.exercises.map((x, i) => {
-          const done = x.sets.some((s) => s.done);
-          return (
-            <button
-              key={x.id}
-              onClick={() => p.setActiveIndex(i)}
-              className={cn(
-                'press flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold',
-                i === p.activeIndex
-                  ? 'border-transparent text-[#141414]'
-                  : 'session-tile text-[rgba(245,245,242,0.75)]',
-              )}
-              style={i === p.activeIndex ? { background: 'var(--chart-1)' } : undefined}
-            >
-              {done ? (
-                <Check className="h-4 w-4" aria-hidden />
-              ) : (
-                <ExerciseImage name={x.name} className="h-6 w-6 rounded-md" animated={false} />
-              )}
-              <span className="max-w-[9rem] truncate">{x.name}</span>
-            </button>
-          );
-        })}
-      </div>
+      {p.exercises.length > 0 && (
+        <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3">
+          {p.exercises.map((x, i) => {
+            const done = x.sets.some((s) => s.done);
+            return (
+              <button
+                key={x.id}
+                onClick={() => p.setActiveIndex(i)}
+                className={cn(
+                  'press flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold',
+                  i === p.activeIndex
+                    ? 'border-transparent text-[#141414]'
+                    : 'session-tile text-[rgba(245,245,242,0.75)]',
+                )}
+                style={i === p.activeIndex ? { background: 'var(--chart-1)' } : undefined}
+              >
+                {done ? (
+                  <Check className="h-4 w-4" aria-hidden />
+                ) : (
+                  <ExerciseImage name={x.name} className="h-6 w-6 rounded-md" animated={false} />
+                )}
+                <span className="max-w-[9rem] truncate">{x.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Active exercise card ─────────────────────────────────────── */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
@@ -778,7 +797,7 @@ function LiveScreen(p: LiveProps) {
                   {target && target.kind !== 'repeat' && (
                     <p
                       className="mt-0.5 flex items-center gap-1.5 text-xs font-bold"
-                      style={{ color: '#f3ff47' }}
+                      style={{ color: '#9cff00' }}
                     >
                       <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       <span className="truncate">Pro target · {target.rationale}</span>
@@ -817,7 +836,7 @@ function LiveScreen(p: LiveProps) {
                         key={s.id}
                         className={cn(
                           'grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 rounded-xl px-2 py-1.5',
-                          s.done ? 'bg-[rgba(243,255,71,0.12)]' : 'session-tile',
+                          s.done ? 'bg-[rgba(156,255,0,0.12)]' : 'session-tile',
                           s.isPR && 'pr-flash',
                         )}
                       >
@@ -875,7 +894,7 @@ function LiveScreen(p: LiveProps) {
                         {s.done ? (
                           <span
                             className="flex items-center justify-center gap-0.5 text-[11px] font-bold"
-                            style={{ color: s.isPR ? 'var(--chart-1)' : '#f3ff47' }}
+                            style={{ color: s.isPR ? 'var(--chart-1)' : '#9cff00' }}
                           >
                             {s.isPR && (
                               <Trophy className="h-3.5 w-3.5" aria-label="Personal record" />
@@ -964,27 +983,36 @@ function LiveScreen(p: LiveProps) {
               </button>
             </div>
           </div>
+        ) : p.timedOnly ? (
+          <TimedSessionPanel
+            title={p.run.title}
+            categoryName={p.categoryName}
+            durationMin={p.run.durationMin}
+            intensity={p.run.intensity}
+          />
         ) : (
-          <EmptyRunner categoryId={p.run.categoryId} onAdd={(name) => p.addExercise(name)} />
+          <EmptyRunner />
         )}
 
         {/* Add-exercise field */}
-        <div className="mt-4">
-          <ExercisePicker
-            value={p.draft}
-            onChange={p.setDraft}
-            placeholder="Add an exercise (e.g. Bench press)"
-            ariaLabel="Add exercise"
-          />
-          <button
-            onClick={() => p.addExercise(p.draft)}
-            disabled={!p.draft.trim()}
-            className="press mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold disabled:opacity-40"
-            style={{ background: 'var(--chart-1)' }}
-          >
-            <Plus className="h-4 w-4" aria-hidden /> Add exercise
-          </button>
-        </div>
+        {!p.timedOnly && (
+          <div className="mt-4">
+            <ExercisePicker
+              value={p.draft}
+              onChange={p.setDraft}
+              placeholder="Add an exercise (e.g. Bench press)"
+              ariaLabel="Add exercise"
+            />
+            <button
+              onClick={() => p.addExercise(p.draft)}
+              disabled={!p.draft.trim()}
+              className="press mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold disabled:opacity-40"
+              style={{ background: 'var(--chart-1)' }}
+            >
+              <Plus className="h-4 w-4" aria-hidden /> Add exercise
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Thumb-zone finish bar ────────────────────────────────────── */}
@@ -992,7 +1020,7 @@ function LiveScreen(p: LiveProps) {
         <button
           onClick={p.finish}
           className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#141414] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#f3ff47,#cbe02c)' }}
+          style={{ background: 'linear-gradient(120deg,#9cff00,#76b900)' }}
         >
           <Flag className="h-5 w-5" aria-hidden /> Finish session
         </button>
@@ -1001,48 +1029,74 @@ function LiveScreen(p: LiveProps) {
   );
 }
 
-/* ── empty state with tap-to-add suggestions ───────────────────────────── */
+/* ── empty / timed states ───────────────────────────────────────── */
 
-/**
- * First-run / no-routine state. Rather than a dead end, it offers a curated,
- * balanced starter list for the session's category (from the shared catalog,
- * with demo tiles) so a tap builds a real session — and the free-text field
- * below still takes anything.
- */
-function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: string) => void }) {
-  const suggestions = useMemo(() => suggestedExercisesForCategory(categoryId, 6), [categoryId]);
+function EmptyRunner() {
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <span className="session-tile flex h-14 w-14 items-center justify-center rounded-2xl">
-          <Dumbbell className="h-6 w-6 text-[rgba(245,245,242,0.7)]" aria-hidden />
-        </span>
-        <p className="text-sm font-bold">No exercises yet</p>
-        <p className="session-muted max-w-[18rem] text-xs">
-          Tap a suggestion to build your session, or add any lift below — SmartFit pre-fills your
-          last numbers.
-        </p>
-      </div>
+    <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
+      <span className="session-tile flex h-14 w-14 items-center justify-center rounded-2xl">
+        <Dumbbell className="h-6 w-6 text-[rgba(245,245,242,0.7)]" aria-hidden />
+      </span>
+      <p className="text-sm font-bold">Add your first exercise</p>
+      <p className="session-muted max-w-[18rem] text-xs">
+        Build this session only with the movements you choose. Use the field below to add a lift,
+        drill, swim interval or custom exercise.
+      </p>
+    </div>
+  );
+}
 
-      <div className="grid grid-cols-2 gap-2.5">
-        {suggestions.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => onAdd(s.name)}
-            className="session-tile press flex items-center gap-2.5 rounded-xl p-2.5 text-left"
-          >
-            <ExerciseImage
-              name={s.name}
-              className="h-11 w-11 shrink-0 rounded-lg"
-              animated={false}
-            />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-bold">{s.name}</span>
-              <span className="session-muted block text-[10px] capitalize">{s.equipment}</span>
-            </span>
-            <Plus className="h-4 w-4 shrink-0" style={{ color: 'var(--chart-1)' }} aria-hidden />
-          </button>
-        ))}
+function TimedSessionPanel({
+  title,
+  categoryName,
+  durationMin,
+  intensity,
+}: {
+  title: string;
+  categoryName: string;
+  durationMin?: number;
+  intensity: 'low' | 'moderate' | 'high';
+}) {
+  return (
+    <div className="flex min-h-full flex-col justify-center gap-4">
+      <div className="session-tile overflow-hidden rounded-[1.7rem]">
+        <div className="relative min-h-[15rem] p-5">
+          <div className="absolute inset-0 bg-[radial-gradient(18rem_14rem_at_72%_18%,rgba(156,255,0,0.18),transparent_62%),linear-gradient(145deg,#171717,#070707_62%)]" />
+          <div className="border-primary/25 absolute right-[-3rem] bottom-[-4rem] h-56 w-56 rounded-full border" />
+          <div className="bg-primary/12 absolute right-8 bottom-7 h-20 w-20 rounded-full blur-2xl" />
+          <div className="relative z-10 flex min-h-[13rem] flex-col justify-between">
+            <div className="flex items-center justify-between gap-3">
+              <span className="bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-black tracking-[0.16em] uppercase">
+                <Timer className="h-3.5 w-3.5" aria-hidden /> Timer only
+              </span>
+              <span className="rounded-full bg-white/[0.08] px-3 py-1.5 text-xs font-bold text-white/65 capitalize">
+                {intensity}
+              </span>
+            </div>
+            <div>
+              <p className="session-muted text-xs font-bold tracking-[0.18em] uppercase">
+                {categoryName}
+              </p>
+              <h2 className="axel-title mt-1 text-[3.6rem] leading-[0.85] text-white">{title}</h2>
+              <p className="mt-3 max-w-sm text-sm leading-relaxed font-semibold text-white/68">
+                This scheduled class has no exercise template, so SmartFit logs it cleanly as time,
+                intensity and estimated calories — no lift list to manage.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2 border-t border-white/10 bg-black/35 p-3">
+          <div className="rounded-2xl bg-white/[0.07] p-3">
+            <p className="text-[10px] font-black tracking-wide text-white/45 uppercase">Planned</p>
+            <p className="font-display mt-1 text-3xl leading-none font-black text-white">
+              {durationMin ? `${durationMin}m` : '—'}
+            </p>
+          </div>
+          <div className="rounded-2xl bg-white/[0.07] p-3">
+            <p className="text-[10px] font-black tracking-wide text-white/45 uppercase">Logging</p>
+            <p className="font-display text-primary mt-1 text-3xl leading-none font-black">Time</p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1152,7 +1206,7 @@ function SummaryScreen({
           {summary.personalRecords.length > 0 && (
             <div
               className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold"
-              style={{ background: 'rgba(243,255,71,0.15)', color: '#f7ff85' }}
+              style={{ background: 'rgba(156,255,0,0.15)', color: '#cfff55' }}
             >
               <Sparkles className="h-4 w-4" aria-hidden />
               {summary.personalRecords.length} personal record
@@ -1198,7 +1252,7 @@ function SummaryScreen({
 
         {summary.personalRecords.length > 0 && (
           <div className="session-tile mt-4 rounded-2xl p-4">
-            <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#f7ff85' }}>
+            <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#cfff55' }}>
               <Trophy className="h-4 w-4" aria-hidden /> New records
             </p>
             <ul className="mt-2 grid gap-1.5">
@@ -1222,7 +1276,7 @@ function SummaryScreen({
         <button
           onClick={onSave}
           className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#141414] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#f3ff47,#cbe02c)' }}
+          style={{ background: 'linear-gradient(120deg,#9cff00,#76b900)' }}
         >
           <Check className="h-5 w-5" aria-hidden /> Save session
         </button>

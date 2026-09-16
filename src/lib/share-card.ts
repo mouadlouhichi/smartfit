@@ -53,8 +53,8 @@ const THEMES: Record<ShareStyle, ShareTheme> = {
     bg: null,
     ink: '#ffffff',
     inkSoft: 'rgba(255,255,255,0.85)',
-    accent: '#f3ff47',
-    highlight: '#f3ff47',
+    accent: '#9cff00',
+    highlight: '#9cff00',
     panel: null,
     panelBorder: 'rgba(255,255,255,0.30)',
     route: '#ffffff',
@@ -66,12 +66,12 @@ const THEMES: Record<ShareStyle, ShareTheme> = {
     bg: '#0e0e0e',
     ink: '#f5f5f2',
     inkSoft: 'rgba(245,245,242,0.66)',
-    accent: '#f3ff47',
-    highlight: '#f3ff47',
+    accent: '#9cff00',
+    highlight: '#9cff00',
     panel: 'rgba(255,255,255,0.06)',
     panelBorder: 'rgba(255,255,255,0.13)',
-    route: '#f3ff47',
-    routeGlow: 'rgba(243,255,71,0.55)',
+    route: '#9cff00',
+    routeGlow: 'rgba(156,255,0,0.55)',
     halo: null,
     equalizerOff: 'rgba(245,245,242,0.22)',
   },
@@ -84,7 +84,7 @@ const THEMES: Record<ShareStyle, ShareTheme> = {
     panel: '#ffffff',
     panelBorder: 'rgba(19,19,19,0.08)',
     route: '#a8b80f',
-    routeGlow: 'rgba(243,255,71,0.30)',
+    routeGlow: 'rgba(156,255,0,0.30)',
     halo: null,
     equalizerOff: 'rgba(19,19,19,0.16)',
   },
@@ -543,14 +543,14 @@ export async function renderRunCard(data: RunCardData, opts: RunCardOptions = {}
     ctx.fillRect(0, 0, W, H);
     if (style === 'dark') {
       const glow = ctx.createRadialGradient(W / 2, H * 0.2, 30, W / 2, H * 0.2, W * 0.9);
-      glow.addColorStop(0, 'rgba(243,255,71,0.42)');
-      glow.addColorStop(1, 'rgba(243,255,71,0)');
+      glow.addColorStop(0, 'rgba(156,255,0,0.42)');
+      glow.addColorStop(1, 'rgba(156,255,0,0)');
       ctx.fillStyle = glow;
       ctx.fillRect(0, 0, W, H);
     } else {
       const wash = ctx.createLinearGradient(0, 0, W, H);
-      wash.addColorStop(0, 'rgba(243,255,71,0.10)');
-      wash.addColorStop(1, 'rgba(243,255,71,0)');
+      wash.addColorStop(0, 'rgba(156,255,0,0.10)');
+      wash.addColorStop(1, 'rgba(156,255,0,0)');
       ctx.fillStyle = wash;
       ctx.fillRect(0, 0, W, H);
     }

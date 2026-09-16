@@ -67,7 +67,7 @@ export function Button({
       {...rest}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#101010' : '#f3ff47'} />
+        <ActivityIndicator color={variant === 'primary' ? '#101010' : '#9cff00'} />
       ) : (
         <Text className={cn('text-sm font-semibold', textColor[variant])}>{label}</Text>
       )}
@@ -88,7 +88,7 @@ export function Badge({ children, color }: { children: React.ReactNode; color?: 
   );
 }
 
-export function ProgressBar({ value, color = '#f3ff47' }: { value: number; color?: string }) {
+export function ProgressBar({ value, color = '#9cff00' }: { value: number; color?: string }) {
   return (
     <View className="bg-muted h-2.5 w-full overflow-hidden rounded-full">
       <View

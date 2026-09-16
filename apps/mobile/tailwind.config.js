@@ -10,9 +10,9 @@ module.exports = {
       },
       colors: {
         // "Volt" design system — near-black ground, electric lime accent.
-        volt: '#F3FF47',
-        'volt-deep': '#CBE02C',
-        'volt-bright': '#F7FF85',
+        volt: '#9CFF00',
+        'volt-deep': '#76B900',
+        'volt-bright': '#CFFF55',
         terracotta: '#9FB41F',
         rose: '#8A8A8A',
         clay: '#6F6F6F',
@@ -24,7 +24,7 @@ module.exports = {
         card: '#1A1A1A',
         muted: '#232323',
         'muted-foreground': '#A3A3A3',
-        primary: { DEFAULT: '#F3FF47', foreground: '#101010' },
+        primary: { DEFAULT: '#9CFF00', foreground: '#101010' },
         accent: { DEFAULT: '#2E3510', foreground: '#EEFF54' },
         border: '#2B2B2B',
         secondary: { DEFAULT: '#262626', foreground: '#F5F5F2' },

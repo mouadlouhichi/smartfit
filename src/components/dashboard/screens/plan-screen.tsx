@@ -401,6 +401,7 @@ export function PlanScreen() {
                                 title: s.title,
                                 categoryId: s.categoryId,
                                 intensity: s.intensity,
+                                durationMin: s.durationMin,
                                 scheduleId: s.id,
                                 exercises: s.exercises,
                               })
@@ -414,7 +415,6 @@ export function PlanScreen() {
                             checked={s.active}
                             onCheckedChange={(v) => updateSchedule(s.id, { active: v })}
                             aria-label={`${s.title} active`}
-                            className="-m-2 p-2"
                           />
                           <button
                             onClick={() => openWith({ kind: 'schedule', schedule: s })}
