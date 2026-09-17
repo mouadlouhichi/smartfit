@@ -254,7 +254,7 @@ export function PlanScreen() {
                       <span className="min-w-0 flex-1 truncate text-sm font-semibold">
                         {s.gymClass.name}
                       </span>
-                      <span className="text-muted-foreground hidden shrink-0 text-xs tabular-nums sm:inline">
+                      <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
                         {formatMinutes(s.gymClass.minutes)}
                       </span>
                       <span
@@ -515,7 +515,7 @@ export function PlanScreen() {
                     )}
                   </div>
                 </div>
-                <Badge variant="secondary" className="hidden shrink-0 sm:inline-flex">
+                <Badge variant="secondary" className="hidden shrink-0 min-[420px]:inline-flex">
                   {cat.name}
                 </Badge>
                 <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />

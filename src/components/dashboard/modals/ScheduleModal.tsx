@@ -275,7 +275,7 @@ export function ScheduleModal() {
                           className="border-input bg-background h-8 w-12 rounded-lg border text-center text-sm font-semibold min-[480px]:w-14"
                           aria-label="Target sets"
                         />
-                        <span className="hidden min-[480px]:inline">sets</span>
+                        <span>sets</span>
                       </label>
                       <button
                         type="button"

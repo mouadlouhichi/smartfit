@@ -413,7 +413,7 @@ export function OverviewScreen() {
         <ReadinessCard />
 
         {/* Quick actions */}
-        <div className="grid grid-cols-5 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 min-[420px]:grid-cols-6 sm:gap-3">
           {quickActions.map((a) => {
             const inner = (
               <div className="group flex flex-col items-center gap-2 sm:gap-2.5">
@@ -560,13 +560,13 @@ export function OverviewScreen() {
         </section>
       </div>
 
-      {/* ── Right column: coach (desktop) ──────────────────────
-          Sticky + viewport-capped: the panel follows the scroll and keeps a
-          chat-sized height instead of stretching the full feed height.
-          self-start is required for sticky to have travel inside the grid
-          area; the height overrides CoachPanel's h-full via tailwind-merge. */}
-      <div className="hidden lg:sticky lg:top-5 lg:block lg:self-start">
-        <CoachPanel className="h-[min(760px,calc(100dvh-2.5rem))]" />
+      {/* ── Coach ──────────────────────────────────────────────
+          Mobile first: the coach is part of the feed on phones (a shorter,
+          scroll-along panel) and becomes the sticky right column from lg up.
+          Sticky needs self-start to have travel inside the grid area; the
+          height overrides CoachPanel's h-full via tailwind-merge. */}
+      <div className="min-w-0 lg:sticky lg:top-5 lg:self-start">
+        <CoachPanel className="h-[70dvh] min-h-[420px] sm:h-[75dvh] lg:h-[min(760px,calc(100dvh-2.5rem))]" />
       </div>
     </div>
   );
