@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, Flame, Info, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -49,6 +49,12 @@ export function MuscleMapModal({
   const { state } = useStore();
   const { openWith } = useModals();
   const [detailName, setDetailName] = useState<string | null>(null);
+  /**
+   * Exercises the athlete has explicitly picked for the routine. `null` means
+   * "untouched", so the sheet falls back to the curated top-`ROUTINE_SIZE`.
+   * Tapping a row toggles it in or out; the CTA launches exactly this set.
+   */
+  const [picked, setPicked] = useState<string[] | null>(null);
 
   const label = EXERCISE_MUSCLE_LABELS[muscle];
   const groupColor = MUSCLE_GROUP_COLOR[MUSCLE_GROUP[muscle]];
@@ -71,7 +77,23 @@ export function MuscleMapModal({
 
   /** Strength exercises that train the muscle — runs/swims filtered out. */
   const entries = useMemo(() => strengthEntriesForMuscle(muscle), [muscle]);
-  const picks = entries.slice(0, ROUTINE_SIZE);
+
+  // A new muscle (or a reopened sheet) starts from the curated routine again.
+  useEffect(() => {
+    setPicked(null);
+  }, [muscle, open]);
+
+  const defaultPicks = useMemo(() => entries.slice(0, ROUTINE_SIZE).map((e) => e.name), [entries]);
+  const selectedNames = picked ?? defaultPicks;
+  const isPicked = (name: string) => selectedNames.includes(name);
+  const picks = entries.filter((e) => isPicked(e.name));
+
+  function toggle(name: string) {
+    setPicked((current) => {
+      const base = current ?? defaultPicks;
+      return base.includes(name) ? base.filter((n) => n !== name) : [...base, name];
+    });
+  }
 
   function startRoutine() {
     if (picks.length === 0) return;
@@ -226,6 +248,9 @@ export function MuscleMapModal({
                 {label} exercises
                 <span className="text-sage ml-2 text-sm font-semibold">{entries.length}</span>
               </h3>
+              <p className="text-sage shrink-0 text-xs font-semibold tabular-nums">
+                {picks.length} selected
+              </p>
             </div>
 
             {entries.length === 0 ? (
@@ -234,35 +259,67 @@ export function MuscleMapModal({
               </p>
             ) : (
               <ul className="mt-3 grid gap-2">
-                {entries.map((e, i) => (
-                  <li key={e.id}>
-                    <button
-                      type="button"
-                      onClick={() => setDetailName(e.name)}
-                      aria-label={`How to do ${e.name}`}
-                      className="flex w-full items-center gap-3 rounded-2xl border border-white/8 bg-white/[0.04] px-3 py-2.5 text-left transition-colors hover:border-white/20 hover:bg-white/[0.07]"
-                    >
-                      <ExerciseImage
-                        name={e.name}
-                        animated={i < 4}
-                        className="h-12 w-12 shrink-0 rounded-xl"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold">{e.name}</span>
-                        <span className="text-sage block truncate text-xs">
-                          {EXERCISE_EQUIPMENT_LABELS[e.equipment]}
-                          {i < ROUTINE_SIZE ? ' · in routine' : ''}
-                        </span>
-                      </span>
-                      {i < ROUTINE_SIZE && (
-                        <span className="text-sage shrink-0 text-xs font-bold tabular-nums">
-                          {i < 2 ? 4 : 3} sets
-                        </span>
-                      )}
-                      <ChevronRight className="h-4 w-4 shrink-0 text-white/40" aria-hidden />
-                    </button>
-                  </li>
-                ))}
+                {entries.map((e, i) => {
+                  const on = isPicked(e.name);
+                  const order = selectedNames.indexOf(e.name);
+                  return (
+                    <li key={e.id}>
+                      {/* The row toggles selection; the chevron opens the
+                          how-to. Two actions, so they are two buttons. */}
+                      <div
+                        className={cn(
+                          'flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors',
+                          on
+                            ? 'border-volt/50 bg-volt/10'
+                            : 'border-white/8 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.07]',
+                        )}
+                      >
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={on}
+                          onClick={() => toggle(e.name)}
+                          aria-label={`${on ? 'Remove' : 'Add'} ${e.name} ${on ? 'from' : 'to'} the routine`}
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <span className="relative shrink-0">
+                            <ExerciseImage
+                              name={e.name}
+                              animated={i < 4}
+                              className="h-12 w-12 rounded-xl"
+                            />
+                            <span
+                              aria-hidden
+                              className={cn(
+                                'absolute -right-1 -bottom-1 grid h-5 w-5 place-items-center rounded-full border text-[10px] font-extrabold transition-colors',
+                                on
+                                  ? 'bg-volt border-volt text-[#0d1102]'
+                                  : 'border-white/25 bg-[#0a0a09] text-transparent',
+                              )}
+                            >
+                              {on ? order + 1 : ''}
+                            </span>
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-sm font-bold">{e.name}</span>
+                            <span className="text-sage block truncate text-xs">
+                              {EXERCISE_EQUIPMENT_LABELS[e.equipment]}
+                              {on ? ` · ${order < 2 ? 4 : 3} sets` : ''}
+                            </span>
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDetailName(e.name)}
+                          aria-label={`How to do ${e.name}`}
+                          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+                        >
+                          <ChevronRight className="h-4 w-4" aria-hidden />
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -276,10 +333,12 @@ export function MuscleMapModal({
               className="press bg-volt flex h-13 w-full items-center justify-center gap-2 rounded-full text-[15px] font-extrabold text-[#0d1102] shadow-[0_10px_30px_-10px_rgba(138,210,0,0.55)] transition-transform hover:-translate-y-0.5 disabled:opacity-50"
             >
               <Flame className="h-4.5 w-4.5" aria-hidden />
-              Set as Today&apos;s workout
-              <span className="text-xs font-bold text-[#0d1102]/70">
-                · {picks.length} exercises
-              </span>
+              {picks.length === 0 ? 'Pick an exercise' : "Set as Today's workout"}
+              {picks.length > 0 && (
+                <span className="text-xs font-bold text-[#0d1102]/70">
+                  · {picks.length} exercise{picks.length === 1 ? '' : 's'}
+                </span>
+              )}
             </button>
           </div>
         </DialogContent>

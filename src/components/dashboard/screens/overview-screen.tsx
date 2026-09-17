@@ -43,6 +43,7 @@ import {
   formatDistance,
   formatMinutes,
   relativeDay,
+  suggestedExercisesForCategory,
 } from '@smartfit/core';
 
 type Range = 'Daily' | 'Weekly' | 'Monthly';
@@ -127,6 +128,29 @@ export function OverviewScreen() {
           categoryId: 'cat-strength',
           intensity: 'moderate',
         });
+
+  /**
+   * Tapping a program tile used to only set `programFilter`, which filters
+   * today's agenda — so on a day with no scheduled slots (every new account)
+   * the tap appeared to do nothing at all. It now also opens the workout
+   * composer pre-filled for that category, pulling the catalog's most popular
+   * exercises for it, so a tile is always a way into training. "All type"
+   * keeps its original meaning: clear the filter.
+   */
+  function startCategory(name: string, categoryId: string | null) {
+    setProgramFilter(name);
+    if (!categoryId) return;
+    openWith({
+      kind: 'runner',
+      title: name,
+      categoryId,
+      intensity: 'moderate',
+      exercises: suggestedExercisesForCategory(categoryId, 5).map((e, i) => ({
+        name: e.name,
+        sets: Array.from({ length: i < 2 ? 4 : 3 }, () => ({})),
+      })),
+    });
+  }
 
   const quickActions = [
     { label: 'Log workout', icon: Dumbbell, onClick: () => openModal('workout') },
@@ -261,12 +285,14 @@ export function OverviewScreen() {
           >
             {[
               {
+                id: null as string | null,
                 name: 'All type',
                 icon: 'layout-grid',
                 color: 'var(--primary)',
                 count: state.sessions.length,
               },
               ...state.categories.map((c) => ({
+                id: c.id as string | null,
                 name: c.name,
                 icon: c.icon,
                 color: c.color,
@@ -279,7 +305,7 @@ export function OverviewScreen() {
                   key={c.name}
                   role="tab"
                   aria-selected={selected}
-                  onClick={() => setProgramFilter(c.name)}
+                  onClick={() => startCategory(c.name, c.id)}
                   className={cn(
                     'group flex min-w-[5.5rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-2xl border px-3 py-3.5 text-center transition-all sm:min-w-0',
                     selected

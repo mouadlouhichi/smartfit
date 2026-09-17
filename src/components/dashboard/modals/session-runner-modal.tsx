@@ -24,6 +24,7 @@ import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { ExerciseImage } from '@/components/exercise-image';
 import { ExercisePicker } from '@/components/exercise-picker';
+import { Select } from '@/components/ui/select';
 import { categoryById, toISODate } from '@smartfit/core';
 import {
   REST_PRESETS,
@@ -618,12 +619,12 @@ function LiveScreen(p: LiveProps) {
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
         {p.active ? (
           <div key={p.active.id} className="slide-in-right">
             {/* ── Cinematic exercise hero — the Axel live-workout stage ── */}
             <div className="relative overflow-hidden rounded-3xl bg-[#0d0f08]">
-              <div className="flex aspect-[4/3] max-h-64 w-full items-center justify-center p-4">
+              <div className="flex aspect-[4/3] max-h-56 w-full items-center justify-center p-3">
                 <ExerciseImage
                   name={p.active.name}
                   variant="full"
@@ -631,12 +632,13 @@ function LiveScreen(p: LiveProps) {
                   animated
                 />
               </div>
+              {/* Scrim only at the very top, where the chrome sits — the
+                  caption now lives in its own band below the art. */}
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0"
+                className="pointer-events-none absolute inset-x-0 top-0 h-20"
                 style={{
-                  background:
-                    'linear-gradient(180deg, rgba(5,4,4,0.55) 0%, rgba(5,4,4,0) 34%, rgba(5,4,4,0.82) 100%)',
+                  background: 'linear-gradient(180deg, rgba(5,4,4,0.65) 0%, rgba(5,4,4,0) 100%)',
                 }}
               />
               {/* Set progress + remove, over the art */}
@@ -663,8 +665,9 @@ function LiveScreen(p: LiveProps) {
                   <X className="h-4 w-4" aria-hidden />
                 </button>
               </div>
-              {/* Name + history, anchored to the art's base */}
-              <div className="absolute inset-x-4 bottom-3">
+              {/* Name + history — a solid band under the art so the copy is
+                  always legible regardless of the demo's brightness. */}
+              <div className="border-t border-white/8 bg-[#0a0b06] px-4 py-3.5">
                 <p className="session-muted text-[11px] font-bold tracking-[0.18em] uppercase">
                   {currentSet
                     ? `Set ${currentNo} of ${p.active.sets.length}`
@@ -698,7 +701,7 @@ function LiveScreen(p: LiveProps) {
             </div>
 
             {/* ── Control deck: steppers flank the ring timer ───────────── */}
-            <div className="mt-4 flex items-center justify-between gap-1.5 min-[380px]:gap-2">
+            <div className="mt-5 flex items-center justify-between gap-2 min-[380px]:gap-3">
               <SetStepper
                 label={isDistance ? ' reps ' : 'Reps'}
                 value={currentSet?.reps || ''}
@@ -742,13 +745,13 @@ function LiveScreen(p: LiveProps) {
               <button
                 onClick={() => p.completeSet(p.active!, currentSet)}
                 aria-label={`Complete set ${currentNo}`}
-                className="press mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
+                className="press mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
                 style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
               >
                 <Check className="h-5 w-5" strokeWidth={3} aria-hidden /> Complete set {currentNo}
               </button>
             ) : (
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className="mt-5 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => p.addSet(p.active!.id)}
                   className="press session-tile flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
@@ -801,8 +804,8 @@ function LiveScreen(p: LiveProps) {
             )}
 
             {/* ── Sets table ─────────────────────────────────────────────── */}
-            <div className="mt-4">
-              <div className="mb-1 grid grid-cols-[1.5rem_1fr_1fr_2.75rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(237,235,230,0.55)] uppercase min-[380px]:grid-cols-[2rem_1fr_1fr_3rem]">
+            <div className="mt-6">
+              <div className="mb-2 grid grid-cols-[1.5rem_1fr_1fr_2.75rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(237,235,230,0.55)] uppercase min-[380px]:grid-cols-[2rem_1fr_1fr_3rem]">
                 <span>Set</span>
                 <span className="text-center">Reps</span>
                 <span className="text-center">
@@ -897,19 +900,19 @@ function LiveScreen(p: LiveProps) {
                         </span>
                       )}
                       <div className="col-span-4 grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
-                        <select
+                        <Select
                           value={s.kind}
                           aria-label={`Set type, set ${idx + 1}`}
                           onChange={(e) =>
                             p.setKind(p.active!.id, s.id, e.target.value as WorkoutSetKind)
                           }
-                          className="session-input h-9 w-full text-xs"
+                          className="session-select h-10 w-full text-xs sm:h-10"
                         >
                           <option value="working">Working set</option>
                           <option value="warmup">Warm-up</option>
                           <option value="drop">Drop set</option>
                           <option value="failure">Failure set</option>
-                        </select>
+                        </Select>
                         <input
                           type="number"
                           min={1}
@@ -984,7 +987,7 @@ function LiveScreen(p: LiveProps) {
       </div>
 
       {/* ── Thumb-zone finish bar ────────────────────────────────────── */}
-      <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="border-t border-white/8 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           onClick={p.finish}
           className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
@@ -1133,7 +1136,7 @@ function RingTimer({
 
       {/* Rest actions orbit the ring while it counts down. */}
       {resting && (
-        <div className="absolute -bottom-2 flex gap-1.5">
+        <div className="absolute -bottom-3 flex gap-1.5">
           <button
             type="button"
             onClick={onAdd}
