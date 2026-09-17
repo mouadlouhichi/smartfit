@@ -165,7 +165,7 @@ export function ProgressScreen() {
             narrow screens get compact short labels (Day/Week/Month/Qtr/Year)
             with a hidden-scrollbar swipe row as the backstop. */}
         <div
-          className="bg-secondary no-scrollbar flex w-full max-w-sm overflow-x-auto rounded-full p-1 sm:w-auto sm:flex-none sm:overflow-visible"
+          className="bg-secondary no-scrollbar flex w-full max-w-sm min-w-0 overflow-x-auto rounded-full p-1 sm:w-auto sm:flex-none sm:overflow-visible"
           role="tablist"
           aria-label="Stats range"
         >

@@ -480,11 +480,11 @@ export function CoachAiSource({
  */
 export function CoachChips({ chips }: { chips: CoachChip[] }) {
   return (
-    <div className="mt-3 flex [scrollbar-width:none] gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+    <div className="mt-3 flex min-w-0 [scrollbar-width:none] gap-3 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
       {chips.map((c) => (
         <div
           key={c.label}
-          className="border-border bg-card flex min-w-[132px] items-center gap-3 rounded-2xl border px-4 py-3 shadow-sm"
+          className="border-border bg-card flex w-[132px] shrink-0 items-center gap-3 rounded-2xl border px-4 py-3 shadow-sm"
         >
           <span className="min-w-0 flex-1">
             <span className="text-muted-foreground block truncate text-xs font-medium">
@@ -724,7 +724,7 @@ export function CoachQuickReplies({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex [scrollbar-width:none] gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+    <div className="flex min-w-0 [scrollbar-width:none] gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
       {replies.map((q) => (
         <Button
           key={q}
@@ -732,7 +732,7 @@ export function CoachQuickReplies({
           variant="outline"
           disabled={disabled}
           onClick={() => onPick(q)}
-          className="hover:border-primary hover:text-primary rounded-full text-xs font-semibold whitespace-nowrap"
+          className="hover:border-primary hover:text-primary shrink-0 rounded-full text-xs font-semibold whitespace-nowrap"
         >
           {q}
         </Button>
@@ -759,11 +759,11 @@ export function CoachPanel({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        'border-border bg-card/70 flex h-full min-h-[560px] flex-col overflow-hidden rounded-[2rem] border shadow-sm',
+        'border-border bg-card/70 flex h-full min-w-0 flex-col overflow-hidden rounded-[2rem] border shadow-sm',
         className,
       )}
     >
-      <div className="flex items-start justify-between gap-3 px-5 pt-5">
+      <div className="flex min-w-0 items-start justify-between gap-3 px-5 pt-5">
         <span className="bg-primary text-primary-foreground shadow-primary/30 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-md">
           <Sparkles className="h-4 w-4" /> Your coach
         </span>

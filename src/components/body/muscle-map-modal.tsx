@@ -178,7 +178,7 @@ export function MuscleMapModal({
             {/* Muscle switcher — re-select without leaving the sheet. */}
             <div className="relative mt-3">
               <div
-                className="no-scrollbar -mx-5 flex snap-x gap-1.5 overflow-x-auto px-5 pb-1"
+                className="no-scrollbar -mx-5 flex min-w-0 snap-x gap-1.5 overflow-x-auto px-5 pb-1"
                 role="group"
                 aria-label="Switch muscle"
               >

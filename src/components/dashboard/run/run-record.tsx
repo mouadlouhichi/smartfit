@@ -849,7 +849,7 @@ function LiveStage({
 
       {/* Splits, as a strip */}
       {splits.length > 0 && (
-        <div className="-mx-1 flex [scrollbar-width:none] gap-2 overflow-x-auto px-1 pb-1 [&::-webkit-scrollbar]:hidden">
+        <div className="-mx-1 flex min-w-0 [scrollbar-width:none] gap-2 overflow-x-auto px-1 pb-1 [&::-webkit-scrollbar]:hidden">
           {splits.map((split) => (
             <span
               key={split.index}

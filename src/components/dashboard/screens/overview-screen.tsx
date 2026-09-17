@@ -199,7 +199,7 @@ export function OverviewScreen() {
         </div>
 
         {/* ── Health metrics — the reference 2×2 tile grid ─────────────── */}
-        <section aria-label="Health metrics">
+        <section aria-label="Health metrics" className="min-w-0">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Health Metrics</h2>
             <Link
@@ -242,7 +242,7 @@ export function OverviewScreen() {
         </section>
 
         {/* ── Workout programs: chips + the featured session card ──────── */}
-        <section aria-label="Workout programs">
+        <section aria-label="Workout programs" className="min-w-0">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Workout Programs</h2>
             <Link
@@ -255,7 +255,7 @@ export function OverviewScreen() {
           {/* Icon-forward category tiles — the Axel program-library pattern.
               A snap rail on phones, a wrap grid from sm up. */}
           <div
-            className="no-scrollbar -mx-1 mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7"
+            className="no-scrollbar -mx-1 mt-3 flex min-w-0 snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7"
             role="tablist"
             aria-label="Program category"
           >
@@ -438,7 +438,7 @@ export function OverviewScreen() {
         </div>
 
         {/* Summary — its own section, separated from the plan items above. */}
-        <section aria-label="Summary">
+        <section aria-label="Summary" className="min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-[1.35rem]">
               Summary

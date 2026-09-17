@@ -569,7 +569,7 @@ function LiveScreen(p: LiveProps) {
           gradient mask make the overflow an obvious scroll. */}
       <div className="relative px-4 pb-3">
         <div
-          className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4"
+          className="no-scrollbar -mx-4 flex min-w-0 snap-x snap-mandatory gap-2 overflow-x-auto px-4"
           role="tablist"
           aria-label="Exercises in this session"
         >

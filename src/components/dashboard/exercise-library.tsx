@@ -216,7 +216,7 @@ export function ExerciseLibrary() {
         </div>
 
         <div
-          className="flex items-center gap-1.5 overflow-x-auto pb-1"
+          className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1"
           role="group"
           aria-label="Filter by equipment"
         >
@@ -243,7 +243,7 @@ export function ExerciseLibrary() {
 
         {muscleOptions.length >= 2 && (
           <div
-            className="flex items-center gap-1.5 overflow-x-auto pb-1"
+            className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1"
             role="group"
             aria-label="Focus on a muscle"
           >
