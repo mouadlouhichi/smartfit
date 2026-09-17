@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronRight, Flame, Info, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
@@ -55,6 +55,8 @@ export function MuscleMapModal({
    * Tapping a row toggles it in or out; the CTA launches exactly this set.
    */
   const [picked, setPicked] = useState<string[] | null>(null);
+  /** The selected chip, so the rail can scroll it into view. */
+  const activeChipRef = useRef<HTMLButtonElement | null>(null);
 
   const label = EXERCISE_MUSCLE_LABELS[muscle];
   const groupColor = MUSCLE_GROUP_COLOR[MUSCLE_GROUP[muscle]];
@@ -81,6 +83,13 @@ export function MuscleMapModal({
   // A new muscle (or a reopened sheet) starts from the curated routine again.
   useEffect(() => {
     setPicked(null);
+  }, [muscle, open]);
+
+  // The switcher rail is long; keep the current muscle visible rather than
+  // leaving it clipped off the left edge.
+  useEffect(() => {
+    if (!open) return;
+    activeChipRef.current?.scrollIntoView({ block: 'nearest', inline: 'center' });
   }, [muscle, open]);
 
   const defaultPicks = useMemo(() => entries.slice(0, ROUTINE_SIZE).map((e) => e.name), [entries]);
@@ -211,19 +220,22 @@ export function MuscleMapModal({
                       key={m}
                       type="button"
                       aria-pressed={active}
+                      ref={active ? activeChipRef : undefined}
                       onClick={() => onSelect(m)}
                       className={cn(
-                        'flex shrink-0 snap-start items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors',
+                        'flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold transition-colors',
                         active
-                          ? 'border-white/25 bg-white/10 text-white'
-                          : 'border-white/8 bg-white/[0.04] text-white/70 hover:text-white',
+                          ? 'border-volt bg-volt text-[#0d1102]'
+                          : 'border-white/8 bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white',
                       )}
                     >
-                      <span
-                        className="h-1.5 w-1.5 rounded-full"
-                        style={{ backgroundColor: MUSCLE_GROUP_COLOR[MUSCLE_GROUP[m]] }}
-                        aria-hidden
-                      />
+                      {!active && (
+                        <span
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: MUSCLE_GROUP_COLOR[MUSCLE_GROUP[m]] }}
+                          aria-hidden
+                        />
+                      )}
                       {EXERCISE_MUSCLE_LABELS[m]}
                     </button>
                   );
@@ -244,11 +256,19 @@ export function MuscleMapModal({
           {/* ── Exercise list — every row carries its demo GIF ───────────── */}
           <div className="mt-4 px-5 pb-2">
             <div className="flex items-baseline justify-between gap-3">
-              <h3 className="text-base font-extrabold tracking-tight">
-                {label} exercises
-                <span className="text-sage ml-2 text-sm font-semibold">{entries.length}</span>
+              <h3 className="flex min-w-0 items-center gap-2 text-base font-extrabold tracking-tight">
+                <span className="truncate">{label} exercises</span>
+                <span className="text-sage shrink-0 rounded-full bg-white/8 px-2 py-0.5 text-xs font-bold tabular-nums">
+                  {entries.length}
+                </span>
               </h3>
-              <p className="text-sage shrink-0 text-xs font-semibold tabular-nums">
+              <p
+                aria-live="polite"
+                className={cn(
+                  'shrink-0 text-xs font-bold tabular-nums transition-colors',
+                  picks.length > 0 ? 'text-volt' : 'text-sage',
+                )}
+              >
                 {picks.length} selected
               </p>
             </div>
@@ -258,7 +278,7 @@ export function MuscleMapModal({
                 No catalog strength exercises target {label.toLowerCase()} yet.
               </p>
             ) : (
-              <ul className="mt-3 grid gap-2">
+              <ul className="mt-3 grid gap-2.5">
                 {entries.map((e, i) => {
                   const on = isPicked(e.name);
                   const order = selectedNames.indexOf(e.name);
@@ -268,9 +288,9 @@ export function MuscleMapModal({
                           how-to. Two actions, so they are two buttons. */}
                       <div
                         className={cn(
-                          'flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 transition-colors',
+                          'flex w-full items-center gap-3 rounded-2xl border p-2.5 transition-colors',
                           on
-                            ? 'border-volt/50 bg-volt/10'
+                            ? 'border-volt/45 bg-volt/[0.08] shadow-[inset_0_0_0_1px_rgba(138,210,0,0.12)]'
                             : 'border-white/8 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.07]',
                         )}
                       >
@@ -282,16 +302,16 @@ export function MuscleMapModal({
                           aria-label={`${on ? 'Remove' : 'Add'} ${e.name} ${on ? 'from' : 'to'} the routine`}
                           className="flex min-w-0 flex-1 items-center gap-3 text-left"
                         >
-                          <span className="relative shrink-0">
+                          <span className="relative block shrink-0">
                             <ExerciseImage
                               name={e.name}
                               animated={i < 4}
-                              className="h-12 w-12 rounded-xl"
+                              className="exercise-demo-tile--dark h-14 w-14 rounded-xl border border-white/10 bg-white/[0.06]"
                             />
                             <span
                               aria-hidden
                               className={cn(
-                                'absolute -right-1 -bottom-1 grid h-5 w-5 place-items-center rounded-full border text-[10px] font-extrabold transition-colors',
+                                'absolute -top-1.5 -left-1.5 grid h-5 w-5 place-items-center rounded-full border text-[10px] font-extrabold transition-colors',
                                 on
                                   ? 'bg-volt border-volt text-[#0d1102]'
                                   : 'border-white/25 bg-[#0a0a09] text-transparent',
@@ -301,10 +321,18 @@ export function MuscleMapModal({
                             </span>
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-sm font-bold">{e.name}</span>
-                            <span className="text-sage block truncate text-xs">
-                              {EXERCISE_EQUIPMENT_LABELS[e.equipment]}
-                              {on ? ` · ${order < 2 ? 4 : 3} sets` : ''}
+                            <span className="block text-sm leading-snug font-bold text-balance">
+                              {e.name}
+                            </span>
+                            <span className="text-sage mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs">
+                              <span className="truncate">
+                                {EXERCISE_EQUIPMENT_LABELS[e.equipment]}
+                              </span>
+                              {on && (
+                                <span className="text-volt shrink-0 font-bold tabular-nums">
+                                  · {order < 2 ? 4 : 3} sets
+                                </span>
+                              )}
                             </span>
                           </span>
                         </button>

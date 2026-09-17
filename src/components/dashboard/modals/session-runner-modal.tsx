@@ -628,7 +628,7 @@ function LiveScreen(p: LiveProps) {
                 <ExerciseImage
                   name={p.active.name}
                   variant="full"
-                  className="h-full w-full rounded-2xl"
+                  className="exercise-demo-tile--dark h-full w-full rounded-2xl"
                   animated
                 />
               </div>
@@ -787,7 +787,7 @@ function LiveScreen(p: LiveProps) {
               >
                 <ExerciseImage
                   name={nextExercise.name}
-                  className="h-10 w-10 shrink-0 rounded-lg"
+                  className="exercise-demo-tile--dark h-10 w-10 shrink-0 rounded-lg border border-white/10 bg-white/[0.06]"
                   animated={false}
                 />
                 <span className="min-w-0 flex-1">
@@ -1189,7 +1189,7 @@ function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: 
           >
             <ExerciseImage
               name={s.name}
-              className="h-11 w-11 shrink-0 rounded-lg"
+              className="exercise-demo-tile--dark h-11 w-11 shrink-0 rounded-lg border border-white/10 bg-white/[0.06]"
               animated={false}
             />
             <span className="min-w-0 flex-1">

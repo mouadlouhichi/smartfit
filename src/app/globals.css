@@ -426,6 +426,16 @@ input[type='number'] {
     opacity: 0;
   }
 }
+/* Catalog demos ship on a hard white matte, which reads as a glaring white
+   chip on the app's dark surfaces. Inverting flips the matte to near-black
+   and the grey line art to light; the paired 180deg hue-rotate puts colour
+   back where it started, so the red target-muscle highlight stays red. The
+   light theme keeps the artwork exactly as authored. */
+.dark .exercise-demo-tile img,
+.exercise-demo-tile--dark img {
+  filter: invert(1) hue-rotate(180deg) brightness(1.05);
+}
+
 .exercise-demo-a {
   animation: exercise-demo-a 2.8s ease-in-out infinite;
 }
