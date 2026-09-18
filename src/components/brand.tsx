@@ -26,7 +26,7 @@ export function Logo({ className, size = 36 }: { className?: string; size?: numb
         fill="currentColor"
         aria-hidden
       >
-        <path d={FLAME_PATH} fillRule="evenodd" />
+        <path d={FLAME_PATH} />
       </svg>
     </span>
   );

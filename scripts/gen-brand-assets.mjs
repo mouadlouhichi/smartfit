@@ -38,12 +38,12 @@ const CANVAS = '#0e0e0e';
 const PAPER = '#f5f5f2';
 
 /**
- * The flame, in a 24×24 box — mirrors FLAME_PATH in src/lib/brand-mark.ts.
- * Two subpaths, so every fill needs fill-rule="evenodd" or the inner cutout
- * renders solid.
+ * Lucide's `flame` glyph in its native 24×24 box — mirrors FLAME_PATH in
+ * src/lib/brand-mark.ts. Filled rather than stroked so it reads as a solid
+ * silhouette at favicon sizes. One closed subpath, so no fill-rule needed.
  */
 const FLAME_PATH =
-  'M12.9 1.3 C12.5 0.9 11.8 1.1 11.7 1.7 C11.3 4.6 9.9 6.4 8.2 8.1 C6.2 10.1 4.4 12.3 4.4 15.3 C4.4 19.6 7.8 22.9 12 22.9 C16.2 22.9 19.6 19.6 19.6 15.3 C19.6 11.5 17.6 9.3 15.9 7.2 C14.3 5.2 13.4 3.6 12.9 1.3 Z M12 20.4 C10.1 20.4 8.6 18.9 8.6 17 C8.6 15.2 9.6 14.1 10.6 13 C11.2 12.4 11.8 11.7 12.1 10.8 C12.5 11.9 13.1 12.6 13.7 13.3 C14.6 14.3 15.4 15.3 15.4 17 C15.4 18.9 13.9 20.4 12 20.4 Z';
+  'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z';
 
 /** Charge cell + flame at (x,y) with the glyph scaled to `box` px. */
 const markGroup = (x, y, box, { plate = VOLT, ink = INK, rx = 0.3 } = {}) => {
@@ -52,7 +52,7 @@ const markGroup = (x, y, box, { plate = VOLT, ink = INK, rx = 0.3 } = {}) => {
   return (
     `<g transform="translate(${x},${y})">` +
     `<rect width="${box}" height="${box}" rx="${box * rx}" fill="${plate}"/>` +
-    `<g transform="translate(${t},${t}) scale(${s})"><path d="${FLAME_PATH}" fill="${ink}" fill-rule="evenodd"/></g>` +
+    `<g transform="translate(${t},${t}) scale(${s})"><path d="${FLAME_PATH}" fill="${ink}"/></g>` +
     `</g>`
   );
 };
@@ -147,7 +147,7 @@ function ogSvg() {
   const flameS = 620 / 24;
   const watermark =
     `<g transform="translate(820,60) scale(${flameS})" opacity="0.07">` +
-    `<path d="${FLAME_PATH}" fill="${VOLT}" fill-rule="evenodd"/></g>` +
+    `<path d="${FLAME_PATH}" fill="${VOLT}"/></g>` +
     `<circle cx="1040" cy="315" r="225" fill="none" stroke="${VOLT}" stroke-width="2" opacity="0.16"/>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">

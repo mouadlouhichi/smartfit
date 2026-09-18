@@ -249,7 +249,7 @@ export function drawLogoMark(
   ctx.translate(x + (size - 24 * s) / 2, y + (size - 24 * s) / 2);
   ctx.scale(s, s);
   ctx.fillStyle = opts.ink ?? VOLT_INK;
-  ctx.fill(new Path2D(FLAME_PATH), 'evenodd');
+  ctx.fill(new Path2D(FLAME_PATH));
   ctx.restore();
 }
 

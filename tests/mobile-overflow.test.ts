@@ -182,29 +182,27 @@ test('icon cache-bust revisions agree across layout and manifest', () => {
 });
 
 /**
- * The brand mark is a flame. Its geometry is duplicated in the asset
- * generator (which cannot import from src/), so the two must not drift --
- * and every fill needs evenodd, or the flame's inner cutout renders as a
- * solid blob.
+ * The brand mark is Lucide's flame, filled. Its geometry is duplicated in the
+ * asset generator (which cannot import from src/), so the two must not drift,
+ * and it must stay in sync with the lucide-react version the UI renders.
  */
-test('the brand mark is a flame drawn with evenodd everywhere', () => {
+test('the brand mark is the lucide flame and the generator matches', async () => {
   const mark = fs.readFileSync('src/lib/brand-mark.ts', 'utf8');
   const gen = fs.readFileSync('scripts/gen-brand-assets.mjs', 'utf8');
+
   assert.ok(mark.includes('FLAME_PATH'), 'brand-mark must export FLAME_PATH');
   assert.ok(!/BOLT_PATH/.test(mark + gen), 'the bolt geometry must be gone');
 
   const d = mark.match(/FLAME_PATH =\s*\n?\s*'([^']+)'/)?.[1];
   assert.ok(d, 'FLAME_PATH must be a path string');
-  assert.equal((d.match(/Z/g) ?? []).length, 2, 'flame = body + inner cutout');
   assert.ok(gen.includes(d), 'the generator must mirror the exact same path');
 
-  // Every consumer fills with evenodd.
-  assert.match(fs.readFileSync('src/components/brand.tsx', 'utf8'), /fillRule="evenodd"/);
-  assert.match(fs.readFileSync('src/lib/share-card.ts', 'utf8'), /'evenodd'/);
-  // Count only real <path> fills, not the prose in the file's comments.
-  const fills = gen.match(/<path d="\$\{FLAME_PATH\}"[^>]*\/>/g) ?? [];
-  assert.ok(fills.length >= 2, 'the generator must draw the flame');
-  for (const fill of fills) {
-    assert.match(fill, /fill-rule="evenodd"/, `generated flame fill needs evenodd: ${fill}`);
-  }
+  // The mark must be the same glyph lucide-react draws in the UI.
+  const lucide = fs.readFileSync('node_modules/lucide-react/dist/esm/icons/flame.js', 'utf8');
+  const upstream = lucide.match(/d:\s*"([^"]+)"/)?.[1];
+  assert.ok(upstream, 'could not read the lucide flame path');
+  assert.equal(d, upstream, "FLAME_PATH must match lucide-react's flame exactly");
+
+  // One closed subpath, so filling needs no fill-rule.
+  assert.equal((d.match(/z/gi) ?? []).length, 1, 'lucide flame is a single closed path');
 });
