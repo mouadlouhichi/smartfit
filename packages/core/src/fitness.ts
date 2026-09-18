@@ -6,10 +6,12 @@ import type {
   Intensity,
   UserProfile,
   WeekStart,
+  WorkoutExercise,
   WorkoutSession,
 } from './types';
 import { clamp, round } from './utils';
 import { CATEGORY_FALLBACK_COLOR } from './colors';
+import { matchExercise, type ExerciseEquipment, type ExerciseGroup } from './exercises';
 
 /** Reference body mass used when the user has never logged a weight. */
 export const DEFAULT_BODY_WEIGHT_KG = 75;
@@ -450,4 +452,91 @@ export const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100, 365];
 /** The next streak milestone above `streak` (streak + 1 when past the last). */
 export function nextStreakMilestone(streak: number): number {
   return STREAK_MILESTONES.find((m) => m > streak) ?? streak + 1;
+}
+
+/* ── Per-exercise energy cost ──────────────────────────────────────────────
+   `estimateCalories` above prices a *session* from its overall intensity.
+   That is right for a logged summary but too coarse for the live runner,
+   where a set of deadlifts and a set of curls cost visibly different
+   amounts. These helpers price a single movement instead. */
+
+/**
+ * Representative MET values per exercise group, for resistance work performed
+ * set-wise (i.e. including the rest that makes sets possible).
+ *
+ * Anchored on the Compendium of Physical Activities: resistance training is
+ * ~3.5 METs light, ~5.0 vigorous, and multi-joint lower-body and conditioning
+ * work sits higher than single-joint arm work. These are deliberately modest
+ * — over-crediting strength work is the most common failure of fitness-app
+ * calorie maths.
+ */
+const GROUP_MET: Record<ExerciseGroup, number> = {
+  legs: 6,
+  back: 5.5,
+  chest: 5,
+  shoulders: 4.5,
+  arms: 3.8,
+  core: 4,
+  conditioning: 8,
+  mobility: 2.5,
+};
+
+/** Equipment nudges: free weights demand more stabilising than a machine. */
+const EQUIPMENT_FACTOR: Partial<Record<ExerciseEquipment, number>> = {
+  barbell: 1.1,
+  dumbbell: 1.05,
+  kettlebell: 1.15,
+  machine: 0.9,
+  cable: 0.95,
+  band: 0.85,
+  running: 1.2,
+  pool: 1.2,
+};
+
+/** Seconds a single working set occupies, including its rest. */
+const SECONDS_PER_SET = 45;
+const REST_SECONDS_PER_SET = 60;
+
+/**
+ * MET value for one catalog movement, blending its group with its equipment.
+ * Unknown names fall back to a generic resistance-training 5.0.
+ */
+export function exerciseMet(name: string): number {
+  const entry = matchExercise(name);
+  if (!entry) return 5;
+  const base = GROUP_MET[entry.group] ?? 5;
+  return base * (EQUIPMENT_FACTOR[entry.equipment] ?? 1);
+}
+
+/**
+ * Energy cost of a single logged exercise.
+ *
+ * Time under load is derived from the sets actually recorded rather than a
+ * flat per-exercise guess, so three sets cost roughly three times one. A set
+ * that carries its own `duration` (planks, carries, intervals) uses that
+ * instead of the nominal working-set length. Only sets the athlete has
+ * actually performed should be passed in — warm-ups still cost energy, so
+ * they are included, but skipped sets should be filtered by the caller.
+ */
+export function estimateExerciseCalories(
+  exercise: WorkoutExercise,
+  bodyWeightKg: number = DEFAULT_BODY_WEIGHT_KG,
+): number {
+  const kg = bodyWeightKg > 0 ? bodyWeightKg : DEFAULT_BODY_WEIGHT_KG;
+  const met = exerciseMet(exercise.name);
+
+  const minutes = exercise.sets.reduce((total, set) => {
+    if (set.duration && set.duration > 0) return total + set.duration;
+    return total + (SECONDS_PER_SET + REST_SECONDS_PER_SET) / 60;
+  }, 0);
+
+  return Math.round(((met * 3.5 * kg) / 200) * minutes);
+}
+
+/** Summed energy cost of every exercise in a session. */
+export function estimateExercisesCalories(
+  exercises: WorkoutExercise[],
+  bodyWeightKg: number = DEFAULT_BODY_WEIGHT_KG,
+): number {
+  return exercises.reduce((total, ex) => total + estimateExerciseCalories(ex, bodyWeightKg), 0);
 }

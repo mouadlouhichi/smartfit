@@ -5,6 +5,8 @@ import {
   aggregate,
   currentStreak,
   estimateCalories,
+  estimateExerciseCalories,
+  estimateExercisesCalories,
   getPlan,
   goalProgress,
   metricValue,
@@ -112,4 +114,57 @@ test('weekKey groups same-week dates together (Monday start)', () => {
 
 test('weekKey honours an explicit Sunday start', () => {
   assert.equal(weekKey('2026-09-06', 0), weekKey('2026-09-07', 0));
+});
+
+test('estimateExerciseCalories scales with sets and body mass', () => {
+  const one = { name: 'Barbell Squat', sets: [{ reps: 5, weight: 100 }] };
+  const three = {
+    name: 'Barbell Squat',
+    sets: [
+      { reps: 5, weight: 100 },
+      { reps: 5, weight: 100 },
+      { reps: 5, weight: 100 },
+    ],
+  };
+  // Three sets cost roughly three times one set.
+  assert.ok(estimateExerciseCalories(three) > estimateExerciseCalories(one) * 2.5);
+  // A heavier athlete burns more for identical work.
+  assert.ok(estimateExerciseCalories(one, 100) > estimateExerciseCalories(one, 60));
+});
+
+test('estimateExerciseCalories prices compound work above isolation', () => {
+  const sets = [{ reps: 10 }, { reps: 10 }];
+  const squat = estimateExerciseCalories({ name: 'Barbell Squat', sets });
+  const curl = estimateExerciseCalories({ name: 'Dumbbell Bicep Curl', sets });
+  assert.ok(squat > curl, 'a leg compound should cost more than an arm isolation');
+});
+
+test('estimateExerciseCalories honours timed sets', () => {
+  const timed = estimateExerciseCalories({ name: 'Plank', sets: [{ duration: 10 }] });
+  const untimed = estimateExerciseCalories({ name: 'Plank', sets: [{ reps: 1 }] });
+  assert.ok(timed > untimed, 'a 10 minute hold should outweigh one nominal set');
+});
+
+test('estimateExerciseCalories stays conservative and finite', () => {
+  const kcal = estimateExerciseCalories({
+    name: 'Barbell Squat',
+    sets: Array.from({ length: 5 }, () => ({ reps: 5 })),
+  });
+  // Five sets of squats is real work, but must not read like a 10k run.
+  assert.ok(kcal > 10 && kcal < 150, `expected a sane estimate, got ${kcal}`);
+  assert.ok(Number.isFinite(kcal));
+});
+
+test('estimateExercisesCalories sums its exercises', () => {
+  const a = { name: 'Barbell Squat', sets: [{ reps: 5 }] };
+  const b = { name: 'Dumbbell Bicep Curl', sets: [{ reps: 10 }] };
+  assert.equal(
+    estimateExercisesCalories([a, b]),
+    estimateExerciseCalories(a) + estimateExerciseCalories(b),
+  );
+});
+
+test('unknown exercises still price sensibly', () => {
+  const kcal = estimateExerciseCalories({ name: 'Totally Made Up Lift', sets: [{ reps: 5 }] });
+  assert.ok(kcal > 0 && Number.isFinite(kcal));
 });

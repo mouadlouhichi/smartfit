@@ -367,7 +367,7 @@ export function MuscleMapModal({
               type="button"
               onClick={startRoutine}
               disabled={picks.length === 0}
-              className="press bg-volt flex h-13 w-full items-center justify-center gap-2 rounded-full text-[15px] font-extrabold text-[#0d1102] shadow-[0_10px_30px_-10px_rgba(138,210,0,0.55)] transition-transform hover:-translate-y-0.5 disabled:opacity-50"
+              className="press btn-volt flex h-13 w-full items-center justify-center gap-2 rounded-full text-[15px] font-extrabold transition-transform hover:-translate-y-0.5 disabled:opacity-50"
             >
               <Flame className="h-4.5 w-4.5" aria-hidden />
               {picks.length === 0 ? 'Pick an exercise' : "Set as Today's workout"}

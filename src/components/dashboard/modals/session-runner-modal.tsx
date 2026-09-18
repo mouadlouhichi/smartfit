@@ -27,7 +27,12 @@ import { Button } from '@/components/ui/button';
 import { ExerciseImage } from '@/components/exercise-image';
 import { ExercisePicker } from '@/components/exercise-picker';
 import { Select } from '@/components/ui/select';
-import { categoryById, toISODate } from '@smartfit/core';
+import {
+  categoryById,
+  estimateExercisesCalories,
+  latestBodyWeightKg,
+  toISODate,
+} from '@smartfit/core';
 import {
   REST_PRESETS,
   REST_STEP_SECONDS,
@@ -364,7 +369,12 @@ export function SessionRunnerModal() {
       title: run.title,
       durationMin,
       intensity: run.intensity,
-      calories: estimateSessionCalories(durationMin, run.intensity),
+      // Price the work actually logged. The intensity-based estimate is the
+      // fallback for sessions with no exercises (e.g. a bare timed entry).
+      calories:
+        core.length > 0
+          ? estimateExercisesCalories(core, latestBodyWeightKg(state) ?? undefined)
+          : estimateSessionCalories(durationMin, run.intensity),
       exercises: core,
       scheduleId: run.scheduleId,
     });
@@ -656,7 +666,7 @@ function LiveScreen(p: LiveProps) {
             {/* ── Control deck: steppers flank the ring timer ─────────────
                 Pulled up close under the stage so the dial reads as part of
                 the hero rather than floating mid-screen. */}
-            <div className="mt-2 flex items-center justify-between gap-2 min-[380px]:gap-3">
+            <div className="-mt-1 flex items-center justify-between gap-2 min-[380px]:gap-3">
               <SetStepper
                 label={isDistance ? ' reps ' : 'Reps'}
                 value={currentSet?.reps || ''}
@@ -700,8 +710,7 @@ function LiveScreen(p: LiveProps) {
               <button
                 onClick={() => p.completeSet(p.active!, currentSet)}
                 aria-label={`Complete set ${currentNo}`}
-                className="press mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
-                style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
+                className="press btn-volt mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold"
               >
                 <Check className="h-5 w-5" strokeWidth={3} aria-hidden /> Complete set {currentNo}
               </button>
@@ -931,11 +940,11 @@ function LiveScreen(p: LiveProps) {
           navigate to. */}
       {p.exercises.length > 1 && p.active && (
         <div className="px-4 pb-3">
-          <div className="session-tile flex items-center gap-3 rounded-2xl p-2">
+          <div className="flex items-center gap-3 rounded-[1.25rem] bg-[#15170f] p-2.5">
             <ExerciseImage
               name={(nextExercise ?? p.exercises[0]).name}
               animated={false}
-              className="h-11 w-11 shrink-0 rounded-xl bg-white"
+              className="h-12 w-12 shrink-0 rounded-2xl bg-white"
             />
             <div className="min-w-0 flex-1">
               <p className="session-muted text-[10px] font-bold tracking-[0.16em] uppercase">
@@ -958,7 +967,7 @@ function LiveScreen(p: LiveProps) {
                 onClick={() => p.setActiveIndex(p.activeIndex + 1)}
                 disabled={!nextExercise}
                 aria-label="Next exercise"
-                className="press bg-volt flex h-9 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-extrabold text-[#0d1102] transition-transform hover:-translate-y-0.5 disabled:opacity-35 disabled:hover:translate-y-0"
+                className="press btn-volt flex h-9 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5 disabled:opacity-35 disabled:hover:translate-y-0"
               >
                 Next
                 <ChevronsRight className="h-4 w-4" aria-hidden />
@@ -968,14 +977,16 @@ function LiveScreen(p: LiveProps) {
         </div>
       )}
 
-      {/* ── Thumb-zone finish bar ────────────────────────────────────── */}
-      <div className="px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      {/* ── Finish bar ───────────────────────────────────────────────────
+          Not sticky: on a short phone a pinned slab plus the navigator ate
+          the stage. It sits at the end of the flow and scrolls with it. */}
+      <div className="px-4 pt-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           onClick={p.finish}
-          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
+          className="press btn-volt flex h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-extrabold min-[380px]:h-14 min-[380px]:text-base"
         >
-          <Flag className="h-5 w-5" aria-hidden /> Finish session
+          <Flag className="h-5 w-5 shrink-0" aria-hidden />
+          <span className="truncate">Finish session</span>
         </button>
       </div>
     </div>
@@ -1252,7 +1263,7 @@ function SummaryScreen({
           )}
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-2 min-[380px]:gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-2 min-[380px]:gap-3">
           <StatTile icon={Dumbbell} label="Sets" value={`${summary.sets}`} />
           {summary.distance > 0 && summary.volume === 0 ? (
             <StatTile icon={Flame} label="Distance" value={formatSetDistance(summary.distance)} />
@@ -1264,6 +1275,7 @@ function SummaryScreen({
             />
           )}
           <StatTile icon={Timer} label="Exercises" value={`${summary.exercises}`} />
+          <StatTile icon={Flame} label="Calories" value={`${summary.calories} kcal`} />
         </div>
 
         {summary.personalRecords.length > 0 && (
@@ -1291,8 +1303,7 @@ function SummaryScreen({
         </button>
         <button
           onClick={onSave}
-          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
+          className="press btn-volt flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold"
         >
           <Check className="h-5 w-5" aria-hidden /> Save session
         </button>

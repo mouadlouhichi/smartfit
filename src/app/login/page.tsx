@@ -209,12 +209,12 @@ export default function LoginPage() {
           <VoltHeadline className="text-2xl sm:text-3xl" />
         </div>
 
-        <Card className="w-full max-w-sm">
-          <CardContent className="p-6">
-            <h1 className="font-display text-2xl font-bold tracking-tight">
+        <div className="auth-card w-full max-w-sm">
+          <div className="relative p-6 sm:p-7">
+            <h1 className="font-display text-[1.75rem] leading-tight font-extrabold tracking-tight">
               {isReset ? 'Reset your password' : isSignUp ? 'Create your account' : 'Welcome back'}
             </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
+            <p className="text-muted-foreground mt-1.5 text-sm">
               {isReset
                 ? "Enter your email and we'll send you a reset link."
                 : isSignUp
@@ -299,7 +299,11 @@ export default function LoginPage() {
                 </p>
               )}
 
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="btn-volt h-12 w-full rounded-xl text-[15px] font-extrabold hover:brightness-[1.03]"
+              >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : isReset ? (
@@ -360,8 +364,8 @@ export default function LoginPage() {
                 </Button>
               </>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <p className="text-muted-foreground mt-6 max-w-sm text-center text-xs">
           <ShieldCheck className="mr-1 inline h-3.5 w-3.5 align-[-2px]" />

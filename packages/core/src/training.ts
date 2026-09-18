@@ -20,7 +20,14 @@
  * the mobile app and the unit tests all see identical numbers.
  */
 import { matchExercise, EXERCISE_MUSCLE_LABELS, type ExerciseMuscle } from './exercises';
-import { sessionsInRange, toISODate, weekStartOf, startOfWeek } from './fitness';
+import {
+  estimateExercisesCalories,
+  latestBodyWeightKg,
+  sessionsInRange,
+  toISODate,
+  weekStartOf,
+  startOfWeek,
+} from './fitness';
 import type { FitnessState, Intensity, WorkoutExercise, WorkoutSession, WorkoutSet } from './types';
 
 // ── one-rep max ──────────────────────────────────────────────────────────
@@ -656,6 +663,8 @@ export interface SessionSummary {
   heaviest: number;
   /** Longest set by reps. */
   mostReps: number;
+  /** Estimated energy cost, summed per exercise from the sets performed. */
+  calories: number;
 }
 
 /**
@@ -697,6 +706,9 @@ export function summariseLiveSession(
     personalRecords: prs,
     heaviest,
     mostReps,
+    // Priced per movement so a leg session outweighs an arm session of the
+    // same length, and personalised by the athlete's logged body mass.
+    calories: estimateExercisesCalories(exercises, latestBodyWeightKg(state) ?? undefined),
   };
 }
 
