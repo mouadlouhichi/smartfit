@@ -89,3 +89,26 @@ test('the runner navigator sits below the exercise stage', () => {
   assert.ok(navigator > stage, 'the exercise navigator must render after the stage');
   assert.ok(navigator < finish, 'the exercise navigator must sit above the finish bar');
 });
+
+/**
+ * A percentage-height child (the demo tile is `h-full`) resolves against its
+ * parent's *unconstrained* height. Pairing `aspect-[x/y]` with `max-h-*` caps
+ * the box but not the child, so the artwork overflowed and painted over the
+ * caption band below it, slicing the "SET n / total" eyebrow in half. Any
+ * ratio box that caps its height must also clip.
+ */
+test('aspect-ratio boxes that cap their height also clip their children', () => {
+  for (const file of tsxFiles('src')) {
+    const src = fs.readFileSync(file, 'utf8');
+    for (const attr of src.match(/className="[^"]*"/g) ?? []) {
+      const ratio = /\baspect-\[/.test(attr);
+      const capped = /\bmax-h-/.test(attr);
+      if (ratio && capped) {
+        assert.ok(
+          /\boverflow-(hidden|clip)\b/.test(attr),
+          `${file}: aspect box with max-h must clip so a h-full child cannot overflow:\n  ${attr}`,
+        );
+      }
+    }
+  }
+});

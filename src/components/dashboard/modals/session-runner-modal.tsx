@@ -572,7 +572,7 @@ function LiveScreen(p: LiveProps) {
           <div key={p.active.id} className="slide-in-right">
             {/* ── Cinematic exercise hero — the Axel live-workout stage ── */}
             <div className="relative overflow-hidden rounded-3xl bg-[#0d0f08]">
-              <div className="flex aspect-[4/3] max-h-56 w-full items-center justify-center p-3">
+              <div className="flex h-52 w-full items-center justify-center overflow-hidden p-3 min-[380px]:h-56">
                 <ExerciseImage
                   name={p.active.name}
                   variant="full"
@@ -621,13 +621,13 @@ function LiveScreen(p: LiveProps) {
               </div>
               {/* Name + history — a solid band under the art so the copy is
                   always legible regardless of the demo's brightness. */}
-              <div className="border-t border-white/8 bg-[#0a0b06] px-4 py-3.5">
+              <div className="relative border-t border-white/8 bg-[#0a0b06] px-4 pt-4 pb-4">
                 <p className="text-volt text-[11px] font-extrabold tracking-[0.18em] uppercase">
                   {currentSet
                     ? `Set ${currentNo} / ${p.active.sets.length}`
                     : `${p.active.sets.length} sets`}
                 </p>
-                <h3 className="title-italic mt-1 text-[1.75rem] text-balance min-[380px]:text-[2rem]">
+                <h3 className="title-italic mt-2 text-[1.75rem] text-balance min-[380px]:text-[2rem]">
                   {p.active.name}
                 </h3>
                 <p className="session-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
