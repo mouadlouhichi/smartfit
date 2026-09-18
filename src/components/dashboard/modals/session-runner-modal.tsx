@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Check,
-  ChevronRight,
   ChevronsLeft,
   ChevronsRight,
   Dumbbell,
@@ -654,8 +653,10 @@ function LiveScreen(p: LiveProps) {
               </div>
             </div>
 
-            {/* ── Control deck: steppers flank the ring timer ───────────── */}
-            <div className="mt-5 flex items-center justify-between gap-2 min-[380px]:gap-3">
+            {/* ── Control deck: steppers flank the ring timer ─────────────
+                Pulled up close under the stage so the dial reads as part of
+                the hero rather than floating mid-screen. */}
+            <div className="mt-2 flex items-center justify-between gap-2 min-[380px]:gap-3">
               <SetStepper
                 label={isDistance ? ' reps ' : 'Reps'}
                 value={currentSet?.reps || ''}
@@ -705,7 +706,7 @@ function LiveScreen(p: LiveProps) {
                 <Check className="h-5 w-5" strokeWidth={3} aria-hidden /> Complete set {currentNo}
               </button>
             ) : (
-              <div className="mt-5 grid grid-cols-2 gap-2">
+              <div className={cn('mt-5 grid gap-2', !nextExercise && 'grid-cols-2')}>
                 <button
                   onClick={() => p.addSet(p.active!.id)}
                   className="press session-tile flex h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-bold"
@@ -713,16 +714,7 @@ function LiveScreen(p: LiveProps) {
                   <Plus className="h-4 w-4 shrink-0" aria-hidden />
                   <span className="truncate">Add set</span>
                 </button>
-                {nextExercise ? (
-                  <button
-                    onClick={() => p.setActiveIndex(p.activeIndex + 1)}
-                    className="press flex h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-bold"
-                    style={{ background: 'rgba(138,210,0,0.14)', color: '#B4E761' }}
-                  >
-                    <span className="truncate">Next</span>
-                    <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
-                  </button>
-                ) : (
+                {!nextExercise && (
                   <button
                     onClick={p.finish}
                     className="press flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
@@ -732,31 +724,6 @@ function LiveScreen(p: LiveProps) {
                   </button>
                 )}
               </div>
-            )}
-
-            {/* Next up — the queued exercise, one tap away. */}
-            {nextExercise && (
-              <button
-                onClick={() => p.setActiveIndex(p.activeIndex + 1)}
-                className="session-tile press mt-3 flex w-full items-center gap-3 rounded-2xl p-2.5 text-left"
-                aria-label={`Next exercise: ${nextExercise.name}`}
-              >
-                <ExerciseImage
-                  name={nextExercise.name}
-                  className="exercise-demo-tile--dark h-10 w-10 shrink-0 rounded-lg bg-white"
-                  animated={false}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="session-muted block text-[10px] font-bold tracking-[0.18em] uppercase">
-                    Next up
-                  </span>
-                  <span className="block truncate text-sm font-bold">{nextExercise.name}</span>
-                </span>
-                <ChevronRight
-                  className="h-4 w-4 shrink-0 text-[rgba(237,235,230,0.55)]"
-                  aria-hidden
-                />
-              </button>
             )}
 
             {/* ── Sets table ─────────────────────────────────────────────── */}
