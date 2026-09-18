@@ -83,7 +83,7 @@ test('the full-screen coach offers a way back on mobile', () => {
 test('the runner navigator sits below the exercise stage', () => {
   const src = fs.readFileSync('src/components/dashboard/modals/session-runner-modal.tsx', 'utf8');
   const stage = src.indexOf('Cinematic exercise hero');
-  const navigator = src.indexOf('Exercises in this session');
+  const navigator = src.indexOf('Next-up navigator');
   const finish = src.indexOf('Thumb-zone finish bar');
   assert.ok(stage > 0 && navigator > 0 && finish > 0, 'runner landmarks must all exist');
   assert.ok(navigator > stage, 'the exercise navigator must render after the stage');

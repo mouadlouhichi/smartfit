@@ -4,6 +4,8 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   Check,
   ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Dumbbell,
   Flag,
   Flame,
@@ -15,6 +17,7 @@ import {
   Share2,
   Sparkles,
   Timer,
+  Trash2,
   Trophy,
   X,
 } from 'lucide-react';
@@ -590,19 +593,30 @@ function LiveScreen(p: LiveProps) {
                   its pill in the bottom navigator, not here — the stage stays
                   clean like the reference. */}
               <div className="absolute inset-x-3 top-3 flex items-start gap-2">
-                {/* One segment per set, filling as they are completed — the
-                    reference's progress bar, not floating dots. */}
-                <div className="flex min-w-0 flex-1 items-center gap-1">
-                  {p.active.sets.map((s, i) => (
-                    <span
-                      key={s.id}
-                      aria-hidden
-                      className={cn(
-                        'h-1 min-w-0 flex-1 rounded-full transition-colors',
-                        s.done ? 'bg-volt' : i + 1 === currentNo ? 'bg-white/70' : 'bg-white/20',
-                      )}
-                    />
-                  ))}
+                {/* One dash per exercise in the session — the reference's
+                    green progress track. Completed and current read volt;
+                    upcoming stay dim. */}
+                <div
+                  className="flex min-w-0 flex-1 items-center gap-1"
+                  role="progressbar"
+                  aria-valuemin={1}
+                  aria-valuemax={p.exercises.length}
+                  aria-valuenow={p.activeIndex + 1}
+                  aria-label={`Exercise ${p.activeIndex + 1} of ${p.exercises.length}`}
+                >
+                  {p.exercises.map((x, i) => {
+                    const complete = x.sets.length > 0 && x.sets.every((st) => st.done);
+                    return (
+                      <span
+                        key={x.id}
+                        aria-hidden
+                        className={cn(
+                          'h-1 min-w-0 flex-1 rounded-full transition-colors',
+                          complete || i <= p.activeIndex ? 'bg-volt' : 'bg-white/20',
+                        )}
+                      />
+                    );
+                  })}
                 </div>
               </div>
               {/* Name + history — a solid band under the art so the copy is
@@ -747,6 +761,21 @@ function LiveScreen(p: LiveProps) {
 
             {/* ── Sets table ─────────────────────────────────────────────── */}
             <div className="mt-6">
+              {/* Removing the exercise lives with its sets now that the
+                  navigator is a next-up preview rather than a pill queue. */}
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[11px] font-bold tracking-[0.16em] text-[rgba(237,235,230,0.55)] uppercase">
+                  Sets
+                </p>
+                <button
+                  onClick={() => p.removeExercise(p.active!.id)}
+                  aria-label={`Remove ${p.active.name} from this session`}
+                  className="press session-muted flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold transition-colors hover:bg-white/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                  Remove
+                </button>
+              </div>
               <div className="mb-2 grid grid-cols-[1.5rem_1fr_1fr_2.75rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(237,235,230,0.55)] uppercase min-[380px]:grid-cols-[2rem_1fr_1fr_3rem]">
                 <span>Set</span>
                 <span className="text-center">Reps</span>
@@ -928,83 +957,49 @@ function LiveScreen(p: LiveProps) {
         )}
       </div>
 
-      {/* ── Exercise navigator — pinned to the bottom like the reference ──
-          Sits directly above the finish bar so the queue is under the thumb.
-          The active pill carries its own remove control, which is why the
-          stage artwork no longer needs an X. */}
-      <div
-        className={cn(
-          'relative border-t border-white/8 pt-3',
-          // With no exercises the rail would render as a bare divider.
-          p.exercises.length === 0 && 'hidden',
-        )}
-      >
-        <div
-          className="no-scrollbar flex min-w-0 snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4"
-          role="tablist"
-          aria-label="Exercises in this session"
-        >
-          {p.exercises.map((x, i) => {
-            const done = x.sets.length > 0 && x.sets.every((s) => s.done);
-            const active = i === p.activeIndex;
-            return (
-              <div
-                key={x.id}
-                className={cn(
-                  'flex shrink-0 snap-start items-center rounded-full border py-1.5 pr-1.5 pl-2',
-                  active
-                    ? 'border-transparent text-[#0d1102]'
-                    : 'session-tile text-[rgba(237,235,230,0.75)]',
-                )}
-                style={active ? { background: 'var(--chart-1)' } : undefined}
+      {/* ── Next-up navigator — the reference's preview card ──────────────
+          One card showing the exercise that comes next (its demo, its name)
+          with prev/next controls, rather than a scrolling queue of pills.
+          Hidden on a single-exercise session, where there is nothing to
+          navigate to. */}
+      {p.exercises.length > 1 && p.active && (
+        <div className="px-4 pb-3">
+          <div className="session-tile flex items-center gap-3 rounded-2xl p-2">
+            <ExerciseImage
+              name={(nextExercise ?? p.exercises[0]).name}
+              animated={false}
+              className="h-11 w-11 shrink-0 rounded-xl bg-white"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="session-muted text-[10px] font-bold tracking-[0.16em] uppercase">
+                {nextExercise ? 'Next up' : 'Last exercise'}
+              </p>
+              <p className="truncate text-sm leading-tight font-bold">
+                {(nextExercise ?? p.active).name}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                onClick={() => p.setActiveIndex(p.activeIndex - 1)}
+                disabled={p.activeIndex === 0}
+                aria-label="Previous exercise"
+                className="press grid h-9 w-9 place-items-center rounded-full bg-white/8 text-[rgba(237,235,230,0.75)] transition-colors hover:bg-white/15 disabled:opacity-35"
               >
-                <button
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => p.setActiveIndex(i)}
-                  className="press flex min-w-0 items-center gap-2 text-sm font-semibold"
-                >
-                  <span
-                    className={cn(
-                      'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold tabular-nums',
-                      active
-                        ? 'bg-[#0d1102]/20'
-                        : done
-                          ? 'bg-[color-mix(in_oklab,var(--chart-1)_30%,transparent)]'
-                          : 'bg-white/10',
-                    )}
-                    aria-hidden
-                  >
-                    {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                  </span>
-                  <span className="max-w-[6.5rem] truncate min-[380px]:max-w-[8.5rem]">
-                    {x.name}
-                  </span>
-                </button>
-                <button
-                  onClick={() => p.removeExercise(x.id)}
-                  aria-label={`Remove ${x.name}`}
-                  className={cn(
-                    'press ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-full transition-colors',
-                    active ? 'hover:bg-[#0d1102]/15' : 'hover:bg-white/10',
-                  )}
-                >
-                  <X className="h-3.5 w-3.5" aria-hidden />
-                </button>
-              </div>
-            );
-          })}
+                <ChevronsLeft className="h-4 w-4" aria-hidden />
+              </button>
+              <button
+                onClick={() => p.setActiveIndex(p.activeIndex + 1)}
+                disabled={!nextExercise}
+                aria-label="Next exercise"
+                className="press bg-volt flex h-9 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-extrabold text-[#0d1102] transition-transform hover:-translate-y-0.5 disabled:opacity-35 disabled:hover:translate-y-0"
+              >
+                Next
+                <ChevronsRight className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          </div>
         </div>
-        {/* Edge fades — the affordance that the rail continues. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[#050404] to-transparent"
-        />
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-[#050404] to-transparent"
-        />
-      </div>
+      )}
 
       {/* ── Thumb-zone finish bar ────────────────────────────────────── */}
       <div className="px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -1036,32 +1031,38 @@ function SetStepper({
   onPlus: () => void;
 }) {
   return (
-    <div className="flex w-[4.75rem] min-w-0 shrink flex-col items-center gap-2 min-[380px]:w-[5.25rem]">
-      {/* Big round add — the reference's primary stepper affordance. */}
+    <div className="flex min-w-0 shrink flex-col items-center gap-2">
+      {/* The reference's stepper: one large flat circle with a thin plus,
+          the label directly beneath. Long-press (or the − affordance that
+          appears once a value is set) handles decrements. */}
       <button
         type="button"
         onClick={onPlus}
         aria-label={`Increase ${label.trim()} by ${step}`}
-        className="press session-tile grid h-14 w-14 place-items-center rounded-full"
+        className="press grid h-16 w-16 place-items-center rounded-full bg-[#1a1c15] text-[#edebe6] transition-colors hover:bg-[#23261c] min-[380px]:h-[4.5rem] min-[380px]:w-[4.5rem]"
       >
-        <Plus className="h-5 w-5" aria-hidden />
+        <Plus className="h-6 w-6" strokeWidth={2} aria-hidden />
       </button>
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onMinus}
-          aria-label={`Decrease ${label.trim()} by ${step}`}
-          className="press session-muted grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/8"
-        >
-          <Minus className="h-3.5 w-3.5" aria-hidden />
-        </button>
-        <p className="font-display text-lg leading-none font-extrabold tabular-nums min-[380px]:text-xl">
-          {value || '—'}
-        </p>
+      <div className="flex flex-col items-center gap-1">
+        <p className="text-[13px] leading-none font-bold text-[#edebe6]">{label}</p>
+        {/* Value + decrement only once there is something to adjust, so the
+            resting state matches the comp's clean plus-and-label pair. */}
+        {value ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onMinus}
+              aria-label={`Decrease ${label.trim()} by ${step}`}
+              className="press session-muted grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/8"
+            >
+              <Minus className="h-3 w-3" aria-hidden />
+            </button>
+            <p className="font-display text-base leading-none font-extrabold tabular-nums">
+              {value}
+            </p>
+          </div>
+        ) : null}
       </div>
-      <p className="session-muted text-center text-[10px] leading-tight font-bold tracking-wide uppercase">
-        {label}
-      </p>
     </div>
   );
 }
