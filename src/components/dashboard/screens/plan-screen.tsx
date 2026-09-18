@@ -410,12 +410,18 @@ export function PlanScreen() {
                           >
                             <Play className="ml-0.5 h-4 w-4" />
                           </button>
-                          <Switch
-                            checked={s.active}
-                            onCheckedChange={(v) => updateSchedule(s.id, { active: v })}
-                            aria-label={`${s.title} active`}
-                            className="-m-2 p-2"
-                          />
+                          {/* The -m-2 p-2 hit-area trick works on an icon
+                              button but not here: padding is added inside the
+                              Switch's fixed h-6 w-11 track, inflating it so
+                              the thumb slides out past the end. Expand the
+                              touch target with a wrapper instead. */}
+                          <span className="-m-2 flex shrink-0 p-2">
+                            <Switch
+                              checked={s.active}
+                              onCheckedChange={(v) => updateSchedule(s.id, { active: v })}
+                              aria-label={`${s.title} active`}
+                            />
+                          </span>
                           <button
                             onClick={() => openWith({ kind: 'schedule', schedule: s })}
                             className="text-muted-foreground hover:text-primary -m-2 shrink-0 p-2 transition-colors"

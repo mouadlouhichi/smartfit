@@ -139,3 +139,25 @@ test('the navigator pins while the finish bar scrolls', () => {
     'the next-up navigator must sit outside the scroll column so it stays pinned',
   );
 });
+
+/**
+ * The installed PWA's chrome must match the app, not the accent. `theme_color`
+ * tints the status bar and task-switcher card in a standalone window, so a
+ * volt value painted a bright green bar above a near-black app.
+ */
+test('the PWA manifest matches the app canvas', () => {
+  const manifest = JSON.parse(fs.readFileSync('public/manifest.webmanifest', 'utf8'));
+  const dark = '#050404';
+  assert.equal(manifest.background_color, dark, 'splash must match the dark canvas');
+  assert.equal(manifest.theme_color, dark, 'theme_color must not be the volt accent');
+});
+
+/**
+ * The manifest is precached by the service worker, so shipping a new one
+ * without bumping VERSION would leave existing installs on the old colours.
+ */
+test('the service worker precaches the manifest under a versioned cache', () => {
+  const sw = fs.readFileSync('public/sw.js', 'utf8');
+  assert.match(sw, /const VERSION = 'smartfit-v(\d+)'/, 'sw must carry a numbered version');
+  assert.ok(sw.includes("'/manifest.webmanifest'"), 'manifest should stay precached');
+});
