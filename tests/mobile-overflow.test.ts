@@ -76,9 +76,9 @@ test('the full-screen coach offers a way back on mobile', () => {
 });
 
 /**
- * The session runner's exercise navigator belongs at the bottom of the sheet,
- * under the thumb and above the finish bar (matching assets/ui.webp). It is
- * easy to reintroduce it above the stage during a refactor, so pin the order.
+ * The runner's bottom chrome must stay below the stage: both the finish bar
+ * and the pinned navigator render after the exercise hero, never above it.
+ * Their relative order is asserted by the pinning test below.
  */
 test('the runner navigator sits below the exercise stage', () => {
   const src = fs.readFileSync('src/components/dashboard/modals/session-runner-modal.tsx', 'utf8');
@@ -87,7 +87,7 @@ test('the runner navigator sits below the exercise stage', () => {
   const finish = src.indexOf('── Finish bar');
   assert.ok(stage > 0 && navigator > 0 && finish > 0, 'runner landmarks must all exist');
   assert.ok(navigator > stage, 'the exercise navigator must render after the stage');
-  assert.ok(navigator < finish, 'the exercise navigator must sit above the finish bar');
+  assert.ok(finish > stage, 'the finish bar must render after the stage');
 });
 
 /**
@@ -114,25 +114,28 @@ test('aspect-ratio boxes that cap their height also clip their children', () => 
 });
 
 /**
- * The finish bar and next-up navigator must live *inside* the runner's
- * scrolling column. As flex siblings of it they were pinned to the viewport
- * as firmly as `position: sticky` would have managed -- no sticky class
- * involved -- and together they left almost no room for the exercise stage
- * on a short phone.
+ * Division of the runner's bottom chrome:
+ *  - the next-up navigator is a flex sibling of the scroll column, so it
+ *    pins to the sheet floor and Next is always one tap away;
+ *  - the finish bar stays inside the column and scrolls, because finishing
+ *    is a once-per-session action and two pinned slabs left almost no room
+ *    for the exercise stage on a short phone.
  */
-test('the runner finish bar scrolls with the content', () => {
+test('the navigator pins while the finish bar scrolls', () => {
   const src = fs.readFileSync('src/components/dashboard/modals/session-runner-modal.tsx', 'utf8');
   const scroll = src.indexOf('<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">');
   assert.ok(scroll > 0, 'the live screen scroll container must exist');
-  const end = src.indexOf('    </div>\n  );\n', scroll);
-  const navigator = src.indexOf('Next-up navigator');
+  const scrollEnd = src.indexOf('      </div>\n\n      {/* ── Next-up navigator', scroll);
+  assert.ok(scrollEnd > scroll, 'the scroll column must close before the navigator');
+
   const finish = src.indexOf('── Finish bar');
+  const navigator = src.indexOf('Next-up navigator');
   assert.ok(
-    scroll < navigator && navigator < end,
-    'the next-up navigator must sit inside the scroll container',
+    scroll < finish && finish < scrollEnd,
+    'the finish bar must scroll with the content, not hold permanent space',
   );
   assert.ok(
-    scroll < finish && finish < end,
-    'the finish bar must sit inside the scroll container, not pinned beside it',
+    navigator > scrollEnd,
+    'the next-up navigator must sit outside the scroll column so it stays pinned',
   );
 });
