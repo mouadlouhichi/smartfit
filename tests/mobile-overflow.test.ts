@@ -74,3 +74,18 @@ test('the full-screen coach offers a way back on mobile', () => {
     'coach page must link back to the dashboard (the bottom nav is hidden here)',
   );
 });
+
+/**
+ * The session runner's exercise navigator belongs at the bottom of the sheet,
+ * under the thumb and above the finish bar (matching assets/ui.webp). It is
+ * easy to reintroduce it above the stage during a refactor, so pin the order.
+ */
+test('the runner navigator sits below the exercise stage', () => {
+  const src = fs.readFileSync('src/components/dashboard/modals/session-runner-modal.tsx', 'utf8');
+  const stage = src.indexOf('Cinematic exercise hero');
+  const navigator = src.indexOf('Exercises in this session');
+  const finish = src.indexOf('Thumb-zone finish bar');
+  assert.ok(stage > 0 && navigator > 0 && finish > 0, 'runner landmarks must all exist');
+  assert.ok(navigator > stage, 'the exercise navigator must render after the stage');
+  assert.ok(navigator < finish, 'the exercise navigator must sit above the finish bar');
+});

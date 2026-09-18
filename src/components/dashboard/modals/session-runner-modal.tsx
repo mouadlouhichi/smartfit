@@ -564,62 +564,7 @@ function LiveScreen(p: LiveProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* ── Exercise queue rail — snap-scrolling, edge-faded ──────────────
-          The old rail clipped its pills at the sheet edge with no hint of
-          more content ("the modal exceeds the mobile width"). Snap + a
-          gradient mask make the overflow an obvious scroll. */}
-      <div className="relative px-4 pb-3">
-        <div
-          className="no-scrollbar -mx-4 flex min-w-0 snap-x snap-mandatory gap-2 overflow-x-auto px-4"
-          role="tablist"
-          aria-label="Exercises in this session"
-        >
-          {p.exercises.map((x, i) => {
-            const done = x.sets.length > 0 && x.sets.every((s) => s.done);
-            return (
-              <button
-                key={x.id}
-                role="tab"
-                aria-selected={i === p.activeIndex}
-                onClick={() => p.setActiveIndex(i)}
-                className={cn(
-                  'press flex shrink-0 snap-start items-center gap-2 rounded-full border py-2 pr-3.5 pl-2 text-sm font-semibold',
-                  i === p.activeIndex
-                    ? 'border-transparent text-[#0d1102]'
-                    : 'session-tile text-[rgba(237,235,230,0.75)]',
-                )}
-                style={i === p.activeIndex ? { background: 'var(--chart-1)' } : undefined}
-              >
-                <span
-                  className={cn(
-                    'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold tabular-nums',
-                    i === p.activeIndex
-                      ? 'bg-[#0d1102]/20'
-                      : done
-                        ? 'bg-[color-mix(in_oklab,var(--chart-1)_30%,transparent)]'
-                        : 'bg-white/10',
-                  )}
-                  aria-hidden
-                >
-                  {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                </span>
-                <span className="max-w-[6.5rem] truncate min-[380px]:max-w-[8.5rem]">{x.name}</span>
-              </button>
-            );
-          })}
-        </div>
-        {/* Edge fades — the affordance that the rail continues. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[#050404] to-transparent"
-        />
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-[#050404] to-transparent"
-        />
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {p.active ? (
           <div key={p.active.id} className="slide-in-right">
             {/* ── Cinematic exercise hero — the Axel live-workout stage ── */}
@@ -641,8 +586,10 @@ function LiveScreen(p: LiveProps) {
                   background: 'linear-gradient(180deg, rgba(5,4,4,0.65) 0%, rgba(5,4,4,0) 100%)',
                 }}
               />
-              {/* Set progress + remove, over the art */}
-              <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+              {/* Set progress over the art. Removing an exercise lives on
+                  its pill in the bottom navigator, not here — the stage stays
+                  clean like the reference. */}
+              <div className="absolute inset-x-3 top-3 flex items-start gap-2">
                 {/* One segment per set, filling as they are completed — the
                     reference's progress bar, not floating dots. */}
                 <div className="flex min-w-0 flex-1 items-center gap-1">
@@ -657,13 +604,6 @@ function LiveScreen(p: LiveProps) {
                     />
                   ))}
                 </div>
-                <button
-                  onClick={() => p.removeExercise(p.active!.id)}
-                  aria-label={`Remove ${p.active.name}`}
-                  className="glass press flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[rgba(237,235,230,0.75)]"
-                >
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
               </div>
               {/* Name + history — a solid band under the art so the copy is
                   always legible regardless of the demo's brightness. */}
@@ -988,8 +928,86 @@ function LiveScreen(p: LiveProps) {
         )}
       </div>
 
+      {/* ── Exercise navigator — pinned to the bottom like the reference ──
+          Sits directly above the finish bar so the queue is under the thumb.
+          The active pill carries its own remove control, which is why the
+          stage artwork no longer needs an X. */}
+      <div
+        className={cn(
+          'relative border-t border-white/8 pt-3',
+          // With no exercises the rail would render as a bare divider.
+          p.exercises.length === 0 && 'hidden',
+        )}
+      >
+        <div
+          className="no-scrollbar flex min-w-0 snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4"
+          role="tablist"
+          aria-label="Exercises in this session"
+        >
+          {p.exercises.map((x, i) => {
+            const done = x.sets.length > 0 && x.sets.every((s) => s.done);
+            const active = i === p.activeIndex;
+            return (
+              <div
+                key={x.id}
+                className={cn(
+                  'flex shrink-0 snap-start items-center rounded-full border py-1.5 pr-1.5 pl-2',
+                  active
+                    ? 'border-transparent text-[#0d1102]'
+                    : 'session-tile text-[rgba(237,235,230,0.75)]',
+                )}
+                style={active ? { background: 'var(--chart-1)' } : undefined}
+              >
+                <button
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => p.setActiveIndex(i)}
+                  className="press flex min-w-0 items-center gap-2 text-sm font-semibold"
+                >
+                  <span
+                    className={cn(
+                      'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold tabular-nums',
+                      active
+                        ? 'bg-[#0d1102]/20'
+                        : done
+                          ? 'bg-[color-mix(in_oklab,var(--chart-1)_30%,transparent)]'
+                          : 'bg-white/10',
+                    )}
+                    aria-hidden
+                  >
+                    {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
+                  </span>
+                  <span className="max-w-[6.5rem] truncate min-[380px]:max-w-[8.5rem]">
+                    {x.name}
+                  </span>
+                </button>
+                <button
+                  onClick={() => p.removeExercise(x.id)}
+                  aria-label={`Remove ${x.name}`}
+                  className={cn(
+                    'press ml-1 grid h-7 w-7 shrink-0 place-items-center rounded-full transition-colors',
+                    active ? 'hover:bg-[#0d1102]/15' : 'hover:bg-white/10',
+                  )}
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        {/* Edge fades — the affordance that the rail continues. */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[#050404] to-transparent"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-[#050404] to-transparent"
+        />
+      </div>
+
       {/* ── Thumb-zone finish bar ────────────────────────────────────── */}
-      <div className="border-t border-white/8 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           onClick={p.finish}
           className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
@@ -1018,31 +1036,32 @@ function SetStepper({
   onPlus: () => void;
 }) {
   return (
-    <div className="flex w-[4.25rem] min-w-0 shrink flex-col items-center gap-1.5 min-[380px]:w-[5rem] min-[430px]:w-[5.4rem]">
+    <div className="flex w-[4.75rem] min-w-0 shrink flex-col items-center gap-2 min-[380px]:w-[5.25rem]">
+      {/* Big round add — the reference's primary stepper affordance. */}
       <button
         type="button"
         onClick={onPlus}
         aria-label={`Increase ${label.trim()} by ${step}`}
-        className="press session-tile grid h-11 w-full place-items-center rounded-2xl"
+        className="press session-tile grid h-14 w-14 place-items-center rounded-full"
       >
-        <Plus className="h-4 w-4" aria-hidden />
+        <Plus className="h-5 w-5" aria-hidden />
       </button>
-      <div className="text-center">
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={onMinus}
+          aria-label={`Decrease ${label.trim()} by ${step}`}
+          className="press session-muted grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/8"
+        >
+          <Minus className="h-3.5 w-3.5" aria-hidden />
+        </button>
         <p className="font-display text-lg leading-none font-extrabold tabular-nums min-[380px]:text-xl">
           {value || '—'}
         </p>
-        <p className="session-muted mt-0.5 text-[9px] leading-tight font-bold tracking-wide uppercase min-[380px]:text-[10px]">
-          {label}
-        </p>
       </div>
-      <button
-        type="button"
-        onClick={onMinus}
-        aria-label={`Decrease ${label.trim()} by ${step}`}
-        className="press session-tile grid h-11 w-full place-items-center rounded-2xl"
-      >
-        <Minus className="h-4 w-4" aria-hidden />
-      </button>
+      <p className="session-muted text-center text-[10px] leading-tight font-bold tracking-wide uppercase">
+        {label}
+      </p>
     </div>
   );
 }
