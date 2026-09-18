@@ -628,7 +628,7 @@ function LiveScreen(p: LiveProps) {
                 <ExerciseImage
                   name={p.active.name}
                   variant="full"
-                  className="exercise-demo-tile--dark h-full w-full rounded-2xl"
+                  className="exercise-demo-tile--dark h-full w-full rounded-2xl bg-white"
                   animated
                 />
               </div>
@@ -643,17 +643,17 @@ function LiveScreen(p: LiveProps) {
               />
               {/* Set progress + remove, over the art */}
               <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
-                <div className="flex items-center gap-1.5">
+                {/* One segment per set, filling as they are completed — the
+                    reference's progress bar, not floating dots. */}
+                <div className="flex min-w-0 flex-1 items-center gap-1">
                   {p.active.sets.map((s, i) => (
                     <span
                       key={s.id}
                       aria-hidden
-                      className={cn('h-1.5 w-5 rounded-full', s.done ? 'bg-volt' : 'bg-white/25')}
-                      style={
-                        i + 1 === currentNo && !s.done
-                          ? { background: 'rgba(237,235,230,0.75)' }
-                          : undefined
-                      }
+                      className={cn(
+                        'h-1 min-w-0 flex-1 rounded-full transition-colors',
+                        s.done ? 'bg-volt' : i + 1 === currentNo ? 'bg-white/70' : 'bg-white/20',
+                      )}
                     />
                   ))}
                 </div>
@@ -668,14 +668,14 @@ function LiveScreen(p: LiveProps) {
               {/* Name + history — a solid band under the art so the copy is
                   always legible regardless of the demo's brightness. */}
               <div className="border-t border-white/8 bg-[#0a0b06] px-4 py-3.5">
-                <p className="session-muted text-[11px] font-bold tracking-[0.18em] uppercase">
+                <p className="text-volt text-[11px] font-extrabold tracking-[0.18em] uppercase">
                   {currentSet
-                    ? `Set ${currentNo} of ${p.active.sets.length}`
+                    ? `Set ${currentNo} / ${p.active.sets.length}`
                     : `${p.active.sets.length} sets`}
                 </p>
-                <p className="font-display mt-0.5 text-2xl leading-tight font-extrabold tracking-tight">
+                <h3 className="title-italic mt-1 text-[1.75rem] text-balance min-[380px]:text-[2rem]">
                   {p.active.name}
-                </p>
+                </h3>
                 <p className="session-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
                   {last ? (
                     <span className="inline-flex items-center gap-1.5">
@@ -789,7 +789,7 @@ function LiveScreen(p: LiveProps) {
               >
                 <ExerciseImage
                   name={nextExercise.name}
-                  className="exercise-demo-tile--dark h-10 w-10 shrink-0 rounded-lg border border-white/10 bg-white/[0.06]"
+                  className="exercise-demo-tile--dark h-10 w-10 shrink-0 rounded-lg bg-white"
                   animated={false}
                 />
                 <span className="min-w-0 flex-1">
@@ -1144,7 +1144,7 @@ function RingTimer({
           </span>
           <span
             className={cn(
-              'font-display text-[1.35rem] leading-none font-extrabold tabular-nums min-[380px]:text-[1.6rem]',
+              'font-display text-[1.35rem] leading-none font-extrabold italic tabular-nums min-[380px]:text-[1.6rem]',
               urgent && 'rest-beat',
             )}
           >
@@ -1215,7 +1215,7 @@ function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: 
           >
             <ExerciseImage
               name={s.name}
-              className="exercise-demo-tile--dark h-11 w-11 shrink-0 rounded-lg border border-white/10 bg-white/[0.06]"
+              className="exercise-demo-tile--dark h-11 w-11 shrink-0 rounded-lg bg-white"
               animated={false}
             />
             <span className="min-w-0 flex-1">

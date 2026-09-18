@@ -256,6 +256,19 @@ body {
     letter-spacing: normal;
   }
 }
+/* The reference's live-workout title: a heavy condensed italic that reads as
+   motion. Synthesised obliquing + a tight negative track match the Axel
+   comp without shipping another webfont. */
+.title-italic {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  transform: skewX(-4deg);
+  transform-origin: left bottom;
+}
+
 .font-display-tight {
   font-family: var(--font-display);
   font-weight: 800;
@@ -426,14 +439,11 @@ input[type='number'] {
     opacity: 0;
   }
 }
-/* Catalog demos ship on a hard white matte, which reads as a glaring white
-   chip on the app's dark surfaces. Inverting flips the matte to near-black
-   and the grey line art to light; the paired 180deg hue-rotate puts colour
-   back where it started, so the red target-muscle highlight stays red. The
-   light theme keeps the artwork exactly as authored. */
-.dark .exercise-demo-tile img,
+/* Catalog demos are authored on a white matte and are shown exactly as
+   authored on every surface. Inverting them to match the dark theme muddied
+   the line art, so dark tiles keep the white plate and simply round it. */
 .exercise-demo-tile--dark img {
-  filter: invert(1) hue-rotate(180deg) brightness(1.05);
+  background: #fff;
 }
 
 .exercise-demo-a {

@@ -55,8 +55,9 @@ export function MuscleMapModal({
    * Tapping a row toggles it in or out; the CTA launches exactly this set.
    */
   const [picked, setPicked] = useState<string[] | null>(null);
-  /** The selected chip, so the rail can scroll it into view. */
+  /** The selected chip and its rail, so the rail can centre it. */
   const activeChipRef = useRef<HTMLButtonElement | null>(null);
+  const railRef = useRef<HTMLDivElement | null>(null);
 
   const label = EXERCISE_MUSCLE_LABELS[muscle];
   const groupColor = MUSCLE_GROUP_COLOR[MUSCLE_GROUP[muscle]];
@@ -86,10 +87,19 @@ export function MuscleMapModal({
   }, [muscle, open]);
 
   // The switcher rail is long; keep the current muscle visible rather than
-  // leaving it clipped off the left edge.
+  // leaving it clipped off the left edge. scrollIntoView is deliberately not
+  // used: it walks every scrollable ancestor (yanking the sheet itself) and
+  // fires before the chip has its final geometry.
   useEffect(() => {
     if (!open) return;
-    activeChipRef.current?.scrollIntoView({ block: 'nearest', inline: 'center' });
+    const raf = requestAnimationFrame(() => {
+      const chip = activeChipRef.current;
+      const rail = railRef.current;
+      if (!chip || !rail) return;
+      const target = chip.offsetLeft - (rail.clientWidth - chip.offsetWidth) / 2;
+      rail.scrollTo({ left: Math.max(0, target), behavior: 'auto' });
+    });
+    return () => cancelAnimationFrame(raf);
   }, [muscle, open]);
 
   const defaultPicks = useMemo(() => entries.slice(0, ROUTINE_SIZE).map((e) => e.name), [entries]);
@@ -148,9 +158,7 @@ export function MuscleMapModal({
 
             {/* Muscle headline */}
             <div className="mt-1 flex items-end justify-between gap-3">
-              <h2 className="font-display text-3xl leading-none font-extrabold tracking-tight">
-                {label}
-              </h2>
+              <h2 className="title-italic text-[2rem] min-[380px]:text-[2.25rem]">{label}</h2>
               <span
                 className="mb-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold"
                 style={{ backgroundColor: `${groupColor}22`, color: groupColor }}
@@ -209,7 +217,8 @@ export function MuscleMapModal({
             {/* Muscle switcher — re-select without leaving the sheet. */}
             <div className="relative mt-3">
               <div
-                className="no-scrollbar -mx-5 flex min-w-0 snap-x gap-1.5 overflow-x-auto px-5 pb-1"
+                ref={railRef}
+                className="no-scrollbar -mx-5 flex min-w-0 snap-x scroll-px-5 gap-1.5 overflow-x-auto px-5 pb-1"
                 role="group"
                 aria-label="Switch muscle"
               >
@@ -306,7 +315,7 @@ export function MuscleMapModal({
                             <ExerciseImage
                               name={e.name}
                               animated={i < 4}
-                              className="exercise-demo-tile--dark h-14 w-14 rounded-xl border border-white/10 bg-white/[0.06]"
+                              className="exercise-demo-tile--dark h-14 w-14 rounded-xl bg-white"
                             />
                             <span
                               aria-hidden
