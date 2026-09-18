@@ -1,6 +1,7 @@
 'use client';
 
-import { Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import {
   CoachAiSource,
   CoachComposer,
@@ -35,11 +36,20 @@ export default function CoachPage() {
   return (
     <div className="flex h-[calc(100dvh-140px)] flex-col lg:h-[calc(100dvh-120px)]">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="bg-primary text-primary-foreground shadow-primary/30 flex h-11 w-11 items-center justify-center rounded-full shadow-md">
+        <div className="flex min-w-0 items-center gap-3">
+          {/* The bottom nav hides itself on this route, so this is the only
+              way back on a phone. */}
+          <Link
+            href="/dashboard"
+            aria-label="Back to dashboard"
+            className="bg-secondary hover:bg-secondary/70 grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors lg:hidden"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <span className="bg-primary text-primary-foreground shadow-primary/30 hidden h-11 w-11 shrink-0 items-center justify-center rounded-full shadow-md lg:flex">
             <Sparkles className="h-5 w-5" />
           </span>
-          <div>
+          <div className="min-w-0">
             <h1 className="font-display text-lg leading-tight font-extrabold tracking-tight">
               Your coach
             </h1>
@@ -48,11 +58,13 @@ export default function CoachPage() {
                 className={`h-2 w-2 rounded-full ${thinking ? 'animate-pulse-soft bg-chart-2' : 'bg-primary'}`}
                 aria-hidden
               />
-              {thinking
-                ? 'Thinking…'
-                : aiAvailable
-                  ? `AI answers via ${aiHost} — streams as it writes, on-device when it cannot`
-                  : 'Worked out on this device from your own data'}
+              <span className="truncate">
+                {thinking
+                  ? 'Thinking…'
+                  : aiAvailable
+                    ? `AI via ${aiHost}`
+                    : 'Answered on this device'}
+              </span>
             </p>
           </div>
         </div>

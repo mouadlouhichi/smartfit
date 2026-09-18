@@ -1,21 +1,22 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Check,
-  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   Dumbbell,
   Flag,
   Flame,
   History,
   Minus,
-  Navigation,
   Pause,
   Play,
   Plus,
   Share2,
   Sparkles,
   Timer,
+  Trash2,
   Trophy,
   X,
 } from 'lucide-react';
@@ -25,7 +26,13 @@ import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { ExerciseImage } from '@/components/exercise-image';
 import { ExercisePicker } from '@/components/exercise-picker';
-import { categoryById, toISODate } from '@smartfit/core';
+import { Select } from '@/components/ui/select';
+import {
+  categoryById,
+  estimateExercisesCalories,
+  latestBodyWeightKg,
+  toISODate,
+} from '@smartfit/core';
 import {
   REST_PRESETS,
   REST_STEP_SECONDS,
@@ -35,27 +42,19 @@ import {
   formatVolume,
   formatWeight,
   hasProAccess,
-  haversineMeters,
   isPersonalRecord,
   lastPerformance,
   measureForExerciseName,
   progressionTarget,
-  computeRunStats,
-  routeDistanceKm,
-  simplifyRoute,
   suggestedExercisesForCategory,
   suggestedRestSeconds,
   summariseLiveSession,
-  type GeoPoint,
   type ProgressionTarget,
   type SessionSummary,
   type WorkoutSetKind,
 } from '@smartfit/core';
 import { renderWorkoutPng, shareOrDownloadPng } from '@/lib/route-art';
-import { RouteMap } from '../route-map';
 import { ProgressAchievementModal } from './progress-achievement-modal';
-import { ShareSheet } from '../share-sheet';
-import type { RunCardData } from '@/lib/share-card';
 import { cn } from '@/lib/utils';
 
 /* ── helpers ───────────────────────────────────────────────────────────── */
@@ -160,15 +159,6 @@ export function SessionRunnerModal() {
   const [celebrate, setCelebrate] = useState<{ title: string; prCount: number } | null>(null);
   const nextId = useRef(1);
 
-  // GPS walk tracking
-  const [tracking, setTracking] = useState(false);
-  const [distanceKm, setDistanceKm] = useState(0);
-  const [shareOpen, setShareOpen] = useState(false);
-  const [shareData, setShareData] = useState<RunCardData | null>(null);
-  const [geoError, setGeoError] = useState<string | null>(null);
-  const routeRef = useRef<GeoPoint[]>([]);
-  const watchIdRef = useRef<number | null>(null);
-
   // Reset to a fresh session every time the runner opens.
   useEffect(() => {
     if (!isOpen || !payload || payload.kind !== 'runner') return;
@@ -179,10 +169,6 @@ export function SessionRunnerModal() {
     setActiveIndex(0);
     setDraft('');
     setScreen('live');
-    routeRef.current = [];
-    setDistanceKm(0);
-    setGeoError(null);
-    setTracking(false);
 
     const template = payload.exercises ?? [];
     const initial: LiveExercise[] = template.map((entry) => ({
@@ -214,78 +200,6 @@ export function SessionRunnerModal() {
       setRestTotal(0); // so it only fires once per countdown
     }
   }, [restLeft, restTotal]);
-
-  // Always release the GPS watch when the runner closes or unmounts.
-  useEffect(() => stopTracking, []);
-
-  function stopTracking() {
-    if (watchIdRef.current !== null && typeof navigator !== 'undefined') {
-      navigator.geolocation?.clearWatch(watchIdRef.current);
-    }
-    watchIdRef.current = null;
-    setTracking(false);
-  }
-
-  function toggleTracking() {
-    if (tracking) {
-      stopTracking();
-      return;
-    }
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setGeoError('GPS is not available on this device.');
-      return;
-    }
-    setGeoError(null);
-    setTracking(true);
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude, accuracy } = pos.coords;
-        // Ignore low-confidence fixes (indoor / cold start).
-        if (!Number.isFinite(accuracy) || accuracy > 50) return;
-        const last = routeRef.current[routeRef.current.length - 1];
-        const point: GeoPoint = { lat: latitude, lng: longitude, t: pos.timestamp };
-        // Only record real movement (~5 m) so a standing start doesn't jitter.
-        if (last && haversineMeters(last, point) < 5) return;
-        routeRef.current = [...routeRef.current, point];
-        setDistanceKm(routeDistanceKm(routeRef.current));
-      },
-      (err) => {
-        setTracking(false);
-        setGeoError(
-          err.code === err.PERMISSION_DENIED
-            ? 'Location permission denied — enable it to track your route.'
-            : 'Could not get a GPS fix.',
-        );
-      },
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 },
-    );
-  }
-
-  /**
-   * Route sharing hands the frozen trace to the shared share sheet, so a GPS
-   * workout gets the same transparent / volt / Paper cards as a run recorded
-   * on the run screen.
-   */
-  function openRouteShare() {
-    const points = routeRef.current;
-    const stats = computeRunStats(points);
-    setShareData({
-      title: run.title,
-      dateLabel: new Date().toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      }),
-      distanceKm: stats.distanceKm,
-      movingSec: stats.movingSec,
-      paceMinPerKm: stats.avgPaceMinPerKm,
-      elevationGainM: stats.elevationGainM,
-      splits: stats.splits,
-      efforts: stats.bestEfforts,
-      route: points,
-    });
-    setShareOpen(true);
-  }
 
   /** Shareable "gym receipt" card — watermarked on free, clean on Pro. */
   async function shareWorkout() {
@@ -443,25 +357,26 @@ export function SessionRunnerModal() {
 
   function finishToSummary() {
     setRunning(false);
-    stopTracking(); // freeze the GPS trace before the summary renders it
     setScreen('summary');
   }
 
   function saveSession() {
     const durationMin = Math.max(1, Math.round(seconds / 60));
     const core = exercises.map(toCoreExercise).filter((x) => x.sets.length > 0);
-    const route = routeRef.current.length >= 2 ? simplifyRoute(routeRef.current, 500) : undefined;
     addSession({
       date: toISODate(new Date()),
       categoryId: run.categoryId,
       title: run.title,
       durationMin,
       intensity: run.intensity,
-      calories: estimateSessionCalories(durationMin, run.intensity),
+      // Price the work actually logged. The intensity-based estimate is the
+      // fallback for sessions with no exercises (e.g. a bare timed entry).
+      calories:
+        core.length > 0
+          ? estimateExercisesCalories(core, latestBodyWeightKg(state) ?? undefined)
+          : estimateSessionCalories(durationMin, run.intensity),
       exercises: core,
       scheduleId: run.scheduleId,
-      distanceKm: route ? Math.round(routeDistanceKm(route) * 100) / 100 : undefined,
-      route,
     });
     setRunning(false);
     const prCount = summary?.personalRecords.length ?? 0;
@@ -493,7 +408,7 @@ export function SessionRunnerModal() {
         />
       )}
       {/* ── Header ────────────────────────────────────────────────────── */}
-      <header className="relative flex items-center gap-3 px-4 pt-4 pb-3">
+      <header className="relative flex items-center gap-2 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3 min-[380px]:gap-3">
         <button
           onClick={closeModal}
           aria-label="Close session"
@@ -510,7 +425,7 @@ export function SessionRunnerModal() {
           </p>
         </div>
         {/* The running clock stays visible even when the ring scrolls away. */}
-        <div className="text-right">
+        <div className="shrink-0 text-right">
           <p
             className="font-display text-xl leading-none font-extrabold tabular-nums"
             aria-label="Elapsed time"
@@ -532,59 +447,11 @@ export function SessionRunnerModal() {
         </div>
       </header>
 
-      {/* ── GPS walk-tracking chip (live screen only) ────────────────── */}
-      {screen === 'live' && (
-        <div className="px-4 pb-2">
-          <button
-            onClick={toggleTracking}
-            className={cn(
-              'press flex w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left',
-              tracking ? 'border-transparent' : 'session-tile border-transparent',
-            )}
-            style={tracking ? { background: 'rgba(138,210,0,0.12)' } : undefined}
-            aria-pressed={tracking}
-          >
-            <span
-              className={cn(
-                'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-                tracking && 'animate-pulse-soft',
-              )}
-              style={{
-                background: tracking ? 'rgba(138,210,0,0.2)' : 'rgba(237,235,230,0.07)',
-                color: tracking ? '#8AD200' : 'rgba(237,235,230,0.6)',
-              }}
-            >
-              <Navigation className="h-5 w-5" aria-hidden />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold">
-                {tracking ? 'Tracking your route' : 'Track walk / route'}
-              </span>
-              <span className="session-muted block text-xs tabular-nums">
-                {geoError ??
-                  (distanceKm > 0
-                    ? `${distanceKm.toFixed(2)} km recorded`
-                    : 'GPS maps your route for sharing')}
-              </span>
-            </span>
-            <span
-              className="text-sm font-extrabold tabular-nums"
-              style={{ color: tracking ? '#8AD200' : 'rgba(237,235,230,0.7)' }}
-            >
-              {distanceKm.toFixed(2)} km
-            </span>
-          </button>
-        </div>
-      )}
-
       {screen === 'summary' && summary ? (
         <SummaryScreen
           summary={summary}
           durationMin={Math.max(1, Math.round(seconds / 60))}
           weightUnit={state.profile.weightUnit}
-          route={routeRef.current}
-          distanceKm={distanceKm}
-          onShare={openRouteShare}
           onShareWorkout={shareWorkout}
           onSave={saveSession}
           onBack={() => setScreen('live')}
@@ -616,25 +483,6 @@ export function SessionRunnerModal() {
           finish={finishToSummary}
         />
       )}
-
-      <ShareSheet
-        open={shareOpen}
-        onClose={() => setShareOpen(false)}
-        watermark={!hasProAccess(state)}
-        filename={`smartfit-route-${toISODate(new Date())}.png`}
-        routeAvailable={routeRef.current.length >= 2}
-        data={
-          shareData ?? {
-            title: run.title,
-            dateLabel: toISODate(new Date()),
-            distanceKm: 0,
-            movingSec: 0,
-            paceMinPerKm: 0,
-            elevationGainM: 0,
-            route: [],
-          }
-        }
-      />
     </div>
   );
 
@@ -728,116 +576,69 @@ function LiveScreen(p: LiveProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {/* ── Exercise queue rail — snap-scrolling, edge-faded ──────────────
-          The old rail clipped its pills at the sheet edge with no hint of
-          more content ("the modal exceeds the mobile width"). Snap + a
-          gradient mask make the overflow an obvious scroll. */}
-      <div className="relative px-4 pb-3">
-        <div
-          className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4"
-          role="tablist"
-          aria-label="Exercises in this session"
-        >
-          {p.exercises.map((x, i) => {
-            const done = x.sets.length > 0 && x.sets.every((s) => s.done);
-            return (
-              <button
-                key={x.id}
-                role="tab"
-                aria-selected={i === p.activeIndex}
-                onClick={() => p.setActiveIndex(i)}
-                className={cn(
-                  'press flex shrink-0 snap-start items-center gap-2 rounded-full border py-2 pr-3.5 pl-2 text-sm font-semibold',
-                  i === p.activeIndex
-                    ? 'border-transparent text-[#0d1102]'
-                    : 'session-tile text-[rgba(237,235,230,0.75)]',
-                )}
-                style={i === p.activeIndex ? { background: 'var(--chart-1)' } : undefined}
-              >
-                <span
-                  className={cn(
-                    'grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold tabular-nums',
-                    i === p.activeIndex
-                      ? 'bg-[#0d1102]/20'
-                      : done
-                        ? 'bg-[color-mix(in_oklab,var(--chart-1)_30%,transparent)]'
-                        : 'bg-white/10',
-                  )}
-                  aria-hidden
-                >
-                  {done ? <Check className="h-3.5 w-3.5" /> : i + 1}
-                </span>
-                <span className="max-w-[8.5rem] truncate">{x.name}</span>
-              </button>
-            );
-          })}
-        </div>
-        {/* Edge fades — the affordance that the rail continues. */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[#050404] to-transparent"
-        />
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-y-0 right-0 w-5 bg-gradient-to-l from-[#050404] to-transparent"
-        />
-      </div>
-
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {p.active ? (
           <div key={p.active.id} className="slide-in-right">
             {/* ── Cinematic exercise hero — the Axel live-workout stage ── */}
             <div className="relative overflow-hidden rounded-3xl bg-[#0d0f08]">
-              <div className="flex aspect-[4/3] max-h-64 w-full items-center justify-center p-4">
+              <div className="flex h-52 w-full items-center justify-center overflow-hidden p-3 min-[380px]:h-56">
                 <ExerciseImage
                   name={p.active.name}
                   variant="full"
-                  className="h-full w-full rounded-2xl"
+                  className="exercise-demo-tile--dark h-full w-full rounded-2xl bg-white"
                   animated
                 />
               </div>
+              {/* Scrim only at the very top, where the chrome sits — the
+                  caption now lives in its own band below the art. */}
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0"
+                className="pointer-events-none absolute inset-x-0 top-0 h-20"
                 style={{
-                  background:
-                    'linear-gradient(180deg, rgba(5,4,4,0.55) 0%, rgba(5,4,4,0) 34%, rgba(5,4,4,0.82) 100%)',
+                  background: 'linear-gradient(180deg, rgba(5,4,4,0.65) 0%, rgba(5,4,4,0) 100%)',
                 }}
               />
-              {/* Set progress + remove, over the art */}
-              <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
-                <div className="flex items-center gap-1.5">
-                  {p.active.sets.map((s, i) => (
-                    <span
-                      key={s.id}
-                      aria-hidden
-                      className={cn('h-1.5 w-5 rounded-full', s.done ? 'bg-volt' : 'bg-white/25')}
-                      style={
-                        i + 1 === currentNo && !s.done
-                          ? { background: 'rgba(237,235,230,0.75)' }
-                          : undefined
-                      }
-                    />
-                  ))}
-                </div>
-                <button
-                  onClick={() => p.removeExercise(p.active!.id)}
-                  aria-label={`Remove ${p.active.name}`}
-                  className="glass press flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[rgba(237,235,230,0.75)]"
+              {/* Set progress over the art. Removing an exercise lives on
+                  its pill in the bottom navigator, not here — the stage stays
+                  clean like the reference. */}
+              <div className="absolute inset-x-3 top-3 flex items-start gap-2">
+                {/* One dash per exercise in the session — the reference's
+                    green progress track. Completed and current read volt;
+                    upcoming stay dim. */}
+                <div
+                  className="flex min-w-0 flex-1 items-center gap-1"
+                  role="progressbar"
+                  aria-valuemin={1}
+                  aria-valuemax={p.exercises.length}
+                  aria-valuenow={p.activeIndex + 1}
+                  aria-label={`Exercise ${p.activeIndex + 1} of ${p.exercises.length}`}
                 >
-                  <X className="h-4 w-4" aria-hidden />
-                </button>
+                  {p.exercises.map((x, i) => {
+                    const complete = x.sets.length > 0 && x.sets.every((st) => st.done);
+                    return (
+                      <span
+                        key={x.id}
+                        aria-hidden
+                        className={cn(
+                          'h-1 min-w-0 flex-1 rounded-full transition-colors',
+                          complete || i <= p.activeIndex ? 'bg-volt' : 'bg-white/20',
+                        )}
+                      />
+                    );
+                  })}
+                </div>
               </div>
-              {/* Name + history, anchored to the art's base */}
-              <div className="absolute inset-x-4 bottom-3">
-                <p className="session-muted text-[11px] font-bold tracking-[0.18em] uppercase">
+              {/* Name + history — a solid band under the art so the copy is
+                  always legible regardless of the demo's brightness. */}
+              <div className="relative border-t border-white/8 bg-[#0a0b06] px-4 pt-4 pb-4">
+                <p className="text-volt text-[11px] font-extrabold tracking-[0.18em] uppercase">
                   {currentSet
-                    ? `Set ${currentNo} of ${p.active.sets.length}`
+                    ? `Set ${currentNo} / ${p.active.sets.length}`
                     : `${p.active.sets.length} sets`}
                 </p>
-                <p className="font-display mt-0.5 text-2xl leading-tight font-extrabold tracking-tight">
+                <h3 className="title-italic mt-2 text-[1.75rem] text-balance min-[380px]:text-[2rem]">
                   {p.active.name}
-                </p>
+                </h3>
                 <p className="session-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
                   {last ? (
                     <span className="inline-flex items-center gap-1.5">
@@ -862,8 +663,10 @@ function LiveScreen(p: LiveProps) {
               </div>
             </div>
 
-            {/* ── Control deck: steppers flank the ring timer ───────────── */}
-            <div className="mt-4 flex items-center justify-between gap-2">
+            {/* ── Control deck: steppers flank the ring timer ─────────────
+                Pulled up close under the stage so the dial reads as part of
+                the hero rather than floating mid-screen. */}
+            <div className="-mt-1 flex items-center justify-between gap-2 min-[380px]:gap-3">
               <SetStepper
                 label={isDistance ? ' reps ' : 'Reps'}
                 value={currentSet?.reps || ''}
@@ -907,28 +710,20 @@ function LiveScreen(p: LiveProps) {
               <button
                 onClick={() => p.completeSet(p.active!, currentSet)}
                 aria-label={`Complete set ${currentNo}`}
-                className="press mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
-                style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
+                className="press btn-volt mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold"
               >
                 <Check className="h-5 w-5" strokeWidth={3} aria-hidden /> Complete set {currentNo}
               </button>
             ) : (
-              <div className="mt-4 grid grid-cols-2 gap-2">
+              <div className={cn('mt-5 grid gap-2', !nextExercise && 'grid-cols-2')}>
                 <button
                   onClick={() => p.addSet(p.active!.id)}
-                  className="press session-tile flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
+                  className="press session-tile flex h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-bold"
                 >
-                  <Plus className="h-4 w-4" aria-hidden /> Add set
+                  <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className="truncate">Add set</span>
                 </button>
-                {nextExercise ? (
-                  <button
-                    onClick={() => p.setActiveIndex(p.activeIndex + 1)}
-                    className="press flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
-                    style={{ background: 'rgba(138,210,0,0.14)', color: '#B4E761' }}
-                  >
-                    Next exercise <ChevronRight className="h-4 w-4" aria-hidden />
-                  </button>
-                ) : (
+                {!nextExercise && (
                   <button
                     onClick={p.finish}
                     className="press flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
@@ -940,34 +735,24 @@ function LiveScreen(p: LiveProps) {
               </div>
             )}
 
-            {/* Next up — the queued exercise, one tap away. */}
-            {nextExercise && (
-              <button
-                onClick={() => p.setActiveIndex(p.activeIndex + 1)}
-                className="session-tile press mt-3 flex w-full items-center gap-3 rounded-2xl p-2.5 text-left"
-                aria-label={`Next exercise: ${nextExercise.name}`}
-              >
-                <ExerciseImage
-                  name={nextExercise.name}
-                  className="h-10 w-10 shrink-0 rounded-lg"
-                  animated={false}
-                />
-                <span className="min-w-0 flex-1">
-                  <span className="session-muted block text-[10px] font-bold tracking-[0.18em] uppercase">
-                    Next up
-                  </span>
-                  <span className="block truncate text-sm font-bold">{nextExercise.name}</span>
-                </span>
-                <ChevronRight
-                  className="h-4 w-4 shrink-0 text-[rgba(237,235,230,0.55)]"
-                  aria-hidden
-                />
-              </button>
-            )}
-
             {/* ── Sets table ─────────────────────────────────────────────── */}
-            <div className="mt-4">
-              <div className="mb-1 grid grid-cols-[2rem_1fr_1fr_3rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(237,235,230,0.55)] uppercase">
+            <div className="mt-6">
+              {/* Removing the exercise lives with its sets now that the
+                  navigator is a next-up preview rather than a pill queue. */}
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-[11px] font-bold tracking-[0.16em] text-[rgba(237,235,230,0.55)] uppercase">
+                  Sets
+                </p>
+                <button
+                  onClick={() => p.removeExercise(p.active!.id)}
+                  aria-label={`Remove ${p.active.name} from this session`}
+                  className="press session-muted flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold transition-colors hover:bg-white/10"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                  Remove
+                </button>
+              </div>
+              <div className="mb-2 grid grid-cols-[1.5rem_1fr_1fr_2.75rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(237,235,230,0.55)] uppercase min-[380px]:grid-cols-[2rem_1fr_1fr_3rem]">
                 <span>Set</span>
                 <span className="text-center">Reps</span>
                 <span className="text-center">
@@ -985,7 +770,7 @@ function LiveScreen(p: LiveProps) {
                     <div
                       key={s.id}
                       className={cn(
-                        'grid grid-cols-[2rem_1fr_1fr_3rem] items-center gap-2 rounded-xl px-2 py-1.5',
+                        'grid grid-cols-[1.5rem_1fr_1fr_2.75rem] items-center gap-2 rounded-xl px-2 py-1.5 min-[380px]:grid-cols-[2rem_1fr_1fr_3rem]',
                         s.done ? 'bg-[rgba(138,210,0,0.12)]' : 'session-tile',
                         s.isPR && 'pr-flash',
                       )}
@@ -1061,20 +846,20 @@ function LiveScreen(p: LiveProps) {
                           e1RM ≈ {formatWeight(e1rm, unit)}
                         </span>
                       )}
-                      <div className="col-span-4 grid grid-cols-2 gap-2">
-                        <select
+                      <div className="col-span-4 grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+                        <Select
                           value={s.kind}
                           aria-label={`Set type, set ${idx + 1}`}
                           onChange={(e) =>
                             p.setKind(p.active!.id, s.id, e.target.value as WorkoutSetKind)
                           }
-                          className="session-input h-9 w-full text-xs"
+                          className="session-select h-10 w-full text-xs sm:h-10"
                         >
                           <option value="working">Working set</option>
                           <option value="warmup">Warm-up</option>
                           <option value="drop">Drop set</option>
                           <option value="failure">Failure set</option>
-                        </select>
+                        </Select>
                         <input
                           type="number"
                           min={1}
@@ -1146,18 +931,66 @@ function LiveScreen(p: LiveProps) {
         ) : (
           <EmptyRunner categoryId={p.run.categoryId} onAdd={(name) => p.addExercise(name)} />
         )}
+
+        {/* ── Finish bar ───────────────────────────────────────────────────
+            Stays inside the scroll column so it does not hold permanent
+            screen space; finishing is a once-per-session action and the
+            pinned navigator below already owns the sheet floor. */}
+        <div className="pt-1 pb-2">
+          <button
+            onClick={p.finish}
+            className="press btn-volt flex h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-extrabold min-[380px]:h-14 min-[380px]:text-base"
+          >
+            <Flag className="h-5 w-5 shrink-0" aria-hidden />
+            <span className="truncate">Finish session</span>
+          </button>
+        </div>
       </div>
 
-      {/* ── Thumb-zone finish bar ────────────────────────────────────── */}
-      <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <button
-          onClick={p.finish}
-          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
-        >
-          <Flag className="h-5 w-5" aria-hidden /> Finish session
-        </button>
-      </div>
+      {/* ── Next-up navigator — the reference's preview card ──────────────
+          Pinned to the sheet floor as a flex sibling of the scroll column,
+          so Next is always one tap away while the stage scrolls behind it.
+          The finish bar deliberately stays inside the scroll flow: only one
+          of the two should own permanent screen space. Hidden on a
+          single-exercise session, where there is nothing to navigate to. */}
+      {p.exercises.length > 1 && p.active && (
+        <div className="border-t border-white/8 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="flex items-center gap-3 rounded-[1.25rem] bg-[#15170f] p-2.5">
+            <ExerciseImage
+              name={(nextExercise ?? p.exercises[0]).name}
+              animated={false}
+              className="h-12 w-12 shrink-0 rounded-2xl bg-white"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="session-muted text-[10px] font-bold tracking-[0.16em] uppercase">
+                {nextExercise ? 'Next up' : 'Last exercise'}
+              </p>
+              <p className="truncate text-sm leading-tight font-bold">
+                {(nextExercise ?? p.active).name}
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                onClick={() => p.setActiveIndex(p.activeIndex - 1)}
+                disabled={p.activeIndex === 0}
+                aria-label="Previous exercise"
+                className="press grid h-9 w-9 place-items-center rounded-full bg-white/8 text-[rgba(237,235,230,0.75)] transition-colors hover:bg-white/15 disabled:opacity-35"
+              >
+                <ChevronsLeft className="h-4 w-4" aria-hidden />
+              </button>
+              <button
+                onClick={() => p.setActiveIndex(p.activeIndex + 1)}
+                disabled={!nextExercise}
+                aria-label="Next exercise"
+                className="press btn-volt flex h-9 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5 disabled:opacity-35 disabled:hover:translate-y-0"
+              >
+                Next
+                <ChevronsRight className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1178,31 +1011,38 @@ function SetStepper({
   onPlus: () => void;
 }) {
   return (
-    <div className="flex w-[5.4rem] flex-col items-center gap-1.5">
+    <div className="flex min-w-0 shrink flex-col items-center gap-2">
+      {/* The reference's stepper: one large flat circle with a thin plus,
+          the label directly beneath. Long-press (or the − affordance that
+          appears once a value is set) handles decrements. */}
       <button
         type="button"
         onClick={onPlus}
         aria-label={`Increase ${label.trim()} by ${step}`}
-        className="press session-tile grid h-11 w-full place-items-center rounded-2xl"
+        className="press grid h-16 w-16 place-items-center rounded-full bg-[#1a1c15] text-[#edebe6] transition-colors hover:bg-[#23261c] min-[380px]:h-[4.5rem] min-[380px]:w-[4.5rem]"
       >
-        <Plus className="h-4 w-4" aria-hidden />
+        <Plus className="h-6 w-6" strokeWidth={2} aria-hidden />
       </button>
-      <div className="text-center">
-        <p className="font-display text-xl leading-none font-extrabold tabular-nums">
-          {value || '—'}
-        </p>
-        <p className="session-muted mt-0.5 text-[10px] font-bold tracking-wide uppercase">
-          {label}
-        </p>
+      <div className="flex flex-col items-center gap-1">
+        <p className="text-[13px] leading-none font-bold text-[#edebe6]">{label}</p>
+        {/* Value + decrement only once there is something to adjust, so the
+            resting state matches the comp's clean plus-and-label pair. */}
+        {value ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onMinus}
+              aria-label={`Decrease ${label.trim()} by ${step}`}
+              className="press session-muted grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/8"
+            >
+              <Minus className="h-3 w-3" aria-hidden />
+            </button>
+            <p className="font-display text-base leading-none font-extrabold tabular-nums">
+              {value}
+            </p>
+          </div>
+        ) : null}
       </div>
-      <button
-        type="button"
-        onClick={onMinus}
-        aria-label={`Decrease ${label.trim()} by ${step}`}
-        className="press session-tile grid h-11 w-full place-items-center rounded-2xl"
-      >
-        <Minus className="h-4 w-4" aria-hidden />
-      </button>
     </div>
   );
 }
@@ -1226,6 +1066,9 @@ function RingTimer({
   onSkip: () => void;
   onAdd: () => void;
 }) {
+  // Gradient ids must be unique per instance or a second ring would reuse
+  // the first one's defs.
+  const gradId = useId();
   const resting = restLeft > 0;
   const urgent = resting && restLeft <= 10;
   // Ring geometry: 168px disc, 12px stroke.
@@ -1245,48 +1088,69 @@ function RingTimer({
         type="button"
         onClick={onToggle}
         aria-label={running ? 'Pause session clock' : 'Resume session clock'}
-        className="press relative grid h-[168px] w-[168px] place-items-center rounded-full"
+        className="press relative grid h-[clamp(7.5rem,34vw,168px)] w-[clamp(7.5rem,34vw,168px)] place-items-center rounded-full"
       >
         <svg
           viewBox="0 0 168 168"
           className="absolute inset-0 h-full w-full -rotate-90"
           aria-hidden
         >
+          <defs>
+            {/* The reference arc is not a flat stroke: it ramps from a deep
+                green at the tail to a bright volt at the leading edge. */}
+            <linearGradient id={`${gradId}-run`} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#4E7A00" />
+              <stop offset="55%" stopColor="#8AD200" />
+              <stop offset="100%" stopColor="#C6F94D" />
+            </linearGradient>
+            <linearGradient id={`${gradId}-rest`} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#5C5330" />
+              <stop offset="60%" stopColor="#A8913F" />
+              <stop offset="100%" stopColor="#E4D48A" />
+            </linearGradient>
+            <linearGradient id={`${gradId}-urgent`} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#6E9E00" />
+              <stop offset="100%" stopColor="#D8FF6B" />
+            </linearGradient>
+          </defs>
           <circle
             cx="84"
             cy="84"
             r={R}
             fill="none"
-            stroke="rgba(237,235,230,0.10)"
-            strokeWidth="12"
+            stroke="rgba(237,235,230,0.09)"
+            strokeWidth="11"
           />
           <circle
             cx="84"
             cy="84"
             r={R}
             fill="none"
-            stroke={resting ? (urgent ? '#B4E761' : '#87764D') : '#8AD200'}
-            strokeWidth="12"
+            stroke={`url(#${gradId}-${resting ? (urgent ? 'urgent' : 'rest') : 'run'})`}
+            strokeWidth="11"
             strokeLinecap="round"
             strokeDasharray={C}
             strokeDashoffset={C * (1 - fraction)}
-            style={{ transition: 'stroke-dashoffset 0.95s linear' }}
+            style={{
+              transition: 'stroke-dashoffset 0.95s linear',
+              filter: fraction > 0 ? 'drop-shadow(0 0 6px rgba(138,210,0,0.45))' : undefined,
+            }}
             className={urgent ? 'rest-beat origin-center' : undefined}
           />
         </svg>
-        <span className="relative grid place-items-center">
-          <span className="session-muted text-[10px] font-bold tracking-[0.2em] uppercase">
+        <span className="relative grid place-items-center gap-0.5">
+          <span className="session-muted text-[9px] font-bold tracking-[0.2em] uppercase">
             {resting ? 'Rest' : running ? 'Session' : 'Paused'}
           </span>
           <span
             className={cn(
-              'font-display text-[2rem] leading-none font-extrabold tabular-nums',
+              'font-display text-[1.35rem] leading-none font-extrabold italic tabular-nums min-[380px]:text-[1.6rem]',
               urgent && 'rest-beat',
             )}
           >
             {clock(resting ? restLeft : seconds)}
           </span>
-          <span className="mt-1 grid h-9 w-9 place-items-center rounded-full bg-white/10">
+          <span className="mt-0.5 grid h-8 w-8 place-items-center rounded-full bg-white/10">
             {running ? (
               <Pause className="h-4 w-4" aria-hidden />
             ) : (
@@ -1298,7 +1162,7 @@ function RingTimer({
 
       {/* Rest actions orbit the ring while it counts down. */}
       {resting && (
-        <div className="absolute -bottom-2 flex gap-1.5">
+        <div className="absolute -bottom-3 flex gap-1.5">
           <button
             type="button"
             onClick={onAdd}
@@ -1351,7 +1215,7 @@ function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: 
           >
             <ExerciseImage
               name={s.name}
-              className="h-11 w-11 shrink-0 rounded-lg"
+              className="exercise-demo-tile--dark h-11 w-11 shrink-0 rounded-lg bg-white"
               animated={false}
             />
             <span className="min-w-0 flex-1">
@@ -1372,9 +1236,6 @@ function SummaryScreen({
   summary,
   durationMin,
   weightUnit,
-  route,
-  distanceKm,
-  onShare,
   onShareWorkout,
   onSave,
   onBack,
@@ -1382,18 +1243,14 @@ function SummaryScreen({
   summary: SessionSummary;
   durationMin: number;
   weightUnit: 'kg' | 'lb';
-  route: GeoPoint[];
-  distanceKm: number;
-  onShare: () => void;
   onShareWorkout: () => void;
   onSave: () => void;
   onBack: () => void;
 }) {
-  const hasRoute = route.length >= 2;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-        <div className="pro-surface sheen relative rounded-3xl p-5 text-center">
+        <div className="pro-surface sheen relative rounded-3xl p-4 text-center min-[380px]:p-5">
           <p className="eyebrow pro-muted">Session complete</p>
           <p className="font-display mt-1 text-4xl font-extrabold tabular-nums">{durationMin}m</p>
           {summary.personalRecords.length > 0 && (
@@ -1408,7 +1265,7 @@ function SummaryScreen({
           )}
         </div>
 
-        <div className="mt-4 grid grid-cols-3 gap-3">
+        <div className="mt-4 grid grid-cols-2 gap-2 min-[380px]:gap-3">
           <StatTile icon={Dumbbell} label="Sets" value={`${summary.sets}`} />
           {summary.distance > 0 && summary.volume === 0 ? (
             <StatTile icon={Flame} label="Distance" value={formatSetDistance(summary.distance)} />
@@ -1420,28 +1277,8 @@ function SummaryScreen({
             />
           )}
           <StatTile icon={Timer} label="Exercises" value={`${summary.exercises}`} />
+          <StatTile icon={Flame} label="Calories" value={`${summary.calories} kcal`} />
         </div>
-
-        {hasRoute && (
-          <div className="session-tile mt-4 flex items-center gap-4 rounded-2xl p-4">
-            <div className="bg-card relative h-28 w-28 shrink-0 overflow-hidden rounded-xl">
-              <RouteMap route={route} className="h-full w-full" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-bold">Your route</p>
-              <p className="session-muted text-xs tabular-nums">
-                {distanceKm.toFixed(2)} km · {durationMin} min
-              </p>
-            </div>
-            <button
-              onClick={onShare}
-              className="press flex h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold"
-              style={{ background: 'var(--chart-1)', color: '#0d1102' }}
-            >
-              <Share2 className="h-4 w-4" aria-hidden /> Share
-            </button>
-          </div>
-        )}
 
         {summary.personalRecords.length > 0 && (
           <div className="session-tile mt-4 rounded-2xl p-4">
@@ -1468,8 +1305,7 @@ function SummaryScreen({
         </button>
         <button
           onClick={onSave}
-          className="press flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold text-[#0d1102] shadow-lg"
-          style={{ background: 'linear-gradient(120deg,#8AD200,#699E00)' }}
+          className="press btn-volt flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold"
         >
           <Check className="h-5 w-5" aria-hidden /> Save session
         </button>

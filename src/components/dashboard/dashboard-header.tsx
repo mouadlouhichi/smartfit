@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Bell } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { currentStreak } from '@smartfit/core';
 
@@ -40,10 +40,10 @@ export function DashboardHeader() {
         <div className="flex shrink-0 items-center gap-2">
           <Link
             href="/dashboard/coach"
-            aria-label={`Coach (${streak}-day streak)`}
+            aria-label={`Open your coach (${streak}-day streak)`}
             className="bg-secondary hover:bg-secondary/70 relative grid h-11 w-11 place-items-center rounded-full transition-colors"
           >
-            <Bell className="h-5 w-5" />
+            <Sparkles className="h-5 w-5" />
             <span className="bg-volt absolute top-2 right-2.5 h-2 w-2 rounded-full" aria-hidden />
           </Link>
         </div>

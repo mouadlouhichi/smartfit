@@ -257,7 +257,7 @@ function Stat({
   return (
     <div className="border-border min-w-0 rounded-xl border px-2 py-2.5 min-[430px]:px-3">
       <span className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-wide uppercase min-[430px]:text-[11px]">
-        {icon && <span className="hidden shrink-0 min-[430px]:inline-flex">{icon}</span>}
+        {icon && <span className="inline-flex shrink-0">{icon}</span>}
         <span className="truncate">{label}</span>
       </span>
       <span className="mt-1 block truncate text-xs font-bold tabular-nums min-[430px]:text-sm">

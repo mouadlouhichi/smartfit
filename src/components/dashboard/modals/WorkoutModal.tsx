@@ -373,24 +373,32 @@ export function WorkoutModal() {
           </div>
 
           <DialogFooter className="mt-6 sm:justify-between">
-            {editing ? (
+            {editing && (
               <Button
                 type="button"
                 variant="ghost"
                 onClick={removeSession}
-                className="text-destructive hover:text-destructive"
+                className="text-destructive hover:text-destructive w-full sm:w-auto"
               >
                 <Trash2 className="h-4 w-4" /> Delete
               </Button>
-            ) : (
-              <span />
             )}
-            <span className="flex gap-2">
-              <Button type="button" variant="ghost" onClick={closeModal}>
+            {/* Mobile: full-width stacked actions (the footer is
+                flex-col-reverse, so the primary sits on top). From sm up they
+                collapse back into the classic inline row. */}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={closeModal}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
-              <Button type="submit">{editing ? 'Save changes' : 'Save workout'}</Button>
-            </span>
+              <Button type="submit" className="w-full sm:w-auto">
+                {editing ? 'Save changes' : 'Save workout'}
+              </Button>
+            </div>
           </DialogFooter>
         </form>
       </DialogContent>

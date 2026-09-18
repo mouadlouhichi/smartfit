@@ -1,6 +1,6 @@
 /**
  * Regenerates every brand asset from the one Volt mark: the rounded-square
- * charge cell in volt (#F3FF47) with the near-black bolt — the badge that
+ * charge cell in volt (#F3FF47) with the near-black flame — the badge that
  * leads the dashboard header greeting. Run with
  * `node scripts/gen-brand-assets.mjs` after touching the mark.
  *
@@ -37,23 +37,27 @@ const INK = '#101010';
 const CANVAS = '#0e0e0e';
 const PAPER = '#f5f5f2';
 
-/** The bolt, in a 24×24 box — the shared BOLT_PATH geometry. */
-const BOLT_PATH =
-  'M13 2 L4.6 13.2 Q4.2 13.8 4.9 13.8 L10.4 13.8 L8.9 21.2 Q8.8 21.9 9.4 21.3 L19.4 9.6 Q19.9 9 19.1 9 L13.4 9 Z';
+/**
+ * Lucide's `flame` glyph in its native 24×24 box — mirrors FLAME_PATH in
+ * src/lib/brand-mark.ts. Filled rather than stroked so it reads as a solid
+ * silhouette at favicon sizes. One closed subpath, so no fill-rule needed.
+ */
+const FLAME_PATH =
+  'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z';
 
-/** Charge cell + bolt at (x,y) with the glyph scaled to `box` px. */
+/** Charge cell + flame at (x,y) with the glyph scaled to `box` px. */
 const markGroup = (x, y, box, { plate = VOLT, ink = INK, rx = 0.3 } = {}) => {
   const s = (box * 0.6) / 24;
   const t = (box - 24 * s) / 2;
   return (
     `<g transform="translate(${x},${y})">` +
     `<rect width="${box}" height="${box}" rx="${box * rx}" fill="${plate}"/>` +
-    `<g transform="translate(${t},${t}) scale(${s})"><path d="${BOLT_PATH}" fill="${ink}"/></g>` +
+    `<g transform="translate(${t},${t}) scale(${s})"><path d="${FLAME_PATH}" fill="${ink}"/></g>` +
     `</g>`
   );
 };
 
-/** Full-bleed volt tile with the bolt inside the maskable safe zone (~80%). */
+/** Full-bleed volt tile with the flame inside the maskable safe zone (~80%). */
 const tileGroup = (box, { plate = VOLT, ink = INK } = {}) => {
   const inner = box * 0.68;
   return (
@@ -139,11 +143,11 @@ function ogSvg() {
     cx += w + 16;
   }
 
-  // Watermark: a giant bolt, ghosted behind the right edge.
-  const boltS = 620 / 24;
+  // Watermark: a giant flame, ghosted behind the right edge.
+  const flameS = 620 / 24;
   const watermark =
-    `<g transform="translate(820,60) scale(${boltS})" opacity="0.07">` +
-    `<path d="${BOLT_PATH}" fill="${VOLT}"/></g>` +
+    `<g transform="translate(820,60) scale(${flameS})" opacity="0.07">` +
+    `<path d="${FLAME_PATH}" fill="${VOLT}"/></g>` +
     `<circle cx="1040" cy="315" r="225" fill="none" stroke="${VOLT}" stroke-width="2" opacity="0.16"/>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">

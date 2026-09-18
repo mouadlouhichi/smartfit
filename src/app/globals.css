@@ -256,6 +256,73 @@ body {
     letter-spacing: normal;
   }
 }
+/* The reference's live-workout title: a heavy condensed italic that reads as
+   motion. Synthesised obliquing + a tight negative track match the Axel
+   comp without shipping another webfont. */
+/* Volt CTA gradient — the reference's buttons are not flat fills: a lighter
+   top-left ramps into a deeper green, with a soft volt glow beneath. Shared
+   so every primary action in the session reads identically. */
+/* Auth card — a glass panel with a volt corner bloom, per the dark-login
+   references: a hairline light border, layered depth shadow, and a soft
+   gradient that lifts the top-left corner out of the page. */
+.auth-card {
+  position: relative;
+  border-radius: 1.75rem;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(138, 210, 0, 0.16) 0%, rgba(138, 210, 0, 0) 55%),
+    color-mix(in oklab, var(--card) 92%, transparent);
+  box-shadow:
+    0 30px 60px -32px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+/* The bloom reads on dark surfaces; on light it would grey the card. */
+.dark .auth-card {
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(138, 210, 0, 0.22) 0%, rgba(138, 210, 0, 0) 55%),
+    rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(14px);
+}
+/* A single volt arc tracing the top-left corner, as in the reference. */
+.auth-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(138, 210, 0, 0.9), rgba(138, 210, 0, 0) 38%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.btn-volt {
+  background: linear-gradient(135deg, #b4e761 0%, #8ad200 45%, #6f9f00 100%);
+  color: #0d1102;
+  box-shadow:
+    0 10px 24px -12px rgba(138, 210, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.btn-volt:active:not(:disabled) {
+  background: linear-gradient(135deg, #a5d94f 0%, #7cc000 45%, #628f00 100%);
+}
+.btn-volt:disabled {
+  box-shadow: none;
+}
+
+.title-italic {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+  transform: skewX(-4deg);
+  transform-origin: left bottom;
+}
+
 .font-display-tight {
   font-family: var(--font-display);
   font-weight: 800;
@@ -426,6 +493,13 @@ input[type='number'] {
     opacity: 0;
   }
 }
+/* Catalog demos are authored on a white matte and are shown exactly as
+   authored on every surface. Inverting them to match the dark theme muddied
+   the line art, so dark tiles keep the white plate and simply round it. */
+.exercise-demo-tile--dark img {
+  background: #fff;
+}
+
 .exercise-demo-a {
   animation: exercise-demo-a 2.8s ease-in-out infinite;
 }
@@ -945,6 +1019,30 @@ input[type='number'] {
   outline: none;
   border-color: var(--ring);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 35%, transparent);
+}
+
+/* The design-system Select inside the always-dark runner. The component is
+   theme-token driven (light surfaces in light mode), so the runner restyles
+   the trigger and its floating listbox to the session palette instead of
+   falling back to a native <select>. */
+.session-shell .session-select {
+  background: rgba(237, 235, 230, 0.07);
+  border: 1px solid rgba(237, 235, 230, 0.14);
+  color: #edebe6;
+  border-radius: 0.85rem;
+  font-weight: 700;
+}
+.session-shell .session-select:hover:not(:disabled) {
+  background: rgba(237, 235, 230, 0.11);
+}
+.session-shell .session-select + ul[role='listbox'] {
+  background: #14160d;
+  border-color: rgba(237, 235, 230, 0.14);
+  color: #edebe6;
+}
+.session-shell .session-select + ul[role='listbox'] li[aria-selected='true'],
+.session-shell .session-select + ul[role='listbox'] li:hover {
+  background: rgba(237, 235, 230, 0.09);
 }
 
 /* Slide between exercises in the runner. */

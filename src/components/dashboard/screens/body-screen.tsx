@@ -438,7 +438,7 @@ function MuscleLab() {
             Pick a muscle, build the session
           </h2>
         </div>
-        <p className="text-muted-foreground hidden text-sm sm:block">
+        <p className="text-muted-foreground text-sm">
           Tap a region to open its weekly progress and exercises.
         </p>
       </div>

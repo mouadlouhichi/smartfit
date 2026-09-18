@@ -181,7 +181,7 @@ export function TodaysWorkoutCard() {
         {/* ── Day switcher — the reference segmented control ─────────── */}
         {programs.length > 1 && (
           <div
-            className="no-scrollbar bg-secondary mx-auto flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-full border p-1"
+            className="no-scrollbar bg-secondary mx-auto flex w-fit max-w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full border p-1"
             role="tablist"
             aria-label="Workout day"
           >

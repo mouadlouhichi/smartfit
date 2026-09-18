@@ -75,7 +75,7 @@ export function ExerciseImage({
   if (gif) {
     return (
       <span
-        className={cn('bg-secondary relative shrink-0 overflow-hidden', className)}
+        className={cn('bg-secondary relative block shrink-0 overflow-hidden', className)}
         role="img"
         aria-label={`${entry.name} demonstration`}
       >
@@ -115,7 +115,7 @@ export function ExerciseImage({
 
   return (
     <span
-      className={cn('bg-secondary relative shrink-0 overflow-hidden', className)}
+      className={cn('bg-secondary relative block shrink-0 overflow-hidden', className)}
       role="img"
       aria-label={`${entry.name} demonstration`}
       onMouseEnter={animateOnHover ? () => setHovered(true) : undefined}

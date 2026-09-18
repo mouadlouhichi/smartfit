@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils';
-import { BOLT_PATH } from '@/lib/brand-mark';
+import { FLAME_PATH } from '@/lib/brand-mark';
 
 /**
- * The one SmartFit mark: the volt bolt on a rounded-square charge cell — the
+ * The one SmartFit mark: the volt flame on a rounded-square charge cell — the
  * badge that leads the dashboard header greeting, and the geometry of
  * `public/icon.svg`, the PWA/Expo icons (`scripts/gen-brand-assets.mjs`) and
  * the share-card canvas mark. One mark everywhere: favicon, splash, share
- * cards, shell, onboarding, wordmarks. The bolt path lives in
+ * cards, shell, onboarding, wordmarks. The flame path lives in
  * `lib/brand-mark.ts` so canvas and SVG renderers share one source of truth.
  */
 
@@ -26,7 +26,7 @@ export function Logo({ className, size = 36 }: { className?: string; size?: numb
         fill="currentColor"
         aria-hidden
       >
-        <path d={BOLT_PATH} />
+        <path d={FLAME_PATH} />
       </svg>
     </span>
   );

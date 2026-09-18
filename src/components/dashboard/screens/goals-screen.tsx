@@ -76,7 +76,7 @@ export function GoalsScreen() {
                   : 'Keep going — the rings below show exactly how close you are.'}
               </p>
             </div>
-            <span className="bg-secondary text-secondary-foreground hidden rounded-full px-3 py-1 text-xs font-bold tabular-nums sm:inline">
+            <span className="bg-secondary text-secondary-foreground shrink-0 self-start rounded-full px-3 py-1 text-xs font-bold tabular-nums">
               {done}/{goals.length}
             </span>
           </div>

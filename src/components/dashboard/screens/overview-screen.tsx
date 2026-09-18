@@ -43,6 +43,7 @@ import {
   formatDistance,
   formatMinutes,
   relativeDay,
+  suggestedExercisesForCategory,
 } from '@smartfit/core';
 
 type Range = 'Daily' | 'Weekly' | 'Monthly';
@@ -128,6 +129,29 @@ export function OverviewScreen() {
           intensity: 'moderate',
         });
 
+  /**
+   * Tapping a program tile used to only set `programFilter`, which filters
+   * today's agenda — so on a day with no scheduled slots (every new account)
+   * the tap appeared to do nothing at all. It now also opens the workout
+   * composer pre-filled for that category, pulling the catalog's most popular
+   * exercises for it, so a tile is always a way into training. "All type"
+   * keeps its original meaning: clear the filter.
+   */
+  function startCategory(name: string, categoryId: string | null) {
+    setProgramFilter(name);
+    if (!categoryId) return;
+    openWith({
+      kind: 'runner',
+      title: name,
+      categoryId,
+      intensity: 'moderate',
+      exercises: suggestedExercisesForCategory(categoryId, 5).map((e, i) => ({
+        name: e.name,
+        sets: Array.from({ length: i < 2 ? 4 : 3 }, () => ({})),
+      })),
+    });
+  }
+
   const quickActions = [
     { label: 'Log workout', icon: Dumbbell, onClick: () => openModal('workout') },
     { label: 'Run', icon: Footprints, href: '/dashboard/run' },
@@ -199,7 +223,7 @@ export function OverviewScreen() {
         </div>
 
         {/* ── Health metrics — the reference 2×2 tile grid ─────────────── */}
-        <section aria-label="Health metrics">
+        <section aria-label="Health metrics" className="min-w-0">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Health Metrics</h2>
             <Link
@@ -242,7 +266,7 @@ export function OverviewScreen() {
         </section>
 
         {/* ── Workout programs: chips + the featured session card ──────── */}
-        <section aria-label="Workout programs">
+        <section aria-label="Workout programs" className="min-w-0">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Workout Programs</h2>
             <Link
@@ -255,18 +279,20 @@ export function OverviewScreen() {
           {/* Icon-forward category tiles — the Axel program-library pattern.
               A snap rail on phones, a wrap grid from sm up. */}
           <div
-            className="no-scrollbar -mx-1 mt-3 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7"
+            className="no-scrollbar -mx-1 mt-3 flex min-w-0 snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7"
             role="tablist"
             aria-label="Program category"
           >
             {[
               {
+                id: null as string | null,
                 name: 'All type',
                 icon: 'layout-grid',
                 color: 'var(--primary)',
                 count: state.sessions.length,
               },
               ...state.categories.map((c) => ({
+                id: c.id as string | null,
                 name: c.name,
                 icon: c.icon,
                 color: c.color,
@@ -279,7 +305,7 @@ export function OverviewScreen() {
                   key={c.name}
                   role="tab"
                   aria-selected={selected}
-                  onClick={() => setProgramFilter(c.name)}
+                  onClick={() => startCategory(c.name, c.id)}
                   className={cn(
                     'group flex min-w-[5.5rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-2xl border px-3 py-3.5 text-center transition-all sm:min-w-0',
                     selected
@@ -413,7 +439,7 @@ export function OverviewScreen() {
         <ReadinessCard />
 
         {/* Quick actions */}
-        <div className="grid grid-cols-5 gap-2 sm:gap-3">
+        <div className="grid grid-cols-3 gap-2 min-[420px]:grid-cols-6 sm:gap-3">
           {quickActions.map((a) => {
             const inner = (
               <div className="group flex flex-col items-center gap-2 sm:gap-2.5">
@@ -438,7 +464,7 @@ export function OverviewScreen() {
         </div>
 
         {/* Summary — its own section, separated from the plan items above. */}
-        <section aria-label="Summary">
+        <section aria-label="Summary" className="min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-[1.35rem]">
               Summary
@@ -560,13 +586,13 @@ export function OverviewScreen() {
         </section>
       </div>
 
-      {/* ── Right column: coach (desktop) ──────────────────────
-          Sticky + viewport-capped: the panel follows the scroll and keeps a
-          chat-sized height instead of stretching the full feed height.
-          self-start is required for sticky to have travel inside the grid
-          area; the height overrides CoachPanel's h-full via tailwind-merge. */}
-      <div className="hidden lg:sticky lg:top-5 lg:block lg:self-start">
-        <CoachPanel className="h-[min(760px,calc(100dvh-2.5rem))]" />
+      {/* ── Coach ──────────────────────────────────────────────
+          Mobile first: the coach is part of the feed on phones (a shorter,
+          scroll-along panel) and becomes the sticky right column from lg up.
+          Sticky needs self-start to have travel inside the grid area; the
+          height overrides CoachPanel's h-full via tailwind-merge. */}
+      <div className="min-w-0 lg:sticky lg:top-5 lg:self-start">
+        <CoachPanel className="h-[70dvh] min-h-[420px] sm:h-[75dvh] lg:h-[min(760px,calc(100dvh-2.5rem))]" />
       </div>
     </div>
   );
