@@ -931,63 +931,65 @@ function LiveScreen(p: LiveProps) {
         ) : (
           <EmptyRunner categoryId={p.run.categoryId} onAdd={(name) => p.addExercise(name)} />
         )}
-      </div>
 
-      {/* ── Next-up navigator — the reference's preview card ──────────────
-          One card showing the exercise that comes next (its demo, its name)
-          with prev/next controls, rather than a scrolling queue of pills.
-          Hidden on a single-exercise session, where there is nothing to
-          navigate to. */}
-      {p.exercises.length > 1 && p.active && (
-        <div className="px-4 pb-3">
-          <div className="flex items-center gap-3 rounded-[1.25rem] bg-[#15170f] p-2.5">
-            <ExerciseImage
-              name={(nextExercise ?? p.exercises[0]).name}
-              animated={false}
-              className="h-12 w-12 shrink-0 rounded-2xl bg-white"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="session-muted text-[10px] font-bold tracking-[0.16em] uppercase">
-                {nextExercise ? 'Next up' : 'Last exercise'}
-              </p>
-              <p className="truncate text-sm leading-tight font-bold">
-                {(nextExercise ?? p.active).name}
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <button
-                onClick={() => p.setActiveIndex(p.activeIndex - 1)}
-                disabled={p.activeIndex === 0}
-                aria-label="Previous exercise"
-                className="press grid h-9 w-9 place-items-center rounded-full bg-white/8 text-[rgba(237,235,230,0.75)] transition-colors hover:bg-white/15 disabled:opacity-35"
-              >
-                <ChevronsLeft className="h-4 w-4" aria-hidden />
-              </button>
-              <button
-                onClick={() => p.setActiveIndex(p.activeIndex + 1)}
-                disabled={!nextExercise}
-                aria-label="Next exercise"
-                className="press btn-volt flex h-9 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5 disabled:opacity-35 disabled:hover:translate-y-0"
-              >
-                Next
-                <ChevronsRight className="h-4 w-4" aria-hidden />
-              </button>
+        {/* ── Next-up navigator — the reference's preview card ──────────────
+            One card showing the exercise that comes next (its demo, its name)
+            with prev/next controls, rather than a scrolling queue of pills.
+            Hidden on a single-exercise session, where there is nothing to
+            navigate to. */}
+        {p.exercises.length > 1 && p.active && (
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-3 rounded-[1.25rem] bg-[#15170f] p-2.5">
+              <ExerciseImage
+                name={(nextExercise ?? p.exercises[0]).name}
+                animated={false}
+                className="h-12 w-12 shrink-0 rounded-2xl bg-white"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="session-muted text-[10px] font-bold tracking-[0.16em] uppercase">
+                  {nextExercise ? 'Next up' : 'Last exercise'}
+                </p>
+                <p className="truncate text-sm leading-tight font-bold">
+                  {(nextExercise ?? p.active).name}
+                </p>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button
+                  onClick={() => p.setActiveIndex(p.activeIndex - 1)}
+                  disabled={p.activeIndex === 0}
+                  aria-label="Previous exercise"
+                  className="press grid h-9 w-9 place-items-center rounded-full bg-white/8 text-[rgba(237,235,230,0.75)] transition-colors hover:bg-white/15 disabled:opacity-35"
+                >
+                  <ChevronsLeft className="h-4 w-4" aria-hidden />
+                </button>
+                <button
+                  onClick={() => p.setActiveIndex(p.activeIndex + 1)}
+                  disabled={!nextExercise}
+                  aria-label="Next exercise"
+                  className="press btn-volt flex h-9 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5 disabled:opacity-35 disabled:hover:translate-y-0"
+                >
+                  Next
+                  <ChevronsRight className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* ── Finish bar ───────────────────────────────────────────────────
-          Not sticky: on a short phone a pinned slab plus the navigator ate
-          the stage. It sits at the end of the flow and scrolls with it. */}
-      <div className="px-4 pt-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <button
-          onClick={p.finish}
-          className="press btn-volt flex h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-extrabold min-[380px]:h-14 min-[380px]:text-base"
-        >
-          <Flag className="h-5 w-5 shrink-0" aria-hidden />
-          <span className="truncate">Finish session</span>
-        </button>
+        {/* ── Finish bar ───────────────────────────────────────────────────
+            Inside the scroll container, not a flex sibling of it. Sitting
+            outside pinned it to the viewport just as firmly as position
+            sticky would have, and together with the navigator it ate the
+            stage on a short phone. Both now scroll with the content. */}
+        <div className="px-4 pt-1 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <button
+            onClick={p.finish}
+            className="press btn-volt flex h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-extrabold min-[380px]:h-14 min-[380px]:text-base"
+          >
+            <Flag className="h-5 w-5 shrink-0" aria-hidden />
+            <span className="truncate">Finish session</span>
+          </button>
+        </div>
       </div>
     </div>
   );

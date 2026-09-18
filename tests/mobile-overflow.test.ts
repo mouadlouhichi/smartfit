@@ -112,3 +112,27 @@ test('aspect-ratio boxes that cap their height also clip their children', () => 
     }
   }
 });
+
+/**
+ * The finish bar and next-up navigator must live *inside* the runner's
+ * scrolling column. As flex siblings of it they were pinned to the viewport
+ * as firmly as `position: sticky` would have managed -- no sticky class
+ * involved -- and together they left almost no room for the exercise stage
+ * on a short phone.
+ */
+test('the runner finish bar scrolls with the content', () => {
+  const src = fs.readFileSync('src/components/dashboard/modals/session-runner-modal.tsx', 'utf8');
+  const scroll = src.indexOf('<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">');
+  assert.ok(scroll > 0, 'the live screen scroll container must exist');
+  const end = src.indexOf('    </div>\n  );\n', scroll);
+  const navigator = src.indexOf('Next-up navigator');
+  const finish = src.indexOf('── Finish bar');
+  assert.ok(
+    scroll < navigator && navigator < end,
+    'the next-up navigator must sit inside the scroll container',
+  );
+  assert.ok(
+    scroll < finish && finish < end,
+    'the finish bar must sit inside the scroll container, not pinned beside it',
+  );
+});
