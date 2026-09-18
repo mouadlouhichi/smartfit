@@ -10,7 +10,7 @@
  * The app's *data* is already offline-capable (localStorage in local mode,
  * Firestore's IndexedDB cache in cloud mode); this only covers the shell.
  */
-const VERSION = 'smartfit-v5'; // manifest theme_color now matches the dark canvas
+const VERSION = 'smartfit-v6'; // icon URLs bumped to ?v=5; evict the precached mark
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const OFFLINE_URL = '/offline';

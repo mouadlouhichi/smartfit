@@ -60,11 +60,12 @@ const GATE_ICONS: Record<string, LucideIcon> = {
  * Redesigned as a genuine *premium* surface: a dark volt hero, an anchored
  * yearly plan with a savings ribbon, an honest Free-vs-Pro comparison built
  * from `PRO_GATES` (so the paywall never promises a gate that isn't enforced),
- * and a no-card 14-day trial in local sandbox mode. Real checkout and cloud
- * trials remain disabled until trusted server-side billing exists.
+ * and a no-card 14-day trial. Sandbox activation writes only a profile
+ * entitlement and charges nothing, so it works for signed-in accounts too;
+ * only real paid checkout stays disabled until server-side billing exists.
  */
 export function ProModal() {
-  const { state, updateProfile, cloud } = useStore();
+  const { state, updateProfile } = useStore();
   const { open, payload, closeModal } = useModals();
   const confirm = useConfirm();
   const toast = useToast();
@@ -79,13 +80,9 @@ export function ProModal() {
 
   async function checkout(useTrial = false) {
     if (useTrial) {
-      if (cloud) {
-        toast('Pro trials are disabled on cloud accounts until billing is connected.', 'info');
-        return;
-      }
       const ok = await confirm({
         title: 'Start your free trial?',
-        body: `${PRO_TRIAL_DAYS} days of every Pro feature, no card required (sandbox). You drop back to the free tier automatically when it ends.`,
+        body: `${PRO_TRIAL_DAYS} days of every Pro feature, no card required. You drop back to the free tier automatically when it ends.`,
         confirmLabel: `Start ${PRO_TRIAL_DAYS}-day trial`,
       });
       if (!ok) return;
@@ -95,7 +92,7 @@ export function ProModal() {
       return;
     }
     const link = paymentLinkFor(plan);
-    if (link || cloud) {
+    if (link) {
       toast('Paid Pro checkout is disabled until secure server-side billing is live.', 'info');
       return;
     }
@@ -187,8 +184,8 @@ export function ProModal() {
             meta={meta}
             onCheckout={() => checkout(false)}
             onTrial={() => checkout(true)}
-            paidDisabled={cloud || paidCheckoutConfigured}
-            trialDisabled={cloud}
+            paidDisabled={paidCheckoutConfigured}
+            trialDisabled={false}
           />
         )}
       </DialogContent>

@@ -161,3 +161,22 @@ test('the service worker precaches the manifest under a versioned cache', () => 
   assert.match(sw, /const VERSION = 'smartfit-v(\d+)'/, 'sw must carry a numbered version');
   assert.ok(sw.includes("'/manifest.webmanifest'"), 'manifest should stay precached');
 });
+
+/**
+ * Home-screen and PWA icons are cached by URL, so re-rendering the mark does
+ * nothing on a phone that already installed the app -- only a new `?v=` makes
+ * it refetch. layout.tsx and the manifest must therefore agree on one
+ * revision, or some surfaces refresh while others keep the stale icon.
+ */
+test('icon cache-bust revisions agree across layout and manifest', () => {
+  const layout = fs.readFileSync('src/app/layout.tsx', 'utf8');
+  const manifest = fs.readFileSync('public/manifest.webmanifest', 'utf8');
+  const revs = new Set(
+    [...layout.matchAll(/[?&]v=(\d+)/g), ...manifest.matchAll(/[?&]v=(\d+)/g)].map((m) => m[1]),
+  );
+  assert.equal(
+    revs.size,
+    1,
+    `icon URLs must share one ?v= revision, found: ${[...revs].join(', ')}`,
+  );
+});
