@@ -24,7 +24,7 @@
 
 import { drawMapTiles, mapPoint, MAP_ATTRIBUTION, type MapTransform } from './map-tiles';
 import { fmtDuration, fmtPace, projectRoute, type GeoPoint } from '@smartfit/core';
-import { BOLT_PATH, VOLT, VOLT_INK } from '@/lib/brand-mark';
+import { FLAME_PATH, VOLT, VOLT_INK } from '@/lib/brand-mark';
 
 export type ShareStyle = 'transparent' | 'dark' | 'light';
 export type ShareFormat = 'square' | 'story';
@@ -243,13 +243,13 @@ export function drawLogoMark(
   ctx.fill();
   ctx.restore();
 
-  // The bolt, in the mark's own 24-box coordinates.
+  // The flame, in the mark's own 24-box coordinates.
   const s = (size * 0.6) / 24;
   ctx.save();
   ctx.translate(x + (size - 24 * s) / 2, y + (size - 24 * s) / 2);
   ctx.scale(s, s);
   ctx.fillStyle = opts.ink ?? VOLT_INK;
-  ctx.fill(new Path2D(BOLT_PATH));
+  ctx.fill(new Path2D(FLAME_PATH), 'evenodd');
   ctx.restore();
 }
 
