@@ -515,7 +515,7 @@ export function PlanScreen() {
                     )}
                   </div>
                 </div>
-                <Badge variant="secondary" className="hidden shrink-0 min-[420px]:inline-flex">
+                <Badge variant="secondary" className="max-w-[7rem] shrink-0 truncate">
                   {cat.name}
                 </Badge>
                 <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />

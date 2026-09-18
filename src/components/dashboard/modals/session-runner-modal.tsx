@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   Check,
   ChevronRight,
@@ -754,17 +754,19 @@ function LiveScreen(p: LiveProps) {
               <div className="mt-5 grid grid-cols-2 gap-2">
                 <button
                   onClick={() => p.addSet(p.active!.id)}
-                  className="press session-tile flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
+                  className="press session-tile flex h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-bold"
                 >
-                  <Plus className="h-4 w-4" aria-hidden /> Add set
+                  <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                  <span className="truncate">Add set</span>
                 </button>
                 {nextExercise ? (
                   <button
                     onClick={() => p.setActiveIndex(p.activeIndex + 1)}
-                    className="press flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
+                    className="press flex h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-bold"
                     style={{ background: 'rgba(138,210,0,0.14)', color: '#B4E761' }}
                   >
-                    Next exercise <ChevronRight className="h-4 w-4" aria-hidden />
+                    <span className="truncate">Next</span>
+                    <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
                   </button>
                 ) : (
                   <button
@@ -1064,6 +1066,9 @@ function RingTimer({
   onSkip: () => void;
   onAdd: () => void;
 }) {
+  // Gradient ids must be unique per instance or a second ring would reuse
+  // the first one's defs.
+  const gradId = useId();
   const resting = restLeft > 0;
   const urgent = resting && restLeft <= 10;
   // Ring geometry: 168px disc, 12px stroke.
@@ -1090,41 +1095,62 @@ function RingTimer({
           className="absolute inset-0 h-full w-full -rotate-90"
           aria-hidden
         >
+          <defs>
+            {/* The reference arc is not a flat stroke: it ramps from a deep
+                green at the tail to a bright volt at the leading edge. */}
+            <linearGradient id={`${gradId}-run`} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#4E7A00" />
+              <stop offset="55%" stopColor="#8AD200" />
+              <stop offset="100%" stopColor="#C6F94D" />
+            </linearGradient>
+            <linearGradient id={`${gradId}-rest`} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#5C5330" />
+              <stop offset="60%" stopColor="#A8913F" />
+              <stop offset="100%" stopColor="#E4D48A" />
+            </linearGradient>
+            <linearGradient id={`${gradId}-urgent`} x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0%" stopColor="#6E9E00" />
+              <stop offset="100%" stopColor="#D8FF6B" />
+            </linearGradient>
+          </defs>
           <circle
             cx="84"
             cy="84"
             r={R}
             fill="none"
-            stroke="rgba(237,235,230,0.10)"
-            strokeWidth="12"
+            stroke="rgba(237,235,230,0.09)"
+            strokeWidth="11"
           />
           <circle
             cx="84"
             cy="84"
             r={R}
             fill="none"
-            stroke={resting ? (urgent ? '#B4E761' : '#87764D') : '#8AD200'}
-            strokeWidth="12"
+            stroke={`url(#${gradId}-${resting ? (urgent ? 'urgent' : 'rest') : 'run'})`}
+            strokeWidth="11"
             strokeLinecap="round"
             strokeDasharray={C}
             strokeDashoffset={C * (1 - fraction)}
-            style={{ transition: 'stroke-dashoffset 0.95s linear' }}
+            style={{
+              transition: 'stroke-dashoffset 0.95s linear',
+              filter: fraction > 0 ? 'drop-shadow(0 0 6px rgba(138,210,0,0.45))' : undefined,
+            }}
             className={urgent ? 'rest-beat origin-center' : undefined}
           />
         </svg>
-        <span className="relative grid place-items-center">
-          <span className="session-muted text-[10px] font-bold tracking-[0.2em] uppercase">
+        <span className="relative grid place-items-center gap-0.5">
+          <span className="session-muted text-[9px] font-bold tracking-[0.2em] uppercase">
             {resting ? 'Rest' : running ? 'Session' : 'Paused'}
           </span>
           <span
             className={cn(
-              'font-display text-[1.6rem] leading-none font-extrabold tabular-nums min-[380px]:text-[2rem]',
+              'font-display text-[1.35rem] leading-none font-extrabold tabular-nums min-[380px]:text-[1.6rem]',
               urgent && 'rest-beat',
             )}
           >
             {clock(resting ? restLeft : seconds)}
           </span>
-          <span className="mt-1 grid h-8 w-8 place-items-center rounded-full bg-white/10 min-[380px]:h-9 min-[380px]:w-9">
+          <span className="mt-0.5 grid h-8 w-8 place-items-center rounded-full bg-white/10">
             {running ? (
               <Pause className="h-4 w-4" aria-hidden />
             ) : (

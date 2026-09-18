@@ -35,3 +35,42 @@ test('every horizontal scroll rail can shrink below its content width', () => {
     }
   }
 });
+
+/**
+ * Dialog footers stack (`flex-col-reverse`) on mobile. Wrapping the actions in
+ * a bare inline element re-introduces a cramped side-by-side row inside that
+ * stack and leaves the buttons auto-width, so they read as tiny targets on a
+ * phone. Footer action buttons must be full-width until `sm`.
+ */
+test('modal footer actions are full-width on mobile', () => {
+  const modals = tsxFiles('src/components/dashboard/modals');
+  for (const file of modals) {
+    const src = fs.readFileSync(file, 'utf8');
+    if (!src.includes('<DialogFooter')) continue;
+    const footer = src.slice(src.indexOf('<DialogFooter'), src.indexOf('</DialogFooter>'));
+    assert.ok(
+      !/<span className="flex gap-2">/.test(footer),
+      `${file}: footer actions must not sit in a bare inline row`,
+    );
+    for (const attr of footer.match(/className="[^"]*"/g) ?? []) {
+      if (!/\bw-full\b/.test(attr) && /text-destructive|w-auto/.test(attr)) {
+        assert.ok(
+          /w-full/.test(attr),
+          `${file}: footer button must be w-full on mobile:\n  ${attr}`,
+        );
+      }
+    }
+  }
+});
+
+/**
+ * The coach lives on its own route and MobileNav hides itself there, so the
+ * screen has to provide its own way back or a phone user is trapped.
+ */
+test('the full-screen coach offers a way back on mobile', () => {
+  const src = fs.readFileSync('src/app/dashboard/coach/page.tsx', 'utf8');
+  assert.ok(
+    src.includes('href="/dashboard"'),
+    'coach page must link back to the dashboard (the bottom nav is hidden here)',
+  );
+});
