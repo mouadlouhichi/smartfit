@@ -1,7 +1,8 @@
 /**
  * Regenerates every brand asset from the one Volt mark: the rounded-square
- * charge cell in volt (#F3FF47) with the near-black flame — the badge that
- * leads the dashboard header greeting. Run with
+ * charge cell in volt (#8AD200, mirroring src/lib/brand-mark.ts and
+ * --color-volt) with the near-black flame stroked exactly as Lucide draws
+ * it — the badge that leads the dashboard header greeting. Run with
  * `node scripts/gen-brand-assets.mjs` after touching the mark.
  *
  * Two variants, same glyph:
@@ -31,28 +32,47 @@ const require = createRequire(import.meta.url);
 
 /* ── brand constants (mirrors src/lib/brand-mark.ts) ─────────────────── */
 
-const VOLT = '#f3ff47';
-const VOLT_SOFT = '#f7ff85';
+const VOLT = '#8ad200';
+const VOLT_SOFT = '#b4e761';
 const INK = '#101010';
 const CANVAS = '#0e0e0e';
 const PAPER = '#f5f5f2';
 
 /**
  * Lucide's `flame` glyph in its native 24×24 box — mirrors FLAME_PATH in
- * src/lib/brand-mark.ts. Filled rather than stroked so it reads as a solid
- * silhouette at favicon sizes. One closed subpath, so no fill-rule needed.
+ * src/lib/brand-mark.ts (kept identical by tests/mobile-overflow.test.ts,
+ * which reads the path straight out of the installed lucide-react).
  */
 const FLAME_PATH =
-  'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z';
+  'M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4';
+/** Mirrors FLAME_STROKE in src/lib/brand-mark.ts. */
+const FLAME_STROKE = 2;
+
+/** The glyph the way lucide.dev renders it: round stroke, no fill. */
+const glyph = (ink, stroke = FLAME_STROKE) =>
+  `<path d="${FLAME_PATH}" fill="none" stroke="${ink}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+/**
+ * A 2-unit stroke is a hairline once the tile is 32px wide, so the favicon
+ * rasters widen it optically — and let the glyph take more of the cell.
+ * Vectors and big tiles keep Lucide's own weight and proportions.
+ */
+const optical = (px) =>
+  px <= 16 ? { stroke: 3, ratio: 0.74 } : px <= 32 ? { stroke: 2.75, ratio: 0.66 } : {};
 
 /** Charge cell + flame at (x,y) with the glyph scaled to `box` px. */
-const markGroup = (x, y, box, { plate = VOLT, ink = INK, rx = 0.3 } = {}) => {
-  const s = (box * 0.6) / 24;
+const markGroup = (
+  x,
+  y,
+  box,
+  { plate = VOLT, ink = INK, rx = 0.3, stroke = FLAME_STROKE, ratio = 0.6 } = {},
+) => {
+  const s = (box * ratio) / 24;
   const t = (box - 24 * s) / 2;
   return (
     `<g transform="translate(${x},${y})">` +
     `<rect width="${box}" height="${box}" rx="${box * rx}" fill="${plate}"/>` +
-    `<g transform="translate(${t},${t}) scale(${s})"><path d="${FLAME_PATH}" fill="${ink}"/></g>` +
+    `<g transform="translate(${t},${t}) scale(${s})">${glyph(ink, stroke)}</g>` +
     `</g>`
   );
 };
@@ -66,7 +86,9 @@ const tileGroup = (box, { plate = VOLT, ink = INK } = {}) => {
   );
 };
 
-const MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">${markGroup(0, 0, 512)}</svg>`;
+const markSvg = (stroke = FLAME_STROKE, ratio = 0.6) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">${markGroup(0, 0, 512, { stroke, ratio })}</svg>`;
+const MARK_SVG = markSvg();
 const MARK_MASKABLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">${tileGroup(512)}</svg>`;
 const TILE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="${VOLT}"/>${markGroup(0, 0, 512, { plate: 'none' })}</svg>`;
 
@@ -147,7 +169,7 @@ function ogSvg() {
   const flameS = 620 / 24;
   const watermark =
     `<g transform="translate(820,60) scale(${flameS})" opacity="0.07">` +
-    `<path d="${FLAME_PATH}" fill="${VOLT}"/></g>` +
+    `${glyph(VOLT)}</g>` +
     `<circle cx="1040" cy="315" r="225" fill="none" stroke="${VOLT}" stroke-width="2" opacity="0.16"/>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
@@ -205,9 +227,13 @@ async function faviconIco() {
   const sizes = [16, 32, 48];
   const pngs = [];
   for (const s of sizes) {
+    const o = optical(s);
     pngs.push({
       size: s,
-      data: await sharp(svgBuffer(MARK_SVG)).resize(s, s).png().toBuffer(),
+      data: await sharp(svgBuffer(markSvg(o.stroke ?? FLAME_STROKE, o.ratio ?? 0.6)))
+        .resize(s, s)
+        .png()
+        .toBuffer(),
     });
   }
   // ICONDIR + ICONDIRENTRY table, then the bundled PNG blobs.
@@ -255,7 +281,10 @@ const roundedTile = await render(TILE_SVG, 512);
 
 await put(disc512, 'public/icons/icon-512.png');
 await put(await render(MARK_SVG, 192), 'public/icons/icon-192.png');
-await put(await render(MARK_SVG, 32), 'public/icons/icon-32.png');
+await put(
+  await render(markSvg(optical(32).stroke ?? FLAME_STROKE, optical(32).ratio ?? 0.6), 32),
+  'public/icons/icon-32.png',
+);
 await put(await render(MARK_SVG, 64), 'apps/mobile/assets/favicon.png');
 await put(tile512, 'public/icons/maskable-512.png');
 await put(await render(MARK_MASKABLE_SVG, 180), 'public/apple-touch-icon.png');
