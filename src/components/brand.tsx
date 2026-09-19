@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { FLAME_PATH } from '@/lib/brand-mark';
+import { FLAME_PATH, FLAME_STROKE } from '@/lib/brand-mark';
 
 /**
  * The one SmartFit mark: the volt flame on a rounded-square charge cell — the
@@ -23,7 +23,11 @@ export function Logo({ className, size = 36 }: { className?: string; size?: numb
       <svg
         viewBox="0 0 24 24"
         style={{ width: size * 0.6, height: size * 0.6 }}
-        fill="currentColor"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={FLAME_STROKE}
+        strokeLinecap="round"
+        strokeLinejoin="round"
         aria-hidden
       >
         <path d={FLAME_PATH} />

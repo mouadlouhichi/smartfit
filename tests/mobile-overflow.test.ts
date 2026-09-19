@@ -182,9 +182,10 @@ test('icon cache-bust revisions agree across layout and manifest', () => {
 });
 
 /**
- * The brand mark is Lucide's flame, filled. Its geometry is duplicated in the
- * asset generator (which cannot import from src/), so the two must not drift,
- * and it must stay in sync with the lucide-react version the UI renders.
+ * The brand mark is Lucide's flame, stroked the way lucide.dev renders it.
+ * Its geometry is duplicated in the asset generator (which cannot import
+ * from src/), so the two must not drift, and it must stay in sync with the
+ * lucide-react version the UI renders.
  */
 test('the brand mark is the lucide flame and the generator matches', async () => {
   const mark = fs.readFileSync('src/lib/brand-mark.ts', 'utf8');
@@ -197,12 +198,28 @@ test('the brand mark is the lucide flame and the generator matches', async () =>
   assert.ok(d, 'FLAME_PATH must be a path string');
   assert.ok(gen.includes(d), 'the generator must mirror the exact same path');
 
-  // The mark must be the same glyph lucide-react draws in the UI.
-  const lucide = fs.readFileSync('node_modules/lucide-react/dist/esm/icons/flame.js', 'utf8');
+  // The mark must be the same glyph lucide-react draws in the UI. The esm
+  // file extension moved between lucide majors, so accept either.
+  const lucideFile = ['flame.mjs', 'flame.js']
+    .map((f) => `node_modules/lucide-react/dist/esm/icons/${f}`)
+    .find((f) => fs.existsSync(f));
+  assert.ok(lucideFile, 'could not locate the installed lucide flame icon');
+  const lucide = fs.readFileSync(lucideFile as string, 'utf8');
   const upstream = lucide.match(/d:\s*"([^"]+)"/)?.[1];
   assert.ok(upstream, 'could not read the lucide flame path');
   assert.equal(d, upstream, "FLAME_PATH must match lucide-react's flame exactly");
 
-  // One closed subpath, so filling needs no fill-rule.
-  assert.equal((d.match(/z/gi) ?? []).length, 1, 'lucide flame is a single closed path');
+  // Lucide draws the flame as a stroke icon, and every renderer keeps that:
+  // one shared weight, round caps, no fill sneaking back in.
+  const stroke = mark.match(/FLAME_STROKE = (\d+(?:\.\d+)?)/)?.[1];
+  assert.ok(stroke, 'brand-mark must export FLAME_STROKE');
+  assert.ok(
+    gen.includes(`FLAME_STROKE = ${stroke}`),
+    'the generator must mirror the same stroke weight',
+  );
+  const brand = fs.readFileSync('src/components/brand.tsx', 'utf8');
+  assert.ok(
+    brand.includes('stroke="currentColor"') && brand.includes('FLAME_PATH'),
+    'the React mark must stroke the glyph, not fill it',
+  );
 });
