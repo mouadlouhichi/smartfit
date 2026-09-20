@@ -67,7 +67,7 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 - [ ] `generateMetadata` per tenant (title/OG from the gym's own branding)
 - [ ] Class detail page
 
-## Phase 5 — Gym owner console 🟡 (read-only; writes pending)
+## Phase 5 — Gym owner console ✅ (writes wired; cloud path unexercised)
 
 - [x] `/g/[slug]/console` — capability-filtered nav, role badge, demo-role switcher
 - [x] Overview — active members, MRR, collected (30d), occupancy, at-risk,
@@ -78,9 +78,19 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 - [x] Revenue — MRR, collected, invoiced, per-invoice list
 - [x] Plans · Staff · Settings (read-only)
 - [x] `src/lib/tenant-metrics.ts` — extracted pure, **9 unit tests passing**
-- [ ] ⛔ **All sections are read-only.** No write is wired yet: freeze/activate,
-      publish a class, take a payment, edit branding
-- [ ] Booking/check-in mutations (call the `tenant-repo` transactions)
+- [x] **Writes wired** through a single `run()` path in the provider:
+      freeze/reactivate a member, check a member in, add a class, schedule an
+      occurrence, take a payment (issues a paid invoice), add a plan, edit
+      branding. Each returns `false` on failure so no success toast can lie.
+- [x] After a cloud write the provider **refetches** rather than patching
+      locally, so the screen shows what the server accepted — the rules may
+      reject a write the client thought was fine.
+- [x] `ToastProvider` mounted in the tenant shell (the rest of the app mounts it
+      inside `DashboardShell`, so tenant routes would have thrown on `useToast()`)
+- [ ] ⛔ Writes only exercised in **demo mode**. No Firebase project here, so the
+      cloud path (`saveMembership`, `checkIn`, `saveClass`, `issueInvoice`,
+      `savePlan`, `saveGymProfile`) has never run against real Firestore.
+- [ ] Booking mutations from the member side (the `bookSeat` transaction)
 
 ## Phase 6 — Staff console 🟡
 
@@ -89,7 +99,8 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 - [x] Staff land on **Today**, not the owner dashboard, because the default tab
       follows whatever the capability filter leaves first
 - [x] Today view — classes with booked/capacity and the seat list
-- [ ] Fast member search → mark attended / no-show
+- [x] Fast member search → check in (writes `checkins` + `lastVisitAt`)
+- [ ] Mark attended / no-show on a booking (`markAttendance` exists, not wired)
 - [ ] Verify the filter against a real staff account (demo switcher only so far)
 
 ## Phase 7 — Member gym experience ⬜
@@ -134,7 +145,7 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 | `pnpm test` | **129/129** | includes the env-docs guard, which caught 6 undocumented vars |
 | `pnpm --filter @smartfit/core test` | **238/238** | was 171 before the pivot; +67 |
 | `pnpm test:rules` | ⛔ **cannot run here** | needs Java + emulator jar from GCS |
-| tenant routes (dev server) | ✅ all 200 | `/`, `/g/{slug}`, `/g/{slug}/console`, `/dashboard`, `/login`; reserved + malformed slugs render the not-found state |
+| tenant routes (dev server) | ✅ all 200, clean log | `/`, `/g/{slug}`, `/g/{slug}/console`, `/dashboard`, `/login`; reserved + malformed slugs render the not-found state |
 | `pnpm build` | not yet run | |
 | `pnpm test:e2e` | not yet run | Playwright browsers not installed |
 
