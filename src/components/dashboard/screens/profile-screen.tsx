@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,13 +20,11 @@ import {
   Download,
   FileSpreadsheet,
   Flame,
-  Sparkles,
+  Building2,
   HardDrive,
-  Info,
   Loader2,
   LogOut,
   Mail,
-  Play,
   RefreshCw,
   SlidersHorizontal,
   Tag,
@@ -35,41 +34,29 @@ import {
   Upload,
   UserRound,
   UtensilsCrossed,
+  ArrowRight,
   type LucideIcon,
 } from 'lucide-react';
 import {
-  GYM_PROGRAMS,
-  INTENSITY_META,
   PLANS,
-  WEEKDAYS,
-  categoryIdForSuggestion,
   computeAchievements,
   currentStreak,
   formatDateLabel,
   formatWeight,
-  exerciseMeasure,
   fromKg,
-  getGymProgram,
   hasProAccess,
   parseStateJSON,
   toISODate,
-  suggestProgram,
-  suggestedToSchedule,
-  suggestExercises,
-  suggestSummary,
   toKg,
 } from '@smartfit/core';
-import type { ExerciseCatalogEntry, WeekStart } from '@smartfit/core';
+import type { WeekStart } from '@smartfit/core';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
 import { ProBadge } from '../pro-badge';
 import { AchievementWall } from '../achievement-wall';
-import { ExerciseImage } from '@/components/exercise-image';
-import { ExerciseDetailDialog } from '@/components/exercise-detail';
 
-/** Initials for the hero avatar — falls back to an icon when nameless. */
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '';
@@ -77,10 +64,6 @@ function initials(name: string): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-/**
- * Facebook-style profile sections: the identity hero stays put while the
- * body below switches between Overview, Settings, Badges and Data.
- */
 type ProfileTab = 'overview' | 'settings' | 'badges' | 'data';
 
 const PROFILE_TABS: { key: ProfileTab; label: string; icon: LucideIcon }[] = [
@@ -94,7 +77,6 @@ export function ProfileScreen() {
   const {
     state,
     updateProfile,
-    replaceSchedule,
     clearData,
     replaceState,
     cloud,
@@ -119,8 +101,6 @@ export function ProfileScreen() {
   const [verifySent, setVerifySent] = useState(false);
   const [tab, setTab] = useState<ProfileTab>('overview');
   const achievements = useMemo(() => computeAchievements(state), [state]);
-  // Target weight is stored canonically in kg but edited in the athlete's
-  // display unit; the raw field keeps the typed value until it commits.
   const [targetInput, setTargetInput] = useState(() =>
     state.profile.targetWeightKg != null
       ? String(Number(fromKg(state.profile.targetWeightKg, state.profile.weightUnit).toFixed(1)))
@@ -129,8 +109,6 @@ export function ProfileScreen() {
   const [targetError, setTargetError] = useState<string | null>(null);
 
   function changeWeightUnit(next: 'kg' | 'lb') {
-    // Keep the canonical kg value unchanged, but convert the visible target so
-    // `80 kg` cannot silently become `80 lb` when the selector changes.
     if (state.profile.targetWeightKg != null) {
       setTargetInput(String(Number(fromKg(state.profile.targetWeightKg, next).toFixed(1))));
     }
@@ -149,7 +127,6 @@ export function ProfileScreen() {
     }
     const n = Number(trimmed);
     const kg = toKg(n, state.profile.weightUnit);
-    // Surface the valid range instead of silently clamping what was typed.
     if (!Number.isFinite(n) || kg < 20 || kg > 400) {
       const unit = state.profile.weightUnit;
       setTargetError(
@@ -163,41 +140,6 @@ export function ProfileScreen() {
     setTargetInput(String(Number(fromKg(rounded, state.profile.weightUnit).toFixed(1))));
   }
 
-  // Gym-aware suggested week — this preview mirrors the Plan tab exactly.
-  const gymProgram = useMemo(() => getGymProgram(state.profile.gymId), [state.profile.gymId]);
-  const suggested = useMemo(
-    () => (gymProgram ? suggestProgram(state, gymProgram) : []),
-    [state, gymProgram],
-  );
-
-  async function importSuggestion() {
-    const ok = await confirmDialog({
-      title: 'Import suggested week?',
-      body: `Your current scheduled sessions are replaced with the ${
-        gymProgram?.name ?? 'gym'
-      } classes shown here.`,
-      confirmLabel: 'Replace my week',
-      destructive: true,
-    });
-    if (ok) {
-      replaceSchedule(suggestedToSchedule(suggested));
-      toast(`Week imported — ${suggested.length} sessions scheduled`);
-    }
-  }
-
-  const [suggestDetail, setSuggestDetail] = useState<string | null>(null);
-  const suggestions = useMemo(() => suggestExercises(state), [state]);
-
-  function startSuggestion(entry: ExerciseCatalogEntry) {
-    openWith({
-      kind: 'runner',
-      title: entry.name,
-      categoryId: categoryIdForSuggestion(state, entry.equipment),
-      intensity: 'moderate',
-      exercises: [{ name: entry.name, sets: [{}, {}, {}] }],
-    });
-  }
-
   const pro = hasProAccess(state);
   const counts = {
     workouts: state.sessions.length,
@@ -208,7 +150,6 @@ export function ProfileScreen() {
   const streak = currentStreak(state);
   const displayName = state.profile.name || user?.displayName || user?.email || '';
   const avatar = initials(displayName);
-
   const isPasswordUser = !!user?.providerData.some((p) => p.providerId === 'password');
 
   async function handleSignOut() {
@@ -225,8 +166,6 @@ export function ProfileScreen() {
     setBusy('export');
     setDataError(null);
     try {
-      // Pages through any history the initial bounded load left in the cloud,
-      // so the backup is complete even for multi-year accounts.
       const full = await collectFullState();
       const blob = new Blob([JSON.stringify(full, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -244,11 +183,6 @@ export function ProfileScreen() {
     }
   }
 
-  /**
-   * CSV export is free for everyone: one row per exercise-set so training
-   * drops straight into a spreadsheet or a coaching tool. Your own data is
-   * never held hostage — Pro sells intelligence, not access to your past.
-   */
   async function exportCsv() {
     setBusy('export');
     setDataError(null);
@@ -327,7 +261,6 @@ export function ProfileScreen() {
       .join(',');
   }
 
-  /** Import validates through the shared parser — never a raw JSON cast. */
   async function importData(file: File) {
     setImportError(null);
     setBusy('import');
@@ -362,16 +295,10 @@ export function ProfileScreen() {
     setBusy('delete');
     setDeleteError(null);
     try {
-      // Prove the password or OAuth identity before invoking the server job:
-      // a wrong credential or cancelled popup must not start deletion.
       await reauthenticate(pw);
-      // The Admin SDK now owns the complete operation: it recursively removes
-      // Firestore, retries from a durable job record, then deletes Auth.
       await deleteAccount();
       window.location.href = '/';
     } catch (err) {
-      // Firebase demanded a fresh login we don't have: fall back to asking
-      // for the password inline instead of dead-ending the user.
       if ((err as { code?: string })?.code === 'auth/requires-recent-login') {
         setNeedPassword(true);
       } else {
@@ -394,8 +321,6 @@ export function ProfileScreen() {
       destructive: true,
     });
     if (!ok) return;
-    // Password users confirm with their password; Google users only get a
-    // re-auth popup if Firebase actually demands one.
     if (isPasswordUser) {
       setNeedPassword(true);
       return;
@@ -428,7 +353,6 @@ export function ProfileScreen() {
 
   return (
     <div className="grid max-w-full min-w-0 gap-5">
-      {/* ── Hero identity card ─────────────────────────────────────────── */}
       <section className="card-hero max-w-full min-w-0 p-4 sm:p-8" aria-label="Profile summary">
         <p className="text-volt-ink mb-3 text-[11px] font-bold tracking-[0.18em] uppercase">
           Profile
@@ -454,8 +378,6 @@ export function ProfileScreen() {
                 : 'Your data stays on this device — no account needed.'}
             </p>
           </div>
-          {/* The status chips get their own row on phones so they can never
-              crowd — or overlap — the name; on sm+ they sit to its right. */}
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
             <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
               {cloud ? (
@@ -486,7 +408,6 @@ export function ProfileScreen() {
               key={t.label}
               className={cn(
                 'hero-tile min-w-0 rounded-2xl px-4 py-3',
-                // Odd tile count: the last one spans the empty half on phones.
                 i === 4 && 'col-span-2 sm:col-span-1',
               )}
             >
@@ -502,7 +423,6 @@ export function ProfileScreen() {
         </div>
       </section>
 
-      {/* Section tabs — the hero stays, the body switches. */}
       <div
         className="bg-secondary border-border no-scrollbar mx-auto flex w-full max-w-xl min-w-0 overflow-x-auto rounded-full border p-1 shadow-sm sm:w-fit"
         role="tablist"
@@ -564,7 +484,6 @@ export function ProfileScreen() {
               </div>
             </div>
 
-            {/* Sync health */}
             <div className="bg-secondary/60 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5 text-xs">
               {syncStatus === 'error' ? (
                 <>
@@ -589,7 +508,6 @@ export function ProfileScreen() {
               )}
             </div>
 
-            {/* Email verification (password accounts only — OAuth emails arrive verified) */}
             {isPasswordUser && user && !user.emailVerified && (
               <div className="bg-secondary/60 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5 text-xs">
                 <Mail className="text-muted-foreground h-4 w-4" />
@@ -713,23 +631,30 @@ export function ProfileScreen() {
                 ))}
               </Select>
             </Field>
-            <Field
-              id="p-gym"
-              label="Gym program"
-              hint="Picking your gym unlocks a suggested week built from its real class timetable."
-            >
-              <Select
-                value={state.profile.gymId ?? ''}
-                onChange={(e) => updateProfile({ gymId: e.target.value || undefined })}
-              >
-                <option value="">No gym — build my week manually</option>
-                {GYM_PROGRAMS.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+
+            <div className="bg-volt/5 border-volt/20 rounded-2xl border p-4 sm:col-span-2">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="bg-volt text-ink grid h-10 w-10 place-items-center rounded-xl">
+                    <Building2 className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-bold">Gym Management</p>
+                    <p className="text-muted-foreground text-xs">
+                      {state.customGyms?.length
+                        ? `${state.customGyms.length} custom gyms · ${state.customGyms.reduce((a, g) => a + g.programs.length, 0)} programs`
+                        : 'Add your gyms, create programs, join AI-powered courses'}
+                    </p>
+                  </div>
+                </div>
+                <Button size="sm" asChild className="rounded-full">
+                  <Link href="/dashboard/plan">
+                    Manage <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
             <Field
               id="p-weight"
               label="Weight unit"
@@ -748,7 +673,7 @@ export function ProfileScreen() {
             <Field
               id="p-target-weight"
               label={`Target weight (${state.profile.weightUnit})`}
-              hint="Drives the suggested program mix on the Plan tab — closer target means more maintenance, further means more burn. Clear to disable."
+              hint="Drives the suggested program mix — closer target means more maintenance, further means more burn. Clear to disable."
               error={targetError}
             >
               <Input
@@ -806,174 +731,78 @@ export function ProfileScreen() {
                 ))}
               </Select>
             </Field>
+          </CardContent>
+        </Card>
+      )}
 
-            {/* Live suggested-week preview — appears the moment a gym is picked */}
-            {gymProgram && (
-              <div className="bg-secondary/40 grid gap-3 rounded-2xl p-4 sm:col-span-2">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-                      <Sparkles className="h-4.5 w-4.5" aria-hidden />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold">Suggested week · {gymProgram.name}</p>
-                      <p className="text-muted-foreground text-xs">{suggestSummary(state)}</p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    onClick={importSuggestion}
-                    disabled={suggested.length === 0}
-                    data-testid="import-suggested-week"
-                  >
-                    <Download className="h-4 w-4" /> Import into my plan
-                  </Button>
+      {tab === 'overview' && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2.5 text-base">
+                <span className="bg-volt/10 text-ink flex h-9 w-9 items-center justify-center rounded-xl">
+                  <Building2 className="h-5 w-5" />
+                </span>
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 sm:grid-cols-2">
+              <Link
+                href="/dashboard/plan"
+                className="hover:bg-secondary/50 flex items-center justify-between rounded-2xl border p-4 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-bold">Gym Management</p>
+                  <p className="text-muted-foreground text-xs">Add gyms, programs, AI courses</p>
                 </div>
-                {suggested.length === 0 ? (
-                  <p className="text-muted-foreground text-xs">
-                    No matching classes on your training days — try another default strategy.
-                  </p>
-                ) : (
-                  <ul className="grid gap-1 sm:grid-cols-2">
-                    {suggested.map((s) => {
-                      const meta = INTENSITY_META[s.gymClass.intensity];
-                      return (
-                        <li
-                          key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
-                          className="bg-card flex items-center gap-2 rounded-lg px-2.5 py-1.5"
-                        >
-                          <span className="w-8 text-xs font-bold tabular-nums">
-                            {WEEKDAYS[s.weekday]}
-                          </span>
-                          <span className="text-muted-foreground text-xs font-semibold tabular-nums">
-                            {s.time}
-                          </span>
-                          <span className="flex-1 truncate text-xs font-semibold">
-                            {s.gymClass.name}
-                          </span>
-                          <span
-                            className="h-1.5 w-1.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: meta.color }}
-                            title={`${meta.label} intensity`}
-                            aria-hidden
-                          />
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-                <p className="text-muted-foreground text-xs">
-                  {gymProgram.hours} · Fine-tune any session on the Plan tab after importing.
+                <ArrowRight className="text-muted-foreground h-4 w-4" />
+              </Link>
+              <Link
+                href="/dashboard/progress"
+                className="hover:bg-secondary/50 flex items-center justify-between rounded-2xl border p-4 transition-colors"
+              >
+                <div>
+                  <p className="text-sm font-bold">View Progress</p>
+                  <p className="text-muted-foreground text-xs">Check your growth & metrics</p>
+                </div>
+                <ArrowRight className="text-muted-foreground h-4 w-4" />
+              </Link>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <div className="relative flex flex-wrap items-center gap-4 p-5">
+              <img
+                src="/images/pro-hero.jpg"
+                alt=""
+                aria-hidden
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/60" />
+              <span className="bg-primary relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-lg shadow-black/30">
+                <Crown className="h-5 w-5 text-white" aria-hidden />
+              </span>
+              <div className="relative min-w-0 flex-1">
+                <p className="text-sm font-bold text-white">SmartFit Pro</p>
+                <p className="truncate text-xs text-white/75">
+                  {pro
+                    ? `Active since ${formatDateLabel(toISODate(new Date(state.profile.pro?.since ?? Date.now())))} — thanks for supporting SmartFit.`
+                    : 'Unlimited AI coach, quarter & year analytics, Pro badge.'}
                 </p>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Suggested exercises — driven by body-composition signals */}
-      {tab === 'overview' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2.5 text-base">
-              <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
-                <Sparkles className="h-4.5 w-4.5" aria-hidden />
-              </span>
-              Suggested for you
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2.5">
-            <p className="text-muted-foreground text-xs">
-              Picked from your weight, body fat, waist and recent training — log your InBody
-              measurements on the Body tab and these adapt.
-            </p>
-            {suggestions.map((s) => (
-              <div
-                key={s.entry.name}
-                className="border-border flex items-center gap-3 rounded-2xl border p-3"
+              <Button
+                size="sm"
+                variant={pro ? 'outline' : 'default'}
+                className={cn('relative', !pro && 'shadow-primary/40 shadow-lg')}
+                onClick={() => openWith({ kind: 'pro' })}
               >
-                <ExerciseImage
-                  name={s.entry.name}
-                  className="h-14 w-14 shrink-0 rounded-xl"
-                  animated={false}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="truncate text-sm font-bold">{s.entry.name}</p>
-                    <Badge variant="secondary">
-                      {s.entry.equipment === 'pool'
-                        ? 'Pool'
-                        : s.entry.equipment === 'running'
-                          ? 'Running'
-                          : 'Gym'}
-                    </Badge>
-                    <Badge variant="outline">
-                      {exerciseMeasure(s.entry) === 'distance' ? 'metres' : 'kg × reps'}
-                    </Badge>
-                  </div>
-                  <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{s.reason}</p>
-                </div>
-                <div className="flex shrink-0 flex-col gap-1.5">
-                  <Button size="sm" onClick={() => startSuggestion(s.entry)}>
-                    <Play className="h-3.5 w-3.5" /> Start
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setSuggestDetail(s.entry.name)}
-                    aria-label={`How to do ${s.entry.name}`}
-                  >
-                    <Info className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      <ExerciseDetailDialog
-        name={suggestDetail}
-        open={!!suggestDetail}
-        onOpenChange={(o) => !o && setSuggestDetail(null)}
-      />
-
-      {/* SmartFit Pro — membership status & paywall entry */}
-      {tab === 'overview' && (
-        <Card className="overflow-hidden">
-          <div className="relative flex flex-wrap items-center gap-4 p-5">
-            {/* eslint-disable-next-line @next/next/no-img-element -- static export */}
-            <img
-              src="/images/pro-hero.jpg"
-              alt=""
-              aria-hidden
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-            <div className="absolute inset-0 bg-black/60" />
-            <span className="bg-primary relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-lg shadow-black/30">
-              <Crown className="h-5 w-5 text-white" aria-hidden />
-            </span>
-            <div className="relative min-w-0 flex-1">
-              <p className="text-sm font-bold text-white">SmartFit Pro</p>
-              <p className="truncate text-xs text-white/75">
-                {pro
-                  ? `Mvolt since ${formatDateLabel(toISODate(new Date(state.profile.pro?.since ?? Date.now())))} — thanks for supporting SmartFit.`
-                  : 'Unlimited AI coach, quarter & year analytics, Pro badge.'}
-              </p>
+                {pro ? 'Manage' : 'Upgrade'}
+              </Button>
             </div>
-            <Button
-              size="sm"
-              variant={pro ? 'outline' : 'default'}
-              className={cn('relative', !pro && 'shadow-primary/40 shadow-lg')}
-              onClick={() => openWith({ kind: 'pro' })}
-            >
-              {pro ? 'Manage' : 'Upgrade'}
-            </Button>
-          </div>
-        </Card>
+          </Card>
+        </>
       )}
 
-      {/* Badges — the achievement wall, one tap from the profile. */}
       {tab === 'badges' && (
         <Card>
           <CardHeader>
@@ -1007,6 +836,9 @@ export function ProfileScreen() {
               <Badge variant="secondary">{counts.goals} goals</Badge>
               <Badge variant="secondary">{counts.measurements} measurements</Badge>
               <Badge variant="secondary">{state.categories.length} activity types</Badge>
+              {state.customGyms && state.customGyms.length > 0 && (
+                <Badge variant="secondary">{state.customGyms.length} custom gyms</Badge>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => openModal('category')}>

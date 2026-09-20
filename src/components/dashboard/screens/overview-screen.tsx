@@ -28,6 +28,7 @@ import { BodySelectHero } from '../body-select-hero';
 import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MetricCard, MiniBars, GradeRing } from '@/components/volt/volt-kit';
+import { SuggestedWorkouts } from '../suggested-workouts';
 import {
   currentStreak,
   getPlan,
@@ -204,6 +205,9 @@ export function OverviewScreen() {
         {/* ── Streak hero — Apple Watch-style rings + 7-day dial strip ─── */}
         <StreakRingsCard />
 
+        {/* ── AI Suggested Workouts - moved from profile ───────────────── */}
+        <SuggestedWorkouts />
+
         {/* ── Health metrics — the reference 2×2 tile grid ─────────────── */}
         <section aria-label="Health metrics" className="min-w-0">
           <div className="flex items-center justify-between gap-3">
@@ -258,10 +262,9 @@ export function OverviewScreen() {
               See All
             </Link>
           </div>
-          {/* Icon-forward category tiles — the Axel program-library pattern.
-              A snap rail on phones, a wrap grid from sm up. */}
+          {/* Premium program tiles - enhanced with glow, better hierarchy, and Axel-inspired design */}
           <div
-            className="no-scrollbar -mx-1 mt-3 flex min-w-0 snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7"
+            className="no-scrollbar -mx-1 mt-4 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7"
             role="tablist"
             aria-label="Program category"
           >
@@ -270,7 +273,7 @@ export function OverviewScreen() {
                 id: null as string | null,
                 name: 'All type',
                 icon: 'layout-grid',
-                color: 'var(--primary)',
+                color: '#A8FF00',
                 count: state.sessions.length,
               },
               ...state.categories.map((c) => ({
@@ -289,22 +292,44 @@ export function OverviewScreen() {
                   aria-selected={selected}
                   onClick={() => startCategory(c.name, c.id)}
                   className={cn(
-                    'group flex min-w-[5.5rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-2xl border px-3 py-3.5 text-center transition-all sm:min-w-0',
+                    'group relative flex min-w-[6.5rem] shrink-0 snap-start flex-col items-center gap-2 rounded-[20px] border px-3 py-4 text-center transition-all duration-300 sm:min-w-0',
+                    'hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]',
                     selected
-                      ? 'border-volt/60 bg-charcoal shadow-[0_0_0_1px_var(--primary)]'
-                      : 'border-border bg-card hover:border-volt/40 hover:bg-secondary/40',
+                      ? 'border-[#A8FF00]/80 bg-[#121412] shadow-[0_0_0_1px_#A8FF00,0_0_20px_-8px_#A8FF00] ring-1 ring-[#A8FF00]/30'
+                      : 'border-white/[0.08] bg-[#151515] hover:border-[#A8FF00]/30 hover:bg-[#1a1a1a] hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]',
                   )}
                 >
+                  {selected && (
+                    <span className="absolute inset-0 rounded-[20px] bg-gradient-to-b from-[#A8FF00]/[0.08] to-transparent" />
+                  )}
                   <span
-                    className="grid h-10 w-10 place-items-center rounded-xl"
-                    style={{ backgroundColor: `${c.color}1f`, color: c.color }}
+                    className={cn(
+                      'relative grid h-11 w-11 place-items-center rounded-[14px] transition-all duration-300',
+                      selected ? 'shadow-[0_4px_12px_-4px_rgba(168,255,0,0.4)]' : '',
+                    )}
+                    style={{
+                      backgroundColor: selected ? `${c.color}18` : `${c.color}14`,
+                      color: c.color,
+                      border: `1px solid ${c.color}25`,
+                    }}
                   >
-                    <CategoryIcon name={c.icon} size={19} />
+                    <CategoryIcon name={c.icon} size={20} />
                   </span>
-                  <span className="w-full truncate text-xs font-bold">{c.name}</span>
-                  <span className="text-muted-foreground text-[10px] font-semibold tabular-nums">
-                    {c.count}
-                  </span>
+                  <div className="relative flex flex-col items-center gap-0.5">
+                    <span className="w-full truncate text-[13px] leading-tight font-bold tracking-tight">
+                      {c.name}
+                    </span>
+                    <span
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums transition-colors',
+                        selected
+                          ? 'bg-[#A8FF00] text-black'
+                          : 'bg-white/[0.08] text-white/50 group-hover:bg-white/[0.12] group-hover:text-white/70',
+                      )}
+                    >
+                      {c.count}
+                    </span>
+                  </div>
                 </button>
               );
             })}

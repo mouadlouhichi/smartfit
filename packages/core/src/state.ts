@@ -52,6 +52,9 @@ export function emptyState(): FitnessState {
     goals: [],
     bodyLogs: [],
     meals: [],
+    customGyms: [],
+    enrolledPrograms: [],
+    enrolledClasses: [],
   };
 }
 
@@ -392,6 +395,45 @@ function collect<T>(v: unknown, parse: (item: unknown) => T | null): T[] {
   return out;
 }
 
+function parseCustomGym(v: unknown): import('./gym').CustomGym | null {
+  if (!isObj(v)) return null;
+  const id = str(v.id).trim();
+  const name = str(v.name).trim();
+  if (!id || !name) return null;
+  // Only keep custom gyms from storage - built-ins are reconstructed
+  const custom = v.custom === true;
+  if (!custom) return null;
+  const programs = Array.isArray(v.programs) ? v.programs : [];
+  return {
+    id,
+    name,
+    location: str(v.location) || undefined,
+    hours: str(v.hours) || undefined,
+    description: str(v.description) || undefined,
+    custom: true,
+    programs: programs
+      .filter(isObj)
+      .map((p: any) => ({
+        id: str(p.id, ''),
+        gymId: id,
+        name: str(p.name, 'Program'),
+        description: str(p.description) || undefined,
+        focus: oneOf(
+          p.focus,
+          ['cardio', 'hiit', 'strength', 'combat', 'mind', 'aqua'] as const,
+          'cardio',
+        ),
+        intensity: oneOf(p.intensity, INTENSITIES, 'moderate'),
+        durationMin: Math.max(10, Math.round(num(p.durationMin, 45))),
+        classes: Array.isArray(p.classes) ? p.classes : [],
+        enrolled: bool(p.enrolled, false),
+        createdAt: num(p.createdAt, Date.now()),
+      }))
+      .filter((p: any) => p.id),
+    createdAt: num(v.createdAt, Date.now()),
+  };
+}
+
 /**
  * Normalise arbitrary persisted data into a valid `FitnessState`.
  * Never throws; unrecoverable records are dropped rather than crashing a render.
@@ -406,6 +448,14 @@ export function parseState(raw: unknown): FitnessState {
     if (!byId.has(def.id)) byId.set(def.id, { ...def });
   }
 
+  const customGyms = collect(raw.customGyms, parseCustomGym);
+  const enrolledPrograms = Array.isArray(raw.enrolledPrograms)
+    ? (raw.enrolledPrograms.filter((x: unknown) => typeof x === 'string') as string[])
+    : [];
+  const enrolledClasses = Array.isArray(raw.enrolledClasses)
+    ? (raw.enrolledClasses.filter((x: unknown) => typeof x === 'string') as string[])
+    : [];
+
   return {
     profile: parseProfile(raw.profile),
     categories: [...byId.values()],
@@ -414,6 +464,9 @@ export function parseState(raw: unknown): FitnessState {
     goals: collect(raw.goals, parseGoal),
     bodyLogs: collect(raw.bodyLogs, parseBodyLog).sort((a, b) => (a.date < b.date ? 1 : -1)),
     meals: collect(raw.meals, parseMeal).sort((a, b) => (a.date < b.date ? 1 : -1)),
+    customGyms,
+    enrolledPrograms,
+    enrolledClasses,
   };
 }
 

@@ -199,6 +199,21 @@ service cloud.firestore {
           && (!('builtin' in request.resource.data) || request.resource.data.builtin is bool)
           && request.resource.data.size() <= 6;
       }
+
+      // ── custom gyms (user-created) ─────────────────────────────────────
+      match /customGyms/{docId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && strAtMost(request.resource.data.name, 100)
+          && request.resource.data.custom == true
+          && numBetween(request.resource.data.createdAt, 0, 4102444800000)
+          && request.resource.data.size() <= 20
+          && (!('location' in request.resource.data) || strAtMost(request.resource.data.location, 200))
+          && (!('hours' in request.resource.data) || strAtMost(request.resource.data.hours, 200))
+          && (!('description' in request.resource.data) || strAtMost(request.resource.data.description, 1000))
+          && (!('programs' in request.resource.data) || request.resource.data.programs is list
+                && request.resource.data.programs.size() <= 50);
+      }
     }
 
     // Deny everything else by default.

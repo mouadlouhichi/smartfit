@@ -33,3 +33,4 @@ export * from './coach';
 export * from './exercises';
 export * from './extended-catalog';
 export * from './suggestions';
+export * from './gym';

@@ -152,8 +152,10 @@ export function ActivityRingsGraphic({
         })}
       </svg>
       {children && (
-        <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          {children}
+        <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center overflow-hidden px-1 text-center">
+          <span className="flex max-w-[70%] flex-col items-center justify-center overflow-hidden">
+            {children}
+          </span>
         </span>
       )}
     </span>

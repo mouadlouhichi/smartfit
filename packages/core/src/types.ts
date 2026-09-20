@@ -260,4 +260,9 @@ export interface FitnessState {
   goals: FitnessGoal[];
   bodyLogs: BodyLog[];
   meals: MealLog[];
+  /** Custom gyms created by user + built-in reference */
+  customGyms?: import('./gym').CustomGym[];
+  /** Enrolled programs/classes */
+  enrolledPrograms?: string[];
+  enrolledClasses?: string[];
 }
