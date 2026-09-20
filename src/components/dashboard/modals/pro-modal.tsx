@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Sparkles,
   TrendingUp,
+  UtensilsCrossed,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -51,6 +52,7 @@ const GATE_ICONS: Record<string, LucideIcon> = {
   'line-chart': LineChart,
   'list-checks': ListChecks,
   share: Share2,
+  utensils: UtensilsCrossed,
 };
 
 /**

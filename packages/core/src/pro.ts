@@ -116,6 +116,12 @@ export const PRO_GATES: ProGate[] = [
     pro: 'No watermark',
     icon: 'share',
   },
+  {
+    label: 'Fuel insights',
+    free: 'Targets & meal log',
+    pro: 'Meal scan & adherence trends',
+    icon: 'utensils',
+  },
 ];
 
 /**

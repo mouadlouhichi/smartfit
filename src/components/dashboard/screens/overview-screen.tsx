@@ -13,6 +13,7 @@ import {
   ChevronRight,
   Timer,
   ArrowUpRight,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
@@ -22,6 +23,7 @@ import { TodaysWorkoutCard } from '../todays-workout-card';
 import { CategoryIcon } from '@/components/category-icon';
 import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
 import { ReadinessCard } from '../readiness-card';
+import { FuelGlance } from '../fuel-glance';
 import { BodySelectHero } from '../body-select-hero';
 import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -154,6 +156,7 @@ export function OverviewScreen() {
 
   const quickActions = [
     { label: 'Log workout', icon: Dumbbell, onClick: () => openModal('workout') },
+    { label: 'Log meal', icon: UtensilsCrossed, onClick: () => openWith({ kind: 'meal' }) },
     { label: 'Run', icon: Footprints, href: '/dashboard/run' },
     { label: 'Goals', icon: Target, href: '/dashboard/goals' },
     { label: 'Plan', icon: CalendarCheck, href: '/dashboard/plan' },
@@ -437,6 +440,9 @@ export function OverviewScreen() {
 
         {/* Readiness — the Pro shop window sits right under the rings. */}
         <ReadinessCard />
+
+        {/* Fuel glance — today's calories in vs out, one tap from logging. */}
+        <FuelGlance />
 
         {/* Quick actions */}
         <div className="grid grid-cols-3 gap-2 min-[420px]:grid-cols-6 sm:gap-3">

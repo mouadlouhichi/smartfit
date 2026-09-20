@@ -19,6 +19,7 @@ import {
   estimateCalories,
   latestBodyWeightKg,
   type BodyLog,
+  type MealLog,
   type Category,
   type FitnessGoal,
   type FitnessState,
@@ -202,6 +203,10 @@ interface StoreContextValue {
   // body
   addBodyLog: (b: Omit<BodyLog, 'id' | 'createdAt'>) => void;
   deleteBodyLog: (id: string) => void;
+  // meals (fuel)
+  addMeal: (m: Omit<MealLog, 'id' | 'createdAt'>) => void;
+  updateMeal: (id: string, patch: Partial<MealLog>) => void;
+  deleteMeal: (id: string) => void;
   // categories
   addCategory: (c: Omit<Category, 'id'>) => void;
   deleteCategory: (id: string) => void;
@@ -745,6 +750,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         mutate(
           (prev) => ({ ...prev, bodyLogs: prev.bodyLogs.filter((b) => b.id !== id) }),
           remove('bodyLogs', id),
+        );
+      },
+
+      addMeal: (m) => {
+        const item: MealLog = { ...m, id: uid('meal'), createdAt: Date.now() };
+        mutate(
+          (prev) => ({
+            ...prev,
+            meals: [...prev.meals, item].sort((a, b) => (a.date < b.date ? 1 : -1)),
+          }),
+          upsert('meals', item),
+        );
+      },
+      updateMeal: (id, patch) => {
+        const next = patched(state.meals, id, patch);
+        mutate(
+          (prev) => ({
+            ...prev,
+            meals: prev.meals
+              .map((m) => (m.id === id ? { ...m, ...patch } : m))
+              .sort((a, b) => (a.date < b.date ? 1 : -1)),
+          }),
+          next ? upsert('meals', next) : undefined,
+        );
+      },
+      deleteMeal: (id) => {
+        mutate(
+          (prev) => ({ ...prev, meals: prev.meals.filter((m) => m.id !== id) }),
+          remove('meals', id),
         );
       },
 

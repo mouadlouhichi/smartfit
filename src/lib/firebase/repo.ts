@@ -21,13 +21,15 @@ import {
 } from '@smartfit/core';
 import { getFirebaseServices, colPath, userDoc } from './config';
 
-export type CollectionName = 'sessions' | 'schedule' | 'goals' | 'bodyLogs' | 'categories';
+export type CollectionName =
+  'sessions' | 'schedule' | 'goals' | 'bodyLogs' | 'meals' | 'categories';
 
 export const ALL_COLLECTIONS: CollectionName[] = [
   'sessions',
   'schedule',
   'goals',
   'bodyLogs',
+  'meals',
   'categories',
 ];
 
@@ -111,7 +113,7 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
   if (!profile) return null;
 
   // Small collections: fetch whole. Time series: fetch a bounded, ordered window.
-  const [schedule, goals, categories, sessions, bodyLogs] = await Promise.all([
+  const [schedule, goals, categories, sessions, bodyLogs, meals] = await Promise.all([
     getDocs(collection(db, colPath(uid, 'schedule'))).then((s) =>
       s.docs.map((d) => withId<ScheduledWorkout>(d)),
     ),
@@ -135,11 +137,12 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
       null,
       PAGE_SIZE,
     ),
+    loadHistoryWindow(uid, 'meals', (rows) => parseState({ meals: rows }).meals, null, PAGE_SIZE),
   ]);
 
   // parseState guarantees a valid shape even if a document was written by an
   // older client or hand-edited in the console.
-  return parseState({ profile, categories, sessions, schedule, goals, bodyLogs });
+  return parseState({ profile, categories, sessions, schedule, goals, bodyLogs, meals });
 }
 
 /** Page further back through the session history. */
@@ -184,7 +187,7 @@ export async function loadMoreBodyLogs(
  */
 async function loadHistoryWindow<T extends DescRow>(
   uid: string,
-  name: 'sessions' | 'bodyLogs',
+  name: 'sessions' | 'bodyLogs' | 'meals',
   select: (rows: unknown[]) => T[],
   cursor: HistoryCursor | null,
   pageSize = cursor ? PAGE_SIZE : INITIAL_SESSION_LIMIT,
@@ -376,6 +379,7 @@ export async function replaceUserState(uid: string, state: FitnessState): Promis
   await replaceCollection(uid, 'schedule', state.schedule, { removeStale: false });
   await replaceCollection(uid, 'goals', state.goals, { removeStale: false });
   await replaceCollection(uid, 'bodyLogs', state.bodyLogs, { removeStale: false });
+  await replaceCollection(uid, 'meals', state.meals, { removeStale: false });
   // saveProfile also removes optional fields omitted by the backup.
   await saveProfile(uid, state.profile);
   await removeStaleCollection(uid, 'categories', state.categories);
@@ -383,6 +387,7 @@ export async function replaceUserState(uid: string, state: FitnessState): Promis
   await removeStaleCollection(uid, 'schedule', state.schedule);
   await removeStaleCollection(uid, 'goals', state.goals);
   await removeStaleCollection(uid, 'bodyLogs', state.bodyLogs);
+  await removeStaleCollection(uid, 'meals', state.meals);
 }
 
 /**
@@ -401,6 +406,7 @@ export async function importState(uid: string, state: FitnessState): Promise<voi
     ...state.schedule.map((item) => ({ name: 'schedule' as const, item })),
     ...state.goals.map((item) => ({ name: 'goals' as const, item })),
     ...state.bodyLogs.map((item) => ({ name: 'bodyLogs' as const, item })),
+    ...state.meals.map((item) => ({ name: 'meals' as const, item })),
   ];
 
   const CHUNK = 400; // headroom under the 500-op batch limit

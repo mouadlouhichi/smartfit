@@ -29,7 +29,7 @@ export function HeroSection() {
       {/* Animated ASCII sphere */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 right-0 h-[600px] w-[600px] -translate-y-1/2 opacity-40 lg:h-[800px] lg:w-[800px]"
+        className="pointer-events-none absolute top-1/2 right-0 h-[600px] w-[600px] -translate-y-1/2 opacity-70 lg:h-[800px] lg:w-[800px]"
       >
         <AnimatedSphere />
       </div>
