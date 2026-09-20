@@ -21,13 +21,16 @@
  */
 import { matchExercise, EXERCISE_MUSCLE_LABELS, type ExerciseMuscle } from './exercises';
 import {
+  currentStreak,
   estimateExercisesCalories,
   latestBodyWeightKg,
   sessionsInRange,
+  targetsForDays,
   toISODate,
   weekStartOf,
   startOfWeek,
 } from './fitness';
+import { clamp } from './utils';
 import type { FitnessState, Intensity, WorkoutExercise, WorkoutSession, WorkoutSet } from './types';
 
 // ── one-rep max ──────────────────────────────────────────────────────────
@@ -562,6 +565,153 @@ export function activityRings(
 
   const meaningful = [rings.minutes, rings.sessions, rings.calories].filter((r) => r.target > 0);
   return { ...rings, closed: meaningful.length > 0 && meaningful.every((r) => r.pct >= 100) };
+}
+
+// ── daily rings & streak stats (Apple Watch Activity pattern) ────────────
+
+export interface DayRing {
+  value: number;
+  target: number;
+  pct: number;
+}
+
+export interface DayRings {
+  /** Move ring: estimated kcal against the daily calorie target. */
+  calories: DayRing;
+  /** Exercise ring: active minutes against the daily minute target. */
+  minutes: DayRing;
+  /** Stand-equivalent "showed up" ring: any session logged that day. */
+  showedUp: DayRing;
+  /** True when every ring with a real target reached 100%. */
+  closed: boolean;
+}
+
+function ringPct(value: number, target: number): number {
+  return target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
+}
+
+function dayStart(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+/**
+ * One date's three rings — the Apple Watch Activity reading of a day.
+ *
+ * Unlike `activityRings` (today, with the *weekly* session ring in the core),
+ * every ring here is strictly daily so history strips and month grids compare
+ * like with like: Move (kcal), Exercise (minutes) and a Stand-equivalent
+ * "showed up" ring that closes the moment a session is logged.
+ */
+export function dayRings(state: FitnessState, date: string): DayRings {
+  const daily = targetsForDays(state, 1);
+  const daySessions = state.sessions.filter((s) => s.date === date);
+  const minutes = daySessions.reduce((a, s) => a + s.durationMin, 0);
+  const calories = daySessions.reduce((a, s) => a + s.calories, 0);
+  const rings = {
+    calories: {
+      value: calories,
+      target: daily.calories,
+      pct: ringPct(calories, daily.calories),
+    },
+    minutes: { value: minutes, target: daily.minutes, pct: ringPct(minutes, daily.minutes) },
+    showedUp: { value: daySessions.length, target: 1, pct: ringPct(daySessions.length, 1) },
+  };
+  const meaningful = [rings.calories, rings.minutes, rings.showedUp].filter((r) => r.target > 0);
+  return {
+    ...rings,
+    closed: meaningful.length > 0 && meaningful.every((r) => r.pct >= 100),
+  };
+}
+
+/** Oldest-first day rings for the last `days` days ending today. */
+export function ringsHistory(
+  state: FitnessState,
+  days = 7,
+  now = new Date(),
+): { date: string; rings: DayRings }[] {
+  const out: { date: string; rings: DayRings }[] = [];
+  const cursor = dayStart(now);
+  cursor.setDate(cursor.getDate() - (Math.max(1, days) - 1));
+  for (let i = 0; i < Math.max(1, days); i++) {
+    const date = toISODate(cursor);
+    out.push({ date, rings: dayRings(state, date) });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return out;
+}
+
+function dayDiffISO(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
+}
+
+/** Longest unbroken training-day run ever, using the same rest allowance. */
+export function bestStreak(state: FitnessState): number {
+  const days = [...new Set(state.sessions.map((s) => s.date))].sort();
+  if (days.length === 0) return 0;
+  const maxGap = clamp(Math.round(state.profile?.weeklyRestDays ?? 2), 0, 6);
+  let best = 1;
+  let run = 1;
+  for (let i = 1; i < days.length; i++) {
+    const gap = dayDiffISO(days[i - 1], days[i]) - 1;
+    if (gap >= 0 && gap <= maxGap) run += 1;
+    else run = 1;
+    if (run > best) best = run;
+  }
+  return best;
+}
+
+export interface StreakStats {
+  /** Headline streak: training days in the current unbroken, rest-aware run. */
+  current: number;
+  /** Longest such run ever. */
+  best: number;
+  /** Consecutive days ending today/yesterday with every daily ring closed. */
+  ringStreak: number;
+  /** Ring-closed days inside the last 7. */
+  daysClosedLast7: number;
+  /** Finished weeks (of the last `weeksChecked`) that hit the workout target. */
+  weeksOnTarget: number;
+  weeksChecked: number;
+}
+
+/**
+ * The Apple Watch Activity summary of a training life: the rest-aware streak,
+ * the all-time best, the run of *closed-ring* days, and how many finished
+ * weeks hit their workout target. Powers the overview streak hero and the
+ * progress-screen ring grid.
+ */
+export function streakStats(state: FitnessState, now = new Date()): StreakStats {
+  const current = currentStreak(state, now);
+  const best = bestStreak(state);
+
+  const history = ringsHistory(state, 56, now);
+  // Ring streak: today not being closed yet must never break the run.
+  let ringStreak = 0;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i].rings.closed) ringStreak += 1;
+    else if (i === history.length - 1)
+      continue; // today still open
+    else break;
+  }
+  const daysClosedLast7 = history.slice(-7).filter((d) => d.rings.closed).length;
+
+  const weeklyTarget = targetsForDays(state, 7).workouts;
+  const weekStart = dayStart(now);
+  while (weekStart.getDay() !== weekStartOf(state)) weekStart.setDate(weekStart.getDate() - 1);
+  let weeksOnTarget = 0;
+  const weeksChecked = 8;
+  for (let w = 1; w <= weeksChecked; w++) {
+    const end = new Date(weekStart);
+    end.setDate(end.getDate() - (w - 1) * 7 - 1);
+    const start = new Date(end);
+    start.setDate(start.getDate() - 6);
+    const count = sessionsInRange(state, toISODate(start), toISODate(end)).length;
+    if (count >= weeklyTarget) weeksOnTarget += 1;
+  }
+
+  return { current, best, ringStreak, daysClosedLast7, weeksOnTarget, weeksChecked };
 }
 
 // ── consistency heatmap ──────────────────────────────────────────────────

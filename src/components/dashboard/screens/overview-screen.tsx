@@ -12,7 +12,6 @@ import {
   Check,
   ChevronRight,
   Timer,
-  ArrowUpRight,
   UtensilsCrossed,
 } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
@@ -24,6 +23,7 @@ import { CategoryIcon } from '@/components/category-icon';
 import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
 import { ReadinessCard } from '../readiness-card';
 import { FuelGlance } from '../fuel-glance';
+import { StreakRingsCard } from '../streak-rings-card';
 import { BodySelectHero } from '../body-select-hero';
 import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -201,29 +201,8 @@ export function OverviewScreen() {
           weekly progress; start workout, today rings, plan, and summary
           live outside it as their own sections. */}
       <div className="grid max-w-full min-w-0 content-start gap-6">
-        {/* ── Streak card — the reference "Running 7 days" tile ────────── */}
-        <div className="bg-card border-border flex items-center gap-4 rounded-3xl border p-4 sm:p-5">
-          <span className="bg-volt text-ink grid h-14 w-14 shrink-0 place-items-center rounded-2xl">
-            <Footprints className="h-6 w-6" strokeWidth={2.4} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-lg leading-tight font-extrabold tracking-tight sm:text-xl">
-              Training {streak} day{streak === 1 ? '' : 's'}
-            </p>
-            <p className="text-muted-foreground mt-0.5 truncate text-xs sm:text-sm">
-              {week.workouts} session{week.workouts === 1 ? '' : 's'} · {week.distance.toFixed(1)}{' '}
-              {distanceUnit} · {formatMinutes(week.minutes)}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={startToday}
-            aria-label={nextSlot ? `Start ${nextSlot.slot.title}` : 'Start another workout'}
-            className="bg-volt text-ink press grid h-11 w-11 shrink-0 place-items-center rounded-xl shadow-[0_6px_18px_-8px_rgba(138,210,0,0.7)] transition-transform hover:-translate-y-0.5 active:scale-95"
-          >
-            <ArrowUpRight className="h-5 w-5" strokeWidth={2.75} />
-          </button>
-        </div>
+        {/* ── Streak hero — Apple Watch-style rings + 7-day dial strip ─── */}
+        <StreakRingsCard />
 
         {/* ── Health metrics — the reference 2×2 tile grid ─────────────── */}
         <section aria-label="Health metrics" className="min-w-0">
