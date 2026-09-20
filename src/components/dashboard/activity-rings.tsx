@@ -52,6 +52,9 @@ export function ActivityRingsGraphic({
   const gap = Math.round(stroke * 0.6);
   const cx = size / 2;
   const outer = size / 2 - stroke / 2;
+  // Inner hole available for center content — prevents DAY STREAK overflow
+  const innerHoleDiameter = Math.max(32, size - 6 * stroke - 4 * gap);
+  const innerRadius = innerHoleDiameter / 2;
 
   const ringsData = [
     {
@@ -152,8 +155,13 @@ export function ActivityRingsGraphic({
         })}
       </svg>
       {children && (
-        <span className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          {children}
+        <span
+          className="pointer-events-none absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center overflow-hidden rounded-full text-center"
+          style={{ width: innerHoleDiameter, height: innerHoleDiameter }}
+        >
+          <span className="flex max-w-full flex-col items-center justify-center overflow-hidden px-1">
+            {children}
+          </span>
         </span>
       )}
     </span>

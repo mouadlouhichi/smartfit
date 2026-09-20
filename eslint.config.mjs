@@ -22,6 +22,7 @@ const config = [
       '**/coverage/**',
       'public/sw.js',
       'next-env.d.ts',
+      'enhanced/**',
     ],
   },
   ...compat.extends('next/core-web-vitals'),

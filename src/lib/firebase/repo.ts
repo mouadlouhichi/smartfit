@@ -22,7 +22,7 @@ import {
 import { getFirebaseServices, colPath, userDoc } from './config';
 
 export type CollectionName =
-  'sessions' | 'schedule' | 'goals' | 'bodyLogs' | 'meals' | 'categories';
+  'sessions' | 'schedule' | 'goals' | 'bodyLogs' | 'meals' | 'categories' | 'customGyms';
 
 export const ALL_COLLECTIONS: CollectionName[] = [
   'sessions',
@@ -31,6 +31,7 @@ export const ALL_COLLECTIONS: CollectionName[] = [
   'bodyLogs',
   'meals',
   'categories',
+  'customGyms',
 ];
 
 /** How many sessions / measurements to fetch on first load. */
@@ -113,7 +114,7 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
   if (!profile) return null;
 
   // Small collections: fetch whole. Time series: fetch a bounded, ordered window.
-  const [schedule, goals, categories, sessions, bodyLogs, meals] = await Promise.all([
+  const [schedule, goals, categories, customGyms, sessions, bodyLogs, meals] = await Promise.all([
     getDocs(collection(db, colPath(uid, 'schedule'))).then((s) =>
       s.docs.map((d) => withId<ScheduledWorkout>(d)),
     ),
@@ -122,6 +123,9 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
     ),
     getDocs(collection(db, colPath(uid, 'categories'))).then((s) =>
       s.docs.map((d) => withId<Category>(d)),
+    ),
+    getDocs(collection(db, colPath(uid, 'customGyms'))).then((s) =>
+      s.docs.map((d) => withId<any>(d)),
     ),
     loadHistoryWindow(
       uid,
@@ -142,7 +146,16 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
 
   // parseState guarantees a valid shape even if a document was written by an
   // older client or hand-edited in the console.
-  return parseState({ profile, categories, sessions, schedule, goals, bodyLogs, meals });
+  return parseState({
+    profile,
+    categories,
+    sessions,
+    schedule,
+    goals,
+    bodyLogs,
+    meals,
+    customGyms,
+  });
 }
 
 /** Page further back through the session history. */
@@ -380,6 +393,9 @@ export async function replaceUserState(uid: string, state: FitnessState): Promis
   await replaceCollection(uid, 'goals', state.goals, { removeStale: false });
   await replaceCollection(uid, 'bodyLogs', state.bodyLogs, { removeStale: false });
   await replaceCollection(uid, 'meals', state.meals, { removeStale: false });
+  await replaceCollection(uid, 'customGyms', (state.customGyms || []) as any, {
+    removeStale: false,
+  });
   // saveProfile also removes optional fields omitted by the backup.
   await saveProfile(uid, state.profile);
   await removeStaleCollection(uid, 'categories', state.categories);
@@ -388,6 +404,7 @@ export async function replaceUserState(uid: string, state: FitnessState): Promis
   await removeStaleCollection(uid, 'goals', state.goals);
   await removeStaleCollection(uid, 'bodyLogs', state.bodyLogs);
   await removeStaleCollection(uid, 'meals', state.meals);
+  await removeStaleCollection(uid, 'customGyms', (state.customGyms || []) as any);
 }
 
 /**
@@ -407,6 +424,10 @@ export async function importState(uid: string, state: FitnessState): Promise<voi
     ...state.goals.map((item) => ({ name: 'goals' as const, item })),
     ...state.bodyLogs.map((item) => ({ name: 'bodyLogs' as const, item })),
     ...state.meals.map((item) => ({ name: 'meals' as const, item })),
+    ...((state.customGyms || []) as any).map((item: any) => ({
+      name: 'customGyms' as const,
+      item,
+    })),
   ];
 
   const CHUNK = 400; // headroom under the 500-op batch limit

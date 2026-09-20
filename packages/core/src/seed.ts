@@ -301,5 +301,8 @@ export function buildSeedState(): FitnessState {
     goals,
     bodyLogs,
     meals,
+    customGyms: [],
+    enrolledPrograms: [],
+    enrolledClasses: [],
   };
 }

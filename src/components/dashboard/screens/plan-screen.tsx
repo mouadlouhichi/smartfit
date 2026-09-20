@@ -43,6 +43,7 @@ import { cn } from '@/lib/utils';
 import type { ScheduledWorkout } from '@smartfit/core';
 import { ExerciseLibrary } from '../exercise-library';
 import { ScreenHeader } from '../screen-header';
+import { GymManagement } from '../gym/gym-management';
 
 /** Small neutral metadata pill used across rows. */
 function MetaChip({ children }: { children: React.ReactNode }) {
@@ -193,86 +194,65 @@ export function PlanScreen() {
         </CardContent>
       </Card>
 
-      {/* ── Suggested program (gym-aware) ──────────────────────────────── */}
-      {gymProgram == null ? (
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 pt-6">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-                <Sparkles className="h-4.5 w-4.5" aria-hidden />
-              </span>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">Suggested program</p>
-                <p className="text-muted-foreground text-xs">
-                  Pick your gym in Profile to unlock a weekly program built from its real class
-                  timetable — tuned to your target weight.
-                </p>
-              </div>
-            </div>
-            <Button size="sm" variant="outline" asChild>
-              <Link href="/dashboard/profile">Choose gym</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
+      {/* ── Gym Management - Redesigned with add/delete, programs, AI classes ── */}
+      <GymManagement />
+
+      {/* ── Suggested program (legacy - now part of gym management, but keep quick import) ── */}
+      {gymProgram && suggested.length > 0 && (
+        <Card className="border-volt/20 bg-volt/5">
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center gap-2.5 text-base">
-              <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+              <span className="bg-volt text-ink flex h-9 w-9 items-center justify-center rounded-xl">
                 <Sparkles className="h-4.5 w-4.5" aria-hidden />
               </span>
-              Suggested program
+              Quick Import: Suggested Week
               <Badge variant="accent">{gymProgram.name}</Badge>
             </CardTitle>
             <p className="text-muted-foreground text-xs">{mixLine}</p>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {suggested.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No matching classes on your training days — try another strategy or add sessions
-                manually.
-              </p>
-            ) : (
-              <ul className="grid gap-1.5">
-                {suggested.map((s) => {
-                  const meta = INTENSITY_META[s.gymClass.intensity];
-                  return (
-                    <li
-                      key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
-                      className="bg-secondary/50 flex items-center gap-2.5 rounded-xl px-3 py-2 min-[480px]:gap-3"
+            <ul className="grid gap-1.5">
+              {suggested.slice(0, 3).map((s) => {
+                const meta = INTENSITY_META[s.gymClass.intensity];
+                return (
+                  <li
+                    key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
+                    className="bg-secondary/50 flex items-center gap-2.5 rounded-xl px-3 py-2 min-[480px]:gap-3"
+                  >
+                    <span className="w-[4.25rem] shrink-0">
+                      <span className="block truncate text-xs font-bold tabular-nums">
+                        {WEEKDAYS_LONG[s.weekday]}
+                      </span>
+                      <span className="text-muted-foreground block text-[11px] font-semibold tabular-nums">
+                        {s.time}
+                      </span>
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                      {s.gymClass.name}
+                    </span>
+                    <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                      {formatMinutes(s.gymClass.minutes)}
+                    </span>
+                    <span
+                      className="flex shrink-0 items-center gap-1.5 text-xs font-bold whitespace-nowrap"
+                      style={{ color: meta.color }}
                     >
-                      {/* Day + time share one compact rail: full weekday names
-                          ("Wednesday") never fit the old 44px day column. */}
-                      <span className="w-[4.25rem] shrink-0">
-                        <span className="block truncate text-xs font-bold tabular-nums">
-                          {WEEKDAYS_LONG[s.weekday]}
-                        </span>
-                        <span className="text-muted-foreground block text-[11px] font-semibold tabular-nums">
-                          {s.time}
-                        </span>
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-                        {s.gymClass.name}
-                      </span>
-                      <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                        {formatMinutes(s.gymClass.minutes)}
-                      </span>
                       <span
-                        className="flex shrink-0 items-center gap-1.5 text-xs font-bold whitespace-nowrap"
-                        style={{ color: meta.color }}
-                      >
-                        <span
-                          className="h-1.5 w-1.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: meta.color }}
-                          aria-hidden
-                        />
-                        {meta.label}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: meta.color }}
+                        aria-hidden
+                      />
+                      {meta.label}
+                    </span>
+                  </li>
+                );
+              })}
+              {suggested.length > 3 && (
+                <li className="text-muted-foreground text-center text-xs">
+                  +{suggested.length - 3} more classes
+                </li>
+              )}
+            </ul>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-muted-foreground text-xs">{gymProgram.hours}</p>
               <Button
@@ -280,8 +260,9 @@ export function PlanScreen() {
                 onClick={importSuggestion}
                 disabled={suggested.length === 0}
                 data-testid="import-suggested-week"
+                className="rounded-full"
               >
-                <Download className="h-4 w-4" /> Import into my plan
+                <Download className="h-4 w-4" /> Import {suggested.length} sessions
               </Button>
             </div>
           </CardContent>

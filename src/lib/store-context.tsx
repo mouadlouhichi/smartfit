@@ -217,6 +217,8 @@ interface StoreContextValue {
     firstGoal?: FitnessGoal,
     starterSchedule?: Omit<ScheduledWorkout, 'id' | 'createdAt'>[],
   ) => void;
+  /** Generic state patch (for gyms, enrollments, etc.) */
+  updateState: (patch: Partial<FitnessState>) => void;
   /** Resolves when every queued cloud write has landed; instant on-device. */
   flushWrites: () => Promise<void>;
   clearData: () => Promise<void>;
@@ -803,6 +805,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           (prev) => ({ ...prev, profile: { ...prev.profile, ...patch } }),
           (next, o) => ({ key: 'profile', run: () => saveProfile(o, next.profile) }),
         );
+      },
+      updateState: (patch) => {
+        mutate((prev) => ({ ...prev, ...patch }));
       },
       completeOnboarding: (patch, firstGoal, starterSchedule = []) => {
         const now = Date.now();

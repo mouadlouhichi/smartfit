@@ -79,11 +79,27 @@ export function StreakRingsCard() {
       </div>
 
       <div className="mt-4 flex flex-col items-center gap-5 min-[520px]:flex-row min-[520px]:gap-6">
-        {/* Today's rings with the streak count at the heart of the dial. */}
+        {/* Today's rings with the streak count at the heart of the dial — inner hole is only ~54px, so text must stay tiny */}
         <div className="shrink-0">
-          <ActivityRingsGraphic rings={rings} size={132}>
-            <p className="font-display text-2xl font-extrabold tabular-nums">{stats.current}</p>
-            <p className="hero-muted text-[10px] font-bold tracking-widest uppercase">day streak</p>
+          <ActivityRingsGraphic rings={rings} size={148}>
+            <div className="flex max-w-[44px] flex-col items-center justify-center">
+              <p
+                className={`font-display leading-none font-extrabold tabular-nums ${
+                  stats.current >= 100
+                    ? 'text-[14px]'
+                    : stats.current >= 10
+                      ? 'text-[18px]'
+                      : 'text-[22px]'
+                }`}
+              >
+                {stats.current}
+              </p>
+              <p className="hero-muted mt-[2px] text-center text-[6px] leading-[0.9] font-bold tracking-[0.12em] uppercase">
+                day
+                <br />
+                streak
+              </p>
+            </div>
           </ActivityRingsGraphic>
         </div>
 

@@ -176,12 +176,16 @@ export function TodaysWorkoutCard() {
   });
 
   return (
-    <div className="border-border overflow-hidden rounded-3xl border bg-[#0a0a09]">
-      <div className="p-5 sm:p-6">
-        {/* ── Day switcher — the reference segmented control ─────────── */}
+    <div className="relative overflow-hidden rounded-[28px] border border-white/[0.06] bg-[#0e0e0e] shadow-[0_16px_40px_-16px_rgba(0,0,0,0.6)]">
+      {/* Subtle gradient glow */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent" />
+      <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full bg-[#A8FF00]/[0.06] blur-[40px]" />
+
+      <div className="relative p-5 sm:p-6">
+        {/* ── Day switcher — premium segmented control ─────────── */}
         {programs.length > 1 && (
           <div
-            className="no-scrollbar bg-secondary mx-auto flex w-fit max-w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full border p-1"
+            className="no-scrollbar mx-auto flex w-fit max-w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-white/[0.08] bg-[#1a1a1a] p-1.5 shadow-inner"
             role="tablist"
             aria-label="Workout day"
           >
@@ -192,10 +196,10 @@ export function TodaysWorkoutCard() {
                 aria-selected={i === dayIdx}
                 onClick={() => setDayIdx(i)}
                 className={cn(
-                  'rounded-full px-4 py-1.5 text-sm font-bold whitespace-nowrap transition-colors',
+                  'rounded-full px-5 py-2 text-[13px] font-bold whitespace-nowrap transition-all duration-300',
                   i === dayIdx
-                    ? 'bg-volt text-ink shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground',
+                    ? 'bg-[#A8FF00] text-black shadow-[0_4px_12px_-4px_rgba(168,255,0,0.5)]'
+                    : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80',
                 )}
               >
                 {p.title}
@@ -205,100 +209,119 @@ export function TodaysWorkoutCard() {
         )}
 
         {/* ── Date · duration · intensity ─────────────────────────────── */}
-        <p className="text-muted-foreground mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-semibold">
-          <span className="text-foreground">{dateLabel}</span>
-          <span aria-hidden>·</span>
-          <span>
-            {day.durationMin} min
-            {day.timeOfDay ? ` · ${day.timeOfDay}` : ''}
+        <div className="mt-5 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white/90">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#A8FF00] shadow-[0_0_8px_#A8FF00]" />
+            {dateLabel}
           </span>
-          <span aria-hidden>·</span>
-          <span className="capitalize">{cat?.name ?? day.intensity}</span>
-        </p>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60">
+            {day.durationMin} min {day.timeOfDay ? `· ${day.timeOfDay}` : ''} ·{' '}
+            <span className="text-white/80 capitalize">{cat?.name ?? day.intensity}</span>
+          </span>
+        </div>
 
-        {/* ── Streak tile — the reference "6 days of growth" ──────────── */}
-        <div className="mt-3 flex items-center gap-3 rounded-2xl border border-white/8 bg-white/5 p-3.5">
-          <span className="bg-volt text-ink grid h-10 w-10 shrink-0 place-items-center rounded-xl">
-            <Flame className="h-5 w-5" strokeWidth={2.4} />
+        {/* ── Streak tile — enhanced growth card ──────────── */}
+        <div className="mt-4 flex items-center gap-3.5 rounded-[18px] border border-[#A8FF00]/20 bg-gradient-to-br from-[#A8FF00]/[0.08] to-[#A8FF00]/[0.02] p-4 shadow-[inset_0_1px_0_0_rgba(168,255,0,0.1)]">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[#A8FF00] text-black shadow-[0_4px_12px_-4px_rgba(168,255,0,0.6)]">
+            <Flame className="h-5 w-5" strokeWidth={2.5} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-extrabold tracking-tight">
+            <p className="truncate text-[14px] font-extrabold tracking-tight text-white">
               {streak} day{streak === 1 ? '' : 's'} of growth
             </p>
-            <p className="text-muted-foreground truncate text-xs">
+            <p className="mt-0.5 truncate text-xs leading-tight text-white/60">
               Keep the streak alive — {day.title.toLowerCase()} is next up
             </p>
           </div>
+          <div className="h-2 w-2 animate-pulse rounded-full bg-[#A8FF00] shadow-[0_0_8px_#A8FF00]" />
         </div>
 
         {day.split ? (
           <>
-            {/* ── Muscle cards — ↑ Growing · dot meter · +N sets ──────── */}
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {/* ── Muscle cards — premium enhanced with glow and better hierarchy */}
+            <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
               {day.split.map((m) => {
                 const color = MUSCLE_GROUP_COLOR[MUSCLE_GROUP[m]];
                 const done = Math.min(weeklyDone.get(m) ?? 0, MUSCLE_WEEKLY_SET_TARGET);
                 const planned = plannedPerMuscle.get(m) ?? 0;
+                const pct = Math.round((done / MUSCLE_WEEKLY_SET_TARGET) * 100);
                 return (
-                  <div key={m} className="rounded-2xl border border-white/8 bg-white/5 p-3.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span
-                          className="h-2.5 w-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: color }}
-                          aria-hidden
-                        />
-                        <span className="truncate text-sm font-bold">
-                          {EXERCISE_MUSCLE_LABELS[m]}
+                  <div
+                    key={m}
+                    className="group relative overflow-hidden rounded-[18px] border border-white/[0.06] bg-[#151515] p-4 transition-all duration-300 hover:border-white/[0.1] hover:bg-[#1a1a1a]"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                    <div className="relative">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="flex min-w-0 items-center gap-2.5">
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full shadow-[0_0_8px_currentColor]"
+                            style={{ backgroundColor: color, color: color }}
+                            aria-hidden
+                          />
+                          <span className="truncate text-[13px] font-bold tracking-tight text-white">
+                            {EXERCISE_MUSCLE_LABELS[m]}
+                          </span>
                         </span>
-                      </span>
-                      {planned > 0 && (
-                        <span className="text-primary shrink-0 text-xs font-extrabold">
-                          +{planned}
+                        {planned > 0 && (
+                          <span className="inline-flex items-center rounded-full bg-[#A8FF00] px-2 py-0.5 text-[11px] font-extrabold text-black shadow-[0_2px_8px_-2px_rgba(168,255,0,0.5)]">
+                            +{planned}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#3ac14e]/15 px-2 py-0.5 text-[11px] font-bold text-[#3ac14e]">
+                          ↑ Growing
                         </span>
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs font-semibold text-[#3ac14e]">↑ Growing</p>
-                    <div
-                      className="mt-2 flex gap-[3px]"
-                      role="progressbar"
-                      aria-valuenow={done}
-                      aria-valuemin={0}
-                      aria-valuemax={MUSCLE_WEEKLY_SET_TARGET}
-                      aria-label={`${EXERCISE_MUSCLE_LABELS[m]} sets this week`}
-                    >
-                      {Array.from({ length: MUSCLE_WEEKLY_SET_TARGET }, (_, i) => (
-                        <span
-                          key={i}
-                          className="h-1.5 flex-1 rounded-full"
-                          style={{
-                            backgroundColor: i < done ? color : 'rgba(255,255,255,0.12)',
-                          }}
-                        />
-                      ))}
+                        <span className="text-[11px] font-medium text-white/40">
+                          {pct}% this week
+                        </span>
+                      </div>
+                      <div
+                        className="mt-3 flex gap-[3px]"
+                        role="progressbar"
+                        aria-valuenow={done}
+                        aria-valuemin={0}
+                        aria-valuemax={MUSCLE_WEEKLY_SET_TARGET}
+                        aria-label={`${EXERCISE_MUSCLE_LABELS[m]} sets this week`}
+                      >
+                        {Array.from({ length: MUSCLE_WEEKLY_SET_TARGET }, (_, i) => (
+                          <span
+                            key={i}
+                            className="h-1.5 flex-1 rounded-full transition-all duration-500"
+                            style={{
+                              backgroundColor: i < done ? color : 'rgba(255,255,255,0.08)',
+                              boxShadow: i < done ? `0 0 8px ${color}60` : 'none',
+                              opacity: i < done ? 1 : 0.6,
+                            }}
+                          />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* ── Exercise rows — name + N sets ────────────────────────── */}
-            <ul className="mt-3 grid gap-2">
+            {/* ── Exercise rows — premium list with hover states */}
+            <ul className="mt-4 grid gap-2">
               {day.exercises.map((ex) => (
                 <li
                   key={ex.name}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-white/8 px-4 py-3"
+                  className="group flex items-center justify-between gap-3 rounded-[16px] border border-white/[0.06] bg-[#151515] px-4 py-3.5 transition-all duration-200 hover:border-white/[0.1] hover:bg-[#1e1e1e]"
                 >
-                  <span className="flex min-w-0 items-center gap-2.5">
+                  <span className="flex min-w-0 items-center gap-3">
                     <span
-                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/8 text-white/70"
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-white/[0.06] text-white/60 transition-colors group-hover:bg-white/[0.1] group-hover:text-white/80"
                       aria-hidden
                     >
-                      <Dumbbell className="h-3.5 w-3.5" />
+                      <Dumbbell className="h-4 w-4" />
                     </span>
-                    <span className="truncate text-sm font-bold">{ex.name}</span>
+                    <span className="truncate text-[13px] font-bold tracking-tight text-white">
+                      {ex.name}
+                    </span>
                   </span>
-                  <span className="shrink-0 text-xs font-semibold text-white/55">
+                  <span className="inline-flex shrink-0 items-center rounded-full bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold text-white/60">
                     {Math.max(1, ex.sets.length)} sets
                   </span>
                 </li>
@@ -306,19 +329,31 @@ export function TodaysWorkoutCard() {
             </ul>
           </>
         ) : (
-          <p className="text-muted-foreground mt-3 rounded-2xl border border-white/8 bg-white/5 p-4 text-sm">
+          <p className="mt-4 rounded-[18px] border border-white/[0.06] bg-[#151515] p-4 text-sm leading-relaxed text-white/60">
             {formatMinutes(day.durationMin)} of {cat?.name?.toLowerCase() ?? 'training'} — no
             resistance routine to preview. Lace up and go.
           </p>
         )}
 
-        {/* ── The reference CTA ─────────────────────────────────────────── */}
+        {/* ── Premium CTA with glow */}
         <button
           type="button"
           onClick={startDay}
-          className="press mt-4 h-13 w-full rounded-full bg-white text-[15px] font-extrabold text-[#0d1102] shadow-xl transition-transform hover:-translate-y-0.5"
+          className="press group relative mt-5 flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-white text-[15px] font-extrabold tracking-tight text-[#0d1102] shadow-[0_8px_24px_-8px_rgba(255,255,255,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(255,255,255,0.5)]"
         >
-          Set as Today&apos;s workout
+          <span className="absolute inset-0 bg-gradient-to-r from-[#A8FF00]/0 via-[#A8FF00]/10 to-[#A8FF00]/0 opacity-0 transition-opacity group-hover:opacity-100" />
+          <span className="relative">Set as Today&apos;s workout</span>
+          <span className="relative grid h-6 w-6 place-items-center rounded-full bg-black text-white transition-transform group-hover:translate-x-0.5">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+              <path
+                d="M6 3l5 5-5 5"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
         </button>
       </div>
     </div>
