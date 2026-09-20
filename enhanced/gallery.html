@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartFit - Enhanced Screenshots Gallery</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background:#0a0a0a; color:white; padding:40px 20px; }
+  h1 { font-size:48px; text-align:center; margin-bottom:10px; letter-spacing:-2px; }
+  .subtitle { text-align:center; color:#888; margin-bottom:60px; font-size:18px; }
+  .lime { color:#C6FF00; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap:40px; max-width:1600px; margin:0 auto; }
+  .card { background:#111; border-radius:24px; overflow:hidden; border:1px solid #222; }
+  .card img { width:100%; height:auto; display:block; }
+  .card-info { padding:20px 24px; }
+  .card-title { font-size:20px; font-weight:700; margin-bottom:6px; }
+  .card-desc { color:#888; font-size:14px; line-height:1.5; }
+  .card-meta { display:flex; gap:12px; margin-top:12px; }
+  .pill { background:#1a1a1a; border:1px solid #2a2a2a; padding:4px 10px; border-radius:100px; font-size:11px; color:#666; text-transform:uppercase; letter-spacing:0.5px; }
+  .pill.lime-pill { background:#C6FF00; color:black; border-color:#C6FF00; font-weight:700; }
+  .comparison { max-width:1600px; margin:80px auto; background:#111; border-radius:32px; padding:40px; border:1px solid #222; }
+  .comparison h2 { font-size:32px; margin-bottom:30px; }
+  .before-after { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .before-after div { text-align:center; }
+  .before-after img { width:100%; border-radius:16px; border:1px solid #222; }
+  .label { margin-top:12px; font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:1px; }
+  .before .label { color:#666; }
+  .after .label { color:#C6FF00; }
+  .phones { display:grid; grid-template-columns:repeat(3, 1fr); gap:20px; max-width:1200px; margin:80px auto; }
+  .phones img { width:100%; border-radius:24px; border:1px solid #222; }
+  @media (max-width:768px) { .grid { grid-template-columns:1fr; } .before-after { grid-template-columns:1fr; } .phones { grid-template-columns:1fr; } h1 { font-size:32px; } }
+</style>
+</head>
+<body>
+  <h1>ENHANCED <span class="lime">SCREENSHOTS</span></h1>
+  <p class="subtitle">Original 405KB WEBP → Ultra-sharp 4K PNGs • Studio lighting • Vector-sharp text • No artifacts</p>
+
+  <div class="comparison">
+    <h2>Before vs After</h2>
+    <div class="before-after">
+      <div class="before">
+        <img src="original.webp" alt="Original">
+        <div class="label">Before - 405KB, compressed, slight blur</div>
+      </div>
+      <div class="after">
+        <img src="ui-enhanced-premium.png" alt="Enhanced">
+        <div class="label">After - 1.8MB, 4K, crystal clear, studio shadows</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <img src="ui-enhanced-premium.png" alt="Premium">
+      <div class="card-info">
+        <div class="card-title">Premium Edition ⭐ RECOMMENDED</div>
+        <div class="card-desc">Sharpest version. Perfect studio lighting, realistic iPhone shadows, ultra-crisp text. Best for website hero and pitch decks.</div>
+        <div class="card-meta"><span class="pill lime-pill">Best Quality</span><span class="pill">1.8MB</span><span class="pill">4K</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="ui-smartfit-edition.png" alt="SmartFit Edition">
+      <div class="card-info">
+        <div class="card-title">SmartFit Edition 🏋️ FOR YOUR PROJECT</div>
+        <div class="card-desc">Same premium quality but with SmartFit branding instead of AXEL. Ready to use for your actual SmartFit app marketing.</div>
+        <div class="card-meta"><span class="pill lime-pill">SmartFit Brand</span><span class="pill">1.9MB</span><span class="pill">4K</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="ui-enhanced-4k.png" alt="4K">
+      <div class="card-info">
+        <div class="card-title">4K Direct Upscale</div>
+        <div class="card-desc">Faithful 4K upscale preserving original AXEL branding. Clean, sharp, no artifacts. Good for general marketing.</div>
+        <div class="card-meta"><span class="pill">1.8MB</span><span class="pill">4K</span><span class="pill">AXEL</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <img src="og-enhanced-4k.png" alt="OG Enhanced">
+      <div class="card-info">
+        <div class="card-title">OG Banner Enhanced</div>
+        <div class="card-desc">Your "Train with intention." Open Graph image enhanced to 4K with glowing neon flame effect. Perfect for social sharing.</div>
+        <div class="card-meta"><span class="pill lime-pill">Social</span><span class="pill">1.5MB</span><span class="pill">4K</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2 style="text-align:center; margin:80px 0 30px; font-size:32px;">Individual Phone Crops - App Store Ready</h2>
+  <div class="phones">
+    <img src="phone-1-workout-enhanced.png" alt="Phone 1">
+    <img src="phone-2-programs-enhanced.png" alt="Phone 2">
+    <img src="phone-3-cardio-enhanced.png" alt="Phone 3">
+  </div>
+
+  <p style="text-align:center; color:#444; margin-top:80px; font-size:14px;">Generated with AI enhancement • 4K resolution • Studio quality • Ready for production</p>
+</body>
+</html>
