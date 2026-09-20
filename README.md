@@ -219,6 +219,8 @@ missing from `.env.example`, so this list cannot drift.
 | `NEXT_PUBLIC_FIREBASE_*` | web | _unset_ | A **complete** set (API key, auth domain, project id, app id) switches the app into cloud mode; anything missing keeps it local. Optional extras: `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` |
 | `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | web | _unset_ | reCAPTCHA v3 site key from Firebase App Check; when set, the client attests every request (enable enforcement in the console only after deploying it) |
 | `NEXT_PUBLIC_ERROR_ENDPOINT` | web | _unset_ | Optional **self-hosted**, cookie-free collector for crash reports and web vitals. Unset = nothing is ever sent (see `docs/ops-runbook.md`) |
+| `NEXT_PUBLIC_APEX_DOMAIN` | web | _unset_ | Apex domain(s) a gym subdomain hangs off, comma-separated — `acme` + `smartfit.app` serves `acme.smartfit.app`. Empty disables host resolution and every tenant stays on the canonical `/g/{slug}` path (preview / local mode). See `docs/b2b-pivot-plan.md` §8 |
+| `NEXT_PUBLIC_BASE_HOST` | web | _unset_ | Exact host(s), comma-separated, that are never tenants. Guards against a loose apex making the base host itself look like a slug |
 
 ### Coach
 
@@ -253,6 +255,7 @@ missing from `.env.example`, so this list cannot drift.
 | `GOOGLE_CLOUD_PROJECT` | platform | _unset_ | Optional Google-hosted runtime project id used with Application Default Credentials; normally injected by the platform |
 | `SEED_UID` | script | `demo-user` | UID that `pnpm seed` writes the demo history to |
 | `SEED_EMAIL` | script | _unset_ | Email for the seeded account when it is created |
+| `B2B_*` | script | see `.env.example` | `pnpm seed:b2b` — provisions the B2B demo tenant: a platform admin (`sfRole` claim), a gym owner, staff and members, plus classes, slots, bookings, plans and invoices. Idempotent. `B2B_PASSWORD`, `B2B_GYM_SLUG`, `B2B_ADMIN_EMAIL`, `B2B_FORCE` |
 
 Env access is centralised and validated in `src/lib/env.ts` (web) and
 `apps/mobile/src/lib/env.ts` (invalid plan values fall back to the default). See

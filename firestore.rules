@@ -39,6 +39,186 @@ service cloud.firestore {
       return v in ['ppl', 'upper-lower', 'full-body', 'cardio-focus'];
     }
 
+    // ── B2B helpers ────────────────────────────────────────────────────────
+    //
+    // Two layers, by design:
+    //   · platform-admin  → Firebase custom claim `sfRole`. Claims are baked
+    //     into the ID token and can lag, so privileged *server* routes also
+    //     re-verify before acting.
+    //   · gym-owner / gym-staff / member → the membership document below, read
+    //     with a single get(). A claim cannot express "owner of gym A, staff at
+    //     gym B", and adding staff must not wait on a token refresh.
+    //
+    // Rules budget only a handful of get()/exists() calls per evaluation, so
+    // role resolution is exactly one document lookup and never a query.
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isPlatformAdmin() {
+      return isSignedIn() && request.auth.token.sfRole == 'platform-admin';
+    }
+
+    function membershipPath(gymId, uid) {
+      return /databases/$(database)/documents/gyms/$(gymId)/members/$(uid);
+    }
+
+    function hasMembership(gymId) {
+      return isSignedIn() && exists(membershipPath(gymId, request.auth.uid));
+    }
+
+    // '' when there is no membership, so callers can compare safely instead of
+    // tripping on a null field access.
+    function gymRole(gymId) {
+      return hasMembership(gymId) ? get(membershipPath(gymId, request.auth.uid)).data.role : '';
+    }
+
+    // Owner-or-above. `gyms/{gymId}.ownerUid` is authoritative for create-time
+    // and for a membership row that went missing; the membership doc governs
+    // every other case.
+    function isGymOwner(gymId) {
+      return isPlatformAdmin() || gymRole(gymId) == 'owner';
+    }
+
+    // Owner or staff — anyone who operates the gym rather than uses it.
+    function isGymOperator(gymId) {
+      return isPlatformAdmin() || gymRole(gymId) in ['owner', 'staff'];
+    }
+
+    // Timestamps accepted anywhere in the tenant tree.
+    function validTs(v) {
+      return numBetween(v, 0, 4102444800000); // ≤ 2100-01-01
+    }
+
+    function isGymStatus(v) {
+      return v in ['pending', 'trial', 'active', 'past_due', 'suspended', 'closed'];
+    }
+
+    function isMembershipStatus(v) {
+      return v in ['trial', 'active', 'frozen', 'expired', 'cancelled'];
+    }
+
+    function isBookingStatus(v) {
+      return v in ['booked', 'attended', 'no_show', 'cancelled', 'waitlist'];
+    }
+
+    // A gym document id *is* its slug, which is what makes subdomains unique
+    // for free — Firestore will not create a second document with the same id.
+    function slugMatchesId(gymId) {
+      return gymId == request.resource.data.slug
+        && gymId.matches('^[a-z0-9][a-z0-9-]{0,46}[a-z0-9]$');
+    }
+
+    function validGymDoc(gymId) {
+      return slugMatchesId(gymId)
+        && strAtMost(request.resource.data.name, 100)
+        && isGymStatus(request.resource.data.status)
+        && strAtMost(request.resource.data.tenantPlanId, 40)
+        && strAtMost(request.resource.data.ownerUid, 128)
+        && validTs(request.resource.data.createdAt)
+        && request.resource.data.size() <= 14
+        && (!('subdomain' in request.resource.data) || strAtMost(request.resource.data.subdomain, 48))
+        && (!('branding' in request.resource.data) || request.resource.data.branding is map
+              && request.resource.data.branding.size() <= 6)
+        && (!('contact' in request.resource.data) || request.resource.data.contact is map
+              && request.resource.data.contact.size() <= 5)
+        && (!('location' in request.resource.data) || request.resource.data.location is map
+              && request.resource.data.location.size() <= 5)
+        && (!('hours' in request.resource.data) || request.resource.data.hours is map
+              && request.resource.data.hours.size() <= 7);
+    }
+
+    function validMembership() {
+      return request.resource.data.role in ['owner', 'staff', 'member']
+        && isMembershipStatus(request.resource.data.status)
+        && validTs(request.resource.data.joinedAt)
+        && numBetween(request.resource.data.checkins, 0, 10000000)
+        && request.resource.data.size() <= 14
+        && (!('expiresAt' in request.resource.data) || validTs(request.resource.data.expiresAt))
+        && (!('lastVisitAt' in request.resource.data) || validTs(request.resource.data.lastVisitAt))
+        && (!('notes' in request.resource.data) || strAtMost(request.resource.data.notes, 2000))
+        && (!('displayName' in request.resource.data) || strAtMost(request.resource.data.displayName, 80))
+        && (!('email' in request.resource.data) || strAtMost(request.resource.data.email, 254))
+        && (!('phone' in request.resource.data) || strAtMost(request.resource.data.phone, 40))
+        && (!('planId' in request.resource.data) || strAtMost(request.resource.data.planId, 64));
+    }
+
+    function validClass() {
+      return strAtMost(request.resource.data.name, 120)
+        && request.resource.data.focus in ['cardio', 'hiit', 'strength', 'combat', 'mind', 'aqua']
+        && isIntensity(request.resource.data.intensity)
+        && numBetween(request.resource.data.minutes, 1, 600)
+        && numBetween(request.resource.data.capacity, 0, 1000)
+        && validTs(request.resource.data.createdAt)
+        && request.resource.data.size() <= 12
+        && (!('instructorUid' in request.resource.data) || strAtMost(request.resource.data.instructorUid, 128))
+        && (!('instructorName' in request.resource.data) || strAtMost(request.resource.data.instructorName, 80))
+        && (!('studio' in request.resource.data) || strAtMost(request.resource.data.studio, 80))
+        && (!('description' in request.resource.data) || strAtMost(request.resource.data.description, 1000));
+    }
+
+    function validSlot() {
+      return strAtMost(request.resource.data.classId, 128)
+        && validTs(request.resource.data.startsAt)
+        && validTs(request.resource.data.endsAt)
+        && request.resource.data.endsAt > request.resource.data.startsAt
+        && numBetween(request.resource.data.capacity, 0, 1000)
+        && numBetween(request.resource.data.booked, 0, 1000)
+        && request.resource.data.size() <= 10
+        && (!('cancelled' in request.resource.data) || request.resource.data.cancelled is bool);
+    }
+
+    function validBooking() {
+      return strAtMost(request.resource.data.slotId, 128)
+        && strAtMost(request.resource.data.uid, 128)
+        && isBookingStatus(request.resource.data.status)
+        && validTs(request.resource.data.createdAt)
+        && request.resource.data.size() <= 10
+        && (!('memberName' in request.resource.data) || strAtMost(request.resource.data.memberName, 80))
+        && (!('markedBy' in request.resource.data) || strAtMost(request.resource.data.markedBy, 128))
+        && (!('markedAt' in request.resource.data) || validTs(request.resource.data.markedAt));
+    }
+
+    function validMembershipPlan() {
+      return strAtMost(request.resource.data.name, 80)
+        && numBetween(request.resource.data.priceMinor, 0, 100000000)
+        && request.resource.data.currency.matches('^[A-Z]{3}$')
+        && request.resource.data.period in ['month', 'quarter', 'year', 'pass']
+        && request.resource.data.size() <= 10
+        && (!('joinFeeMinor' in request.resource.data) || numBetween(request.resource.data.joinFeeMinor, 0, 100000000))
+        && (!('published' in request.resource.data) || request.resource.data.published is bool)
+        && (!('description' in request.resource.data) || strAtMost(request.resource.data.description, 500));
+    }
+
+    function validInvoice() {
+      return strAtMost(request.resource.data.memberUid, 128)
+        && numBetween(request.resource.data.amountMinor, 0, 100000000)
+        && request.resource.data.currency.matches('^[A-Z]{3}$')
+        && request.resource.data.status in ['draft', 'paid', 'refunded', 'void', 'overdue']
+        && validTs(request.resource.data.issuedAt)
+        && request.resource.data.size() <= 12
+        && (!('method' in request.resource.data) || request.resource.data.method in ['cash', 'card', 'transfer', 'cmi', 'stripe', 'other'])
+        && (!('paidAt' in request.resource.data) || validTs(request.resource.data.paidAt))
+        && (!('issuedBy' in request.resource.data) || strAtMost(request.resource.data.issuedBy, 128))
+        && (!('planId' in request.resource.data) || strAtMost(request.resource.data.planId, 64))
+        && (!('note' in request.resource.data) || strAtMost(request.resource.data.note, 500));
+    }
+
+    function validAuditEntry() {
+      return strAtMost(request.resource.data.actorUid, 128)
+        && strAtMost(request.resource.data.action, 80)
+        && validTs(request.resource.data.at)
+        && request.resource.data.size() <= 6
+        && (!('target' in request.resource.data) || strAtMost(request.resource.data.target, 200))
+        && (!('meta' in request.resource.data) || request.resource.data.meta is map
+              && request.resource.data.meta.size() <= 10);
+    }
+
     // Pro is local-preview state until a trusted Admin SDK billing backend
     // exists. A browser may not create either a trial or a paid stamp in
     // Firestore. An already provisioned paid stamp may be carried through an
@@ -200,9 +380,32 @@ service cloud.firestore {
           && request.resource.data.size() <= 6;
       }
 
+      // ── opt-in progress sharing with a gym ─────────────────────────────
+      // The privacy boundary of the whole B2B pivot, and the reason the
+      // `users/{userId}` tree above stays owner-only.
+      //
+      // The *member* writes this document into their own tree; the gym only
+      // reads it. So a gym never touches `users/{uid}/sessions`, never sees
+      // body measurements, and loses access the moment the member deletes the
+      // document. Aggregates only — the field allowlist below is what makes
+      // "aggregates only" enforceable rather than aspirational.
+      match /gymShares/{gymId} {
+        allow read: if isOwner(userId) || isGymOperator(gymId);
+        allow create, update: if isOwner(userId)
+          // The document id must name the gym it is shared with, so a client
+          // cannot file a share under a gym that never asked for it.
+          && request.resource.data.gymId == gymId
+          && numBetween(request.resource.data.sessionsThisMonth, 0, 100000)
+          && numBetween(request.resource.data.streakDays, 0, 36500)
+          && numBetween(request.resource.data.attendancePct, 0, 100)
+          && validTs(request.resource.data.sharedAt)
+          && request.resource.data.size() <= 5;
+        // Revoking is the whole mechanism — there is nothing to sync.
+        allow delete: if isOwner(userId);
+      }
+
       // ── custom gyms (user-created) ─────────────────────────────────────
-      match /customGyms/{docId} {
-        allow read, delete: if isOwner(userId);
+      match /customGyms/{docId} {        allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId)
           && strAtMost(request.resource.data.name, 100)
           && request.resource.data.custom == true
@@ -214,6 +417,172 @@ service cloud.firestore {
           && (!('programs' in request.resource.data) || request.resource.data.programs is list
                 && request.resource.data.programs.size() <= 50);
       }
+    }
+
+    // ── B2B tenants ────────────────────────────────────────────────────────
+    //
+    // A gym is a top-level document whose **id is its slug**, so subdomain
+    // uniqueness is enforced by Firestore itself. The trade-off is that a slug
+    // is immutable once issued — the display `name` is freely editable, and a
+    // genuine rebrand is a platform-admin migration. That is the right side of
+    // the trade: a subdomain is marketing, and a gym's members bookmark it.
+    //
+    // The public storefront (`gyms/{gymId}`) is readable by any signed-in user
+    // because that is what a storefront is. Anything sensitive therefore lives
+    // in `settings/` — read grants in Firestore are per-document, never
+    // per-field, so splitting the document is the only way to publish part of
+    // a tenant safely.
+    match /gyms/{gymId} {
+      allow read: if isSignedIn();
+      // Provisioning allocates a subdomain and issues the owner claim, so it is
+      // a platform act (see `gym:create`). An owner cannot self-provision.
+      allow create: if isPlatformAdmin() && validGymDoc(gymId);
+      // An owner edits their own gym but may not change lifecycle status or
+      // transfer ownership — those are `gym:suspend` / `gym:restore` and a
+      // platform-admin action respectively.
+      allow update: if isPlatformAdmin() && validGymDoc(gymId)
+        || isGymOwner(gymId) && validGymDoc(gymId)
+             && request.resource.data.status == resource.data.status
+             && request.resource.data.ownerUid == resource.data.ownerUid
+             && request.resource.data.slug == resource.data.slug;
+      // Closing a gym destroys its members' bookings and history. Platform only;
+      // an owner asks support. `gym:delete` in the matrix is the UI affordance.
+      allow delete: if isPlatformAdmin();
+
+      // ── roster + per-gym role resolution ───────────────────────────────
+      // This collection is what every rule above get()s, so it must stay a
+      // single-document read with no query.
+      match /members/{memberUid} {
+        allow read: if isGymOperator(gymId) || isSelf(memberUid);
+        // Staff add members; a person may also enrol themselves — but only ever
+        // as a plain member, never as staff or owner.
+        allow create: if isGymOperator(gymId) && validMembership()
+          || isSelf(memberUid) && validMembership()
+               && request.resource.data.role == 'member'
+               && request.resource.data.checkins == 0;
+        // Role and status are the gym's to set. A member editing their own row
+        // could otherwise promote themselves or extend their own expiry.
+        allow update: if isGymOperator(gymId) && validMembership();
+        // Leaving is a member's own right; removing someone else is owner-only.
+        allow delete: if isGymOwner(gymId) || isSelf(memberUid);
+      }
+
+      // ── class templates ────────────────────────────────────────────────
+      match /classes/{classId} {
+        allow read: if isSignedIn();
+        allow create, update: if isGymOperator(gymId) && validClass();
+        allow delete: if isGymOwner(gymId);
+      }
+
+      // ── class occurrences ──────────────────────────────────────────────
+      // Capacity is *not* enforceable here — that needs a query. The booking
+      // flow runs a transaction against slots/{slotId} and increments `booked`
+      // only while there is room; these rules enforce shape and authorisation.
+      match /slots/{slotId} {
+        allow read: if isSignedIn();
+        allow create, update: if isGymOperator(gymId) && validSlot();
+        allow delete: if isGymOwner(gymId);
+      }
+
+      // ── bookings ───────────────────────────────────────────────────────
+      match /bookings/{bookingId} {
+        allow read: if isGymOperator(gymId)
+          || (isSignedIn() && resource.data.uid == request.auth.uid);
+        // A member books or cancels their own seat; staff book for anyone.
+        allow create: if isGymOperator(gymId) && validBooking()
+          || isSignedIn() && validBooking()
+               && request.resource.data.uid == request.auth.uid
+               && request.resource.data.status in ['booked', 'waitlist'];
+        // Attendance marks are staff-only; a member may only cancel.
+        allow update: if isGymOperator(gymId) && validBooking()
+          || (isSignedIn() && resource.data.uid == request.auth.uid
+               && request.resource.data.status == 'cancelled'
+               && validBooking());
+        allow delete: if isGymOwner(gymId);
+      }
+
+      // ── membership tiers & pricing ─────────────────────────────────────
+      match /plans/{planId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isGymOwner(gymId) && validMembershipPlan();
+      }
+
+      // ── money ──────────────────────────────────────────────────────────
+      match /invoices/{invoiceId} {
+        // A member may read their own invoice; nobody reads anyone else's.
+        allow read: if isGymOperator(gymId)
+          || (isSignedIn() && resource.data.memberUid == request.auth.uid);
+        // Front desk issues and takes payment; refunds are owner-only.
+        allow create, update: if isGymOperator(gymId) && validInvoice();
+        allow delete: if isGymOwner(gymId);
+      }
+
+      // ── operations ─────────────────────────────────────────────────────
+      match /broadcasts/{broadcastId} {
+        allow read: if isGymOperator(gymId) || isSignedIn();
+        allow create, update: if isGymOperator(gymId)
+          && strAtMost(request.resource.data.subject, 160)
+          && strAtMost(request.resource.data.body, 4000)
+          && validTs(request.resource.data.sentAt)
+          && request.resource.data.size() <= 8;
+        allow delete: if isGymOwner(gymId);
+      }
+
+      match /equipment/{equipmentId} {
+        allow read: if isGymOperator(gymId);
+        allow create, update: if isGymOperator(gymId)
+          && strAtMost(request.resource.data.name, 120)
+          && request.resource.data.status in ['ok', 'faulty', 'repairing', 'retired']
+          && request.resource.data.size() <= 8
+          && (!('note' in request.resource.data) || strAtMost(request.resource.data.note, 1000))
+          && (!('nextServiceAt' in request.resource.data) || validTs(request.resource.data.nextServiceAt));
+        allow delete: if isGymOwner(gymId);
+      }
+
+      match /shifts/{shiftId} {
+        allow read: if isGymOperator(gymId)
+          || (isSignedIn() && resource.data.staffUid == request.auth.uid);
+        allow create, update, delete: if isGymOperator(gymId)
+          && strAtMost(request.resource.data.staffUid, 128)
+          && validTs(request.resource.data.startsAt)
+          && validTs(request.resource.data.endsAt)
+          && request.resource.data.endsAt > request.resource.data.startsAt
+          && request.resource.data.size() <= 8;
+      }
+
+      // ── private tenant settings ────────────────────────────────────────
+      // Deliberately NOT readable by ordinary members: timezone, tax, waiver
+      // text and feature flags are business configuration. Owner-only rather
+      // than staff too — tax sits next to revenue, and `revenue:read` is an
+      // owner capability, so the whole document follows it.
+      match /settings/{settingsId} {
+        allow read: if isGymOwner(gymId);
+        allow create, update: if isGymOwner(gymId)
+          && request.resource.data.size() <= 20
+          && (!('timezone' in request.resource.data) || strAtMost(request.resource.data.timezone, 60))
+          && (!('currency' in request.resource.data) || request.resource.data.currency.matches('^[A-Z]{3}$'))
+          && (!('taxPct' in request.resource.data) || numBetween(request.resource.data.taxPct, 0, 100))
+          && (!('waiverText' in request.resource.data) || strAtMost(request.resource.data.waiverText, 5000))
+          && (!('noShowPolicy' in request.resource.data) || strAtMost(request.resource.data.noShowPolicy, 1000))
+          && (!('flags' in request.resource.data) || request.resource.data.flags is map
+                && request.resource.data.flags.size() <= 20);
+        allow delete: if isPlatformAdmin();
+      }
+
+      // ── audit trail ────────────────────────────────────────────────────
+      // Append-only. A log the subject can edit or delete is not a log.
+      match /audit/{entryId} {
+        allow read: if isGymOwner(gymId);
+        allow create: if isGymOperator(gymId) && validAuditEntry();
+        allow update, delete: if false;
+      }
+    }
+
+    // ── platform namespace ───────────────────────────────────────────────
+    // Admin SDK only. Cross-tenant configuration, the application queue and
+    // the platform-wide audit trail must never be reachable from a browser.
+    match /platform/{document=**} {
+      allow read, write: if false;
     }
 
     // Deny everything else by default.

@@ -34,3 +34,5 @@ export * from './exercises';
 export * from './extended-catalog';
 export * from './suggestions';
 export * from './gym';
+export * from './rbac';
+export * from './tenant';

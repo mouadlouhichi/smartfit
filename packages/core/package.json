@@ -11,6 +11,14 @@
     "./seed": {
       "types": "./src/seed.ts",
       "default": "./src/seed.ts"
+    },
+    "./tenant": {
+      "types": "./src/tenant.ts",
+      "default": "./src/tenant.ts"
+    },
+    "./rbac": {
+      "types": "./src/rbac.ts",
+      "default": "./src/rbac.ts"
     }
   },
   "main": "./src/index.ts",

@@ -23,7 +23,8 @@
     "test:all": "pnpm --filter @smartfit/core test && pnpm test",
     "test:e2e": "playwright test",
     "prepare": "git config core.hooksPath .githooks || true",
-    "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project smartfit-rules-ci \"node --import tsx --test tests/rules/firestore-rules.test.ts\""
+    "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project smartfit-rules-ci \"node --import tsx --test tests/rules/firestore-rules.test.ts\"",
+    "seed:b2b": "node scripts/seed-b2b.mjs"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
