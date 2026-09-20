@@ -563,6 +563,36 @@ test('tenant: staff can take attendance and book for anyone', async () => {
   await assertSucceeds(getDoc(doc(staff, 'gyms', GYM_A, 'bookings', 'b3')));
 });
 
+test('tenant: check-ins are staff-recorded, member-read, append-only', async () => {
+  await seedTenants();
+  const staff = env.authenticatedContext(STAFF).firestore();
+  const member = env.authenticatedContext(MEMBER).firestore();
+  const visit = { uid: MEMBER, at: Date.now(), by: STAFF };
+
+  // Only the front desk records a visit — a member may not forge attendance.
+  await assertFails(setDoc(doc(member, 'gyms', GYM_A, 'checkins', 'v1'), visit));
+  await assertSucceeds(setDoc(doc(staff, 'gyms', GYM_A, 'checkins', 'v1'), visit));
+
+  // A member reads their own history, not anybody else's.
+  await assertSucceeds(getDoc(doc(member, 'gyms', GYM_A, 'checkins', 'v1')));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'gyms', GYM_A, 'checkins', 'v2'), {
+      ...visit,
+      uid: OUTSIDER,
+    });
+  });
+  await assertFails(getDoc(doc(member, 'gyms', GYM_A, 'checkins', 'v2')));
+
+  // History is append-only for everyone, staff included.
+  await assertFails(
+    setDoc(doc(staff, 'gyms', GYM_A, 'checkins', 'v1'), { ...visit, at: 1234567890 }),
+  );
+  await assertFails(deleteDoc(doc(staff, 'gyms', GYM_A, 'checkins', 'v1')));
+
+  // And the payload must look like a visit, not junk storage.
+  await assertFails(setDoc(doc(staff, 'gyms', GYM_A, 'checkins', 'v3'), { ...visit, at: -1 }));
+});
+
 test('tenant: classes and slots are staff-writable, member-readable, owner-deletable', async () => {
   await seedTenants();
   const member = env.authenticatedContext(MEMBER).firestore();

@@ -8,12 +8,19 @@
  * joining it. Everything rendered here comes from that public document and the
  * published timetable — nothing from `settings/`, nothing from any member's
  * data.
+ *
+ * For a signed-in member the same page grows a personal section (`MyGym`):
+ * membership card, bookings, visit history and the opt-in progress share. It
+ * lives *here* rather than in `/dashboard` so the B2C app stays untouched —
+ * the gym's site is where gym things happen.
  */
 import { useMemo } from 'react';
 import { Clock, MapPin, Phone, Mail, AtSign, CalendarDays, Users, Dumbbell } from 'lucide-react';
 import { isGymLive, type GymTenant } from '@smartfit/core';
 import { useTenant, formatMoney } from '@/lib/tenant-context';
 import type { GymClass, GymSlot } from '@/lib/firebase/tenant-repo';
+import { useAuth } from '@/lib/firebase/auth-context';
+import { MyGym, SlotBookingActions } from '@/components/tenant/my-gym';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,12 +71,16 @@ function NotLive({ gym }: { gym: GymTenant | null }) {
 }
 
 export function Storefront() {
-  const { gym, classes, slots, plans, loading, error, slug, mode } = useTenant();
+  const { gym, classes, slots, plans, loading, error, slug, mode, demoRole, setDemoRole } =
+    useTenant();
+  const { user } = useAuth();
 
   const classById = useMemo(() => new Map(classes.map((c) => [c.id, c])), [classes]);
   const days = useMemo(() => groupByDay(slots.filter((s) => !s.cancelled).slice(0, 21)), [slots]);
   const publishedPlans = useMemo(() => plans.filter((p) => p.published !== false), [plans]);
   const accent = gym?.branding?.accentColor || '#8ad200';
+  /** Where the pricing "Join" buttons lead: sign-in, or straight to the member section. */
+  const joinHref = mode === 'cloud' && !user ? `/login?gym=${slug}` : `/g/${slug}#membership`;
 
   if (loading) {
     return (
@@ -119,9 +130,34 @@ export function Storefront() {
 
       {mode === 'demo' && (
         <div className="border-border bg-muted/40 text-muted-foreground rounded-xl border border-dashed p-3 text-xs">
-          Showing demo data — no Firebase project is configured, so nothing here is persisted.
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              Showing demo data — no Firebase project is configured, so nothing here is persisted.
+            </span>
+            <label className="flex items-center gap-1.5">
+              <span className="sr-only">Demo persona</span>
+              <span aria-hidden className="font-medium">
+                Viewing as
+              </span>
+              <select
+                aria-label="Demo persona"
+                className="bg-background rounded-md border px-2 py-1"
+                value={demoRole ?? 'gym-owner'}
+                onChange={(e) => setDemoRole(e.target.value as NonNullable<typeof demoRole>)}
+              >
+                <option value="gym-owner">Youssef — gym owner</option>
+                <option value="gym-staff">Salma — gym staff</option>
+                <option value="member">Amina — member</option>
+                <option value="prospect">A visitor — not a member</option>
+                <option value="platform-admin">Platform admin</option>
+              </select>
+            </label>
+          </div>
         </div>
       )}
+
+      {/* ── My gym (member section) ──────────────────────────────────── */}
+      <MyGym />
 
       {/* ── Facts ────────────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -217,10 +253,21 @@ export function Storefront() {
                     return (
                       <div
                         key={slot.id}
-                        className="border-border/60 flex items-center justify-between gap-3 border-b pb-2 last:border-0"
+                        className="border-border/60 flex flex-wrap items-center justify-between gap-3 border-b pb-2 last:border-0"
                       >
                         <div className="min-w-0">
-                          <p className="truncate font-semibold">{cls?.name ?? 'Class'}</p>
+                          <p className="truncate font-semibold">
+                            {cls ? (
+                              <a
+                                href={`/g/${slug}/class/${cls.id}`}
+                                className="hover:text-foreground hover:underline"
+                              >
+                                {cls.name}
+                              </a>
+                            ) : (
+                              'Class'
+                            )}
+                          </p>
                           <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
                             <span className="tabular-nums">
                               {timeOfDay(slot.startsAt)}–{timeOfDay(slot.endsAt)}
@@ -229,7 +276,7 @@ export function Storefront() {
                             {cls?.instructorName && <span>· {cls.instructorName}</span>}
                           </p>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
                           {cls && (
                             <Badge variant="secondary">{FOCUS_LABEL[cls.focus] ?? cls.focus}</Badge>
                           )}
@@ -242,6 +289,7 @@ export function Storefront() {
                             <Users className="size-3" />
                             {left === 0 ? 'Full' : `${left} left`}
                           </span>
+                          <SlotBookingActions slot={slot} />
                         </div>
                       </div>
                     );
@@ -279,7 +327,7 @@ export function Storefront() {
                     </p>
                   )}
                   <Button asChild className="mt-auto w-full">
-                    <a href={`/login?gym=${slug}`}>Join</a>
+                    <a href={joinHref}>Join</a>
                   </Button>
                 </CardContent>
               </Card>
@@ -287,6 +335,12 @@ export function Storefront() {
           </div>
         </section>
       )}
+
+      <footer className="text-muted-foreground border-border/60 border-t pt-4 text-xs">
+        <a href="/gyms" className="hover:text-foreground underline underline-offset-4">
+          Browse more gyms on SmartFit
+        </a>
+      </footer>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Loader2, Mail, ShieldCheck } from 'lucide-react';
+import { isValidSlug, tenantPath } from '@smartfit/core';
 import { Wordmark } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -98,11 +99,19 @@ export default function LoginPage() {
    * Gateway.
    *
    * Only an already-authenticated visitor is redirected: a signed-out one
-   * came here to sign in, so they must always get the form. A profile that
-   * hasn't finished setup goes to onboarding; everyone else to the dashboard.
+   * came here to sign in, so they must always get the form. A `?gym=` param
+   * (set by every "join this gym" link on a tenant site) sends them back to
+   * that gym instead of the dashboard — signing in to book a class and
+   * landing on a personal dashboard is a dead end. A profile that hasn't
+   * finished setup goes to onboarding first; the gym is one tap from there.
    */
   useEffect(() => {
     if (!cloud || initializing || !user || !ready) return;
+    const gym = new URLSearchParams(window.location.search).get('gym');
+    if (gym && isValidSlug(gym)) {
+      router.replace(tenantPath(gym));
+      return;
+    }
     router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
   }, [cloud, initializing, user, ready, state.profile.onboardingDone, router]);
 
@@ -131,7 +140,10 @@ export default function LoginPage() {
             <PillCta
               label="Continue on this device"
               className="mt-5 w-full"
-              onClick={() => router.replace('/dashboard')}
+              onClick={() => {
+                const gym = new URLSearchParams(window.location.search).get('gym');
+                router.replace(gym && isValidSlug(gym) ? tenantPath(gym) : '/dashboard');
+              }}
             />
           </CardContent>
         </Card>
@@ -377,6 +389,10 @@ export default function LoginPage() {
           Your training data is private to your account. See our{' '}
           <Link href="/privacy" className="hover:text-foreground underline underline-offset-2">
             privacy policy
+          </Link>
+          . Looking for your gym?{' '}
+          <Link href="/gyms" className="hover:text-foreground underline underline-offset-2">
+            Find it on SmartFit
           </Link>
           .
         </p>

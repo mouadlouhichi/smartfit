@@ -299,6 +299,7 @@ export const RESERVED_SUBDOMAINS: readonly string[] = [
   'static',
   // First-party routes — a tenant named `login` would shadow the real one.
   'g',
+  'gyms',
   'login',
   'logout',
   'signup',

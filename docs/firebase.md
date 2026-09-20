@@ -80,8 +80,34 @@ users/{uid}/sessions/{id}            -> logged workout sessions
 users/{uid}/schedule/{id}            -> recurring scheduled workouts
 users/{uid}/goals/{id}               -> goals
 users/{uid}/bodyLogs/{id}            -> body measurements
+users/{uid}/gymShares/{gymId}        -> opt-in aggregates the member shares with one gym
 accountDeletionJobs/{uid}             -> server-only deletion progress (client denied)
+
+gyms/{slug}                          -> tenant: public profile, status, branding, plan
+gyms/{slug}/members/{uid}            -> roster row + the per-gym role the rules get()
+gyms/{slug}/classes/{classId}        -> class template (focus, minutes, capacity, studio)
+gyms/{slug}/slots/{slotId}           -> scheduled occurrence (startsAt, capacity, booked)
+gyms/{slug}/bookings/{bookingId}     -> one seat: uid, status (booked|attended|no_show|cancelled|waitlist)
+gyms/{slug}/checkins/{visitId}       -> append-only door-visit record (uid, at, by)
+gyms/{slug}/plans/{planId}           -> membership tiers (price, period, published)
+gyms/{slug}/invoices/{invoiceId}     -> payments (memberUid, amountMinor, status, method)
+gyms/{slug}/settings/{settingsId}    -> private tenant settings (owner/staff read)
+gyms/{slug}/audit/{entryId}          -> append-only action log
+platform/**                          -> admin rollups; client-denied entirely
 ```
+
+### The B2B split in one paragraph
+A member's private training data never leaves `users/{uid}` — the rules there
+are unchanged and owner-only. A gym owns its roster (`gyms/{slug}/members`) and
+everything it needs to run (timetable, bookings, check-ins, plans, invoices),
+and the *only* thing a member shares upward is a document they write
+themselves: `users/{uid}/gymShares/{gymId}` with three aggregates (sessions
+this month, streak, attendance %). Deleting that document is the whole
+revocation. Per-gym roles (owner/staff/member) live on the membership row —
+the rules resolve them with a single `get()`, never a claim, so multi-gym
+users and staff changes take effect immediately. Design and rules:
+`docs/b2b-pivot-plan.md`; implementation status: `docs/b2b-todo.md`.
+
 
 ## 5. Server-side account deletion
 

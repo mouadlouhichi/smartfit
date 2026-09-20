@@ -52,6 +52,7 @@ export type TenantCollection =
   | 'broadcasts'
   | 'equipment'
   | 'shifts'
+  | 'checkins'
   | 'audit';
 
 /** The member's own opt-in share document, inside their private tree. */
@@ -181,14 +182,63 @@ export async function leaveGym(slug: string, uid: string): Promise<void> {
   await deleteDoc(doc(db, gymCol(slug, 'members'), uid));
 }
 
-/** Front-desk check-in: bump the counter and stamp the visit. */
-export async function checkIn(slug: string, uid: string): Promise<void> {
+// ── Check-ins ────────────────────────────────────────────────────────────────
+
+/** One door visit. Append-only: the counter on the membership is the summary. */
+export interface GymCheckin {
+  id: string;
+  uid: string;
+  at: number;
+  /** Who recorded the visit — front-desk uid, or the member at a QR reader. */
+  by?: string;
+  /** Set when the visit was a class rather than open gym. */
+  slotId?: string;
+}
+
+/**
+ * Front-desk check-in.
+ *
+ * Two documents change as one unit: the roster row gets its counter bumped
+ * (what the console's metrics read) and a visit record is appended (what the
+ * member's history reads). A batch keeps them from drifting apart when a
+ * reload lands between the two writes.
+ */
+export async function checkIn(slug: string, uid: string, by?: string): Promise<void> {
   const { db } = await requireServices();
-  const { doc, updateDoc, increment } = await import('firebase/firestore');
-  await updateDoc(doc(db, gymCol(slug, 'members'), uid), {
+  const { doc, updateDoc, increment, setDoc, writeBatch } = await import('firebase/firestore');
+  const at = Date.now();
+  const batch = writeBatch(db);
+  batch.update(doc(db, gymCol(slug, 'members'), uid), {
     checkins: increment(1),
-    lastVisitAt: Date.now(),
+    lastVisitAt: at,
   });
+  batch.set(
+    doc(db, gymCol(slug, 'checkins'), `ch-${at}-${Math.random().toString(36).slice(2, 8)}`),
+    clean({ uid, at, by: by ?? uid }),
+  );
+  await batch.commit();
+}
+
+/** A member's own visit history, newest first. */
+export async function loadCheckins(slug: string, uid: string, limit = 30): Promise<GymCheckin[]> {
+  const { db } = await requireServices();
+  const {
+    collection,
+    getDocs,
+    query,
+    where,
+    orderBy,
+    limit: limitFn,
+  } = await import('firebase/firestore');
+  const snap = await getDocs(
+    query(
+      collection(db, gymCol(slug, 'checkins')),
+      where('uid', '==', uid),
+      orderBy('at', 'desc'),
+      limitFn(limit),
+    ),
+  );
+  return snap.docs.map((d) => withId<GymCheckin>(d));
 }
 
 // ── Classes & slots ──────────────────────────────────────────────────────────
@@ -396,6 +446,37 @@ export async function markAttendance(
   await setDoc(ref, { ...snap.data(), status, markedBy, markedAt: Date.now() }, { merge: true });
 }
 
+/**
+ * Promote the head of the waitlist into a real seat.
+ *
+ * Deliberately a transaction, and deliberately staff-triggered: a member
+ * cancelling their own seat cannot touch *someone else's* booking under the
+ * rules, so promotion is an operator action. (Auto-promotion on cancel would
+ * need a trusted backend — a Cloud Function — because the rules are the
+ * enforcement layer and they forbid exactly that cross-member write.)
+ */
+export async function promoteFromWaitlist(slug: string, bookingId: string): Promise<void> {
+  const { db } = await requireServices();
+  const { doc, increment, runTransaction } = await import('firebase/firestore');
+  await runTransaction(db, async (tx) => {
+    const bookingRef = doc(db, gymCol(slug, 'bookings'), bookingId);
+    const snap = await tx.get(bookingRef);
+    if (!snap.exists()) throw new Error('booking-missing');
+    const booking = snap.data() as GymBooking;
+    if (booking.status !== 'waitlist') throw new Error('not-on-waitlist');
+
+    const slotRef = doc(db, gymCol(slug, 'slots'), booking.slotId);
+    const slotSnap = await tx.get(slotRef);
+    if (!slotSnap.exists()) throw new Error('slot-missing');
+    const slot = slotSnap.data() as GymSlot;
+    if (slot.cancelled) throw new Error('slot-cancelled');
+    if ((slot.booked ?? 0) >= (slot.capacity ?? 0)) throw new Error('class-full');
+
+    tx.set(bookingRef, { ...booking, status: 'booked' });
+    tx.update(slotRef, { booked: increment(1) });
+  });
+}
+
 // ── Money ────────────────────────────────────────────────────────────────────
 
 export interface MembershipPlanDoc {
@@ -497,4 +578,12 @@ export async function revokeGymShare(uid: string, slug: string): Promise<void> {
   const { db } = await requireServices();
   const { doc, deleteDoc } = await import('firebase/firestore');
   await deleteDoc(doc(db, gymShareDoc(uid, slug)));
+}
+
+/** The member's current share with this gym, or null when sharing is off. */
+export async function loadGymShare(uid: string, slug: string): Promise<GymShare | null> {
+  const { db } = await requireServices();
+  const { doc, getDoc } = await import('firebase/firestore');
+  const snap = await getDoc(doc(db, gymShareDoc(uid, slug)));
+  return snap.exists() ? (snap.data() as GymShare) : null;
 }

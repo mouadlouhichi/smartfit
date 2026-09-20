@@ -327,6 +327,26 @@ async function main() {
     console.log(`  + slots/${s.id} (${new Date(startsAt).toLocaleString()})`);
   }
 
+  // One class later today (clamped before midnight), so the staff "Today"
+  // view has attendance rows whatever day the seed runs.
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 0, 0);
+  const liveStart = Math.min(now + 2 * 3_600_000, endOfToday.getTime() - 5 * 60_000);
+  if (liveStart > now) {
+    await db.doc(`gyms/${SLUG}/slots/slot-live-hiit`).set(
+      {
+        classId: 'cls-hiit',
+        startsAt: liveStart,
+        endsAt: liveStart + classById['cls-hiit'].minutes * 60_000,
+        capacity: classById['cls-hiit'].capacity,
+        booked: 0,
+        cancelled: false,
+      },
+      { merge: true },
+    );
+    console.log(`  + slots/slot-live-hiit (${new Date(liveStart).toLocaleString()})`);
+  }
+
   // ── Bookings (with seat counts kept consistent) ─────────────────────────
   console.log('\n▸ Ensuring bookings');
   const bookingPlan = [
@@ -335,8 +355,11 @@ async function main() {
     ['slot-wed-strength', ['b2b-member-2'], 'booked'],
     ['slot-thu-boxing', ['b2b-member-1', 'b2b-member-2', 'b2b-member-3'], 'booked'],
     ['slot-fri-mobility', ['b2b-member-3'], 'waitlist'],
+    ['slot-live-hiit', ['b2b-member-1', 'b2b-member-2'], 'booked'],
+    ['slot-live-hiit', ['b2b-member-3'], 'waitlist'],
   ];
   const nameByUid = Object.fromEntries(PEOPLE.map((p) => [p.uid, p.name]));
+  const seatedBySlot = {};
   for (const [slotId, uids, status] of bookingPlan) {
     for (const uid of uids) {
       await db
@@ -346,13 +369,40 @@ async function main() {
           { merge: true },
         );
     }
-    // The counter must agree with the bookings, or the class looks full when
-    // it is not — the transaction in tenant-repo.ts keeps these in step at
-    // runtime; the seed has to do it by hand.
-    const seated = status === 'booked' ? uids.length : 0;
-    await db.doc(`gyms/${SLUG}/slots/${slotId}`).set({ booked: seated }, { merge: true });
-    console.log(`  + bookings for ${slotId}: ${uids.length} (${seated} seated)`);
+    // Accumulate: several plan rows can target the same slot (seated plus
+    // waitlist), and the counter must reflect them all.
+    seatedBySlot[slotId] = (seatedBySlot[slotId] ?? 0) + (status === 'booked' ? uids.length : 0);
+    console.log(`  + bookings for ${slotId}: ${uids.length} (${status})`);
   }
+  // The counter must agree with the bookings, or the class looks full when it
+  // is not — the transaction in tenant-repo.ts keeps these in step at runtime;
+  // the seed has to do it by hand.
+  for (const [slotId, seated] of Object.entries(seatedBySlot)) {
+    await db.doc(`gyms/${SLUG}/slots/${slotId}`).set({ booked: seated }, { merge: true });
+  }
+
+  // ── Door visits ─────────────────────────────────────────────────────────
+  // The roster rows above carry the counters; these records are what a member
+  // scrolls through in "Visits". Deterministic ids keep re-runs idempotent.
+  console.log('\n▸ Ensuring check-ins');
+  const visitPlan = [
+    ['b2b-member-1', 0.4],
+    ['b2b-owner', 1],
+    ['b2b-member-1', 3],
+    ['b2b-member-3', 2],
+    ['b2b-member-1', 5],
+    ['b2b-trainer', 2],
+    ['b2b-member-1', 8],
+    ['b2b-member-1', 12],
+    ['b2b-member-2', 26],
+  ];
+  for (let i = 0; i < visitPlan.length; i++) {
+    const [uid, daysAgo] = visitPlan[i];
+    await db
+      .doc(`gyms/${SLUG}/checkins/chk-seed-${i}`)
+      .set({ uid, at: now - Math.round(daysAgo * DAY), by: 'b2b-staff' }, { merge: true });
+  }
+  console.log(`  + ${visitPlan.length} door visits`);
 
   // ── Membership plans ────────────────────────────────────────────────────
   console.log('\n▸ Ensuring membership plans');

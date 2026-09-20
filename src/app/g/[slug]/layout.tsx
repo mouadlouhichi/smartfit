@@ -1,5 +1,5 @@
 import { isValidSlug } from '@smartfit/core';
-import { loadTenantServer } from '@/lib/tenant-server';
+import { loadTenantCached } from '@/lib/tenant-server';
 import { TenantShell } from '@/components/tenant/shell';
 
 /**
@@ -36,7 +36,9 @@ export default async function TenantLayout({
     );
   }
 
-  const initial = await loadTenantServer(slug);
+  // `loadTenantCached` is the same loader, memoised per request — the layout,
+  // the page and `generateMetadata` share one set of Firestore reads.
+  const initial = await loadTenantCached(slug);
   return (
     <TenantShell slug={slug} initial={initial}>
       {children}

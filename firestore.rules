@@ -184,6 +184,15 @@ service cloud.firestore {
         && (!('markedAt' in request.resource.data) || validTs(request.resource.data.markedAt));
     }
 
+    // A door visit. Written by the front desk alongside the roster counter.
+    function validCheckin() {
+      return strAtMost(request.resource.data.uid, 128)
+        && validTs(request.resource.data.at)
+        && request.resource.data.size() <= 5
+        && (!('by' in request.resource.data) || strAtMost(request.resource.data.by, 128))
+        && (!('slotId' in request.resource.data) || strAtMost(request.resource.data.slotId, 128));
+    }
+
     function validMembershipPlan() {
       return strAtMost(request.resource.data.name, 80)
         && numBetween(request.resource.data.priceMinor, 0, 100000000)
@@ -499,6 +508,18 @@ service cloud.firestore {
                && request.resource.data.status == 'cancelled'
                && validBooking());
         allow delete: if isGymOwner(gymId);
+      }
+
+      // ── door visits ──────────────────────────────────────────────────────
+      // The membership row keeps a counter for the console's metrics; this
+      // collection is the visit-by-visit history a member sees. Visits are
+      // recorded by staff (a member must not be able to forge attendance) and
+      // are append-only — rewriting history is not a front-desk operation.
+      match /checkins/{visitId} {
+        allow read: if isGymOperator(gymId)
+          || (isSignedIn() && resource.data.uid == request.auth.uid);
+        allow create: if isGymOperator(gymId) && validCheckin();
+        allow update, delete: if false;
       }
 
       // ── membership tiers & pricing ─────────────────────────────────────

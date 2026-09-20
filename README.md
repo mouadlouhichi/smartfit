@@ -149,6 +149,43 @@ shared domain package — but applies them to **training** instead of money.
 - **Marketing site** included (landing, features, how-it-works, plans, FAQ),
   plus `/privacy` and `/terms`.
 
+### Gyms (B2B)
+
+SmartFit is also a **product gyms buy**: a tenant gets its own site, its team
+gets a console, and its members get booking — while every member's private
+tracker stays exactly as private as it was.
+
+- **A storefront per gym** — `smartfit.app/g/{slug}` today, `{slug}.smartfit.app`
+  in production (middleware rewrites the host into the same tree). Server
+  rendered with the gym's own branding: name, accent colour, timetable with
+  live seat counts, published pricing, per-tenant page metadata and a class
+  detail page per template. `/gyms` is the public directory.
+- **The member experience lives on the gym's site, not in the tracker** — join
+  in one tap (trial membership), a membership card with status/expiry/visits,
+  book / cancel / waitlist directly from the timetable, "My classes", door
+  check-in history, and an **opt-in progress share** that spells out the three
+  aggregates the gym can see (sessions this month, streak, attendance) and is
+  revoked by deleting one document. `/dashboard/**` and the mobile app are
+  untouched by all of it.
+- **One console tree, two audiences** — `/g/{slug}/console` renders what the
+  role's capabilities allow and nothing more (a denied section is *absent*, not
+  disabled, so staff never learn a Revenue tab exists). Owners get the
+  business: MRR, occupancy, at-risk worklist, roster, timetable, plans,
+  payments, branding. Staff land on **Today**: front-desk search, check-in,
+  attendance / no-show, waitlist promotion.
+- **Roles enforced twice** — the same capability table drives the UI
+  (`@smartfit/core` RBAC) and the Firestore rules (the real boundary, since the
+  browser writes straight to the database). Per-gym roles come from the
+  membership document, not a claim, so "owner of gym A, member of gym B" just
+  works and staff changes apply instantly.
+- **Demo mode** — with no Firebase project configured, the whole tenant tree
+  runs on a fixture (including a role/persona switcher), which is how the
+  preview and `pnpm test:e2e` exercise it. `pnpm seed:b2b` provisions the same
+  shape into a real project.
+
+See [`docs/b2b-pivot-plan.md`](docs/b2b-pivot-plan.md) for the design and
+[`docs/b2b-todo.md`](docs/b2b-todo.md) for implementation status.
+
 ## 🧱 Tech stack
 
 | Layer            | Web (root `src/`)                        | Mobile (`apps/mobile`)                    |
@@ -197,6 +234,7 @@ pnpm test           # web lib tests (hydration, write queue, auth errors, diagno
 pnpm test:e2e       # Playwright smoke suite against the production build (needs pnpm build first)
 pnpm test:rules     # Firestore rules tests against the emulator (needs Java 17+)
 pnpm seed           # populate a Firestore demo account (needs admin creds)
+pnpm seed:b2b       # provision the B2B demo tenant: owner, staff, members, timetable
 
 pnpm --filter @smartfit/core test          # core domain tests
 pnpm --filter @smartfit/mobile typecheck   # mobile types

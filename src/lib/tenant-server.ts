@@ -19,7 +19,8 @@
  * that would hide a real outage behind a plausible-looking page.
  */
 import 'server-only';
-import type { GymMembership, GymTenant } from '@smartfit/core';
+import { cache } from 'react';
+import { LIVE_GYM_STATUSES, type GymMembership, type GymTenant } from '@smartfit/core';
 import { getAdminServices } from '@/lib/firebase/admin';
 import type {
   GymBooking,
@@ -130,4 +131,30 @@ export async function loadTenantServer(slug: string): Promise<ServerTenantData> 
     plans: plansSnap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as MembershipPlanDoc),
     invoices: invoicesSnap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as InvoiceDoc),
   };
+}
+
+/**
+ * Per-request memoised loader.
+ *
+ * A tenant render asks up to three times — layout, page, `generateMetadata` —
+ * and each ask is the same Firestore reads. `cache()` collapses them within a
+ * request while keeping results fresh across requests.
+ */
+export const loadTenantCached = cache(loadTenantServer);
+
+/**
+ * Live tenants for the public directory. Statuses that would render a closed
+ * storefront (`pending`, `suspended`, `closed`) are excluded: a directory link
+ * that dead-ends is worse than no link.
+ */
+export async function listGymsServer(): Promise<GymTenant[]> {
+  if (!adminConfigured()) return [demoGym()];
+
+  const { db } = getAdminServices();
+  const snap = await db
+    .collection('gyms')
+    .where('status', 'in', [...LIVE_GYM_STATUSES])
+    .limit(100)
+    .get();
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as GymTenant);
 }

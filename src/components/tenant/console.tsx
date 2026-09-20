@@ -100,7 +100,8 @@ function Metric({
   );
 }
 
-function statusTone(status: GymMembership['status'] | string) {
+/** Badge colour for a membership/invoice/booking status. Shared with the member view. */
+export function statusTone(status: GymMembership['status'] | string) {
   switch (status) {
     case 'active':
     case 'paid':
@@ -246,6 +247,9 @@ function Today() {
       .slice(0, 5);
   }, [query, t.roster]);
 
+  const canMark = t.can('class:attend:mark');
+  const canPromote = t.can('waitlist:promote');
+
   async function onCheckIn(uid: string, name: string) {
     const ok = await t.checkInMember(uid);
     if (ok) {
@@ -254,6 +258,22 @@ function Today() {
     } else {
       toast(t.mutationError ?? 'Check-in failed', 'info');
     }
+  }
+
+  async function onMark(b: GymBooking, status: 'attended' | 'no_show') {
+    const ok = await t.markBookingAttendance(b.id, status);
+    if (ok) {
+      const name = b.memberName ?? b.uid;
+      toast(status === 'attended' ? `${name} attended` : `${name} marked as no-show`, 'success');
+    } else {
+      toast(t.mutationError ?? 'Could not mark attendance', 'info');
+    }
+  }
+
+  async function onPromote(b: GymBooking) {
+    const ok = await t.promoteWaitlist(b.id);
+    if (ok) toast(`${b.memberName ?? b.uid} promoted from the waitlist`, 'success');
+    else toast(t.mutationError ?? 'Could not promote', 'info');
   }
 
   return (
@@ -305,7 +325,10 @@ function Today() {
       ) : (
         todays.map((slot) => {
           const cls = classById.get(slot.classId);
-          const seated = (bookingsBySlot.get(slot.id) ?? []).filter((b) => b.status === 'booked');
+          const all = (bookingsBySlot.get(slot.id) ?? []).filter((b) => b.status !== 'cancelled');
+          const seated = all.filter((b) => b.status === 'booked' || b.status === 'attended');
+          const waitlist = all.filter((b) => b.status === 'waitlist');
+          const left = Math.max(0, slot.capacity - slot.booked);
           return (
             <Card key={slot.id}>
               <CardHeader className="pb-2">
@@ -320,19 +343,53 @@ function Today() {
                 </CardTitle>
                 <CardDescription>
                   {cls?.studio} · {cls?.instructorName} · {seated.length}/{slot.capacity} booked
+                  {waitlist.length > 0 && ` · ${waitlist.length} waiting`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-1">
-                {seated.length === 0 ? (
+                {all.length === 0 ? (
                   <p className="text-muted-foreground text-sm">Nobody booked yet.</p>
                 ) : (
-                  seated.map((b) => (
+                  all.map((b) => (
                     <div
                       key={b.id}
-                      className="border-border/60 flex items-center justify-between border-b py-1.5 text-sm last:border-0"
+                      className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b py-1.5 text-sm last:border-0"
                     >
                       <span>{b.memberName ?? b.uid}</span>
-                      <Badge variant="outline">{b.status}</Badge>
+                      <span className="flex items-center gap-1.5">
+                        <Badge variant="outline">{b.status.replace('_', ' ')}</Badge>
+                        {b.status === 'booked' && canMark && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onMark(b, 'attended')}
+                              disabled={t.mutating !== null}
+                            >
+                              Attended
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onMark(b, 'no_show')}
+                              disabled={t.mutating !== null}
+                            >
+                              No-show
+                            </Button>
+                          </>
+                        )}
+                        {b.status === 'waitlist' && canPromote && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onPromote(b)}
+                            disabled={t.mutating !== null || left === 0}
+                            title={left === 0 ? 'The class is full' : 'Take the next seat'}
+                          >
+                            Promote
+                          </Button>
+                        )}
+                      </span>
                     </div>
                   ))
                 )}
@@ -1021,11 +1078,12 @@ export function Console() {
                 aria-label="Demo role"
                 className="bg-background rounded-md border px-2 py-1 text-xs"
                 value={t.demoRole ?? 'gym-owner'}
-                onChange={(e) => t.setDemoRole(e.target.value as typeof t.role)}
+                onChange={(e) => t.setDemoRole(e.target.value as NonNullable<typeof t.demoRole>)}
               >
                 <option value="gym-owner">Gym owner</option>
                 <option value="gym-staff">Gym staff</option>
                 <option value="member">Member</option>
+                <option value="prospect">Prospect (not a member)</option>
                 <option value="platform-admin">Platform admin</option>
               </select>
             </div>

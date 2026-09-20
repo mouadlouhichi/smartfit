@@ -29,12 +29,14 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 ## Phase 2 — Data layer & security rules 🟡
 
 - [x] `firestore.rules` — `gyms/**` tree; `users/{uid}` unchanged apart from `gymShares`
-- [x] `firestore.indexes.json` — 10 new composite indexes (13 total)
+- [x] `firestore.indexes.json` — composite indexes (14 total; +`checkins uid+at`)
 - [x] `src/lib/firebase/tenant-repo.ts` — tenant CRUD, roster, slots, bookings, invoices, audit
 - [x] `src/app/api/admin/claims/route.ts` — grant/revoke the `sfRole` claim
-- [x] `tests/rules/firestore-rules.test.ts` — 22 tenant-isolation tests **written**
+- [x] `tests/rules/firestore-rules.test.ts` — tenant-isolation tests **written**
+      (22 at Phase 2, +1 check-ins test at Phase 7: staff-recorded, member-read
+      own-only, append-only, payload-validated)
 - [x] Rules **parse** cleanly under an ANTLR Firestore grammar (syntax only)
-- [ ] ⛔ **The 22 rules tests have never executed.** No Java in the sandbox and
+- [ ] ⛔ **The rules tests have never executed.** No Java in the sandbox and
       `storage.googleapis.com` (emulator jar) is unreachable. Runs in CI via `pnpm test:rules`.
 - [ ] Deploy rules + indexes (`firebase deploy --only firestore:rules,firestore:indexes`)
 
@@ -64,8 +66,14 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 - [x] **Verified in the running dev server**: `/g/zone-fight` SSR contains
       "Zone Fight", "Timetable", "Boxing Fundamentals", "390 MAD";
       `/g/admin` and `/g/BAD_SLUG` both render "That gym does not exist"
-- [ ] `generateMetadata` per tenant (title/OG from the gym's own branding)
-- [ ] Class detail page
+- [x] `generateMetadata` per tenant — title/description/OG from the gym's own
+      branding, one `cache()`d Admin-SDK load shared by layout + page +
+      metadata. Verified: `<title>Zone Fight · SmartFit</title>` and the
+      gym's tagline as `og:description` in the served HTML
+- [x] Class detail page — `/g/[slug]/class/[classId]`: template facts,
+      upcoming occurrences with live seat counts, book/cancel actions, its own
+      metadata. Unknown class id → 404 (verified). Links from every timetable
+      row
 
 ## Phase 5 — Gym owner console ✅ (writes wired; cloud path unexercised)
 
@@ -90,7 +98,9 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 - [ ] ⛔ Writes only exercised in **demo mode**. No Firebase project here, so the
       cloud path (`saveMembership`, `checkIn`, `saveClass`, `issueInvoice`,
       `savePlan`, `saveGymProfile`) has never run against real Firestore.
-- [ ] Booking mutations from the member side (the `bookSeat` transaction)
+- [x] Booking mutations from the member side — wired through the same `run()`
+      path (Phase 7): `bookSeat` (the capacity transaction), `cancelBooking`
+      (releases the seat), plus staff `markAttendance` and `promoteFromWaitlist`
 
 ## Phase 6 — Staff console 🟡
 
@@ -99,17 +109,65 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 - [x] Staff land on **Today**, not the owner dashboard, because the default tab
       follows whatever the capability filter leaves first
 - [x] Today view — classes with booked/capacity and the seat list
-- [x] Fast member search → check in (writes `checkins` + `lastVisitAt`)
-- [ ] Mark attended / no-show on a booking (`markAttendance` exists, not wired)
+- [x] Fast member search → check in (writes `checkins` + `lastVisitAt` + a
+      `checkins/{visitId}` record, as one batch in cloud mode)
+- [x] Mark attended / no-show on a booking — `markAttendance` wired into every
+      booked row on Today (`class:attend:mark` gated); waitlist rows get a
+      **Promote** action (`waitlist:promote`) that takes the next seat in a
+      transaction. Demo fixture always schedules one class later today with
+      booked + waitlisted rows so the view is populated on any run date
 - [ ] Verify the filter against a real staff account (demo switcher only so far)
 
-## Phase 7 — Member gym experience ⬜
+## Phase 7 — Member gym experience 🟡 (demo-verified; cloud path unexercised)
 
-- [ ] Find/join a gym; membership card with status + expiry
-- [ ] Book / cancel / waitlist; my bookings
-- [ ] Check-in history
-- [ ] Opt-in progress-sharing toggle showing exactly what is shared
-- [ ] `/dashboard/**` and the Expo app must stay **unchanged**
+Everything ships on the **gym's site** (`/g/{slug}`), not in `/dashboard` —
+the B2C app is untouched (see the guard below).
+
+- [x] **Find a gym** — `/gyms` public directory (server-rendered, live tenants
+      only, `force-dynamic` so a newly approved gym appears without a deploy);
+      linked from every storefront footer and from `/login`
+- [x] **Join** — one tap on the storefront for a signed-in non-member
+      (`joinGym()` self-enrols as `role: 'member', status: 'trial', checkins: 0`,
+      exactly the shape the rules accept). The pricing "Join" buttons send
+      signed-out visitors to `/login?gym={slug}`, and the login gateway now
+      returns them **to the gym** instead of the dashboard
+- [x] **Membership card** — status badge, plan, expiry countdown
+      (`daysUntilExpiry`), member since, check-ins all-time + this month,
+      last visit — all from the gym-owned roster row
+- [x] **Book / cancel / waitlist** — actions on every timetable row *and* the
+      class detail page: Book (seats left), Join waitlist (full), Cancel
+      (releases the seat), all capability-gated (`booking:create:self` /
+      `booking:cancel:self`). "My classes" lists upcoming + history with
+      attendance statuses. Capacity is the `bookSeat` transaction in cloud
+      mode; in demo the same decision runs on local state
+- [x] **Check-in history** — new append-only `gyms/{slug}/checkins/{visitId}`
+      collection (rules + composite index + 5 rules tests written). `checkIn()`
+      now writes counter + visit record as one batch; the member sees their own
+      visits, nothing else
+- [x] **Opt-in progress sharing** — toggle showing *exactly* what is shared:
+      sessions this month, rest-day-aware streak, class attendance %. Computed
+      by `src/lib/gym-share.ts` (pure, **6 unit tests**), written to the
+      member's own `users/{uid}/gymShares/{slug}`, revocable in one tap
+      (delete = revoke). The member's tracker data never crosses the boundary
+- [x] **Demo personas** — the storefront switcher binds each demo role to a
+      fixture person (owner/staff/member), adds a **prospect** persona (signed
+      in, not a member) so the join flow is walkable without Firebase
+- [x] **`/dashboard/**` + Expo untouched** — no file under `src/app/dashboard`,
+      `src/components/dashboard` or `apps/mobile` was modified (verified with
+      `git diff --stat` against the pivot base); the only non-tenant web
+      changes are the login gateway's `?gym=` return path and a directory link
+- [x] **E2E spec written** (`e2e/tenant.spec.ts`): directory → storefront →
+      join → book → cancel → share toggle → staff check-in/attendance/promote,
+      plus staff/RBAC tab-absence assertions. ⛔ Cannot run in this sandbox
+      (`cdn.playwright.dev` unreachable — browsers won't download); runs in CI
+      via `pnpm test:e2e`
+- [ ] ⛔ Cloud path unexercised — `joinGym`, `bookSeat`, `cancelBooking`,
+      `markAttendance`, `promoteFromWaitlist`, `shareWithGym`, `loadCheckins`
+      have never run against real Firestore. No Firebase project here; every
+      one of them is covered by rules that *should* accept the exact payload
+      sent (shapes pinned in `tests/rules/firestore-rules.test.ts`), which is
+      the strongest statement available without a project
+- [ ] Reminders for booked classes (should-have; needs notifications infra)
 
 ## Phase 8 — Platform admin ⬜
 
@@ -125,14 +183,16 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 - [ ] Gym-contract billing path alongside the existing Pro provider
 - [ ] Member membership purchase at the desk and online
 
-## Phase 10 — Seed, docs, migration ⬜
+## Phase 10 — Seed, docs, migration 🟡
 
-- [x] `scripts/seed-b2b.mjs` — admin, owner, staff, members + populated tenant (`pnpm seed:b2b`)
+- [x] `scripts/seed-b2b.mjs` — admin, owner, staff, members + populated tenant (`pnpm seed:b2b`);
+      now also seeds door check-ins and one class later **today** (idempotent,
+      deterministic ids, booking counters accumulated correctly across plan rows)
 - [ ] ⛔ Seed has only had `node --check`; running it needs a real Firebase project
-- [ ] `scripts/README.md` entry for `seed:b2b`
-- [ ] `docs/firebase.md` — the `gyms/**` model
+- [x] `scripts/README.md` entry for `seed:b2b`
+- [x] `docs/firebase.md` — the `gyms/**` model (+ the member-share boundary in prose)
+- [x] README pivot section — "Gyms (B2B)" under Features + `seed:b2b` in Scripts
 - [ ] `customGyms` → tenant promotion script
-- [ ] README pivot section
 
 ---
 
@@ -142,19 +202,21 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
 | --- | --- | --- |
 | `pnpm typecheck` | exit 0 | run after every phase so far |
 | `pnpm lint` | exit 0 | 0 errors; 1 **pre-existing** `<img>` warning at `profile-screen.tsx:775` |
-| `pnpm test` | **129/129** | includes the env-docs guard, which caught 6 undocumented vars |
+| `pnpm test` | **135/135** | +6 `tests/gym-share.test.ts` (share aggregates); includes the env-docs guard |
 | `pnpm --filter @smartfit/core test` | **238/238** | was 171 before the pivot; +67 |
-| `pnpm test:rules` | ⛔ **cannot run here** | needs Java + emulator jar from GCS |
-| tenant routes (dev server) | ✅ all 200, clean log | `/`, `/g/{slug}`, `/g/{slug}/console`, `/dashboard`, `/login`; reserved + malformed slugs render the not-found state |
-| `pnpm build` | not yet run | |
-| `pnpm test:e2e` | not yet run | Playwright browsers not installed |
+| `pnpm test:rules` | ⛔ **cannot run here** | needs Java + emulator jar from GCS; checkin rules tests **written** (+1 test, 7 asserts) |
+| tenant routes (dev server) | ✅ all 200, clean log | `/`, `/g/{slug}`, `/g/{slug}/class/{classId}`, `/g/{slug}/console`, `/gyms`, `/dashboard`, `/login`; reserved + malformed slugs render the not-found state; unknown class id → 404 |
+| tenant SSR content (curl) | ✅ | storefront HTML contains the member section (membership card, My classes, Visits, Progress sharing), per-tenant `<title>`/`og:` metadata, class-detail occurrences with seat counts, directory entries |
+| `pnpm start` (production) | ✅ all 200 | every route served from the built output, including `/gyms`, `/login`, `/dashboard`, console + class pages. Gotcha found: building while `next dev` is running corrupts `.next` (prod then 500s half the routes) — **stop the dev server before `pnpm build`**; a clean rebuild of identical code serves everything |
+| `pnpm build` | ✅ **exit 0** | first full production build of the pivot; `/g/*` + `/gyms` correctly dynamic, middleware 32.9 kB |
+| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (7 tests); `cdn.playwright.dev` unreachable so browsers won't download — CI runs it |
 
 ## Known environment constraints
 
 - `pnpm` is not on PATH → use `corepack pnpm …`, or `corepack enable` once per session.
 - `node_modules` is not persisted between turns → reinstall (~20 s).
 - Network egress is limited to `registry.npmjs.org` and `github.com`. Debian apt repos,
-  `api.adoptium.net` and `storage.googleapis.com` are all unreachable, which is what
-  blocks the Firestore emulator.
+  `api.adoptium.net`, `storage.googleapis.com` and `cdn.playwright.dev` are all
+  unreachable, which is what blocks the Firestore emulator and Playwright browsers.
 - No Firebase project is configured, so the app runs in **local mode** — cloud-only
   paths cannot be exercised end-to-end here.

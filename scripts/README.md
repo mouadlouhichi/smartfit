@@ -34,3 +34,32 @@ that account; otherwise create a Firebase Auth user with the matching uid/email.
 
 `scripts/seed.sql` contains the same demo data as a relational schema
 for SQL/analytics use.
+
+## `seed-b2b.mjs` — stand up the B2B demo tenant
+
+The production app ships with **no tenants** — a gym exists only once the
+platform approves an application. This script provisions a realistic one so
+the owner console, the staff console and the member experience all render with
+data:
+
+```bash
+pnpm seed:b2b
+```
+
+Uses the same service-account env as above (`FIREBASE_PROJECT_ID`,
+`FIREBASE_CLIENT_EMAIL`, `FIREBASE_PRIVATE_KEY`), plus:
+
+| Env | Default | Purpose |
+| --- | --- | --- |
+| `B2B_PASSWORD` | `SmartFit!234` | Password for every seeded account |
+| `B2B_GYM_SLUG` | `zone-fight` | Tenant slug / subdomain |
+| `B2B_ADMIN_EMAIL` | `admin@smartfit.app` | Platform-admin address (gets the `sfRole` claim) |
+| `B2B_FORCE` | _unset_ | `1` also resets passwords on existing accounts |
+
+Creates a platform admin, an owner (`owner@{slug}.smartfit.app`), staff,
+trainers and members, plus classes, a weekly timetable with bookings and a
+waitlist, door check-ins, membership plans and paid invoices — including one
+class later **today** so the staff "Today" view is populated whatever day it
+runs. Idempotent: every write targets a deterministic document id, so re-run
+it freely (it also refreshes the "later today" slot). Sign in as any seeded
+account, then open `/g/{slug}` and switch the demo role, or `/g/{slug}/console`.

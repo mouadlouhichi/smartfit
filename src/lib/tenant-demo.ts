@@ -13,6 +13,7 @@
 import type { GymMembership, GymTenant } from '@smartfit/core';
 import type {
   GymBooking,
+  GymCheckin,
   GymClass,
   GymSlot,
   InvoiceDoc,
@@ -32,6 +33,26 @@ function nextSlot(weekday: number, hhmm: string): number {
 }
 
 export const DEMO_SLUG = 'zone-fight';
+
+/**
+ * Who "I" am when exploring a tenant in demo mode.
+ *
+ * There is no signed-in user without Firebase, so each demo role is bound to a
+ * fixture person: picking "Gym owner" *is* Youssef, with his membership row,
+ * bookings and visit history. `prospect` is the one persona with no row on the
+ * roster — a signed-in visitor who has not joined yet — which is what makes the
+ * join flow walkable in the demo. `platform-admin` is deliberately nobody: an
+ * operator is not on any gym's roster.
+ */
+export const DEMO_PERSONA_UIDS = {
+  'gym-owner': 'demo-owner',
+  'gym-staff': 'demo-staff',
+  member: 'demo-member-1',
+  'platform-admin': null,
+  prospect: 'demo-prospect',
+} as const;
+
+export type DemoPersonaKey = keyof typeof DEMO_PERSONA_UIDS;
 
 export function demoGym(slug = DEMO_SLUG): GymTenant {
   return {
@@ -214,7 +235,7 @@ export function demoSlots(): GymSlot[] {
     ['slot-sat-cardio', 'cls-cardio', 6, '10:00', 0],
   ];
   const byId = Object.fromEntries(demoClasses().map((c) => [c.id, c]));
-  return plan.map(([id, classId, weekday, time, booked]) => {
+  const slots = plan.map(([id, classId, weekday, time, booked]) => {
     const startsAt = nextSlot(weekday, time);
     return {
       id,
@@ -226,6 +247,25 @@ export function demoSlots(): GymSlot[] {
       cancelled: false,
     };
   });
+
+  // One class later **today**, so "Today" views (and their attendance rows)
+  // have content whatever day the demo is opened on. Clamped to just before
+  // midnight so it can never land tomorrow.
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 0, 0);
+  const liveStart = Math.min(now + 2 * 3_600_000, endOfToday.getTime() - 5 * 60_000);
+  if (liveStart > now) {
+    slots.push({
+      id: 'slot-live-hiit',
+      classId: 'cls-hiit',
+      startsAt: liveStart,
+      endsAt: liveStart + byId['cls-hiit'].minutes * 60_000,
+      capacity: byId['cls-hiit'].capacity,
+      booked: 2,
+      cancelled: false,
+    });
+  }
+  return slots.sort((a, b) => a.startsAt - b.startsAt);
 }
 
 export function demoBookings(): GymBooking[] {
@@ -240,6 +280,11 @@ export function demoBookings(): GymBooking[] {
     ['slot-thu-boxing', 'demo-member-2', 'booked', 'Omar Tazi'],
     ['slot-thu-boxing', 'demo-member-3', 'booked', 'Lina Fassi'],
     ['slot-fri-mobility', 'demo-member-3', 'waitlist', 'Lina Fassi'],
+    // The later-today class: two seated, one waiting — the exact rows a
+    // front-desk attendance pass works through.
+    ['slot-live-hiit', 'demo-member-1', 'booked', 'Amina Rachidi'],
+    ['slot-live-hiit', 'demo-member-2', 'booked', 'Omar Tazi'],
+    ['slot-live-hiit', 'demo-member-3', 'waitlist', 'Lina Fassi'],
   ];
   return rows.map(([slotId, uid, status, memberName], i) => ({
     id: `bk-demo-${i}`,
@@ -253,6 +298,16 @@ export function demoBookings(): GymBooking[] {
 
 export function demoPlans(): MembershipPlanDoc[] {
   return [
+    {
+      // Referenced by the owner/staff roster rows. Unpublished: staff do not
+      // buy memberships, so it must never appear on the public pricing page.
+      id: 'plan-staff',
+      name: 'Staff',
+      priceMinor: 0,
+      currency: 'MAD',
+      period: 'month',
+      published: false,
+    },
     {
       id: 'plan-monthly',
       name: 'Monthly',
@@ -312,4 +367,35 @@ export function demoInvoices(): InvoiceDoc[] {
     paidAt: now - daysAgo * DAY,
     issuedBy: 'demo-staff',
   }));
+}
+
+/**
+ * Door visits, newest first — the member's own history.
+ *
+ * Sparse on purpose: the roster counters tell the business story (38 visits for
+ * Amina), while this collection is what a member scrolls through, so it only
+ * needs enough rows to look lived-in.
+ */
+export function demoCheckins(): GymCheckin[] {
+  const rows: Array<[string, number]> = [
+    ['demo-member-1', 0.4],
+    ['demo-owner', 1],
+    ['demo-member-1', 3],
+    ['demo-member-3', 2],
+    ['demo-member-1', 5],
+    ['demo-trainer', 2],
+    ['demo-member-1', 8],
+    ['demo-member-1', 12],
+    ['demo-member-1', 16],
+    ['demo-member-3', 3],
+    ['demo-member-2', 26],
+  ];
+  return rows
+    .map(([uid, daysAgo], i) => ({
+      id: `chk-demo-${i}`,
+      uid,
+      at: now - Math.round(daysAgo * DAY),
+      by: 'demo-staff',
+    }))
+    .sort((a, b) => b.at - a.at);
 }
