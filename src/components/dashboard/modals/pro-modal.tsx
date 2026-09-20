@@ -32,7 +32,7 @@ import { BILLING_MODE, manageSubscriptionUrl, paymentLinkFor } from '@/lib/billi
 import {
   PRO_GATES,
   PRO_PLANS,
-  PRO_TRIAL_DAYS,
+  PRO_TRIAL_MONTHS,
   formatDateLabel,
   hasProAccess,
   isPro,
@@ -60,9 +60,10 @@ const GATE_ICONS: Record<string, LucideIcon> = {
  * Redesigned as a genuine *premium* surface: a dark volt hero, an anchored
  * yearly plan with a savings ribbon, an honest Free-vs-Pro comparison built
  * from `PRO_GATES` (so the paywall never promises a gate that isn't enforced),
- * and a no-card 14-day trial. Sandbox activation writes only a profile
- * entitlement and charges nothing, so it works for signed-in accounts too;
- * only real paid checkout stays disabled until server-side billing exists.
+ * and a no-card 3-month free period on every upgrade. Sandbox activation
+ * writes only a profile entitlement and charges nothing, so it works for
+ * signed-in accounts too; only real paid checkout stays disabled until
+ * server-side billing exists.
  */
 export function ProModal() {
   const { state, updateProfile } = useStore();
@@ -81,9 +82,9 @@ export function ProModal() {
   async function checkout(useTrial = false) {
     if (useTrial) {
       const ok = await confirm({
-        title: 'Start your free trial?',
-        body: `${PRO_TRIAL_DAYS} days of every Pro feature, no card required. You drop back to the free tier automatically when it ends.`,
-        confirmLabel: `Start ${PRO_TRIAL_DAYS}-day trial`,
+        title: 'Start your free Pro period?',
+        body: `${PRO_TRIAL_MONTHS} months of every Pro feature, free — no card required. You drop back to the free tier automatically when it ends.`,
+        confirmLabel: `Start ${PRO_TRIAL_MONTHS} months free`,
       });
       if (!ok) return;
       updateProfile({ pro: { plan: 'trial', since: Date.now() } });
@@ -127,10 +128,15 @@ export function ProModal() {
           middle section below is the only scroll region, and the CTA footer
           is a flex sibling pinned to the bottom edge — the upgrade actions
           are always visible, never below the fold. */}
+      {/* NB: never pass `relative` here — tailwind-merge treats it as the same
+          group as the base `fixed`, so the sheet would lose its fixed
+          positioning and render in-flow below the fold (overlay blur only).
+          `fixed` is already a positioned ancestor, which is all the
+          sheen/grain pseudo-elements need. */}
       <DialogContent
         hideHandle
         hideClose
-        className="pro-surface sheen relative max-w-lg border-transparent p-0 pb-0"
+        className="pro-surface sheen max-w-lg border-transparent p-0 pb-0"
       >
         {/* ── Hero ────────────────────────────────────────────────────── */}
         <div className="relative h-32 shrink-0 sm:h-40">
@@ -253,6 +259,23 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
   const toast = useToast();
   return (
     <div className="grid gap-4">
+      {/* Launch offer — every upgrade opens with a free Pro period. */}
+      <div
+        className="flex items-center gap-3 rounded-2xl border px-4 py-3"
+        style={{ borderColor: 'rgba(138,210,0,0.4)', background: 'rgba(138,210,0,0.08)' }}
+      >
+        <span
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+          style={{ background: 'linear-gradient(135deg,#8AD200,#699E00)' }}
+        >
+          <Sparkles className="h-4 w-4 text-[#1d2800]" aria-hidden />
+        </span>
+        <p className="min-w-0 text-[13px] leading-snug font-semibold text-[#edebe6]">
+          Upgrade today and your first {PRO_TRIAL_MONTHS} months of Pro are free — no card, cancel
+          anytime.
+        </p>
+      </div>
+
       {/* Plan cards */}
       <div className="grid grid-cols-2 gap-3">
         {PRO_PLANS.map((p, i) => (
@@ -360,7 +383,7 @@ function UpgradeFooter({
         variant="outline"
         className="w-full rounded-2xl border-[rgba(237,235,230,0.25)] bg-transparent text-[rgba(237,235,230,0.9)] hover:bg-[rgba(237,235,230,0.08)] hover:text-[#edebe6]"
       >
-        Try Pro free for {PRO_TRIAL_DAYS} days
+        Get {PRO_TRIAL_MONTHS} months of Pro — free
       </Button>
       {(paidDisabled || trialDisabled) && (
         <p className="pro-muted text-center text-[11px]">
@@ -372,6 +395,19 @@ function UpgradeFooter({
 }
 
 /* ── manage content (scrolls) ────────────────────────────────────────────── */
+
+/** Human countdown for the free Pro period: months, then weeks, then days. */
+function trialLeftLabel(days: number): string {
+  if (days >= 30) {
+    const m = Math.round(days / 30);
+    return `${m} month${m === 1 ? '' : 's'} left of your free Pro`;
+  }
+  if (days >= 14) {
+    const w = Math.round(days / 7);
+    return `${w} weeks left of your free Pro`;
+  }
+  return `${days} day${days === 1 ? '' : 's'} left of your free Pro`;
+}
 
 function ManageContent({
   paid,
@@ -393,7 +429,7 @@ function ManageContent({
           </div>
           <p className="pro-muted mt-0.5 text-xs">
             {trialing
-              ? `${trialDaysLeft(state)} day${trialDaysLeft(state) === 1 ? '' : 's'} left in your trial`
+              ? trialLeftLabel(trialDaysLeft(state))
               : state.profile.pro
                 ? `Mvolt since ${formatDateLabel(toISODate(new Date(state.profile.pro.since)))}`
                 : 'Active'}

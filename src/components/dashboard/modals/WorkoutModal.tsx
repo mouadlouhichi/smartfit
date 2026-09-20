@@ -283,11 +283,15 @@ export function WorkoutModal() {
             )}
 
             {/* Exercises */}
-            <section className="border-border bg-secondary/40 grid gap-3 rounded-2xl border p-3 sm:p-3.5">
-              <div className="flex items-center justify-between gap-2">
+            <section className="border-border bg-secondary/40 grid min-w-0 gap-3 rounded-2xl border p-3 sm:p-3.5">
+              <div className="flex min-w-0 items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-foreground/90 text-sm leading-none font-medium">Exercises</p>
-                  <p className="text-muted-foreground mt-1 truncate text-xs">
+                  {/* Wraps instead of truncating: `truncate` is white-space:
+                      nowrap, and a nowrap line reports its full length as the
+                      section's min-content width — which stretched every
+                      grid track in this sheet past the phone's edge. */}
+                  <p className="text-muted-foreground mt-1 text-xs">
                     Sets you completed — optional, but it makes history worth looking back at.
                   </p>
                 </div>
@@ -306,7 +310,7 @@ export function WorkoutModal() {
                 {exercises.map((ex, i) => (
                   <div
                     key={i}
-                    className="border-border bg-card flex items-center gap-2 rounded-xl border p-1.5 shadow-sm sm:pl-2"
+                    className="border-border bg-card flex min-w-0 items-center gap-2 rounded-xl border p-1.5 shadow-sm sm:pl-2"
                   >
                     <span
                       aria-hidden
