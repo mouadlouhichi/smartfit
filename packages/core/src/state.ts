@@ -19,6 +19,8 @@ import type {
   GoalCadence,
   GoalMetric,
   Intensity,
+  MealLog,
+  MealSlot,
   PlanId,
   RunSplit,
   ScheduledWorkout,
@@ -49,6 +51,7 @@ export function emptyState(): FitnessState {
     schedule: [],
     goals: [],
     bodyLogs: [],
+    meals: [],
   };
 }
 
@@ -166,6 +169,29 @@ function parseProfile(v: unknown): UserProfile {
   // the UI resolves it against the known catalog (unknown → no suggestions).
   const gymId = str(v.gymId, '').trim();
   if (gymId && gymId.length <= 64) profile.gymId = gymId;
+  // Fuel refinements — each kept only inside a sane range so a bad write can
+  // never poison the targets; omitted keys stay omitted.
+  if (v.nutritionGoal === 'cut' || v.nutritionGoal === 'maintain' || v.nutritionGoal === 'gain') {
+    profile.nutritionGoal = v.nutritionGoal;
+  }
+  const activity = v.activityLevel;
+  if (
+    activity === 'sedentary' ||
+    activity === 'light' ||
+    activity === 'moderate' ||
+    activity === 'active'
+  ) {
+    profile.activityLevel = activity;
+  }
+  if (v.sex === 'female' || v.sex === 'male') profile.sex = v.sex;
+  const age = v.ageYears;
+  if (typeof age === 'number' && Number.isFinite(age) && age >= 10 && age <= 100) {
+    profile.ageYears = Math.round(age);
+  }
+  const height = v.heightCm;
+  if (typeof height === 'number' && Number.isFinite(height) && height >= 100 && height <= 250) {
+    profile.heightCm = Math.round(height);
+  }
   // Optional Pro stamp: only a well-formed {plan, since} pair is kept.
   if (isObj(v.pro)) {
     const rawPlan = v.pro.plan;
@@ -327,6 +353,30 @@ function parseBodyLog(v: unknown): BodyLog | null {
   };
 }
 
+const MEAL_SLOT_IDS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+function parseMeal(v: unknown): MealLog | null {
+  if (!isObj(v)) return null;
+  const id = str(v.id).trim();
+  const date = isoDate(v.date, '');
+  const calories = optNum(v.calories);
+  if (!id || !date || calories === undefined) return null;
+  const carbs = optNum(v.carbs);
+  const fat = optNum(v.fat);
+  return {
+    id,
+    date,
+    name: str(v.name, 'Meal').slice(0, 120) || 'Meal',
+    slot: oneOf(v.slot, MEAL_SLOT_IDS, 'snack'),
+    calories: Math.max(0, calories),
+    protein: Math.max(0, optNum(v.protein) ?? 0),
+    carbs: carbs === undefined ? undefined : Math.max(0, carbs),
+    fat: fat === undefined ? undefined : Math.max(0, fat),
+    scanned: v.scanned === true ? true : undefined,
+    createdAt: num(v.createdAt, Date.now()),
+  };
+}
+
 function collect<T>(v: unknown, parse: (item: unknown) => T | null): T[] {
   if (!Array.isArray(v)) return [];
   const out: T[] = [];
@@ -363,6 +413,7 @@ export function parseState(raw: unknown): FitnessState {
     schedule: collect(raw.schedule, parseSchedule),
     goals: collect(raw.goals, parseGoal),
     bodyLogs: collect(raw.bodyLogs, parseBodyLog).sort((a, b) => (a.date < b.date ? 1 : -1)),
+    meals: collect(raw.meals, parseMeal).sort((a, b) => (a.date < b.date ? 1 : -1)),
   };
 }
 
@@ -382,6 +433,7 @@ export function isEmptyState(state: FitnessState): boolean {
     state.sessions.length === 0 &&
     state.schedule.length === 0 &&
     state.goals.length === 0 &&
-    state.bodyLogs.length === 0
+    state.bodyLogs.length === 0 &&
+    state.meals.length === 0
   );
 }

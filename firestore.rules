@@ -69,7 +69,7 @@ service cloud.firestore {
 
     function validProfile(profile) {
       return profile is map
-        && profile.size() <= 10
+        && profile.size() <= 15
         && (!('name' in profile) || strAtMost(profile.name, 80))
         && (!('weightUnit' in profile) || profile.weightUnit in ['kg', 'lb'])
         && (!('distanceUnit' in profile) || profile.distanceUnit in ['km', 'mi'])
@@ -79,6 +79,12 @@ service cloud.firestore {
         && (!('onboardingDone' in profile) || profile.onboardingDone is bool)
         && (!('targetWeightKg' in profile) || numBetween(profile.targetWeightKg, 20, 400))
         && (!('gymId' in profile) || strAtMost(profile.gymId, 64))
+        && (!('nutritionGoal' in profile) || profile.nutritionGoal in ['cut', 'maintain', 'gain'])
+        && (!('activityLevel' in profile)
+              || profile.activityLevel in ['sedentary', 'light', 'moderate', 'active'])
+        && (!('sex' in profile) || profile.sex in ['female', 'male'])
+        && (!('ageYears' in profile) || numBetween(profile.ageYears, 10, 100))
+        && (!('heightCm' in profile) || numBetween(profile.heightCm, 100, 250))
         && validProWrite(profile);
     }
 
@@ -165,6 +171,22 @@ service cloud.firestore {
           && numBetween(request.resource.data.createdAt, 0, 4102444800000)
           && request.resource.data.size() <= 8
           && (!('label' in request.resource.data) || strAtMost(request.resource.data.label, 60));
+      }
+
+      // ── meal / nutrition logs ──────────────────────────────────────────
+      match /meals/{docId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isoDate(request.resource.data.date)
+          && strAtMost(request.resource.data.name, 120)
+          && request.resource.data.slot in ['breakfast', 'lunch', 'dinner', 'snack']
+          && numBetween(request.resource.data.calories, 0, 100000)
+          && numBetween(request.resource.data.protein, 0, 10000)
+          && numBetween(request.resource.data.createdAt, 0, 4102444800000)
+          && request.resource.data.size() <= 9
+          && (!('carbs' in request.resource.data) || numBetween(request.resource.data.carbs, 0, 10000))
+          && (!('fat' in request.resource.data) || numBetween(request.resource.data.fat, 0, 10000))
+          && (!('scanned' in request.resource.data) || request.resource.data.scanned is bool);
       }
 
       // ── activity categories ────────────────────────────────────────────

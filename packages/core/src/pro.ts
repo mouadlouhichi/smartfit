@@ -116,6 +116,12 @@ export const PRO_GATES: ProGate[] = [
     pro: 'No watermark',
     icon: 'share',
   },
+  {
+    label: 'Fuel insights',
+    free: 'Targets & meal log',
+    pro: 'Meal scan & adherence trends',
+    icon: 'utensils',
+  },
 ];
 
 /**
@@ -135,10 +141,13 @@ export const FREE_COACH_REPLIES_PER_DAY = 6;
 export const FREE_ROUTINE_TEMPLATES = 3;
 
 /**
- * Length of the trial offered on the paywall, in days. Two full weeks: one
- * training week plus one rest week is the minimum to feel Pro's value.
+ * Length of the free Pro period offered on the paywall. Three months — a
+ * full training block plus the next one — is long enough to feel what the
+ * adaptive engine does for you; two weeks only ever showed the onboarding.
+ * Expressed in whole months so the paywall can promise "3 months free".
  */
-export const PRO_TRIAL_DAYS = 14;
+export const PRO_TRIAL_MONTHS = 3;
+export const PRO_TRIAL_DAYS = PRO_TRIAL_MONTHS * 30;
 
 export function isPro(state: FitnessState): boolean {
   const pro = state.profile.pro;

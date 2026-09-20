@@ -7,6 +7,7 @@ import {
   UserRound,
   Sparkles,
   Footprints,
+  UtensilsCrossed,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -25,6 +26,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/goals', label: 'Goals', icon: Target, short: 'Goals' },
   { href: '/dashboard/progress', label: 'Progress', icon: LineChart, short: 'Progress' },
   { href: '/dashboard/body', label: 'Body', icon: Ruler, short: 'Body' },
+  { href: '/dashboard/fuel', label: 'Fuel', icon: UtensilsCrossed, short: 'Fuel' },
   { href: '/dashboard/profile', label: 'Profile', icon: UserRound, short: 'Profile' },
 ];
 
@@ -40,5 +42,6 @@ export const RAIL_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard/plan', label: 'Training', icon: CalendarCheck },
   { href: '/dashboard/goals', label: 'Goals', icon: Target },
   { href: '/dashboard/body', label: 'Body', icon: Ruler },
+  { href: '/dashboard/fuel', label: 'Fuel', icon: UtensilsCrossed },
   { href: '/dashboard/profile', label: 'Profile', icon: UserRound },
 ];

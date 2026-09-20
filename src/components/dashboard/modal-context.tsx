@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useMemo, useState } from 'react
 import type {
   BodyLog,
   FitnessGoal,
+  MealLog,
+  MealSlot,
   ScheduledWorkout,
   WorkoutExercise,
   WorkoutSession,
@@ -17,13 +19,22 @@ import type {
  * sessions, goals and scheduled slots could never be corrected.
  */
 export type ModalKind =
-  'workout' | 'schedule' | 'goal' | 'body' | 'category' | 'session-detail' | 'pro' | 'runner';
+  | 'workout'
+  | 'schedule'
+  | 'goal'
+  | 'body'
+  | 'meal'
+  | 'category'
+  | 'session-detail'
+  | 'pro'
+  | 'runner';
 
 export type ModalPayload =
   | { kind: 'workout'; session?: WorkoutSession; prefill?: Partial<WorkoutSession> }
   | { kind: 'schedule'; schedule?: ScheduledWorkout }
   | { kind: 'goal'; goal?: FitnessGoal }
   | { kind: 'body'; log?: BodyLog }
+  | { kind: 'meal'; meal?: MealLog; date?: string; slot?: MealSlot }
   | { kind: 'category' }
   | { kind: 'session-detail'; session: WorkoutSession }
   | { kind: 'pro' }

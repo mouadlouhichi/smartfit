@@ -159,7 +159,21 @@ test('the PWA manifest matches the app canvas', () => {
 test('the service worker precaches the manifest under a versioned cache', () => {
   const sw = fs.readFileSync('public/sw.js', 'utf8');
   assert.match(sw, /const VERSION = 'smartfit-v(\d+)'/, 'sw must carry a numbered version');
-  assert.ok(sw.includes("'/manifest.webmanifest'"), 'manifest should stay precached');
+  assert.match(sw, /'\/manifest\.webmanifest(\?v=\d+)?'/, 'manifest should stay precached');
+  // Precache entries carry the same ?v= the document requests, or the worker
+  // stores bytes nobody ever asks for while the real URLs miss the cache.
+  const manifest = fs.readFileSync('public/manifest.webmanifest', 'utf8');
+  const rev = manifest.match(/[?&]v=(\d+)/)?.[1];
+  assert.ok(rev, 'manifest must carry a ?v= revision');
+  for (const entry of sw.matchAll(
+    /'(\/(?:manifest\.webmanifest|icon\.svg|icons\/icon-192\.png))(\?v=\d+)?'/g,
+  )) {
+    assert.equal(
+      entry[2],
+      `?v=${rev}`,
+      `sw precache entry ${entry[1]} must match the manifest ?v= revision`,
+    );
+  }
 });
 
 /**
@@ -222,4 +236,26 @@ test('the brand mark is the lucide flame and the generator matches', async () =>
     brand.includes('stroke="currentColor"') && brand.includes('FLAME_PATH'),
     'the React mark must stroke the glyph, not fill it',
   );
+});
+
+/**
+ * The Pro paywall shipped a `relative` in DialogContent's className once;
+ * tailwind-merge folds it into the same group as the base `fixed`, so the
+ * sheet lost its fixed positioning, rendered in-flow below the fold and the
+ * user saw only the overlay blur. Position classes must never be passed to
+ * DialogContent — `fixed` is already the positioning context its pseudo
+ * elements need.
+ */
+test('no dialog overrides the sheet positioning through className', () => {
+  const files = [...tsxFiles('src/components'), ...tsxFiles('src/app')];
+  for (const file of files) {
+    const src = fs.readFileSync(file, 'utf8');
+    for (const m of src.matchAll(/<DialogContent[^>]*className="([^"]*)"/g)) {
+      assert.ok(
+        !/\b(relative|absolute|static|sticky)\b/.test(m[1]),
+        `${file}: DialogContent className must not carry a position class ` +
+          `(tailwind-merge would replace the base \`fixed\`): ${m[1]}`,
+      );
+    }
+  }
 });

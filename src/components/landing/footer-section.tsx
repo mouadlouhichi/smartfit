@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { AnimatedWave } from './animated-wave';
+import { Logo } from '@/components/brand';
 
 const FOOTER_LINKS = [
   {
@@ -62,19 +63,7 @@ export function FooterSection() {
           <div className="grid grid-cols-2 gap-12 md:grid-cols-7 lg:gap-8">
             <div className="col-span-2">
               <Link href="/" className="mb-6 inline-flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[color:var(--foreground)] text-[color:var(--background)]">
-                  <svg
-                    viewBox="0 0 24 24"
-                    width="18"
-                    height="18"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                  >
-                    <path d="M6.5 8.5v7M17.5 8.5v7M3.5 10.5v3M20.5 10.5v3M6.5 12h11" />
-                  </svg>
-                </span>
+                <Logo size={32} />
                 <span className="font-display text-2xl">SmartFit</span>
               </Link>
               <p className="max-w-xs leading-relaxed text-[color:var(--muted-foreground)]">

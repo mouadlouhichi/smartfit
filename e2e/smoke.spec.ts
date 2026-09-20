@@ -135,7 +135,10 @@ test('the full local-mode journey: log, edit, delete, plan, goals, body, units, 
   await expect(page.getByText('Body weight trend')).toBeVisible();
 
   // ── Progress honours the distance unit and never invents targets ──────
+  // The profile is tabbed now — units live under Settings, data under Data.
   await page.goto('/dashboard/profile');
+  const profileTabs = page.getByRole('tablist', { name: 'Profile sections' });
+  await profileTabs.getByRole('tab', { name: 'Settings' }).click();
   await page.getByLabel('Distance unit').click();
   await page.getByRole('option', { name: 'Miles (mi)' }).click();
   await page.getByLabel('Weight unit').click();
@@ -152,6 +155,7 @@ test('the full local-mode journey: log, edit, delete, plan, goals, body, units, 
 
   // ── Export a complete JSON backup ──────────────────────────────────────
   await page.goto('/dashboard/profile');
+  await profileTabs.getByRole('tab', { name: 'Data' }).click();
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Export JSON' }).click(),

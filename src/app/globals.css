@@ -815,8 +815,11 @@ input[type='number'] {
 .pro-surface {
   /* No `position` here on purpose: this file is unlayered CSS, so any
      position would beat Tailwind's `fixed`/`absolute` utilities and the Pro
-     paywall would render in-flow at the page bottom. Call sites that need a
-     positioning context for the sheen/grain add `relative` themselves. */
+     paywall would render in-flow at the page bottom. Call sites must NOT add
+     `relative` through DialogContent's className either — tailwind-merge
+     folds it into the same group as the base `fixed` and silently unfixes the
+     sheet (overlay blur only, content below the fold). `fixed`/`absolute`
+     already provide the positioning context the sheen/grain need. */
   overflow: hidden;
   color: #edebe6;
   background:

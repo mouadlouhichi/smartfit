@@ -60,12 +60,20 @@ const glyph = (ink, stroke = FLAME_STROKE) =>
 const optical = (px) =>
   px <= 16 ? { stroke: 3, ratio: 0.74 } : px <= 32 ? { stroke: 2.75, ratio: 0.66 } : {};
 
+/**
+ * How much of the charge cell the flame takes on the app/PWA icons. Raised
+ * from 0.6 to 0.72 — at home-screen size the old glyph read as a small logo
+ * lost in a volt square; 72% fills the tile like the neighbouring apps do
+ * while still leaving an even volt margin around the stroke.
+ */
+const ICON_RATIO = 0.72;
+
 /** Charge cell + flame at (x,y) with the glyph scaled to `box` px. */
 const markGroup = (
   x,
   y,
   box,
-  { plate = VOLT, ink = INK, rx = 0.3, stroke = FLAME_STROKE, ratio = 0.6 } = {},
+  { plate = VOLT, ink = INK, rx = 0.3, stroke = FLAME_STROKE, ratio = ICON_RATIO } = {},
 ) => {
   const s = (box * ratio) / 24;
   const t = (box - 24 * s) / 2;
@@ -86,7 +94,7 @@ const tileGroup = (box, { plate = VOLT, ink = INK } = {}) => {
   );
 };
 
-const markSvg = (stroke = FLAME_STROKE, ratio = 0.6) =>
+const markSvg = (stroke = FLAME_STROKE, ratio = ICON_RATIO) =>
   `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">${markGroup(0, 0, 512, { stroke, ratio })}</svg>`;
 const MARK_SVG = markSvg();
 const MARK_MASKABLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">${tileGroup(512)}</svg>`;
@@ -230,7 +238,7 @@ async function faviconIco() {
     const o = optical(s);
     pngs.push({
       size: s,
-      data: await sharp(svgBuffer(markSvg(o.stroke ?? FLAME_STROKE, o.ratio ?? 0.6)))
+      data: await sharp(svgBuffer(markSvg(o.stroke ?? FLAME_STROKE, o.ratio ?? ICON_RATIO)))
         .resize(s, s)
         .png()
         .toBuffer(),
@@ -282,7 +290,7 @@ const roundedTile = await render(TILE_SVG, 512);
 await put(disc512, 'public/icons/icon-512.png');
 await put(await render(MARK_SVG, 192), 'public/icons/icon-192.png');
 await put(
-  await render(markSvg(optical(32).stroke ?? FLAME_STROKE, optical(32).ratio ?? 0.6), 32),
+  await render(markSvg(optical(32).stroke ?? FLAME_STROKE, optical(32).ratio ?? ICON_RATIO), 32),
   'public/icons/icon-32.png',
 );
 await put(await render(MARK_SVG, 64), 'apps/mobile/assets/favicon.png');

@@ -175,8 +175,11 @@ const DialogFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
     className={cn(
       // Mobile: a sticky action bar pinned above the sheet's bottom edge so
       // primary actions stay visible while the form scrolls (§3 sheets).
-      // sm and up: the classic right-aligned static row.
-      'border-border bg-card/95 sticky bottom-0 -mx-4 -mb-4 flex flex-col-reverse gap-2 border-t px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm',
+      // The negative bottom offset cancels the sheet's own padding-bottom:
+      // sticky insets resolve against the content box, so `bottom-0` left a
+      // padding-sized slit under the bar where scrolled content peeked
+      // through. sm and up: the classic right-aligned static row.
+      'border-border bg-card/95 sticky bottom-[calc(max(1rem,env(safe-area-inset-bottom))*-1)] -mx-4 -mb-4 flex flex-col-reverse gap-2 border-t px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm',
       'sm:static sm:mx-0 sm:mb-0 sm:flex-row sm:justify-end sm:border-t-0 sm:bg-transparent sm:p-0',
       className,
     )}

@@ -5,6 +5,31 @@ import { useAnimatedCanvas } from './use-animated-canvas';
 
 const chars = '░▒▓█▀▄▌▐│─┤├┴┬╭╮╰╯';
 
+/** #rrggbb → rgba() with alpha so canvas can use the theme's hex tokens. */
+function withAlpha(hex: string, alpha: number): string {
+  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex.trim());
+  if (!m) return `rgba(138, 210, 0, ${alpha})`;
+  const [r, g, b] = m.slice(1).map((h) => parseInt(h, 16));
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// Resolving CSS custom properties every frame is wasteful; refresh on a
+// 2-second cadence so a theme flip still repaints almost immediately.
+let colorCache: { el: HTMLCanvasElement; fore: string; volt: string; ts: number } | null = null;
+
+function themeColors(canvas: HTMLCanvasElement) {
+  const now = Date.now();
+  if (colorCache && colorCache.el === canvas && now - colorCache.ts < 2000) return colorCache;
+  const cs = getComputedStyle(canvas);
+  colorCache = {
+    el: canvas,
+    fore: cs.getPropertyValue('--foreground').trim() || '#131311',
+    volt: cs.getPropertyValue('--color-volt').trim() || '#8ad200',
+    ts: now,
+  };
+  return colorCache;
+}
+
 function drawSphere(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, time: number) {
   const rect = canvas.getBoundingClientRect();
   if (rect.width === 0 || rect.height === 0) return;
@@ -52,9 +77,14 @@ function drawSphere(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, ti
   // Sort by z for depth
   points.sort((a, b) => a.z - b.z);
 
+  // Theme-aware ink: the front hemisphere burns in volt, the back fades into
+  // the theme's foreground. (It used to be pure black — invisible on the dark
+  // landing, which is why the sphere "disappeared".)
+  const { fore, volt } = themeColors(canvas);
   points.forEach((point) => {
-    const alpha = 0.2 + (point.z + 1) * 0.4;
-    ctx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+    const depth = (point.z + 1) / 2; // 0 = far side, 1 = near side
+    ctx.fillStyle =
+      point.z >= 0 ? withAlpha(volt, 0.35 + depth * 0.6) : withAlpha(fore, 0.1 + depth * 0.22);
     ctx.fillText(point.char, point.x, point.y);
   });
 }

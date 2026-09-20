@@ -235,6 +235,55 @@ export function buildSeedState(): FitnessState {
     });
   }
 
+  // A short meal history so the fuel screen has something real to show in
+  // demo mode: today partially logged, yesterday complete.
+  const hour = 3_600_000;
+  const meals: FitnessState['meals'] = [
+    {
+      id: sid(),
+      date: daysAgo(0),
+      name: 'Oats with banana',
+      slot: 'breakfast',
+      calories: 380,
+      protein: 12,
+      carbs: 64,
+      fat: 7,
+      createdAt: Date.now() - 6 * hour,
+    },
+    {
+      id: sid(),
+      date: daysAgo(0),
+      name: 'Chicken & rice',
+      slot: 'lunch',
+      calories: 620,
+      protein: 45,
+      carbs: 70,
+      fat: 14,
+      createdAt: Date.now() - 3 * hour,
+    },
+    {
+      id: sid(),
+      date: daysAgo(1),
+      name: 'Greek yogurt',
+      slot: 'snack',
+      calories: 150,
+      protein: 15,
+      carbs: 9,
+      fat: 5,
+      createdAt: Date.now() - 26 * hour,
+    },
+    {
+      id: sid(),
+      date: daysAgo(1),
+      name: 'Grilled salmon',
+      slot: 'dinner',
+      calories: 540,
+      protein: 40,
+      fat: 28,
+      createdAt: Date.now() - 24 * hour,
+    },
+  ];
+
   return {
     profile: {
       name: 'Alex',
@@ -244,11 +293,13 @@ export function buildSeedState(): FitnessState {
       weekStartsOn: DEFAULT_WEEK_START,
       planId: PLANS[0].id,
       onboardingDone: true,
+      activityLevel: 'moderate',
     },
     categories: DEFAULT_CATEGORIES.map((c) => ({ ...c })),
     sessions,
     schedule,
     goals,
     bodyLogs,
+    meals,
   };
 }

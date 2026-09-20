@@ -173,6 +173,27 @@ export interface BodyLog {
   createdAt: number;
 }
 
+/** Which eating occasion a meal log belongs to (day is on `date`). */
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+/**
+ * One logged meal / food entry. Macros are optional beyond calories and
+ * protein — the two numbers people actually track — so logging stays fast.
+ */
+export interface MealLog {
+  id: string;
+  date: string; // ISO yyyy-mm-dd
+  name: string;
+  slot: MealSlot;
+  calories: number; // kcal
+  protein: number; // grams
+  carbs?: number; // grams
+  fat?: number; // grams
+  /** Set when the entry came from the on-device meal scan. */
+  scanned?: boolean;
+  createdAt: number;
+}
+
 export type PlanId = 'ppl' | 'upper-lower' | 'full-body' | 'cardio-focus';
 
 /** Subscription stamp for the paid tier (see `pro.ts`); receipt checks happen in the billing adapter. */
@@ -218,6 +239,17 @@ export interface UserProfile {
   gymId?: string;
   /** SmartFit Pro subscription stamp (absent = free tier). */
   pro?: ProStatus;
+  /**
+   * Nutrition goal — overrides the value derived from `targetWeightKg`
+   * versus the latest weigh-in. Drives the calorie/protein targets.
+   */
+  nutritionGoal?: 'cut' | 'maintain' | 'gain';
+  /** Daily activity multiplier used for the energy targets (Fuel screen). */
+  activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active';
+  /** Optional refinements for Mifflin-St Jeor; omitted = weight-based estimate. */
+  sex?: 'female' | 'male';
+  ageYears?: number;
+  heightCm?: number;
 }
 
 export interface FitnessState {
@@ -227,4 +259,5 @@ export interface FitnessState {
   schedule: ScheduledWorkout[];
   goals: FitnessGoal[];
   bodyLogs: BodyLog[];
+  meals: MealLog[];
 }

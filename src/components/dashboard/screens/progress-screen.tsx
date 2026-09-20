@@ -35,6 +35,10 @@ import {
   weeklySeries,
   targetsForDays,
   currentStreak,
+  dayRings,
+  streakStats,
+  startOfWeek,
+  formatDateLabel,
   hasProAccess,
   consistencyHeatmap,
   heatmapActiveDays,
@@ -43,6 +47,8 @@ import {
   muscleVolume,
 } from '@smartfit/core';
 import { useModals } from '../modal-context';
+import { MiniRings } from '../mini-rings';
+import type { DayRings } from '@smartfit/core';
 import {
   formatCalories,
   formatDistance,
@@ -53,6 +59,12 @@ import {
 } from '@smartfit/core';
 
 type Range = 'daily' | 'weekly' | 'monthly' | 'quarter' | 'year';
+
+/** Weekday rows of the ring month-grid, and their one-letter labels. */
+const RING_ROWS = [0, 1, 2, 3, 4, 5, 6];
+const DAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+
+type RingCell = { date: string; rings: DayRings } | null;
 const RANGES: { key: Range; label: string; short: string; days: number; pro?: boolean }[] = [
   { key: 'daily', label: 'Daily', short: 'Day', days: 1 },
   { key: 'weekly', label: 'Weekly', short: 'Week', days: 7 },
@@ -104,6 +116,26 @@ export function ProgressScreen() {
   }, [state, days]);
 
   const streak = useMemo(() => currentStreak(state), [state]);
+  const ringStats = useMemo(() => streakStats(state), [state]);
+
+  // Eight week-aligned columns of daily rings (Apple Watch month view),
+  // oldest week first; future dates render as empty placeholders.
+  const weekStartsOn = state.profile.weekStartsOn ?? 1;
+  const ringWeeks = useMemo(() => {
+    const start = startOfWeek(new Date(), weekStartsOn);
+    const cols: RingCell[][] = [];
+    for (let w = 7; w >= 0; w--) {
+      const col: RingCell[] = [];
+      for (let d = 0; d < 7; d++) {
+        const dt = new Date(start);
+        dt.setDate(dt.getDate() - w * 7 + d);
+        const iso = toISODate(dt);
+        col.push(dt > new Date() ? null : { date: iso, rings: dayRings(state, iso) });
+      }
+      cols.push(col);
+    }
+    return cols;
+  }, [state, weekStartsOn]);
 
   // New engine surfaces: consistency grid, records, achievements, muscle mix.
   const heatmap = useMemo(() => consistencyHeatmap(state, 18), [state]);
@@ -365,6 +397,78 @@ export function ProgressScreen() {
               </li>
             ))}
           </ul>
+        )}
+      </Card>
+
+      {/* ── Activity rings — the Apple Watch month view ───────────────── */}
+      <Card className="p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <p className="font-display flex items-center gap-2 text-sm font-bold">
+            <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
+              <Flame className="h-4 w-4" aria-hidden />
+            </span>
+            Activity rings
+          </p>
+          <div className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-bold tabular-nums">
+            <span>
+              Streak <b className="text-foreground">{ringStats.current}</b>
+            </span>
+            <span>
+              Best <b className="text-foreground">{ringStats.best}</b>
+            </span>
+            <span>
+              Ring run <b className="text-foreground">{ringStats.ringStreak}</b>
+            </span>
+            <span>
+              Weeks on target{' '}
+              <b className="text-foreground">
+                {ringStats.weeksOnTarget}/{ringStats.weeksChecked}
+              </b>
+            </span>
+          </div>
+        </div>
+        {state.sessions.length === 0 ? (
+          <EmptyState
+            icon={Flame}
+            title="No rings closed yet"
+            body="Log a session and today's three rings start filling — move, exercise and showed-up."
+          />
+        ) : (
+          <div className="no-scrollbar min-w-0 overflow-x-auto">
+            <div
+              className="grid min-w-[360px] gap-1.5"
+              role="img"
+              aria-label="Ring history, last 8 weeks"
+            >
+              {RING_ROWS.map((rowIdx) => (
+                <div key={rowIdx} className="flex items-center gap-1.5">
+                  <span className="text-muted-foreground w-4 text-center text-[10px] font-bold">
+                    {DAY_INITIALS[(weekStartsOn + rowIdx) % 7]}
+                  </span>
+                  {ringWeeks.map((col, ci) => {
+                    const cell = col[rowIdx];
+                    return (
+                      <span key={ci} className="flex min-w-0 flex-1 justify-center">
+                        {cell ? (
+                          <span
+                            title={`${formatDateLabel(cell.date)}${cell.rings.closed ? ' — all rings closed' : ''}`}
+                          >
+                            <MiniRings rings={cell.rings} size={26} />
+                          </span>
+                        ) : (
+                          <span className="h-[26px] w-[26px]" aria-hidden />
+                        )}
+                      </span>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <p className="text-muted-foreground mt-2 text-[11px]">
+              Eight weeks of daily rings — move (kcal), exercise (minutes) and showed-up. Glowing
+              dials closed all three.
+            </p>
+          </div>
         )}
       </Card>
 

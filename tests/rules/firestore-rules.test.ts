@@ -193,6 +193,7 @@ test('the root profile document must carry a bounded profile map', async () => {
   await assertFails(setDoc(ref, { profile: { weightUnit: 'stone' } }));
   await assertFails(setDoc(ref, { profile: { weeklyRestDays: 7 } }));
   await assertFails(setDoc(ref, { profile: { planId: 'anything' } }));
+  // 16 junk keys — validProfile caps the map at 15 fields.
   await assertFails(
     setDoc(ref, {
       profile: {
@@ -207,9 +208,67 @@ test('the root profile document must carry a bounded profile map', async () => {
         i: 9,
         j: 10,
         k: 11,
+        l: 12,
+        m: 13,
+        n: 14,
+        o: 15,
+        p: 16,
       },
     }),
   );
+});
+
+test('the profile accepts bounded fuel fields and rejects junk values', async () => {
+  const alice = env.authenticatedContext(ALICE).firestore();
+  const ref = doc(alice, 'users', ALICE);
+  await assertSucceeds(
+    setDoc(ref, {
+      profile: {
+        nutritionGoal: 'cut',
+        activityLevel: 'moderate',
+        sex: 'female',
+        ageYears: 31,
+        heightCm: 168,
+      },
+    }),
+  );
+  await assertFails(setDoc(ref, { profile: { nutritionGoal: 'bulk' } }));
+  await assertFails(setDoc(ref, { profile: { activityLevel: 'extreme' } }));
+  await assertFails(setDoc(ref, { profile: { sex: 'other' } }));
+  await assertFails(setDoc(ref, { profile: { ageYears: 200 } }));
+  await assertFails(setDoc(ref, { profile: { heightCm: 20 } }));
+});
+
+test('meal logs reject junk payloads', async () => {
+  const alice = env.authenticatedContext(ALICE).firestore();
+  const valid = {
+    date: '2026-09-01',
+    name: 'Chicken & rice',
+    slot: 'lunch',
+    calories: 620,
+    protein: 45,
+    carbs: 70,
+    fat: 14,
+    scanned: true,
+    createdAt: Date.now(),
+  };
+  await assertSucceeds(setDoc(doc(alice, 'users', ALICE, 'meals', 'meal-1'), valid));
+  await assertFails(
+    setDoc(doc(alice, 'users', ALICE, 'meals', 'meal-2'), { ...valid, slot: 'brunch' }),
+  );
+  await assertFails(
+    setDoc(doc(alice, 'users', ALICE, 'meals', 'meal-3'), { ...valid, calories: -5 }),
+  );
+  await assertFails(
+    setDoc(doc(alice, 'users', ALICE, 'meals', 'meal-4'), { ...valid, name: 'x'.repeat(200) }),
+  );
+  await assertFails(
+    setDoc(doc(alice, 'users', ALICE, 'meals', 'meal-5'), { ...valid, fat: 'lots' }),
+  );
+  // Foreign users can neither read nor write someone else's meal log.
+  const bob = env.authenticatedContext(BOB).firestore();
+  await assertFails(getDoc(doc(bob, 'users', ALICE, 'meals', 'meal-1')));
+  await assertFails(setDoc(doc(bob, 'users', ALICE, 'meals', 'meal-9'), valid));
 });
 
 test('clients cannot mint paid Pro entitlements', async () => {

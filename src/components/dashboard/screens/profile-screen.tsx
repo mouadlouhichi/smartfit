@@ -31,8 +31,11 @@ import {
   Tag,
   Target,
   Trash2,
+  Trophy,
   Upload,
   UserRound,
+  UtensilsCrossed,
+  type LucideIcon,
 } from 'lucide-react';
 import {
   GYM_PROGRAMS,
@@ -40,6 +43,7 @@ import {
   PLANS,
   WEEKDAYS,
   categoryIdForSuggestion,
+  computeAchievements,
   currentStreak,
   formatDateLabel,
   formatWeight,
@@ -61,6 +65,7 @@ import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
 import { ProBadge } from '../pro-badge';
+import { AchievementWall } from '../achievement-wall';
 import { ExerciseImage } from '@/components/exercise-image';
 import { ExerciseDetailDialog } from '@/components/exercise-detail';
 
@@ -71,6 +76,19 @@ function initials(name: string): string {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
+
+/**
+ * Facebook-style profile sections: the identity hero stays put while the
+ * body below switches between Overview, Settings, Badges and Data.
+ */
+type ProfileTab = 'overview' | 'settings' | 'badges' | 'data';
+
+const PROFILE_TABS: { key: ProfileTab; label: string; icon: LucideIcon }[] = [
+  { key: 'overview', label: 'Overview', icon: UserRound },
+  { key: 'settings', label: 'Settings', icon: SlidersHorizontal },
+  { key: 'badges', label: 'Badges', icon: Trophy },
+  { key: 'data', label: 'Data', icon: Database },
+];
 
 export function ProfileScreen() {
   const {
@@ -99,6 +117,8 @@ export function ProfileScreen() {
   const [password, setPassword] = useState('');
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [verifySent, setVerifySent] = useState(false);
+  const [tab, setTab] = useState<ProfileTab>('overview');
+  const achievements = useMemo(() => computeAchievements(state), [state]);
   // Target weight is stored canonically in kg but edited in the athlete's
   // display unit; the raw field keeps the typed value until it commits.
   const [targetInput, setTargetInput] = useState(() =>
@@ -454,14 +474,22 @@ export function ProfileScreen() {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+        <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
           {[
             { label: 'Workouts', value: counts.workouts, icon: Database },
             { label: 'Scheduled', value: counts.scheduled, icon: CalendarCheck2 },
             { label: 'Goals', value: counts.goals, icon: Target },
             { label: 'Measurements', value: counts.measurements, icon: SlidersHorizontal },
-          ].map((t) => (
-            <div key={t.label} className="hero-tile min-w-0 rounded-2xl px-4 py-3">
+            { label: 'Meals', value: state.meals.length, icon: UtensilsCrossed },
+          ].map((t, i) => (
+            <div
+              key={t.label}
+              className={cn(
+                'hero-tile min-w-0 rounded-2xl px-4 py-3',
+                // Odd tile count: the last one spans the empty half on phones.
+                i === 4 && 'col-span-2 sm:col-span-1',
+              )}
+            >
               <div className="flex items-center justify-between gap-2">
                 <p className="hero-muted min-w-0 text-[11px] font-semibold tracking-wide uppercase">
                   {t.label}
@@ -474,7 +502,32 @@ export function ProfileScreen() {
         </div>
       </section>
 
-      {cloud && user && (
+      {/* Section tabs — the hero stays, the body switches. */}
+      <div
+        className="bg-secondary border-border no-scrollbar mx-auto flex w-full max-w-xl min-w-0 overflow-x-auto rounded-full border p-1 shadow-sm sm:w-fit"
+        role="tablist"
+        aria-label="Profile sections"
+      >
+        {PROFILE_TABS.map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setTab(t.key)}
+            className={cn(
+              'flex flex-1 shrink-0 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors',
+              tab === t.key
+                ? 'bg-volt text-ink shadow-sm'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <t.icon className="h-4 w-4" aria-hidden />
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'overview' && cloud && user && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2.5 text-base">
@@ -627,251 +680,257 @@ export function ProfileScreen() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2.5 text-base">
-            <span className="bg-chart-2/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
-              <UserRound className="h-4.5 w-4.5" aria-hidden />
-            </span>
-            You
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <Field id="p-name" label="Name">
-            <Input
-              value={state.profile.name}
-              onChange={(e) => updateProfile({ name: e.target.value })}
-              placeholder="Your name"
-              maxLength={80}
-            />
-          </Field>
-          <Field id="p-plan" label="Default strategy">
-            <Select
-              value={state.profile.planId}
-              onChange={(e) =>
-                updateProfile({ planId: e.target.value as typeof state.profile.planId })
-              }
+      {tab === 'settings' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2.5 text-base">
+              <span className="bg-chart-2/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
+                <UserRound className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              You
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <Field id="p-name" label="Name">
+              <Input
+                value={state.profile.name}
+                onChange={(e) => updateProfile({ name: e.target.value })}
+                placeholder="Your name"
+                maxLength={80}
+              />
+            </Field>
+            <Field id="p-plan" label="Default strategy">
+              <Select
+                value={state.profile.planId}
+                onChange={(e) =>
+                  updateProfile({ planId: e.target.value as typeof state.profile.planId })
+                }
+              >
+                {PLANS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field
+              id="p-gym"
+              label="Gym program"
+              hint="Picking your gym unlocks a suggested week built from its real class timetable."
             >
-              {PLANS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field
-            id="p-gym"
-            label="Gym program"
-            hint="Picking your gym unlocks a suggested week built from its real class timetable."
-          >
-            <Select
-              value={state.profile.gymId ?? ''}
-              onChange={(e) => updateProfile({ gymId: e.target.value || undefined })}
+              <Select
+                value={state.profile.gymId ?? ''}
+                onChange={(e) => updateProfile({ gymId: e.target.value || undefined })}
+              >
+                <option value="">No gym — build my week manually</option>
+                {GYM_PROGRAMS.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field
+              id="p-weight"
+              label="Weight unit"
+              hint={`Body measurements follow this: ${
+                state.profile.weightUnit === 'kg' ? 'cm' : 'inches'
+              }.`}
             >
-              <option value="">No gym — build my week manually</option>
-              {GYM_PROGRAMS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field
-            id="p-weight"
-            label="Weight unit"
-            hint={`Body measurements follow this: ${
-              state.profile.weightUnit === 'kg' ? 'cm' : 'inches'
-            }.`}
-          >
-            <Select
-              value={state.profile.weightUnit}
-              onChange={(e) => changeWeightUnit(e.target.value as 'kg' | 'lb')}
+              <Select
+                value={state.profile.weightUnit}
+                onChange={(e) => changeWeightUnit(e.target.value as 'kg' | 'lb')}
+              >
+                <option value="kg">Kilograms (kg)</option>
+                <option value="lb">Pounds (lb)</option>
+              </Select>
+            </Field>
+            <Field
+              id="p-target-weight"
+              label={`Target weight (${state.profile.weightUnit})`}
+              hint="Drives the suggested program mix on the Plan tab — closer target means more maintenance, further means more burn. Clear to disable."
+              error={targetError}
             >
-              <option value="kg">Kilograms (kg)</option>
-              <option value="lb">Pounds (lb)</option>
-            </Select>
-          </Field>
-          <Field
-            id="p-target-weight"
-            label={`Target weight (${state.profile.weightUnit})`}
-            hint="Drives the suggested program mix on the Plan tab — closer target means more maintenance, further means more burn. Clear to disable."
-            error={targetError}
-          >
-            <Input
-              type="number"
-              min={20}
-              max={400}
-              step="0.5"
-              inputMode="decimal"
-              value={targetInput}
-              onChange={(e) => {
-                setTargetInput(e.target.value);
-                setTargetError(null);
-              }}
-              onBlur={commitTargetWeight}
-              placeholder="e.g. 78"
-            />
-          </Field>
-          <Field id="p-distance" label="Distance unit">
-            <Select
-              value={state.profile.distanceUnit}
-              onChange={(e) => updateProfile({ distanceUnit: e.target.value as 'km' | 'mi' })}
+              <Input
+                type="number"
+                min={20}
+                max={400}
+                step="0.5"
+                inputMode="decimal"
+                value={targetInput}
+                onChange={(e) => {
+                  setTargetInput(e.target.value);
+                  setTargetError(null);
+                }}
+                onBlur={commitTargetWeight}
+                placeholder="e.g. 78"
+              />
+            </Field>
+            <Field id="p-distance" label="Distance unit">
+              <Select
+                value={state.profile.distanceUnit}
+                onChange={(e) => updateProfile({ distanceUnit: e.target.value as 'km' | 'mi' })}
+              >
+                <option value="km">Kilometres (km)</option>
+                <option value="mi">Miles (mi)</option>
+              </Select>
+            </Field>
+            <Field
+              id="p-weekstart"
+              label="Week starts on"
+              hint='Used for weekly goals, streaks and every "this week" total.'
             >
-              <option value="km">Kilometres (km)</option>
-              <option value="mi">Miles (mi)</option>
-            </Select>
-          </Field>
-          <Field
-            id="p-weekstart"
-            label="Week starts on"
-            hint='Used for weekly goals, streaks and every "this week" total.'
-          >
-            <Select
-              value={state.profile.weekStartsOn ?? 1}
-              onChange={(e) => updateProfile({ weekStartsOn: Number(e.target.value) as WeekStart })}
+              <Select
+                value={state.profile.weekStartsOn ?? 1}
+                onChange={(e) =>
+                  updateProfile({ weekStartsOn: Number(e.target.value) as WeekStart })
+                }
+              >
+                <option value={1}>Monday</option>
+                <option value={0}>Sunday</option>
+              </Select>
+            </Field>
+            <Field
+              id="p-rest"
+              label="Rest days / week"
+              hint="Your streak survives this many untrained days a week."
             >
-              <option value={1}>Monday</option>
-              <option value={0}>Sunday</option>
-            </Select>
-          </Field>
-          <Field
-            id="p-rest"
-            label="Rest days / week"
-            hint="Your streak survives this many untrained days a week."
-          >
-            <Select
-              value={state.profile.weeklyRestDays}
-              onChange={(e) => updateProfile({ weeklyRestDays: Number(e.target.value) })}
-            >
-              {[0, 1, 2, 3, 4].map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </Select>
-          </Field>
+              <Select
+                value={state.profile.weeklyRestDays}
+                onChange={(e) => updateProfile({ weeklyRestDays: Number(e.target.value) })}
+              >
+                {[0, 1, 2, 3, 4].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </Select>
+            </Field>
 
-          {/* Live suggested-week preview — appears the moment a gym is picked */}
-          {gymProgram && (
-            <div className="bg-secondary/40 grid gap-3 rounded-2xl p-4 sm:col-span-2">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
-                    <Sparkles className="h-4.5 w-4.5" aria-hidden />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold">Suggested week · {gymProgram.name}</p>
-                    <p className="text-muted-foreground text-xs">{suggestSummary(state)}</p>
+            {/* Live suggested-week preview — appears the moment a gym is picked */}
+            {gymProgram && (
+              <div className="bg-secondary/40 grid gap-3 rounded-2xl p-4 sm:col-span-2">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
+                      <Sparkles className="h-4.5 w-4.5" aria-hidden />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold">Suggested week · {gymProgram.name}</p>
+                      <p className="text-muted-foreground text-xs">{suggestSummary(state)}</p>
+                    </div>
                   </div>
+                  <Button
+                    size="sm"
+                    onClick={importSuggestion}
+                    disabled={suggested.length === 0}
+                    data-testid="import-suggested-week"
+                  >
+                    <Download className="h-4 w-4" /> Import into my plan
+                  </Button>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={importSuggestion}
-                  disabled={suggested.length === 0}
-                  data-testid="import-suggested-week"
-                >
-                  <Download className="h-4 w-4" /> Import into my plan
-                </Button>
-              </div>
-              {suggested.length === 0 ? (
+                {suggested.length === 0 ? (
+                  <p className="text-muted-foreground text-xs">
+                    No matching classes on your training days — try another default strategy.
+                  </p>
+                ) : (
+                  <ul className="grid gap-1 sm:grid-cols-2">
+                    {suggested.map((s) => {
+                      const meta = INTENSITY_META[s.gymClass.intensity];
+                      return (
+                        <li
+                          key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
+                          className="bg-card flex items-center gap-2 rounded-lg px-2.5 py-1.5"
+                        >
+                          <span className="w-8 text-xs font-bold tabular-nums">
+                            {WEEKDAYS[s.weekday]}
+                          </span>
+                          <span className="text-muted-foreground text-xs font-semibold tabular-nums">
+                            {s.time}
+                          </span>
+                          <span className="flex-1 truncate text-xs font-semibold">
+                            {s.gymClass.name}
+                          </span>
+                          <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: meta.color }}
+                            title={`${meta.label} intensity`}
+                            aria-hidden
+                          />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
                 <p className="text-muted-foreground text-xs">
-                  No matching classes on your training days — try another default strategy.
+                  {gymProgram.hours} · Fine-tune any session on the Plan tab after importing.
                 </p>
-              ) : (
-                <ul className="grid gap-1 sm:grid-cols-2">
-                  {suggested.map((s) => {
-                    const meta = INTENSITY_META[s.gymClass.intensity];
-                    return (
-                      <li
-                        key={`${s.weekday}-${s.time}-${s.gymClass.id}`}
-                        className="bg-card flex items-center gap-2 rounded-lg px-2.5 py-1.5"
-                      >
-                        <span className="w-8 text-xs font-bold tabular-nums">
-                          {WEEKDAYS[s.weekday]}
-                        </span>
-                        <span className="text-muted-foreground text-xs font-semibold tabular-nums">
-                          {s.time}
-                        </span>
-                        <span className="flex-1 truncate text-xs font-semibold">
-                          {s.gymClass.name}
-                        </span>
-                        <span
-                          className="h-1.5 w-1.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: meta.color }}
-                          title={`${meta.label} intensity`}
-                          aria-hidden
-                        />
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-              <p className="text-muted-foreground text-xs">
-                {gymProgram.hours} · Fine-tune any session on the Plan tab after importing.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Suggested exercises — driven by body-composition signals */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2.5 text-base">
-            <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
-              <Sparkles className="h-4.5 w-4.5" aria-hidden />
-            </span>
-            Suggested for you
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-2.5">
-          <p className="text-muted-foreground text-xs">
-            Picked from your weight, body fat, waist and recent training — log your InBody
-            measurements on the Body tab and these adapt.
-          </p>
-          {suggestions.map((s) => (
-            <div
-              key={s.entry.name}
-              className="border-border flex items-center gap-3 rounded-2xl border p-3"
-            >
-              <ExerciseImage
-                name={s.entry.name}
-                className="h-14 w-14 shrink-0 rounded-xl"
-                animated={false}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <p className="truncate text-sm font-bold">{s.entry.name}</p>
-                  <Badge variant="secondary">
-                    {s.entry.equipment === 'pool'
-                      ? 'Pool'
-                      : s.entry.equipment === 'running'
-                        ? 'Running'
-                        : 'Gym'}
-                  </Badge>
-                  <Badge variant="outline">
-                    {exerciseMeasure(s.entry) === 'distance' ? 'metres' : 'kg × reps'}
-                  </Badge>
+      {tab === 'overview' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2.5 text-base">
+              <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
+                <Sparkles className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              Suggested for you
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2.5">
+            <p className="text-muted-foreground text-xs">
+              Picked from your weight, body fat, waist and recent training — log your InBody
+              measurements on the Body tab and these adapt.
+            </p>
+            {suggestions.map((s) => (
+              <div
+                key={s.entry.name}
+                className="border-border flex items-center gap-3 rounded-2xl border p-3"
+              >
+                <ExerciseImage
+                  name={s.entry.name}
+                  className="h-14 w-14 shrink-0 rounded-xl"
+                  animated={false}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <p className="truncate text-sm font-bold">{s.entry.name}</p>
+                    <Badge variant="secondary">
+                      {s.entry.equipment === 'pool'
+                        ? 'Pool'
+                        : s.entry.equipment === 'running'
+                          ? 'Running'
+                          : 'Gym'}
+                    </Badge>
+                    <Badge variant="outline">
+                      {exerciseMeasure(s.entry) === 'distance' ? 'metres' : 'kg × reps'}
+                    </Badge>
+                  </div>
+                  <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{s.reason}</p>
                 </div>
-                <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{s.reason}</p>
+                <div className="flex shrink-0 flex-col gap-1.5">
+                  <Button size="sm" onClick={() => startSuggestion(s.entry)}>
+                    <Play className="h-3.5 w-3.5" /> Start
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSuggestDetail(s.entry.name)}
+                    aria-label={`How to do ${s.entry.name}`}
+                  >
+                    <Info className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-              <div className="flex shrink-0 flex-col gap-1.5">
-                <Button size="sm" onClick={() => startSuggestion(s.entry)}>
-                  <Play className="h-3.5 w-3.5" /> Start
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setSuggestDetail(s.entry.name)}
-                  aria-label={`How to do ${s.entry.name}`}
-                >
-                  <Info className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <ExerciseDetailDialog
         name={suggestDetail}
@@ -880,125 +939,146 @@ export function ProfileScreen() {
       />
 
       {/* SmartFit Pro — membership status & paywall entry */}
-      <Card className="overflow-hidden">
-        <div className="relative flex flex-wrap items-center gap-4 p-5">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static export */}
-          <img
-            src="/images/pro-hero.jpg"
-            alt=""
-            aria-hidden
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/60" />
-          <span className="bg-primary relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-lg shadow-black/30">
-            <Crown className="h-5 w-5 text-white" aria-hidden />
-          </span>
-          <div className="relative min-w-0 flex-1">
-            <p className="text-sm font-bold text-white">SmartFit Pro</p>
-            <p className="truncate text-xs text-white/75">
-              {pro
-                ? `Mvolt since ${formatDateLabel(toISODate(new Date(state.profile.pro?.since ?? Date.now())))} — thanks for supporting SmartFit.`
-                : 'Unlimited AI coach, quarter & year analytics, Pro badge.'}
-            </p>
-          </div>
-          <Button
-            size="sm"
-            variant={pro ? 'outline' : 'default'}
-            className={cn('relative', !pro && 'shadow-primary/40 shadow-lg')}
-            onClick={() => openWith({ kind: 'pro' })}
-          >
-            {pro ? 'Manage' : 'Upgrade'}
-          </Button>
-        </div>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2.5 text-base">
-            <span className="bg-chart-4/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
-              <Database className="h-4.5 w-4.5" aria-hidden />
-            </span>
-            Your data
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{counts.workouts} workouts</Badge>
-            <Badge variant="secondary">{counts.scheduled} scheduled</Badge>
-            <Badge variant="secondary">{counts.goals} goals</Badge>
-            <Badge variant="secondary">{counts.measurements} measurements</Badge>
-            <Badge variant="secondary">{state.categories.length} activity types</Badge>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => openModal('category')}>
-              <Tag className="h-4 w-4" /> Activity types
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy === 'export'}
-              onClick={() => void exportData()}
-            >
-              {busy === 'export' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              Export JSON
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy === 'export'}
-              onClick={() => void exportCsv()}
-              title="Download sessions as CSV"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              Export CSV
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy === 'import'}
-              onClick={() => fileRef.current?.click()}
-            >
-              {busy === 'import' ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Upload className="h-4 w-4" />
-              )}
-              Import backup
-            </Button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="application/json,.json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) void importData(f);
-              }}
+      {tab === 'overview' && (
+        <Card className="overflow-hidden">
+          <div className="relative flex flex-wrap items-center gap-4 p-5">
+            {/* eslint-disable-next-line @next/next/no-img-element -- static export */}
+            <img
+              src="/images/pro-hero.jpg"
+              alt=""
+              aria-hidden
+              className="absolute inset-0 h-full w-full object-cover"
             />
+            <div className="absolute inset-0 bg-black/60" />
+            <span className="bg-primary relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-lg shadow-black/30">
+              <Crown className="h-5 w-5 text-white" aria-hidden />
+            </span>
+            <div className="relative min-w-0 flex-1">
+              <p className="text-sm font-bold text-white">SmartFit Pro</p>
+              <p className="truncate text-xs text-white/75">
+                {pro
+                  ? `Mvolt since ${formatDateLabel(toISODate(new Date(state.profile.pro?.since ?? Date.now())))} — thanks for supporting SmartFit.`
+                  : 'Unlimited AI coach, quarter & year analytics, Pro badge.'}
+              </p>
+            </div>
             <Button
-              variant="outline"
               size="sm"
-              className="text-destructive hover:text-destructive"
-              onClick={() => void eraseEverything()}
+              variant={pro ? 'outline' : 'default'}
+              className={cn('relative', !pro && 'shadow-primary/40 shadow-lg')}
+              onClick={() => openWith({ kind: 'pro' })}
             >
-              <Trash2 className="h-4 w-4" /> Erase everything
+              {pro ? 'Manage' : 'Upgrade'}
             </Button>
           </div>
-          {importError && <p className="text-destructive text-xs">{importError}</p>}
-          {dataError && <p className="text-destructive text-xs">{dataError}</p>}
-          <p className="text-muted-foreground text-xs">
-            {cloud
-              ? 'Your training is stored in Cloud Firestore under your account and synced across devices, with an offline copy on this device. Export a JSON backup any time.'
-              : mode === 'cloud'
-                ? 'You are signed out — data is stored in this browser’s local bucket until you sign in, then it syncs to the cloud. Anyone using this browser profile can see that local data.'
-                : 'SmartFit stores everything locally in this browser (localStorage). Anyone using this browser profile can see it; nothing is sent to a server. Export regularly for a backup.'}
-          </p>
-        </CardContent>
-      </Card>
+        </Card>
+      )}
+
+      {/* Badges — the achievement wall, one tap from the profile. */}
+      {tab === 'badges' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2.5 text-base">
+              <span className="bg-chart-3/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
+                <Trophy className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              Badges
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AchievementWall achievements={achievements} />
+          </CardContent>
+        </Card>
+      )}
+
+      {tab === 'data' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2.5 text-base">
+              <span className="bg-chart-4/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
+                <Database className="h-4.5 w-4.5" aria-hidden />
+              </span>
+              Your data
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">{counts.workouts} workouts</Badge>
+              <Badge variant="secondary">{counts.scheduled} scheduled</Badge>
+              <Badge variant="secondary">{counts.goals} goals</Badge>
+              <Badge variant="secondary">{counts.measurements} measurements</Badge>
+              <Badge variant="secondary">{state.categories.length} activity types</Badge>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={() => openModal('category')}>
+                <Tag className="h-4 w-4" /> Activity types
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy === 'export'}
+                onClick={() => void exportData()}
+              >
+                {busy === 'export' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                Export JSON
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy === 'export'}
+                onClick={() => void exportCsv()}
+                title="Download sessions as CSV"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={busy === 'import'}
+                onClick={() => fileRef.current?.click()}
+              >
+                {busy === 'import' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                Import backup
+              </Button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void importData(f);
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={() => void eraseEverything()}
+              >
+                <Trash2 className="h-4 w-4" /> Erase everything
+              </Button>
+            </div>
+            {importError && <p className="text-destructive text-xs">{importError}</p>}
+            {dataError && <p className="text-destructive text-xs">{dataError}</p>}
+            <p className="text-muted-foreground text-xs">
+              {cloud
+                ? 'Your training is stored in Cloud Firestore under your account and synced across devices, with an offline copy on this device. Export a JSON backup any time.'
+                : mode === 'cloud'
+                  ? 'You are signed out — data is stored in this browser’s local bucket until you sign in, then it syncs to the cloud. Anyone using this browser profile can see that local data.'
+                  : 'SmartFit stores everything locally in this browser (localStorage). Anyone using this browser profile can see it; nothing is sent to a server. Export regularly for a backup.'}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
