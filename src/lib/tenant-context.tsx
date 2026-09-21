@@ -94,7 +94,7 @@ import {
 import { extendedExpiry } from '@/lib/billing/gym-contract';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/firebase/auth-context';
-import { DEMO_PERSONA_UIDS, demoCheckins, type DemoPersonaKey } from './tenant-demo';
+import { demoCheckinsFor, demoPersonaUid, type DemoPersonaKey } from './tenant-demo';
 import { computeMetrics, type TenantMetrics } from './tenant-metrics';
 
 /**
@@ -225,7 +225,9 @@ export function TenantProvider({
   const [invoices, setInvoices] = useState<InvoiceDoc[]>(initial?.invoices ?? []);
   const [membershipState, setMembership] = useState<GymMembership | null>(null);
   const [myBookingsState, setMyBookings] = useState<GymBooking[]>([]);
-  const [checkins, setCheckins] = useState<GymCheckin[]>(mode === 'demo' ? demoCheckins() : []);
+  const [checkins, setCheckins] = useState<GymCheckin[]>(
+    mode === 'demo' ? demoCheckinsFor(slug) : [],
+  );
   const [gymShare, setGymShare] = useState<GymShare | null>(null);
   const [platformAdmin, setPlatformAdmin] = useState(false);
   const [demoRole, setDemoRole] = useState<DemoRole | null>(mode === 'demo' ? 'gym-owner' : null);
@@ -271,7 +273,7 @@ export function TenantProvider({
   invoicesRef.current = invoices;
 
   /** The demo persona's uid, or null (platform-admin is nobody here). */
-  const demoUid = mode === 'demo' && demoRole ? DEMO_PERSONA_UIDS[demoRole] : null;
+  const demoUid = mode === 'demo' && demoRole ? demoPersonaUid(slug, demoRole) : null;
   const viewerUid = mode === 'demo' ? demoUid : (user?.uid ?? null);
 
   /**
@@ -579,7 +581,9 @@ export function TenantProvider({
             });
           },
           () => {
-            const uid = demoUid ?? DEMO_PERSONA_UIDS.prospect;
+            // `prospect` is bound to a uid in every fixture; the fallback
+            // literal only satisfies the type (a roster row needs a uid).
+            const uid = demoUid ?? demoPersonaUid(slug, 'prospect') ?? 'demo-prospect';
             setRoster((rows) =>
               rows.some((r) => r.uid === uid)
                 ? rows

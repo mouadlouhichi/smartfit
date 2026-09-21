@@ -18,6 +18,7 @@ import { useMemo } from 'react';
 import { Clock, MapPin, Phone, Mail, AtSign, CalendarDays, Users, Dumbbell } from 'lucide-react';
 import { isGymLive, type GymTenant } from '@smartfit/core';
 import { useTenant, formatMoney } from '@/lib/tenant-context';
+import { demoPersonaLabel } from '@/lib/tenant-demo';
 import type { GymClass, GymSlot, MembershipPlanDoc } from '@/lib/firebase/tenant-repo';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { MyGym, SlotBookingActions } from '@/components/tenant/my-gym';
@@ -212,11 +213,13 @@ export function Storefront() {
                 value={demoRole ?? 'gym-owner'}
                 onChange={(e) => setDemoRole(e.target.value as NonNullable<typeof demoRole>)}
               >
-                <option value="gym-owner">Youssef — gym owner</option>
-                <option value="gym-staff">Salma — gym staff</option>
-                <option value="member">Amina — member</option>
-                <option value="prospect">A visitor — not a member</option>
-                <option value="platform-admin">Platform admin</option>
+                {(['gym-owner', 'gym-staff', 'member', 'prospect', 'platform-admin'] as const).map(
+                  (role) => (
+                    <option key={role} value={role}>
+                      {demoPersonaLabel(slug, role)}
+                    </option>
+                  ),
+                )}
               </select>
             </label>
           </div>

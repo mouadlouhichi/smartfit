@@ -38,6 +38,34 @@ test('the directory lists live gyms and links through to them', async ({ page })
   await expect(page).toHaveURL(/\/g\/zone-fight$/);
 });
 
+// ── The second demo tenant (local mode) ──────────────────────────────────────
+
+test('a second gym is reachable at its own slug with its own identity', async ({ page }) => {
+  await page.goto('/g/iron-house');
+  await expect(page).toHaveTitle('Iron House Strength · SmartFit');
+  await expect(page.getByRole('heading', { name: 'Iron House Strength' })).toBeVisible();
+  // Its own branding, not Zone Fight's.
+  const desc = page.locator('meta[name="description"]');
+  await expect(desc).toHaveAttribute('content', 'Strength first. Everything follows.');
+  // Its own timetable — Zone Fight's classes must not leak in.
+  await expect(page.getByText('Powerlifting Basics').first()).toBeVisible();
+  await expect(page.getByText('Boxing Fundamentals')).toHaveCount(0);
+  // The persona switcher is per-gym: the owner here is Nadia, not Youssef.
+  await expect(personaSwitch(page)).toContainText('Nadia — gym owner');
+});
+
+test('the directory lists both demo gyms', async ({ page }) => {
+  await page.goto('/gyms');
+  await expect(page.getByRole('link', { name: /Visit Zone Fight/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Visit Iron House Strength/ })).toBeVisible();
+});
+
+test('an unknown slug is not any gym — the storefront says so', async ({ page }) => {
+  await page.goto('/g/does-not-exist');
+  await expect(page.getByText('This gym is not open yet')).toBeVisible();
+  await expect(page.getByText('Zone Fight')).toHaveCount(0);
+});
+
 test('a class detail page shows the template and its upcoming times', async ({ page }) => {
   await page.goto(`${GYM}/class/cls-boxing`);
   await expect(page).toHaveTitle('Boxing Fundamentals at Zone Fight · SmartFit');

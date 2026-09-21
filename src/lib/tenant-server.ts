@@ -29,15 +29,7 @@ import type {
   InvoiceDoc,
   MembershipPlanDoc,
 } from '@/lib/firebase/tenant-repo';
-import {
-  demoBookings,
-  demoClasses,
-  demoGym,
-  demoInvoices,
-  demoPlans,
-  demoRoster,
-  demoSlots,
-} from './tenant-demo';
+import { demoFixture, demoGyms } from './tenant-demo';
 
 export interface ServerTenantData {
   mode: 'cloud' | 'demo';
@@ -65,15 +57,19 @@ function adminConfigured(): boolean {
 const WINDOW_MS = 14 * 86_400_000;
 
 function demoData(slug: string): ServerTenantData {
+  // Only real fixture slugs render — an unknown slug is "no gym", the same
+  // answer a missing Firestore doc gives, never one gym aliased under
+  // another's URL.
+  const fixture = demoFixture(slug);
   return {
     mode: 'demo',
-    gym: demoGym(slug),
-    roster: demoRoster(),
-    classes: demoClasses(),
-    slots: demoSlots(),
-    bookings: demoBookings(),
-    plans: demoPlans(),
-    invoices: demoInvoices(),
+    gym: fixture?.gym ?? null,
+    roster: fixture?.roster ?? [],
+    classes: fixture?.classes ?? [],
+    slots: fixture?.slots ?? [],
+    bookings: fixture?.bookings ?? [],
+    plans: fixture?.plans ?? [],
+    invoices: fixture?.invoices ?? [],
   };
 }
 
@@ -148,7 +144,7 @@ export const loadTenantCached = cache(loadTenantServer);
  * that dead-ends is worse than no link.
  */
 export async function listGymsServer(): Promise<GymTenant[]> {
-  if (!adminConfigured()) return [demoGym()];
+  if (!adminConfigured()) return demoGyms();
 
   const { db } = getAdminServices();
   const snap = await db

@@ -74,6 +74,19 @@ Legend: ✅ done & verified · 🟡 done, not verifiable here · ⬜ not started
       upcoming occurrences with live seat counts, book/cancel actions, its own
       metadata. Unknown class id → 404 (verified). Links from every timetable
       row
+- [x] **Two demo tenants** (pivot DoD: "two gyms reachable via `/g/{slug}`") —
+      the demo layer is a per-slug fixture registry, not one gym aliased under
+      every URL. `zone-fight` (the original, unchanged) and `iron-house` —
+      Iron House Strength, a Starter-plan gym nine days into its trial,
+      mirrored in `admin-demo.ts` (Nadia Cherkaoui, Rabat, 3 classes, no
+      invoices yet). Personas bind per gym: the switcher says "Nadia — gym
+      owner" on Iron House, "Youssef — gym owner" on Zone Fight — a role at
+      one gym says nothing about another. Unknown slugs render the not-live
+      state (gym null), the same answer a missing Firestore doc gives.
+      Verified in the prod build: `/g/iron-house` SSRs "Iron House Strength"
+      and "Powerlifting Basics" with zero Zone Fight leakage; `/gyms` lists
+      both; `/g/does-not-exist` says "not open yet"; `/g/zone-fight`
+      unchanged.
 
 ## Phase 5 — Gym owner console ✅ (writes wired; cloud path unexercised)
 
@@ -295,10 +308,11 @@ a server route. Full model: `docs/billing.md` §4.
 | admin routes (dev server) | ✅ all 7 + gym detail | `/admin`, `/admin/gyms`, `/admin/gyms/{slug}`, `/admin/applications`, `/admin/plans`, `/admin/revenue`, `/admin/audit` render with demo content (KPI band, registry, queue, tiers, payments, audit) |
 | admin API guards (prod build) | ✅ | `GET /api/admin/data` → 401 without a token; `POST /api/admin/gym` (kill switch) → 401; `POST /api/apply` validates live: junk email → 400 with combined errors, reserved slug `admin` → applicant-facing message |
 | billing guards + SSR (prod build) | ✅ | `POST /api/billing/gym/purchase` → 401 without a token (a browser cannot mint even a draft); storefront SSRs "Choose this plan" for the member persona; admin registry SSRs the derived "overdue" contract badge |
+| second tenant (prod build) | ✅ | `/g/iron-house` SSRs its own name/branding/timetable (0 "Zone Fight" hits); `/gyms` lists both gyms; `/g/does-not-exist` renders the not-live state, not an aliased gym |
 | tenant SSR content (curl) | ✅ | storefront HTML contains the member section (membership card, My classes, Visits, Progress sharing), per-tenant `<title>`/`og:` metadata, class-detail occurrences with seat counts, directory entries |
 | `pnpm start` (production) | ✅ all 200 | 16 routes swept from the built output — dashboard, storefront, class detail, console, `/gyms`, all 7 admin pages, `/login`, purchase API. Gotcha found: building while `next dev` is running corrupts `.next` (prod then 500s half the routes) — **stop the dev server before `pnpm build`** |
 | `pnpm build` | ✅ **exit 0** | `/g/*`, `/gyms`, `/admin/**` + all admin/apply API routes correctly dynamic; middleware 32.9 kB |
-| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (13 tests: tenant journey, admin console, membership purchase — online request → desk collection → membership applied); `cdn.playwright.dev` unreachable — CI runs it |
+| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (16 tests: tenant journey, admin console, membership purchase, second tenant at `/g/iron-house` + directory listing + unknown-slug not-found); `cdn.playwright.dev` unreachable — CI runs it |
 
 ## Known environment constraints
 
