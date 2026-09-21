@@ -30,7 +30,15 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 export default async function GymsPage() {
-  const gyms = await listGymsServer();
+  // The directory degrades to its empty state rather than 500-ing when the
+  // platform data layer fails: members can still reach a gym via its own
+  // link, and the operator sees the real error in the server log.
+  let gyms: Awaited<ReturnType<typeof listGymsServer>> = [];
+  try {
+    gyms = await listGymsServer();
+  } catch (err) {
+    console.error('[gyms-directory] could not list gyms:', err);
+  }
 
   return (
     <div className="mx-auto min-h-dvh max-w-4xl space-y-8 p-4 py-10 sm:p-6">

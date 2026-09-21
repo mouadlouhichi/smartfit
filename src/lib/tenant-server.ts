@@ -242,6 +242,11 @@ function toGymProgram(gym: GymTenant, classes: GymClass[], slots: GymSlot[]): Gy
  * only source — the static in-repo gym list is gone, so a gym that closes
  * disappears from the picker by construction.
  *
+ * **Never throws.** Onboarding is the signup path: a member must be able to
+ * set up their account while the platform's data layer is failing. A failed
+ * load degrades to an empty list (the picker's honest empty state) and logs
+ * the real error for the operator; one broken gym never hides the others.
+ *
  * Scale note: cloud mode reads each live gym's classes + a 14-day slot window
  * (two collection queries per gym, capped by the directory's limit of 100).
  * Fine for tens of gyms; batch into one aggregate read if that grows.
@@ -254,24 +259,35 @@ export async function loadGymPrograms(): Promise<GymProgram[]> {
     });
   }
 
-  const { db } = getAdminServices();
-  const now = Date.now();
-  const gyms = await listGymsServer();
-  return Promise.all(
-    gyms.map(async (gym) => {
-      const [classesSnap, slotsSnap] = await Promise.all([
-        db.collection(`gyms/${gym.slug}/classes`).get(),
-        db
-          .collection(`gyms/${gym.slug}/slots`)
-          .where('startsAt', '>=', now)
-          .where('startsAt', '<', now + 14 * 86_400_000)
-          .get(),
-      ]);
-      return toGymProgram(
-        gym,
-        classesSnap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as GymClass),
-        slotsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as GymSlot),
-      );
-    }),
-  );
+  try {
+    const { db } = getAdminServices();
+    const now = Date.now();
+    const gyms = await listGymsServer();
+    const programs = await Promise.all(
+      gyms.map(async (gym) => {
+        try {
+          const [classesSnap, slotsSnap] = await Promise.all([
+            db.collection(`gyms/${gym.slug}/classes`).get(),
+            db
+              .collection(`gyms/${gym.slug}/slots`)
+              .where('startsAt', '>=', now)
+              .where('startsAt', '<', now + 14 * 86_400_000)
+              .get(),
+          ]);
+          return toGymProgram(
+            gym,
+            classesSnap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as GymClass),
+            slotsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as GymSlot),
+          );
+        } catch (err) {
+          console.error(`[gym-programs] gyms/${gym.slug}:`, err);
+          return null;
+        }
+      }),
+    );
+    return programs.filter((p): p is GymProgram => p !== null);
+  } catch (err) {
+    console.error('[gym-programs] could not load the gym list:', err);
+    return [];
+  }
 }

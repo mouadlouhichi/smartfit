@@ -11,6 +11,13 @@ import { loadGymPrograms } from '@/lib/tenant-server';
  * member's own selection lives in their profile, client-side.
  */
 export async function GET() {
-  const gyms = await loadGymPrograms();
-  return NextResponse.json({ gyms });
+  try {
+    const gyms = await loadGymPrograms();
+    return NextResponse.json({ gyms });
+  } catch (err) {
+    // loadGymPrograms degrades to [] on its own; this is belt-and-braces so
+    // a surprise never surfaces as an unhandled 500 HTML page.
+    console.error('[api/gym-programs]:', err);
+    return NextResponse.json({ error: 'gyms-unavailable' }, { status: 503 });
+  }
 }
