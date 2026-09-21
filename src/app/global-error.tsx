@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { reportError } from '@/lib/report';
+import { isStaleDeploymentError, reloadForNewDeployment } from '@/lib/stale-deployment';
 
 /**
  * Last-resort boundary: catches failures in the root layout itself, so it must
@@ -14,11 +15,17 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  // A tab left open across a redeploy asks for chunk hashes the current
+  // deployment no longer has — the fix is a fresh load, not a re-render, so
+  // this heals itself once per session instead of showing a dead screen.
+  const staleDeployment = isStaleDeploymentError(error);
+
   useEffect(() => {
     console.error('[smartfit] fatal error:', error);
     // No-op unless the deployment configures a self-hosted collector.
     reportError('global', error, { digest: error.digest });
-  }, [error]);
+    if (staleDeployment) reloadForNewDeployment();
+  }, [error, staleDeployment]);
 
   return (
     <html lang="en">
@@ -39,14 +46,20 @@ export default function GlobalError({
         }}
       >
         <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>
-          SmartFit couldn&apos;t start
+          {staleDeployment ? 'Updating SmartFit' : "SmartFit couldn't start"}
         </h1>
         <p style={{ maxWidth: '28rem', color: '#6f6f6f', margin: 0 }}>
-          An unexpected error stopped the app from loading. Your training data is stored on this
-          device and has not been touched.
+          {staleDeployment ? (
+            <>A new version was just released — reloading this page to pick it up…</>
+          ) : (
+            <>
+              An unexpected error stopped the app from loading. Your training data is stored on this
+              device and has not been touched.
+            </>
+          )}
         </p>
         <button
-          onClick={reset}
+          onClick={() => (staleDeployment ? window.location.reload() : reset())}
           style={{
             border: 0,
             borderRadius: 999,
