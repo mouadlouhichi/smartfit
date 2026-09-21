@@ -117,6 +117,7 @@ export interface TenantInitialData {
 }
 
 export interface TenantMutations {
+  updateMemberNotes: (uid: string, notes: string) => Promise<boolean>;
   setMemberStatus: (uid: string, status: MemberStatus) => Promise<boolean>;
   checkInMember: (uid: string) => Promise<boolean>;
   upsertClass: (cls: GymClass) => Promise<boolean>;
@@ -499,6 +500,20 @@ export function TenantProvider({
 
   const mutations = useMemo<TenantMutations>(
     () => ({
+      updateMemberNotes: (uid, notes) =>
+        run(
+          `notes:${uid}`,
+          async () => {
+            if (notes.length > 2000) throw new Error('Notes must be at most 2000 characters.');
+            await saveMembership(slug, uid, { notes: notes.trim() });
+          },
+          () => {
+            if (notes.length > 2000) throw new Error('Notes must be at most 2000 characters.');
+            setRoster((rows) =>
+              rows.map((r) => (r.uid === uid ? { ...r, notes: notes.trim() } : r)),
+            );
+          },
+        ),
       setMemberStatus: (uid, status) =>
         run(
           `member:${uid}`,

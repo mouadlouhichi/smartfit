@@ -25,7 +25,7 @@ test('the public storefront is server-rendered with the gym’s own identity', a
   await page.goto(GYM);
   await expect(page).toHaveTitle('Zone Fight · SmartFit');
   await expect(page.getByRole('heading', { name: 'Zone Fight' })).toBeVisible();
-  await expect(page.getByText('Timetable')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Timetable', exact: true })).toBeVisible();
   // Metadata comes from the gym's branding, not a generic template.
   const desc = page.locator('meta[name="description"]');
   await expect(desc).toHaveAttribute('content', 'Combat, conditioning and community.');
@@ -117,11 +117,13 @@ test('a visitor joins the gym in one tap', async ({ page }) => {
   await page.goto(GYM);
   await personaSwitch(page).selectOption('prospect');
 
-  await expect(page.getByRole('heading', { name: 'Train at Zone Fight' })).toBeVisible();
+  await expect(page.getByText('Train at Zone Fight', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Join Zone Fight' }).click();
   await expect(page.getByText('Welcome — your trial membership is active')).toBeVisible();
   // The membership card replaces the join CTA, on a trial status.
-  await expect(page.locator('section#membership').getByText('trial')).toBeVisible();
+  await expect(
+    page.locator('section#membership').getByText('trial', { exact: true }),
+  ).toBeVisible();
 });
 
 test('staff check in, take attendance, promote the waitlist — and see no Revenue', async ({
@@ -162,18 +164,19 @@ test('an owner sees the business tabs the staff cannot', async ({ page }) => {
 
 test('the admin console renders the KPI band and registry from demo data', async ({ page }) => {
   await page.goto('/admin');
-  await expect(page.getByRole('heading', { name: 'SmartFit platform' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Platform overview' })).toBeVisible();
   await expect(page.getByText('Live gyms')).toBeVisible();
   await expect(page.getByText('Platform MRR')).toBeVisible();
-  await expect(page.getByText('Applications waiting')).toBeVisible();
+  await expect(page.getByText('Needs attention')).toBeVisible();
 
-  await page.getByRole('link', { name: 'Gyms' }).click();
+  await page.getByRole('link', { name: 'Gyms', exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/gyms$/);
   await expect(page.getByText('Zone Fight')).toBeVisible();
   await expect(page.getByText('Atlas Fit Club')).toBeVisible();
 
   // Status filter narrows the registry.
-  await page.getByLabel('Status').selectOption('suspended');
+  await page.getByRole('button', { name: 'Filter gym status' }).click();
+  await page.getByRole('option', { name: 'suspended', exact: true }).click();
   await expect(page.getByText('Pilates & Co')).toBeVisible();
   await expect(page.getByText('Zone Fight')).toHaveCount(0);
 });
@@ -182,22 +185,23 @@ test('an admin suspends a gym and the registry reflects it', async ({ page }) =>
   await page.goto('/admin/gyms/iron-house');
   await expect(page.getByRole('heading', { name: 'Iron House Strength' })).toBeVisible();
   await page.getByRole('button', { name: 'Suspend' }).click();
-  await expect(page.getByText('Iron House Strength suspended')).toBeVisible();
+  await page.getByRole('button', { name: 'Confirm suspend' }).click();
+  await expect(page.getByText('Gym lifecycle updated')).toBeVisible();
 
   // The audit trail records the action — append-only, visible here.
-  await page.goto('/admin/audit');
-  await expect(page.getByText('gym:suspend')).toBeVisible();
+  await page.getByRole('link', { name: 'Audit', exact: true }).click();
+  await expect(page.getByText('gym:suspend', { exact: true }).first()).toBeVisible();
 });
 
 test('approving an application provisions a tenant', async ({ page }) => {
   await page.goto('/admin/applications');
-  await expect(page.getByRole('heading', { name: 'Waiting for review' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Application inbox' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Approve & provision' }).first().click();
   await expect(page.getByText(/Provisioned/)).toBeVisible();
 
-  // The new gym appears in the registry, on a trial status.
-  await page.goto('/admin/gyms');
+  // Client navigation retains session-only demo mutations.
+  await page.getByRole('link', { name: 'Gyms', exact: true }).click();
   await expect(page.getByText('Casablanca Boxing Club')).toBeVisible();
 });
 
@@ -221,8 +225,9 @@ test('a member requests a plan online and the desk collects it', async ({ page }
   // The card flips to "waiting" — one open request per member+plan.
   await expect(quarterly.getByText('Waiting for the desk')).toBeVisible();
 
-  // As the owner: the request is in the Revenue tab's collection queue.
-  await page.goto(`${GYM}/console`);
+  // Change persona and navigate within the tenant layout to keep demo state.
+  await personaSwitch(page).selectOption('gym-owner');
+  await page.getByRole('link', { name: 'Manage gym', exact: true }).click();
   await page.getByRole('tab', { name: 'Revenue' }).click();
   const queue = page.getByText('To collect — online plan requests');
   await expect(queue).toBeVisible();
@@ -233,8 +238,10 @@ test('a member requests a plan online and the desk collects it', async ({ page }
 test('a walk-in sale applies the plan to the membership', async ({ page }) => {
   await page.goto(`${GYM}/console`);
   await page.getByRole('tab', { name: 'Revenue' }).click();
-  await page.locator('#pay-member').selectOption({ label: 'Omar Tazi' });
-  await page.locator('#pay-plan').selectOption({ label: /Annual/ });
+  await page.locator('#pay-member').click();
+  await page.getByRole('option', { name: 'Omar Tazi', exact: true }).click();
+  await page.locator('#pay-plan').click();
+  await page.getByRole('option', { name: /Annual/ }).click();
   await page.getByRole('button', { name: 'Record payment' }).click();
   await expect(page.getByText('Recorded 3,800 MAD — membership applied')).toBeVisible();
 });
@@ -250,10 +257,12 @@ test('the onboarding gym picker lists the real tenants', async ({ page }) => {
   // The picker offers the live tenants — the static in-repo registry is gone.
   const gymSelect = page.getByLabel('Your gym — optional');
   await expect(gymSelect).toBeVisible();
-  const options = gymSelect.locator('option');
+  await gymSelect.click();
+  const options = page.getByRole('option');
   await expect(options.filter({ hasText: 'Zone Fight' })).toHaveCount(1);
   await expect(options.filter({ hasText: 'Iron House Strength' })).toHaveCount(1);
 
+  await page.keyboard.press('Escape');
   // And the gyms are real: the note points at the directory, not a builder.
   const browse = page.getByRole('link', { name: /Browse classes & book on their pages/ });
   await expect(browse).toHaveAttribute('href', '/gyms');
@@ -323,6 +332,6 @@ test('an admin sets up a gym from scratch', async ({ page }) => {
   await expect(page.getByText('owner unassigned')).toBeVisible();
 
   // …and the audit trail records the provisioning.
-  await page.goto('/admin/audit');
+  await page.getByRole('link', { name: 'Audit', exact: true }).click();
   await expect(page.getByText('gym:create', { exact: true }).first()).toBeVisible();
 });

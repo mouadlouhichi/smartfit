@@ -2,11 +2,13 @@ import 'server-only';
 import {
   PLATFORM_ADMIN_CLAIM_VALUE,
   PLATFORM_ROLE_CLAIM,
+  type GymHours,
   type GymStatus,
   type TenantPlan,
 } from '@smartfit/core';
 import { getAdminServices, type AdminServices } from '@/lib/firebase/admin';
 import {
+  countOpenDays,
   effectivePlans,
   type AdminApplication,
   type AdminAuditEntry,
@@ -183,6 +185,14 @@ export async function loadAdminRegistry(services: AdminServices): Promise<AdminG
         .filter((i) => i.status === 'paid')
         .reduce((s, i) => s + (i.amountMinor ?? 0), 0);
 
+      const branding = (data.branding as { tagline?: string } | undefined) ?? undefined;
+      const contact =
+        (data.contact as { phone?: string; email?: string; instagram?: string } | undefined) ??
+        undefined;
+      const location =
+        (data.location as { city?: string; address?: string } | undefined) ?? undefined;
+      const hours = (data.hours as GymHours | undefined) ?? undefined;
+
       return {
         slug: doc.id,
         name: (data.name as string) ?? doc.id,
@@ -193,12 +203,18 @@ export async function loadAdminRegistry(services: AdminServices): Promise<AdminG
         createdAt: (data.createdAt as number) ?? 0,
         updatedAt: data.updatedAt as number | undefined,
         accentColor: (data.branding as { accentColor?: string } | undefined)?.accentColor,
-        city: (data.location as { city?: string } | undefined)?.city,
+        city: location?.city,
         memberCount,
         staffCount,
         classCount: classes.size,
         memberRevenueMinor,
         currency: 'MAD',
+        ...(branding?.tagline ? { tagline: branding.tagline } : {}),
+        ...(contact?.phone ? { phone: contact.phone } : {}),
+        ...(contact?.email ? { email: contact.email } : {}),
+        ...(contact?.instagram ? { instagram: contact.instagram } : {}),
+        ...(location?.address ? { address: location.address } : {}),
+        ...(hours ? { hours, openDays: countOpenDays(hours) } : {}),
       } satisfies AdminGymSummary;
     }),
   );

@@ -15,6 +15,7 @@
  * the gym's site is where gym things happen.
  */
 import { useMemo } from 'react';
+import Link from 'next/link';
 import { Clock, MapPin, Phone, Mail, AtSign, CalendarDays, Users, Dumbbell } from 'lucide-react';
 import { isGymLive, type GymTenant } from '@smartfit/core';
 import { useTenant, formatMoney } from '@/lib/tenant-context';
@@ -26,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StorefrontHero } from './storefront-hero';
 import { cn } from '@/lib/utils';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -139,14 +141,13 @@ function PlanCard({ plan, joinHref }: { plan: MembershipPlanDoc; joinHref: strin
 }
 
 export function Storefront() {
-  const { gym, classes, slots, plans, loading, error, slug, mode, demoRole, setDemoRole } =
+  const { gym, classes, slots, plans, loading, error, slug, mode, demoRole, setDemoRole, can } =
     useTenant();
   const { user } = useAuth();
 
   const classById = useMemo(() => new Map(classes.map((c) => [c.id, c])), [classes]);
   const days = useMemo(() => groupByDay(slots.filter((s) => !s.cancelled).slice(0, 21)), [slots]);
   const publishedPlans = useMemo(() => plans.filter((p) => p.published !== false), [plans]);
-  const accent = gym?.branding?.accentColor || '#8ad200';
   /** Where the pricing "Join" buttons lead: sign-in, or straight to the member section. */
   const joinHref = mode === 'cloud' && !user ? `/login?gym=${slug}` : `/g/${slug}#membership`;
 
@@ -173,28 +174,14 @@ export function Storefront() {
   return (
     <div className="mx-auto max-w-5xl space-y-8 p-4 pb-24 sm:p-6">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <header
-        className="relative overflow-hidden rounded-3xl p-8 text-black sm:p-12"
-        style={{ backgroundColor: accent }}
-      >
-        <p className="text-xs font-bold tracking-[0.2em] uppercase opacity-70">{slug}.smartfit</p>
-        <h1 className="mt-2 text-4xl font-black tracking-tight sm:text-5xl">{gym.name}</h1>
-        {gym.branding?.tagline && (
-          <p className="mt-3 max-w-xl text-lg font-medium opacity-80">{gym.branding.tagline}</p>
-        )}
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button asChild variant="secondary" className="bg-black text-white hover:bg-black/85">
-            <a href={`/g/${slug}/#pricing`}>See pricing</a>
-          </Button>
-          <Button
-            asChild
-            variant="outline"
-            className="border-black/30 bg-transparent hover:bg-black/10"
-          >
-            <a href={`/g/${slug}/#timetable`}>View timetable</a>
+      {can('checkin:door') && (
+        <div className="flex justify-end">
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/g/${slug}/console`}>Manage gym</Link>
           </Button>
         </div>
-      </header>
+      )}
+      <StorefrontHero gym={gym} />
 
       {mode === 'demo' && (
         <div className="border-border bg-muted/40 text-muted-foreground rounded-xl border border-dashed p-3 text-xs">
@@ -244,11 +231,17 @@ export function Storefront() {
             </CardContent>
           </Card>
         )}
-        {(gym.contact?.phone || gym.contact?.email) && (
+        {(gym.contact?.phone ||
+          gym.contact?.email ||
+          gym.contact?.instagram ||
+          gym.contact?.whatsapp) && (
           <Card>
             <CardContent className="flex gap-3 p-4">
               <Phone className="mt-0.5 size-4 shrink-0 opacity-60" />
               <div className="text-sm">
+                {gym.contact?.whatsapp && (
+                  <p className="break-all">WhatsApp: {gym.contact.whatsapp}</p>
+                )}
                 {gym.contact?.phone && <p className="font-semibold">{gym.contact.phone}</p>}
                 {gym.contact?.email && (
                   <p className="text-muted-foreground flex items-center gap-1">
@@ -271,14 +264,14 @@ export function Storefront() {
               <div className="text-sm">
                 <p className="font-semibold">Opening hours</p>
                 <ul className="text-muted-foreground space-y-0.5">
-                  {Object.entries(gym.hours)
-                    .filter(([, v]) => v)
-                    .slice(0, 3)
-                    .map(([day, v]) => (
-                      <li key={day}>
-                        {DAY_NAMES[Number(day)]} {v!.open}–{v!.close}
-                      </li>
-                    ))}
+                  {[1, 2, 3, 4, 5, 6, 0].map((day) => (
+                    <li key={day}>
+                      {DAY_NAMES[day]}{' '}
+                      {gym.hours?.[day]
+                        ? `${gym.hours[day]!.open}–${gym.hours[day]!.close}`
+                        : 'Closed'}
+                    </li>
+                  ))}
                 </ul>
               </div>
             </CardContent>

@@ -40,6 +40,20 @@ export function demoAdminGyms(): AdminGymSummary[] {
       classCount: 5,
       memberRevenueMinor: 135_000,
       currency: 'MAD',
+      tagline: 'Boxing & functional strength in the heart of Casa',
+      phone: '+212 522 44 88 21',
+      email: 'hello@zonefight.ma',
+      instagram: '@zonefight',
+      address: '14 Rue Ibn Batouta, Maârif',
+      hours: {
+        1: { open: '07:00', close: '23:00' },
+        2: { open: '07:00', close: '23:00' },
+        3: { open: '07:00', close: '23:00' },
+        4: { open: '07:00', close: '23:00' },
+        5: { open: '07:00', close: '23:00' },
+        6: { open: '09:00', close: '20:00' },
+      },
+      openDays: 6,
     },
     {
       slug: 'iron-house',
@@ -90,6 +104,10 @@ export function demoAdminGyms(): AdminGymSummary[] {
       classCount: 9,
       memberRevenueMinor: 430_000,
       currency: 'MAD',
+      tagline: 'Reformer pilates & mobility studio',
+      phone: '+212 522 26 17 05',
+      instagram: '@pilatesandco',
+      openDays: 0,
     },
   ];
 }
@@ -170,6 +188,14 @@ export function demoPlatformInvoices(): PlatformInvoice[] {
     ['pilates-co', 'multi', 299_000, 'transfer', 38],
     ['atlas-fit', 'growth', 129_000, 'cmi', 61],
     ['zone-fight', 'growth', 129_000, 'cmi', 62],
+    ['atlas-fit', 'growth', 129_000, 'transfer', 92],
+    ['pilates-co', 'multi', 299_000, 'cash', 100],
+    ['zone-fight', 'growth', 129_000, 'transfer', 93],
+    ['atlas-fit', 'growth', 129_000, 'transfer', 122],
+    ['zone-fight', 'growth', 129_000, 'cash', 123],
+    ['atlas-fit', 'growth', 129_000, 'cmi', 152],
+    ['zone-fight', 'growth', 129_000, 'transfer', 153],
+    ['atlas-fit', 'growth', 129_000, 'transfer', 183],
   ];
   return rows.map(([slug, planId, amountMinor, method, daysAgo], i) => ({
     id: `pinv-demo-${i}`,

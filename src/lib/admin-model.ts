@@ -16,6 +16,7 @@ import {
   isGymLive,
   isValidSlug,
   slugify,
+  type GymHours,
   type GymStatus,
   type TenantPlan,
   type TenantPlanLimits,
@@ -45,6 +46,13 @@ export interface AdminGymSummary {
   contract?: 'trial' | 'current' | 'due' | 'overdue';
   /** Last platform payment, when any. */
   lastPaymentAt?: number;
+  tagline?: string;
+  phone?: string;
+  email?: string;
+  instagram?: string;
+  address?: string;
+  hours?: GymHours;
+  openDays?: number;
 }
 
 /** A "list your gym" request. PII-light on purpose: what a stranger would type. */
@@ -365,4 +373,179 @@ export function validateApplication(
       ...(message ? { message } : {}),
     },
   };
+}
+
+// ── Console analytics ────────────────────────────────────────────────────────
+//
+// Pure chart-and-triage arithmetic for the admin console. Everything here is
+// derived client-side from data the console already loads — no new reads, no
+// counters to drift. Companion shapes live in `admin-demo.ts` fixtures so the
+// demo console exercises the same code paths as the cloud one.
+
+export interface MonthBucket {
+  /** `YYYY-MM`, the local calendar month. */
+  key: string;
+  /** Short label for chart axes: `Mar`, `Apr`, … */
+  label: string;
+  /** Sum of the bucketed value. */
+  total: number;
+  /** Bucket items, oldest first — callers decide what to count. */
+  count: number;
+}
+
+const MONTH_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/**
+ * The last `count` calendar months (oldest → newest), each with the sum of
+ * `value` for the items that fall in it. Items before the window are dropped,
+ * not smeared into the first bucket — a payment from last year must not fake a
+ * spike in this January.
+ */
+export function monthBuckets<T>(
+  items: readonly T[],
+  count: number,
+  getAt: (item: T) => number,
+  getValue: (item: T) => number = () => 1,
+  now: number = Date.now(),
+): MonthBucket[] {
+  const buckets: MonthBucket[] = [];
+  const cursor = new Date(now);
+  cursor.setDate(1);
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(cursor.getFullYear(), cursor.getMonth() - i, 1);
+    buckets.push({
+      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
+      label: MONTH_SHORT[d.getMonth()],
+      total: 0,
+      count: 0,
+    });
+  }
+  const index = new Map(buckets.map((b, i) => [b.key, i]));
+  for (const item of items) {
+    const at = getAt(item);
+    if (!Number.isFinite(at) || at > now) continue;
+    const d = new Date(at);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const i = index.get(key);
+    if (i === undefined) continue; // outside the window
+    buckets[i].total += getValue(item);
+    buckets[i].count += 1;
+  }
+  return buckets;
+}
+
+/** Payments split by method — cash vs transfer vs CMI is a real ops question. */
+export function invoicesByMethod(
+  invoices: readonly PlatformInvoice[],
+): { method: string; totalMinor: number; count: number }[] {
+  const map = new Map<string, { totalMinor: number; count: number }>();
+  for (const i of invoices) {
+    const cur = map.get(i.method) ?? { totalMinor: 0, count: 0 };
+    cur.totalMinor += i.amountMinor;
+    cur.count += 1;
+    map.set(i.method, cur);
+  }
+  return [...map.entries()]
+    .map(([method, v]) => ({ method, ...v }))
+    .sort((a, b) => b.totalMinor - a.totalMinor);
+}
+
+/** One actionable row of the "needs attention" panel, worst first. */
+export interface AttentionItem {
+  severity: 'high' | 'medium';
+  reason: string;
+  /** Deep link — always somewhere useful, never a dead end. */
+  href: string;
+}
+
+/**
+ * Triage: what an operator should look at *today*, derived from the registry.
+ *
+ * - overdue contracts — money the platform is owed
+ * - trials older than `trialDays` (default 14) — about to need a decision
+ * - suspended gyms — either restore or close, but decide
+ * - pending applications — the queue the whole funnel lives on
+ */
+export function collectAttention(
+  gyms: readonly AdminGymSummary[],
+  applications: readonly AdminApplication[],
+  now: number = Date.now(),
+  trialDays = 14,
+): AttentionItem[] {
+  const items: AttentionItem[] = [];
+  for (const g of gyms) {
+    if (g.contract === 'overdue') {
+      items.push({
+        severity: 'high',
+        reason: `${g.name} is overdue on its platform plan`,
+        href: `/admin/gyms/${g.slug}`,
+      });
+    }
+    if (g.status === 'trial') {
+      const ageDays = Math.floor((now - g.createdAt) / 86_400_000);
+      if (ageDays >= trialDays) {
+        items.push({
+          severity: 'medium',
+          reason: `${g.name} trial is ${ageDays}d old — convert or park it`,
+          href: `/admin/gyms/${g.slug}`,
+        });
+      }
+    }
+    if (g.status === 'suspended') {
+      items.push({
+        severity: 'medium',
+        reason: `${g.name} is suspended — restore or close`,
+        href: `/admin/gyms/${g.slug}`,
+      });
+    }
+  }
+  const pending = applications.filter((a) => a.status === 'pending').length;
+  if (pending > 0) {
+    items.push({
+      severity: 'high',
+      reason: `${pending} application${pending === 1 ? '' : 's'} waiting for review`,
+      href: '/admin/applications',
+    });
+  }
+  const rank = { high: 0, medium: 1 } as const;
+  return items.sort((a, b) => rank[a.severity] - rank[b.severity]);
+}
+
+/** `"3d ago"`, `"5h ago"`, `"just now"` — the audit feed's clock. */
+export function relativeTime(ms: number, now: number = Date.now()): string {
+  const diff = Math.max(0, now - ms);
+  const minutes = Math.floor(diff / 60_000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `${months}mo ago`;
+  return `${Math.floor(months / 12)}y ago`;
+}
+
+/** Count of weekdays with published hours — the "is the door schedule set" KPI. */
+export function countOpenDays(hours: GymHours | undefined): number {
+  if (!hours) return 0;
+  let n = 0;
+  for (let day = 0; day < 7; day++) {
+    const h = hours[day];
+    if (h && typeof h.open === 'string' && typeof h.close === 'string') n += 1;
+  }
+  return n;
 }

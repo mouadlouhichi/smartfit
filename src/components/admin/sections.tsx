@@ -10,7 +10,7 @@
  * The tone follows the rest of the app: destructive actions confirm inline,
  * refusals explain themselves, and money is always labelled with its unit.
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
@@ -21,19 +21,11 @@ import {
   ExternalLink,
   PlayCircle,
   Plus,
-  Search,
 } from 'lucide-react';
-import {
-  isGymLive,
-  isValidSlug,
-  LIVE_GYM_STATUSES,
-  slugify,
-  type GymStatus,
-  type TenantPlan,
-} from '@smartfit/core';
+import { isGymLive, isValidSlug, slugify, type GymStatus, type TenantPlan } from '@smartfit/core';
 import { formatMoney } from '@/lib/tenant-metrics';
 import { useAdmin } from '@/lib/admin-context';
-import type { AdminApplication, AdminAuditEntry, PlatformInvoice } from '@/lib/admin-model';
+import type { AdminApplication, PlatformInvoice } from '@/lib/admin-model';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +33,9 @@ import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
+import { GymOperations, RevenueAnalytics } from './reports';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 // ── Shared bits ──────────────────────────────────────────────────────────────
@@ -95,7 +90,7 @@ function statusTone(status: GymStatus | string): string {
   }
 }
 
-function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status }: { status: string }) {
   return (
     <Badge className={statusTone(status)} variant="secondary">
       {status.replace('_', ' ')}
@@ -141,128 +136,6 @@ export function SectionError() {
   );
 }
 
-// ── Overview ─────────────────────────────────────────────────────────────────
-
-export function OverviewSection() {
-  const { overview, data } = useAdmin();
-  const pending = data.applications.filter((a) => a.status === 'pending');
-
-  return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric
-          label="Live gyms"
-          value={String(overview.liveGyms)}
-          hint={`${overview.totalGyms} provisioned`}
-        />
-        <Metric
-          label="Platform MRR"
-          value={formatMoney(overview.platformMrrMinor)}
-          tone="good"
-          hint="Active + past-due tenants"
-        />
-        <Metric
-          label="Members across gyms"
-          value={String(overview.membersTotal)}
-          hint={`${overview.staffTotal} staff`}
-        />
-        <Metric
-          label="Collected (30d)"
-          value={formatMoney(overview.collected30dMinor)}
-          hint="Recorded subscription payments"
-        />
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="New this month" value={String(overview.newThisMonth)} />
-        <Metric
-          label="Suspended / closed"
-          value={String(overview.byStatus.suspended + overview.byStatus.closed)}
-          tone={overview.byStatus.suspended > 0 ? 'warn' : 'default'}
-        />
-        <Metric
-          label="Applications waiting"
-          value={String(overview.pendingApplications)}
-          tone={overview.pendingApplications > 0 ? 'warn' : 'default'}
-        />
-        <Metric label="Classes published" value={String(overview.classesTotal)} />
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Tenants by status</CardTitle>
-            <CardDescription>The funnel the platform actually steers by.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            {LIVE_GYM_STATUSES.concat(['pending', 'suspended', 'closed'] as GymStatus[]).map(
-              (status) => (
-                <div key={status} className="flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <StatusBadge status={status} />
-                  </span>
-                  <span className="tabular-nums">{overview.byStatus[status] ?? 0}</span>
-                </div>
-              ),
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">MRR by plan</CardTitle>
-            <CardDescription>
-              Trials are not revenue — they have not bought anything yet.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
-            {Object.entries(overview.mrrByPlan).length === 0 && (
-              <p className="text-muted-foreground text-sm">No paying tenants yet.</p>
-            )}
-            {Object.entries(overview.mrrByPlan).map(([planId, minor]) => (
-              <div key={planId} className="flex items-center justify-between text-sm">
-                <span className="font-medium capitalize">{planId}</span>
-                <span className="tabular-nums">{formatMoney(minor)}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-
-      {pending.length > 0 && (
-        <Card className="border-amber-500/40">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="size-4 text-amber-500" /> Applications waiting for review
-            </CardTitle>
-            <CardDescription>
-              Every day of delay is a gym choosing a paper notebook instead.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {pending.map((a) => (
-              <div
-                key={a.id}
-                className="flex items-center justify-between border-b py-1.5 text-sm last:border-0"
-              >
-                <span className="font-medium">{a.gymName}</span>
-                <span className="text-muted-foreground flex items-center gap-2 text-xs">
-                  {a.city ?? '—'} · {fmtDate(a.createdAt)}
-                </span>
-              </div>
-            ))}
-            <Button asChild size="sm" variant="outline" className="mt-2">
-              <Link href="/admin/applications">
-                Review applications <ArrowRight className="size-3.5" />
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-}
-
 // ── Registry ─────────────────────────────────────────────────────────────────
 
 /**
@@ -275,7 +148,7 @@ export function OverviewSection() {
  * exists — and the address is claimed up front so nobody prints a URL that
  * later turns out to be taken.
  */
-function SetupGymCard() {
+export function SetupGymCard() {
   const admin = useAdmin();
   const { data, mutating } = admin;
   const toast = useToast();
@@ -430,96 +303,6 @@ function SetupGymCard() {
   );
 }
 
-export function RegistrySection() {
-  const { data } = useAdmin();
-  const [query, setQuery] = useState('');
-  const [status, setStatus] = useState('all');
-
-  const rows = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return data.gyms
-      .filter((g) => (status === 'all' ? true : g.status === status))
-      .filter(
-        (g) =>
-          !q ||
-          g.name.toLowerCase().includes(q) ||
-          g.slug.includes(q) ||
-          (g.city ?? '').toLowerCase().includes(q),
-      )
-      .sort((a, b) => b.memberCount - a.memberCount);
-  }, [data.gyms, query, status]);
-
-  return (
-    <div className="space-y-4">
-      <SetupGymCard />
-
-      <div className="flex flex-wrap items-end gap-3">
-        <div className="relative min-w-56 flex-1">
-          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name, address, city…"
-            aria-label="Search gyms"
-            className="pl-9"
-          />
-        </div>
-        <Field id="reg-status" label="Status" className="w-40">
-          <Select id="reg-status" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="all">All</option>
-            {['pending', 'trial', 'active', 'past_due', 'suspended', 'closed'].map((s) => (
-              <option key={s} value={s}>
-                {s.replace('_', ' ')}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      </div>
-
-      <Card>
-        <CardContent className="space-y-1">
-          {rows.length === 0 && <p className="text-muted-foreground p-2 text-sm">No gyms match.</p>}
-          {rows.map((gym) => (
-            <Link
-              key={gym.slug}
-              href={`/admin/gyms/${gym.slug}`}
-              className="border-border/60 hover:bg-secondary/60 flex flex-wrap items-center justify-between gap-2 rounded-lg border-b p-2.5 text-sm last:border-0"
-            >
-              <span className="flex min-w-0 items-center gap-2.5">
-                <span
-                  aria-hidden
-                  className="size-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: gym.accentColor || '#8ad200' }}
-                />
-                <span className="min-w-0">
-                  <span className="block truncate font-semibold">{gym.name}</span>
-                  <span className="text-muted-foreground block text-xs">
-                    {gym.slug}.smartfit · {gym.city ?? '—'}
-                  </span>
-                </span>
-              </span>
-              <span className="flex items-center gap-3 text-xs">
-                <span className="text-muted-foreground hidden tabular-nums sm:inline">
-                  {gym.memberCount} members · {gym.classCount} classes
-                </span>
-                {gym.contract === 'overdue' && (
-                  <Badge className="bg-red-500/15 text-red-500" variant="secondary">
-                    overdue
-                  </Badge>
-                )}
-                <StatusBadge status={gym.status} />
-                <span className="hidden font-medium tabular-nums md:inline">
-                  {gym.tenantPlanId}
-                </span>
-              </span>
-            </Link>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 // ── Gym detail ───────────────────────────────────────────────────────────────
 
 export function GymDetailSection({ slug }: { slug: string }) {
@@ -529,6 +312,7 @@ export function GymDetailSection({ slug }: { slug: string }) {
   const gym = data.gyms.find((g) => g.slug === slug);
   const [planId, setPlanId] = useState('');
   const [ownerUid, setOwnerUid] = useState('');
+  const [pendingAction, setPendingAction] = useState<'suspend' | 'close' | null>(null);
 
   const plan = data.plans.find((p) => p.id === gym?.tenantPlanId);
   const invoices = data.invoices.filter((i) => i.slug === slug).slice(0, 6);
@@ -638,9 +422,7 @@ export function GymDetailSection({ slug }: { slug: string }) {
                 size="sm"
                 variant="outline"
                 disabled={mutating !== null}
-                onClick={() =>
-                  act(() => admin.setGymStatus(slug, 'suspend'), `${gym.name} suspended`)
-                }
+                onClick={() => setPendingAction('suspend')}
               >
                 <Ban className="size-3.5" /> Suspend
               </Button>
@@ -662,9 +444,9 @@ export function GymDetailSection({ slug }: { slug: string }) {
                 size="sm"
                 variant="outline"
                 disabled={mutating !== null}
-                onClick={() => act(() => admin.setGymStatus(slug, 'close'), `${gym.name} closed`)}
+                onClick={() => setPendingAction('close')}
               >
-                Close permanently
+                Close gym
               </Button>
             )}
           </CardContent>
@@ -724,6 +506,45 @@ export function GymDetailSection({ slug }: { slug: string }) {
           </CardContent>
         </Card>
       </div>
+
+      <GymOperations slug={slug} />
+      <Dialog
+        open={pendingAction !== null}
+        onOpenChange={(open) => {
+          if (!open && !mutating) setPendingAction(null);
+        }}
+      >
+        <DialogContent>
+          <DialogTitle>
+            {pendingAction === 'suspend' ? 'Suspend' : 'Close'} {gym.name}?
+          </DialogTitle>
+          <DialogDescription>
+            This removes access to the live gym experience. Member history is preserved. You can
+            restore this gym from its lifecycle controls.
+          </DialogDescription>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              disabled={mutating !== null}
+              onClick={() => setPendingAction(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={mutating !== null}
+              onClick={async () => {
+                if (pendingAction && (await admin.setGymStatus(slug, pendingAction))) {
+                  toast('Gym lifecycle updated', 'success');
+                  setPendingAction(null);
+                }
+              }}
+            >
+              Confirm {pendingAction}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {invoices.length > 0 && (
         <Card>
@@ -857,32 +678,58 @@ function ApplicationCard({ app }: { app: AdminApplication }) {
 
 export function ApplicationsSection() {
   const { data } = useAdmin();
-  const pending = data.applications.filter((a) => a.status === 'pending');
-  const decided = data.applications.filter((a) => a.status !== 'pending');
-
+  const [filter, setFilter] = useState('pending');
+  const [query, setQuery] = useState('');
+  const rows = data.applications.filter(
+    (a) =>
+      (filter === 'all' || a.status === filter) &&
+      `${a.gymName} ${a.email} ${a.city ?? ''}`.toLowerCase().includes(query.toLowerCase()),
+  );
   return (
     <div className="space-y-5">
-      <div className="space-y-3">
-        <h2 className="text-lg font-bold tracking-tight">Waiting for review</h2>
-        {pending.length === 0 ? (
-          <Card>
-            <CardContent className="text-muted-foreground p-6 text-sm">
-              The queue is empty. New applications arrive from the “List your gym” form on the
-              public directory.
-            </CardContent>
-          </Card>
-        ) : (
-          pending.map((a) => <ApplicationCard key={a.id} app={a} />)
-        )}
+      <header>
+        <h2 className="text-3xl font-black">Application inbox</h2>
+        <p className="text-muted-foreground mt-2 text-sm">
+          Turn the next great gym into a SmartFit partner.
+        </p>
+      </header>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Tabs value={filter} onValueChange={setFilter}>
+          <TabsList className="h-auto flex-wrap">
+            {['pending', 'approved', 'rejected', 'all'].map((status) => (
+              <TabsTrigger key={status} value={status} className="capitalize">
+                {status}{' '}
+                <span className="ml-2 opacity-60">
+                  {data.applications.filter((a) => status === 'all' || a.status === status).length}
+                </span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+        <Input
+          className="w-full sm:w-64"
+          aria-label="Search applications"
+          placeholder="Search gym, city, email…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
       </div>
-      {decided.length > 0 && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-bold tracking-tight">Decided</h2>
-          {decided.map((a) => (
+      {rows.length === 0 ? (
+        <Card>
+          <CardContent className="text-muted-foreground p-10 text-center text-sm">
+            No applications in this view. New requests arrive from the public gym directory.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid items-start gap-4 xl:grid-cols-2">
+          {rows.map((a) => (
             <ApplicationCard key={a.id} app={a} />
           ))}
         </div>
       )}
+      <p className="text-muted-foreground text-xs">
+        Latest {data.applications.length} applications loaded (maximum 100).
+      </p>
     </div>
   );
 }
@@ -1013,12 +860,6 @@ export function RevenueSection() {
   const [method, setMethod] = useState<PlatformInvoice['method']>('transfer');
   const [note, setNote] = useState('');
 
-  const perGym = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const i of data.invoices) map.set(i.slug, (map.get(i.slug) ?? 0) + i.amountMinor);
-    return [...map.entries()].sort((a, b) => b[1] - a[1]);
-  }, [data.invoices]);
-
   async function record() {
     const ok = await admin.recordPayment(slug, { method, ...(note ? { note } : {}) });
     if (ok) {
@@ -1036,7 +877,7 @@ export function RevenueSection() {
         <Metric label="Platform MRR" value={formatMoney(overview.platformMrrMinor)} tone="good" />
         <Metric label="Collected (30d)" value={formatMoney(overview.collected30dMinor)} />
         <Metric
-          label="Recorded all time"
+          label="Loaded payments"
           value={formatMoney(data.invoices.reduce((s, i) => s + i.amountMinor, 0))}
         />
       </div>
@@ -1087,93 +928,13 @@ export function RevenueSection() {
             Record plan payment
           </Button>
           <p className="text-muted-foreground text-xs">
-            Defaults to the gym&apos;s current plan price; the amount is editable server-side when
-            it must differ.
+            Records one payment at the gym&apos;s current platform plan price. This does not charge
+            a card.
           </p>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">By gym</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {perGym.length === 0 && (
-              <p className="text-muted-foreground text-sm">No payments recorded yet.</p>
-            )}
-            {perGym.map(([gymSlug, minor]) => (
-              <div
-                key={gymSlug}
-                className="flex items-center justify-between border-b py-1.5 text-sm last:border-0"
-              >
-                <Link className="hover:underline" href={`/admin/gyms/${gymSlug}`}>
-                  {data.gyms.find((g) => g.slug === gymSlug)?.name ?? gymSlug}
-                </Link>
-                <span className="tabular-nums">{formatMoney(minor)}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Recent payments</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {data.invoices.slice(0, 10).map((i) => (
-              <div
-                key={i.id}
-                className="flex items-center justify-between border-b py-1.5 text-sm last:border-0"
-              >
-                <span className="flex items-center gap-2">
-                  <Badge variant="outline">{i.method}</Badge>
-                  <span className="text-muted-foreground text-xs">{fmtDateTime(i.paidAt)}</span>
-                </span>
-                <span className="tabular-nums">{formatMoney(i.amountMinor, i.currency)}</span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-// ── Audit ────────────────────────────────────────────────────────────────────
-
-export function AuditSection() {
-  const { data } = useAdmin();
-  return (
-    <div className="space-y-4">
-      <p className="text-muted-foreground max-w-2xl text-sm">
-        Every platform action lands here — lifecycle changes, provisioning, role grants, view-as
-        sessions, recorded payments. The trail is append-only: entries cannot be edited or deleted
-        from any client, including this one.
-      </p>
-      <Card>
-        <CardContent className="space-y-1">
-          {data.audit.length === 0 && (
-            <p className="text-muted-foreground p-2 text-sm">Nothing has been audited yet.</p>
-          )}
-          {data.audit.map((entry: AdminAuditEntry) => (
-            <div
-              key={entry.id}
-              className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b py-2 text-sm last:border-0"
-            >
-              <span className="flex items-center gap-2">
-                <Badge variant="secondary" className="font-mono text-xs">
-                  {entry.action}
-                </Badge>
-                <span className="font-mono text-xs">{entry.target}</span>
-              </span>
-              <span className="text-muted-foreground text-xs tabular-nums">
-                {entry.actorUid} · {fmtDateTime(entry.at)}
-              </span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      <RevenueAnalytics />
     </div>
   );
 }

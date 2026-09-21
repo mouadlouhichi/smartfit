@@ -1,5 +1,5 @@
-import { AuditSection } from '@/components/admin/sections';
+import { AuditWorkspace } from '@/components/admin/workspace';
 
 export default function AdminAuditPage() {
-  return <AuditSection />;
+  return <AuditWorkspace />;
 }

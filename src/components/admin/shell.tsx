@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * The admin shell: the gate, the nav, the banners.
+ * The admin shell: the gate, the sidebar, the banners.
  *
  * ## The gate, and what it is not
  *
@@ -17,6 +17,11 @@
  * freshly promoted operator therefore sees "no access" until the token
  * refreshes — so the refusal card offers a *Recheck* button that forces
  * `getIdToken(true)` instead of leaving them to wonder.
+ *
+ * ## Layout
+ *
+ * A fixed sidebar on `lg+`, a slide-over sheet on phones — the console reads
+ * like the operations tool it is, not like a tab bar with cards bolted on.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -24,8 +29,10 @@ import { usePathname } from 'next/navigation';
 import {
   Banknote,
   ClipboardList,
+  Dumbbell,
   LayoutDashboard,
   Loader2,
+  Menu,
   RefreshCw,
   ScrollText,
   Settings2,
@@ -37,7 +44,9 @@ import { useAuth } from '@/lib/firebase/auth-context';
 import { AdminProvider, useAdmin } from '@/lib/admin-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { SectionError } from './sections';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -57,29 +66,52 @@ const NAV: readonly NavItem[] = [
   { href: '/admin/audit', label: 'Audit', icon: ScrollText },
 ];
 
-function Nav() {
-  const pathname = usePathname();
+function pageTitle(pathname: string): string {
+  const match = [...NAV]
+    .sort((a, b) => b.href.length - a.href.length)
+    .find((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)));
+  if (!match) return 'Platform';
+  if (match.href === '/admin/gyms' && pathname.startsWith('/admin/gyms/')) return 'Gym detail';
+  return match.label;
+}
+
+function usePendingApplications(): number {
   const { data } = useAdmin();
-  const pending = data.applications.filter((a) => a.status === 'pending').length;
+  return data.applications.filter((a) => a.status === 'pending').length;
+}
+
+function NavList({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const pending = usePendingApplications();
 
   return (
-    <nav className="flex flex-wrap gap-1" aria-label="Platform admin">
+    <nav className="flex flex-col gap-1" aria-label="Platform admin">
       {NAV.map((item) => {
         const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
         return (
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             className={cn(
-              'hover:bg-secondary flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
-              active ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground',
+              'group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+              active
+                ? 'bg-primary/10 text-foreground font-semibold'
+                : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
             )}
             aria-current={active ? 'page' : undefined}
           >
-            <item.icon className="size-3.5" />
+            <span
+              aria-hidden
+              className={cn(
+                'bg-primary absolute top-1/2 left-0 h-5 w-1 -translate-y-1/2 rounded-r-full transition-opacity',
+                active ? 'opacity-100' : 'opacity-0',
+              )}
+            />
+            <item.icon className={cn('size-4', active && 'text-primary')} />
             {item.label}
             {item.badge === 'pending' && pending > 0 && (
-              <Badge className="bg-amber-500/15 text-amber-600" variant="secondary">
+              <Badge className="ml-auto bg-amber-500/15 text-amber-600" variant="secondary">
                 {pending}
               </Badge>
             )}
@@ -90,23 +122,125 @@ function Nav() {
   );
 }
 
-function TopBar() {
+function BrandMark() {
+  return (
+    <Link href="/admin" className="flex items-center gap-2.5 px-1 py-1">
+      <span className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-xl">
+        <Dumbbell className="size-5" />
+      </span>
+      <span className="leading-tight">
+        <span className="block text-sm font-black tracking-tight">SmartFit</span>
+        <span className="text-muted-foreground block text-[11px] font-medium">
+          Platform console
+        </span>
+      </span>
+    </Link>
+  );
+}
+
+function ModeChip() {
+  const { mode } = useAdmin();
+  if (mode === 'demo') {
+    return (
+      <span className="text-muted-foreground rounded-lg border border-dashed px-2.5 py-1.5 text-xs">
+        Demo data — not persisted
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-600">
+      <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" aria-hidden />
+      Cloud data
+    </span>
+  );
+}
+
+function RefreshButton({ className }: { className?: string }) {
   const { mode, reload, loading } = useAdmin();
   return (
-    <header className="border-border/60 flex flex-wrap items-center justify-between gap-3 border-b pb-4">
-      <div className="flex items-center gap-3">
-        <h1 className="text-xl font-black tracking-tight">SmartFit platform</h1>
-        <Badge variant="outline">admin</Badge>
+    <Button
+      size="sm"
+      variant="outline"
+      onClick={reload}
+      disabled={loading || mode === 'demo'}
+      className={className}
+    >
+      <RefreshCw className={cn('size-3.5', loading && 'animate-spin')} /> Refresh
+    </Button>
+  );
+}
+
+function Sidebar() {
+  const { user } = useAuth();
+  const initial = (user?.displayName ?? user?.email ?? '?').charAt(0).toUpperCase();
+  return (
+    <aside className="bg-background fixed inset-y-0 left-0 z-40 hidden w-64 flex-col gap-5 border-r p-4 lg:flex">
+      <BrandMark />
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <NavList />
+      </div>
+      <div className="space-y-3 border-t pt-4">
+        <ModeChip />
+        {user && (
+          <p className="text-muted-foreground flex min-w-0 items-center gap-2 text-xs">
+            <span className="bg-secondary flex size-7 shrink-0 items-center justify-center rounded-full font-bold">
+              {initial}
+            </span>
+            <span className="truncate">{user.email ?? user.displayName}</span>
+          </p>
+        )}
+      </div>
+    </aside>
+  );
+}
+
+/** Phone-width slide-over. One at a time — `open` state lives in TopBar's parent. */
+function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (!value) onClose();
+      }}
+    >
+      <DialogContent>
+        <DialogTitle>Platform navigation</DialogTitle>
+        <DialogDescription>Manage your SmartFit network.</DialogDescription>
+        <NavList onNavigate={onClose} />
+        <ModeChip />
+        <RefreshButton />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TopBar({ onOpenMenu }: { onOpenMenu: () => void }) {
+  const pathname = usePathname();
+  return (
+    <header className="bg-background/85 sticky top-0 z-30 -mx-4 mb-5 flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3.5 backdrop-blur sm:-mx-6 sm:px-6">
+      <div className="flex min-w-0 items-center gap-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="lg:hidden"
+          onClick={onOpenMenu}
+          aria-label="Open menu"
+        >
+          <Menu className="size-5" />
+        </Button>
+        <h1 className="truncate text-lg font-black tracking-tight">{pageTitle(pathname)}</h1>
+        <Badge variant="outline" className="hidden sm:inline-flex">
+          admin
+        </Badge>
       </div>
       <div className="flex items-center gap-2">
-        {mode === 'demo' && (
-          <span className="text-muted-foreground rounded-lg border border-dashed px-2.5 py-1 text-xs">
-            Demo data — not persisted
-          </span>
-        )}
-        <Button size="sm" variant="outline" onClick={reload} disabled={loading || mode === 'demo'}>
-          <RefreshCw className="size-3.5" /> Refresh
-        </Button>
+        <ThemeToggle />
+        <span className="lg:hidden">
+          <ModeChip />
+        </span>
+        <span className="hidden lg:inline-flex">
+          <RefreshButton />
+        </span>
       </div>
     </header>
   );
@@ -167,6 +301,25 @@ function NoAccess({ onRecheck, busy }: { onRecheck: () => void; busy: boolean })
   );
 }
 
+/** The working area — sidebar plus content column. Must sit inside AdminProvider. */
+function ConsoleLayout({ children }: { children: React.ReactNode }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { loading, error } = useAdmin();
+  return (
+    <div className="min-h-dvh lg:pl-64">
+      <Sidebar />
+      <MobileNav open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <div className="mx-auto max-w-6xl px-4 pb-10 sm:px-6">
+        {/* TopBar calls useAdmin(), so the provider wraps it too — a shell
+            component above the provider is the classic 500-by-construction.
+            Toasts come from the root AppProviders. */}
+        <TopBar onOpenMenu={() => setMenuOpen(true)} />
+        {error ? <SectionError /> : loading ? <Spinner label="Loading your platform…" /> : children}
+      </div>
+    </div>
+  );
+}
+
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { user, initializing } = useAuth();
   const cloud = isFirebaseConfigured;
@@ -213,18 +366,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return 'admin' as const;
   }, [cloud, initializing, user, platformAdmin]);
 
-  if (state === 'demo') {
+  if (state === 'demo' || state === 'admin') {
     return (
-      <div className="mx-auto max-w-6xl space-y-5 p-4 py-8 sm:p-6">
-        {/* TopBar calls useAdmin(), so the provider wraps it too — a shell
-            component above the provider is the classic 500-by-construction.
-            Toasts come from the root AppProviders. */}
-        <AdminProvider>
-          <TopBar />
-          <Nav />
-          {children}
-        </AdminProvider>
-      </div>
+      <AdminProvider>
+        <ConsoleLayout>{children}</ConsoleLayout>
+      </AdminProvider>
     );
   }
 
@@ -232,15 +378,5 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   if (state === 'signed-out') return <SignInGate />;
 
-  if (state === 'denied') return <NoAccess onRecheck={onRecheck} busy={rechecking} />;
-
-  return (
-    <div className="mx-auto max-w-6xl space-y-5 p-4 py-8 sm:p-6">
-      <AdminProvider>
-        <TopBar />
-        <Nav />
-        {children}
-      </AdminProvider>
-    </div>
-  );
+  return <NoAccess onRecheck={onRecheck} busy={rechecking} />;
 }

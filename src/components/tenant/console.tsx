@@ -14,6 +14,7 @@
  * server accepted — not an optimistic guess that the rules may have rejected.
  */
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
   Banknote,
   CalendarDays,
@@ -46,6 +47,8 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/toast';
+import { MemberDirectory } from './member-directory';
+import { ProfileStudio } from './profile-studio';
 import { cn } from '@/lib/utils';
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
@@ -584,99 +587,6 @@ function Timetable() {
   );
 }
 
-function Members() {
-  const t = useTenant();
-  const toast = useToast();
-  const now = Date.now();
-  const members = useMemo(
-    () => t.roster.filter((r) => r.role === 'member').sort((a, b) => b.joinedAt - a.joinedAt),
-    [t.roster],
-  );
-  const canEdit = t.can('member:status:change');
-  const canCheckIn = t.can('checkin:door');
-
-  async function toggleFreeze(m: GymMembership) {
-    const next = m.status === 'frozen' ? 'active' : 'frozen';
-    const ok = await t.setMemberStatus(m.uid, next);
-    if (ok)
-      toast(`${m.displayName ?? m.uid} ${next === 'frozen' ? 'frozen' : 'reactivated'}`, 'success');
-    else toast(t.mutationError ?? 'Could not update the member', 'info');
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Roster</CardTitle>
-        <CardDescription>
-          {members.length} members. A member not seen in {AT_RISK_DAYS} days is flagged.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-1">
-        {members.map((m) => {
-          const risk = isAtRisk(m, now);
-          const daysLeft =
-            typeof m.expiresAt === 'number' ? Math.ceil((m.expiresAt - now) / 86_400_000) : null;
-          return (
-            <div
-              key={m.uid}
-              className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b py-2 last:border-0"
-            >
-              <div className="min-w-0">
-                <p className="flex items-center gap-2 font-medium">
-                  {m.displayName ?? m.uid}
-                  {risk && (
-                    <Badge className="bg-amber-500/15 text-amber-600" variant="secondary">
-                      at risk
-                    </Badge>
-                  )}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  joined {new Date(m.joinedAt).toLocaleDateString('en-GB')} · {m.checkins} check-ins
-                  {typeof m.lastVisitAt === 'number' &&
-                    ` · last ${Math.floor((now - m.lastVisitAt) / 86_400_000)}d ago`}
-                </p>
-                {m.notes && (
-                  <p className="text-muted-foreground mt-0.5 text-xs italic">{m.notes}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {daysLeft !== null && m.status === 'active' && (
-                  <span className="text-muted-foreground text-xs tabular-nums">
-                    {daysLeft >= 0 ? `${daysLeft}d left` : 'lapsed'}
-                  </span>
-                )}
-                <Badge className={statusTone(m.status)} variant="secondary">
-                  {m.status}
-                </Badge>
-                {canCheckIn && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => t.checkInMember(m.uid)}
-                    disabled={t.mutating === `checkin:${m.uid}`}
-                  >
-                    Check in
-                  </Button>
-                )}
-                {canEdit && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => toggleFreeze(m)}
-                    disabled={t.mutating === `member:${m.uid}`}
-                  >
-                    {m.status === 'frozen' ? 'Activate' : 'Freeze'}
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
-  );
-}
-
 function Revenue() {
   const t = useTenant();
   const toast = useToast();
@@ -973,87 +883,6 @@ function Staff() {
   );
 }
 
-function SettingsSection() {
-  const t = useTenant();
-  const toast = useToast();
-  const [name, setName] = useState(t.gym?.name ?? '');
-  const [tagline, setTagline] = useState(t.gym?.branding?.tagline ?? '');
-  const [phone, setPhone] = useState(t.gym?.contact?.phone ?? '');
-  const [accent, setAccent] = useState(t.gym?.branding?.accentColor ?? '#8ad200');
-
-  async function save() {
-    const ok = await t.updateGym({
-      name: name.trim(),
-      branding: { ...t.gym?.branding, tagline: tagline.trim(), accentColor: accent },
-      contact: { ...t.gym?.contact, phone: phone.trim() },
-    });
-    if (ok) toast('Saved', 'success');
-    else toast(t.mutationError ?? 'Could not save', 'info');
-  }
-
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Branding</CardTitle>
-          <CardDescription>
-            Shows on the public storefront immediately. Status, slug and owner are not editable here
-            — the rules reject an owner changing them, so those are platform-admin actions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Field id="set-name" label="Gym name">
-              <Input id="set-name" value={name} onChange={(e) => setName(e.target.value)} />
-            </Field>
-            <Field id="set-tagline" label="Tagline">
-              <Input
-                id="set-tagline"
-                value={tagline}
-                onChange={(e) => setTagline(e.target.value)}
-              />
-            </Field>
-            <Field id="set-phone" label="Phone">
-              <Input id="set-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </Field>
-            <Field id="set-accent" label="Accent colour">
-              <Input
-                id="set-accent"
-                type="color"
-                value={accent}
-                onChange={(e) => setAccent(e.target.value)}
-              />
-            </Field>
-          </div>
-          <Button onClick={save} disabled={t.mutating !== null}>
-            Save changes
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Tenant</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1 text-sm">
-          <p>
-            <span className="text-muted-foreground">Slug / subdomain: </span>
-            <code className="font-mono">{t.slug}</code>
-          </p>
-          <p>
-            <span className="text-muted-foreground">Status: </span>
-            {t.gym?.status ?? '—'}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Platform plan: </span>
-            {t.gym?.tenantPlanId ?? '—'}
-          </p>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
 // ── Shell ────────────────────────────────────────────────────────────────────
 
 /**
@@ -1149,12 +978,12 @@ export function Console() {
           <h1 className="text-2xl font-black tracking-tight">{t.gym?.name ?? t.slug}</h1>
           <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
             <Badge variant="secondary">{roleLabel(t.role)}</Badge>
-            <a
+            <Link
               href={`/g/${t.slug}`}
               className="hover:text-foreground inline-flex items-center gap-1"
             >
               storefront <ExternalLink className="size-3" />
-            </a>
+            </Link>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -1198,7 +1027,7 @@ export function Console() {
       )}
 
       <Tabs value={tab ?? undefined} onValueChange={setTab}>
-        <TabsList className="flex-wrap">
+        <TabsList className="h-auto flex-wrap justify-start rounded-2xl">
           {visible.map((s) => (
             <TabsTrigger key={s.id} value={s.id}>
               <s.icon className="mr-1.5 size-3.5" />
@@ -1217,7 +1046,7 @@ export function Console() {
           <Timetable />
         </TabsContent>
         <TabsContent value="members" className="mt-4">
-          <Members />
+          <MemberDirectory />
         </TabsContent>
         <TabsContent value="revenue" className="mt-4">
           <Revenue />
@@ -1228,8 +1057,12 @@ export function Console() {
         <TabsContent value="staff" className="mt-4">
           <Staff />
         </TabsContent>
-        <TabsContent value="settings" className="mt-4">
-          <SettingsSection />
+        <TabsContent
+          forceMount
+          value="settings"
+          className={cn('mt-4', tab !== 'settings' && 'hidden')}
+        >
+          <ProfileStudio />
         </TabsContent>
       </Tabs>
     </div>

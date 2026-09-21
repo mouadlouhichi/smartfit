@@ -1,5 +1,5 @@
-import { RegistrySection } from '@/components/admin/sections';
+import { RegistryWorkspace } from '@/components/admin/workspace';
 
 export default function AdminGymsPage() {
-  return <RegistrySection />;
+  return <RegistryWorkspace />;
 }

@@ -1,5 +1,5 @@
-import { OverviewSection } from '@/components/admin/sections';
+import { OverviewWorkspace } from '@/components/admin/workspace';
 
 export default function AdminOverviewPage() {
-  return <OverviewSection />;
+  return <OverviewWorkspace />;
 }
