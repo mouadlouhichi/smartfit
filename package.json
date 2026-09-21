@@ -76,5 +76,10 @@
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "jose": "^4.15.9"
+    }
   }
 }
