@@ -31,7 +31,7 @@
  */
 import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 import { scriptCreds } from './lib/load-env.mjs';
 
 // Reads the environment *and* the repo .env (loaded automatically); accepts
@@ -541,25 +541,6 @@ async function main() {
       { merge: true },
     );
   console.log('  + users/b2b-member-1/gymShares (opt-in aggregates only)');
-
-  // ── Platform namespace ──────────────────────────────────────────────────
-  await db.doc('platform/config/platform').set(
-    {
-      reservedSubdomains: FieldValue.arrayUnion(SLUG),
-      updatedAt: now,
-    },
-    { merge: true },
-  );
-  await db.doc('platform/tenants/' + SLUG).set(
-    {
-      slug: SLUG,
-      status: 'active',
-      tenantPlanId: 'growth',
-      ownerUid: 'b2b-owner',
-      updatedAt: now,
-    },
-    { merge: true },
-  );
 
   // ── Platform data (admin console) ───────────────────────────────────────
   // The `/admin` console reads `platform/**` through the Admin SDK only, so
