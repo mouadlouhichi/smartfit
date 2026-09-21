@@ -165,8 +165,11 @@ tracker stays exactly as private as it was.
   book / cancel / waitlist directly from the timetable, "My classes", door
   check-in history, and an **opt-in progress share** that spells out the three
   aggregates the gym can see (sessions this month, streak, attendance) and is
-  revoked by deleting one document. `/dashboard/**` and the mobile app are
-  untouched by all of it.
+  revoked by deleting one document. The tracker's gym surfaces are tenants too:
+  onboarding's "Your gym" picker and the Plan tab's "Your gym" card list the
+  live gyms (`/api/gym-programs`) and build the suggested week from the
+  selected gym's real timetable — the personal "custom gyms" builder is
+  retired from the UI (existing data stays in each account, untouched).
 - **One console tree, two audiences** — `/g/{slug}/console` renders what the
   role's capabilities allow and nothing more (a denied section is *absent*, not
   disabled, so staff never learn a Revenue tab exists). Owners get the

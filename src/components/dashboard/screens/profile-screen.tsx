@@ -639,17 +639,15 @@ export function ProfileScreen() {
                     <Building2 className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="text-sm font-bold">Gym Management</p>
+                    <p className="text-sm font-bold">Your gym</p>
                     <p className="text-muted-foreground text-xs">
-                      {state.customGyms?.length
-                        ? `${state.customGyms.length} custom gyms · ${state.customGyms.reduce((a, g) => a + g.programs.length, 0)} programs`
-                        : 'Add your gyms, create programs, join AI-powered courses'}
+                      Pick a gym running on SmartFit and build your week from its real timetable
                     </p>
                   </div>
                 </div>
                 <Button size="sm" asChild className="rounded-full">
                   <Link href="/dashboard/plan">
-                    Manage <ArrowRight className="h-4 w-4" />
+                    Choose <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -752,8 +750,8 @@ export function ProfileScreen() {
                 className="hover:bg-secondary/50 flex items-center justify-between rounded-2xl border p-4 transition-colors"
               >
                 <div>
-                  <p className="text-sm font-bold">Gym Management</p>
-                  <p className="text-muted-foreground text-xs">Add gyms, programs, AI courses</p>
+                  <p className="text-sm font-bold">Your gym</p>
+                  <p className="text-muted-foreground text-xs">Pick a gym, build your week</p>
                 </div>
                 <ArrowRight className="text-muted-foreground h-4 w-4" />
               </Link>
@@ -836,9 +834,6 @@ export function ProfileScreen() {
               <Badge variant="secondary">{counts.goals} goals</Badge>
               <Badge variant="secondary">{counts.measurements} measurements</Badge>
               <Badge variant="secondary">{state.categories.length} activity types</Badge>
-              {state.customGyms && state.customGyms.length > 0 && (
-                <Badge variant="secondary">{state.customGyms.length} custom gyms</Badge>
-              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => openModal('category')}>

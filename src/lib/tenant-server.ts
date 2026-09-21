@@ -20,7 +20,12 @@
  */
 import 'server-only';
 import { cache } from 'react';
-import { LIVE_GYM_STATUSES, type GymMembership, type GymTenant } from '@smartfit/core';
+import {
+  LIVE_GYM_STATUSES,
+  type GymMembership,
+  type GymProgram,
+  type GymTenant,
+} from '@smartfit/core';
 import { getAdminServices } from '@/lib/firebase/admin';
 import type {
   GymBooking,
@@ -153,4 +158,120 @@ export async function listGymsServer(): Promise<GymTenant[]> {
     .limit(100)
     .get();
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as GymTenant);
+}
+// ── Member app: gyms as suggested-week programs ──────────────────────────────
+
+/** "Mon–Fri 06:30–22:30 · Sat 08:00–20:00" from the weekly hours map. */
+function hoursSummary(hours?: GymTenant['hours']): string {
+  if (!hours) return '';
+  const days: Array<[number, string]> = [
+    [1, 'Mon'],
+    [2, 'Tue'],
+    [3, 'Wed'],
+    [4, 'Thu'],
+    [5, 'Fri'],
+    [6, 'Sat'],
+    [0, 'Sun'],
+  ];
+  const parts: Array<{ from: string; to: string; open: string; close: string }> = [];
+  let lastOpen: string | null = null;
+  days.forEach(([day, label], i) => {
+    const h = hours[day];
+    if (!h) {
+      lastOpen = null;
+      return;
+    }
+    const prev = parts[parts.length - 1];
+    // Merge only into a run ending on the immediately preceding open day
+    // with identical hours — "Mon–Fri 06:30–22:30", never "Mon–Sun".
+    const yesterday = i > 0 ? days[i - 1][1] : null;
+    if (prev && lastOpen === yesterday && prev.open === h.open && prev.close === h.close) {
+      prev.to = label;
+    } else {
+      parts.push({ from: label, to: label, open: h.open, close: h.close });
+    }
+    lastOpen = label;
+  });
+  return parts
+    .map((p) =>
+      p.from === p.to ? `${p.from} ${p.open}–${p.close}` : `${p.from}–${p.to} ${p.open}–${p.close}`,
+    )
+    .join(' · ');
+}
+
+/**
+ * Fold a gym's scheduled occurrences (concrete timestamps) back into a weekly
+ * pattern: one `{weekday, time, classId}` per distinct recurring slot, deduped
+ * across the window. Cancelled slots do not exist.
+ */
+function weeklyPattern(slots: GymSlot[]): GymProgram['week'] {
+  const seen = new Set<string>();
+  const week: GymProgram['week'] = [];
+  for (const s of slots) {
+    if (s.cancelled) continue;
+    const d = new Date(s.startsAt);
+    const weekday = d.getDay();
+    const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const key = `${weekday}-${time}-${s.classId}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    week.push({ weekday, time, classId: s.classId });
+  }
+  return week.sort((a, b) => a.weekday - b.weekday || a.time.localeCompare(b.time));
+}
+
+/** Classes + occurrences of one gym → the shape the suggested-week engine eats. */
+function toGymProgram(gym: GymTenant, classes: GymClass[], slots: GymSlot[]): GymProgram {
+  return {
+    id: gym.slug,
+    name: gym.name,
+    hours: hoursSummary(gym.hours),
+    classes: Object.fromEntries(
+      classes.map((c) => [
+        c.id,
+        { id: c.id, name: c.name, focus: c.focus, intensity: c.intensity, minutes: c.minutes },
+      ]),
+    ),
+    week: weeklyPattern(slots),
+  };
+}
+
+/**
+ * Every live gym as a `GymProgram`, for the member surfaces: the onboarding
+ * "Your gym" picker and the Plan tab's suggested week. Real tenants are the
+ * only source — the static in-repo gym list is gone, so a gym that closes
+ * disappears from the picker by construction.
+ *
+ * Scale note: cloud mode reads each live gym's classes + a 14-day slot window
+ * (two collection queries per gym, capped by the directory's limit of 100).
+ * Fine for tens of gyms; batch into one aggregate read if that grows.
+ */
+export async function loadGymPrograms(): Promise<GymProgram[]> {
+  if (!adminConfigured()) {
+    return demoGyms().map((gym) => {
+      const fixture = demoFixture(gym.slug);
+      return toGymProgram(gym, fixture?.classes ?? [], fixture?.slots ?? []);
+    });
+  }
+
+  const { db } = getAdminServices();
+  const now = Date.now();
+  const gyms = await listGymsServer();
+  return Promise.all(
+    gyms.map(async (gym) => {
+      const [classesSnap, slotsSnap] = await Promise.all([
+        db.collection(`gyms/${gym.slug}/classes`).get(),
+        db
+          .collection(`gyms/${gym.slug}/slots`)
+          .where('startsAt', '>=', now)
+          .where('startsAt', '<', now + 14 * 86_400_000)
+          .get(),
+      ]);
+      return toGymProgram(
+        gym,
+        classesSnap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as GymClass),
+        slotsSnap.docs.map((d) => ({ id: d.id, ...(d.data() as object) }) as GymSlot),
+      );
+    }),
+  );
 }

@@ -299,6 +299,38 @@ a server route. Full model: `docs/billing.md` §4.
 
 ---
 
+## Post-DoD — the member app's gym surfaces became tenants
+
+The member tracker still had two legacy gym concepts the pivot never touched:
+a **static in-repo gym registry** (`GYM_PROGRAMS`, a hardcoded fake Zone Fight)
+behind onboarding's "Your gym — optional" picker and the Plan tab's suggested
+week, and the personal **"custom gyms" builder** (917-line GymManagement on
+the Plan tab, profile cards counting them). A gym in the member app and a gym
+on the platform were two different things — the architecture is now applied
+everywhere:
+
+- [x] `packages/core`: the static program (`ZONE_FIGHT`, `GYM_PROGRAMS`,
+      `getGymProgram`) is gone; `suggestProgram(state, program)` takes the
+      gym as an argument and `findGymProgram(list, gymId)` resolves the
+      selection against the live list. The engine is tenant-agnostic (core
+      tests run on a synthetic fixture).
+- [x] `src/lib/tenant-server.ts` `loadGymPrograms()` — every live tenant
+      folded into the engine's `GymProgram` shape (classes + a 14-day slot
+      window → deduped weekly pattern; opening hours → summary line). Demo
+      mode maps the fixtures; `GET /api/gym-programs` exposes it (same public
+      data as the storefront).
+- [x] Onboarding is a server route now (`force-dynamic`): the picker lists
+      the real gyms and links the `/gyms` directory.
+- [x] Plan tab: `GymPicker` replaces GymManagement — pick a tenant, the
+      suggested week imports from its real timetable, "Open page" links to
+      `/g/{slug}`. Profile cards follow ("Your gym — pick a gym, build your
+      week"; the custom-gyms badge is gone).
+- [x] **The personal custom-gyms builder is retired from the UI.** Data
+      model, `users/{uid}/**` rules and existing account data are untouched
+      (private by design); `promote-custom-gym.mjs` keeps working.
+- [x] +3 e2e (19 total in `tenant.spec.ts`): picker lists real tenants,
+      `/api/gym-programs` shape, plan-screen pick → link through.
+
 ## Verification log
 
 | Command | Result | Notes |
@@ -316,7 +348,7 @@ a server route. Full model: `docs/billing.md` §4.
 | tenant SSR content (curl) | ✅ | storefront HTML contains the member section (membership card, My classes, Visits, Progress sharing), per-tenant `<title>`/`og:` metadata, class-detail occurrences with seat counts, directory entries |
 | `pnpm start` (production) | ✅ all 200 | 16 routes swept from the built output — dashboard, storefront, class detail, console, `/gyms`, all 7 admin pages, `/login`, purchase API. Gotcha found: building while `next dev` is running corrupts `.next` (prod then 500s half the routes) — **stop the dev server before `pnpm build`** |
 | `pnpm build` | ✅ **exit 0** | `/g/*`, `/gyms`, `/admin/**` + all admin/apply API routes correctly dynamic; middleware 32.9 kB |
-| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (16 tests: tenant journey, admin console, membership purchase, second tenant at `/g/iron-house` + directory listing + unknown-slug not-found); `cdn.playwright.dev` unreachable — CI runs it |
+| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (19 tests: tenant journey, admin console, membership purchase, second tenant at `/g/iron-house` + directory listing + unknown-slug not-found); `cdn.playwright.dev` unreachable — CI runs it |
 
 ## Known environment constraints
 

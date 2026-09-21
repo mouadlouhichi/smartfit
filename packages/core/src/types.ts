@@ -232,7 +232,8 @@ export interface UserProfile {
    */
   targetWeightKg?: number;
   /**
-   * Optional selected gym program id (see GYM_PROGRAMS, e.g. 'zone-fight').
+   * Optional selected gym — a tenant slug (e.g. 'zone-fight'), resolved
+   * against the live gym list the server loaded (see `findGymProgram`).
    * When set, the app proposes a weekly program built from that gym's real
    * class timetable.
    */

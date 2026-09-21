@@ -238,3 +238,65 @@ test('a walk-in sale applies the plan to the membership', async ({ page }) => {
   await page.getByRole('button', { name: 'Record payment' }).click();
   await expect(page.getByText('Recorded 3,800 MAD — membership applied')).toBeVisible();
 });
+
+// ── Member app: gyms are tenants (local mode) ────────────────────────────────
+
+test('the onboarding gym picker lists the real tenants', async ({ page }) => {
+  await page.goto('/onboarding');
+  await page.getByRole('button', { name: /Continue/ }).click(); // welcome
+  await page.getByLabel('What should we call you?').fill('E2E Picker');
+  await page.getByRole('button', { name: /Continue/ }).click(); // about you → strategy
+
+  // The picker offers the live tenants — the static in-repo registry is gone.
+  const gymSelect = page.getByLabel('Your gym — optional');
+  await expect(gymSelect).toBeVisible();
+  const options = gymSelect.locator('option');
+  await expect(options.filter({ hasText: 'Zone Fight' })).toHaveCount(1);
+  await expect(options.filter({ hasText: 'Iron House Strength' })).toHaveCount(1);
+
+  // And the gyms are real: the note points at the directory, not a builder.
+  const browse = page.getByRole('link', { name: /Browse classes & book on their pages/ });
+  await expect(browse).toHaveAttribute('href', '/gyms');
+});
+
+test('GET /api/gym-programs returns every live tenant as a program', async ({ request }) => {
+  const res = await request.get('/api/gym-programs');
+  expect(res.ok()).toBeTruthy();
+  const { gyms } = (await res.json()) as {
+    gyms: Array<{ id: string; classes: Record<string, unknown>; week: unknown[]; hours: string }>;
+  };
+  const ids = gyms.map((g) => g.id);
+  expect(ids).toContain('zone-fight');
+  expect(ids).toContain('iron-house');
+  for (const g of gyms) {
+    // Every tenant arrives folded into the suggested-week engine's shape.
+    expect(Object.keys(g.classes).length).toBeGreaterThan(0);
+    expect(g.week.length).toBeGreaterThan(0);
+    expect(g.hours).toMatch(/Mon/);
+  }
+});
+
+test('the plan screen picks a tenant gym and links through to its page', async ({ page }) => {
+  // Local mode: a fresh visitor is walked through onboarding first.
+  await page.goto('/dashboard/plan');
+  await expect(page).toHaveURL(/\/onboarding/);
+  await page.getByRole('button', { name: /Continue/ }).click();
+  await page.getByLabel('What should we call you?').fill('E2G Planner');
+  await page.getByRole('button', { name: /Continue/ }).click();
+  await page.getByRole('button', { name: /Continue/ }).click(); // strategy
+  await page.getByRole('button', { name: /Continue/ }).click(); // goal
+  await page.getByRole('button', { name: /Enter dashboard/ }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  await page.goto('/dashboard/plan');
+  const ironHouse = page.getByRole('button', { name: /Iron House Strength/ });
+  await expect(ironHouse).toBeVisible();
+  await ironHouse.click();
+  await expect(ironHouse).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('link', { name: 'Open page' })).toHaveAttribute(
+    'href',
+    '/g/iron-house',
+  );
+  // The suggested-week card follows the selection.
+  await expect(page.getByText('Quick Import: Suggested Week')).toBeVisible();
+});
