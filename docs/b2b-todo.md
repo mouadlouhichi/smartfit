@@ -330,6 +330,13 @@ everywhere:
       (private by design); `promote-custom-gym.mjs` keeps working.
 - [x] +3 e2e (19 total in `tenant.spec.ts`): picker lists real tenants,
       `/api/gym-programs` shape, plan-screen pick → link through.
+- [x] **Admin can set up a gym directly** — "Set up a gym" in the registry:
+      name (address derived or explicit, uniqueness-checked with the same
+      rules as application approval), city, owner email (resolved to the
+      membership row when the account exists, otherwise a note to assign
+      later), platform plan (validated against the effective tiers),
+      accent colour. Provisions `status: 'trial'` + audit `gym:create`;
+      `assign-owner` now accepts an email as well as a uid. +1 e2e (20).
 
 ## Verification log
 
@@ -348,7 +355,7 @@ everywhere:
 | tenant SSR content (curl) | ✅ | storefront HTML contains the member section (membership card, My classes, Visits, Progress sharing), per-tenant `<title>`/`og:` metadata, class-detail occurrences with seat counts, directory entries |
 | `pnpm start` (production) | ✅ all 200 | 16 routes swept from the built output — dashboard, storefront, class detail, console, `/gyms`, all 7 admin pages, `/login`, purchase API. Gotcha found: building while `next dev` is running corrupts `.next` (prod then 500s half the routes) — **stop the dev server before `pnpm build`** |
 | `pnpm build` | ✅ **exit 0** | `/g/*`, `/gyms`, `/admin/**` + all admin/apply API routes correctly dynamic; middleware 32.9 kB |
-| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (19 tests: tenant journey, admin console, membership purchase, second tenant at `/g/iron-house` + directory listing + unknown-slug not-found); `cdn.playwright.dev` unreachable — CI runs it |
+| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (20 tests: tenant journey, admin console, membership purchase, second tenant at `/g/iron-house` + directory listing + unknown-slug not-found); `cdn.playwright.dev` unreachable — CI runs it |
 
 ## Known environment constraints
 

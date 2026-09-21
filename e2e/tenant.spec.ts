@@ -300,3 +300,29 @@ test('the plan screen picks a tenant gym and links through to its page', async (
   // The suggested-week card follows the selection.
   await expect(page.getByText('Quick Import: Suggested Week')).toBeVisible();
 });
+
+test('an admin sets up a gym from scratch', async ({ page }) => {
+  await page.goto('/admin/gyms');
+  await page.getByRole('button', { name: /Set up a gym/ }).click();
+
+  // The address follows the name until edited by hand.
+  await page.getByLabel('Gym name').fill('Atlas Strength Club');
+  await expect(page.getByLabel('Address (slug)')).toHaveValue('atlas-strength-club');
+
+  await page.getByLabel('City').fill('Casablanca');
+  await page.getByRole('button', { name: /Provision gym/ }).click();
+
+  // The registry reflects the new tenant immediately…
+  await expect(
+    page.getByText('Atlas Strength Club set up at atlas-strength-club.smartfit'),
+  ).toBeVisible();
+  const row = page.getByRole('link', { name: /Atlas Strength Club/ });
+  await expect(row).toBeVisible();
+  await row.click();
+  await expect(page).toHaveURL(/\/admin\/gyms\/atlas-strength-club$/);
+  await expect(page.getByText('owner unassigned')).toBeVisible();
+
+  // …and the audit trail records the provisioning.
+  await page.goto('/admin/audit');
+  await expect(page.getByText('gym:create', { exact: true }).first()).toBeVisible();
+});

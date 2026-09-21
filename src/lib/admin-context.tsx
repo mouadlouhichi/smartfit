@@ -33,11 +33,26 @@ import {
 } from '@/lib/admin-model';
 import { demoAdminData } from '@/lib/admin-demo';
 
+export interface CreateGymInput {
+  name: string;
+  /** Explicit address; generated from the name when omitted. */
+  slug?: string;
+  city?: string;
+  /** Resolved to the owner membership row when an account exists. */
+  ownerEmail?: string;
+  planId?: string;
+  accentColor?: string;
+  tagline?: string;
+}
+
 export interface AdminMutations {
   /** suspend / restore / close a tenant. */
   setGymStatus: (slug: string, action: 'suspend' | 'restore' | 'close') => Promise<boolean>;
   setGymPlan: (slug: string, planId: string) => Promise<boolean>;
-  assignOwner: (slug: string, uid: string) => Promise<boolean>;
+  /** Assign the owner by uid or email (writes the membership row too). */
+  assignOwner: (slug: string, uidOrEmail: string) => Promise<boolean>;
+  /** Provision a tenant directly — no application needed. */
+  createGym: (input: CreateGymInput) => Promise<{ ok: boolean; slug?: string; note?: string }>;
   /** Approve (optionally with a slug override) or reject (with a reason). */
   decideApplication: (
     appId: string,
@@ -238,6 +253,42 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
           : post('gym:assign-owner', '/api/admin/gym', { slug, action: 'assign-owner', uid }).then(
               (r) => r.ok,
             ),
+
+      createGym: (input) => {
+        if (mode === 'demo') {
+          const base = (input.slug || slugify(input.name)).toLowerCase();
+          let slug = base;
+          for (let i = 2; data.gyms.some((g) => g.slug === slug); i++) slug = `${base}-${i}`;
+          setData((d) => ({
+            ...d,
+            gyms: [
+              ...d.gyms,
+              {
+                slug,
+                name: input.name,
+                status: 'trial' as const,
+                tenantPlanId: input.planId || data.plans[0]?.id || 'starter',
+                ownerUid: '',
+                createdAt: Date.now(),
+                accentColor: input.accentColor,
+                city: input.city,
+                memberCount: 0,
+                staffCount: 0,
+                classCount: 0,
+                memberRevenueMinor: 0,
+                currency: 'MAD',
+              },
+            ],
+          }));
+          demoAudit('gym:create', slug, { name: input.name });
+          return Promise.resolve({ ok: true, slug });
+        }
+        return post('gym:create', '/api/admin/gym', { action: 'create', ...input }).then((r) => ({
+          ok: r.ok,
+          slug: typeof r.body.slug === 'string' ? r.body.slug : undefined,
+          note: typeof r.body.ownerNote === 'string' ? r.body.ownerNote : undefined,
+        }));
+      },
 
       decideApplication: async (appId, decision, extra) => {
         if (mode === 'demo') {

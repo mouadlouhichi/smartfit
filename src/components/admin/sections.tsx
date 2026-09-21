@@ -20,9 +20,17 @@ import {
   Eye,
   ExternalLink,
   PlayCircle,
+  Plus,
   Search,
 } from 'lucide-react';
-import { isGymLive, LIVE_GYM_STATUSES, type GymStatus, type TenantPlan } from '@smartfit/core';
+import {
+  isGymLive,
+  isValidSlug,
+  LIVE_GYM_STATUSES,
+  slugify,
+  type GymStatus,
+  type TenantPlan,
+} from '@smartfit/core';
 import { formatMoney } from '@/lib/tenant-metrics';
 import { useAdmin } from '@/lib/admin-context';
 import type { AdminApplication, AdminAuditEntry, PlatformInvoice } from '@/lib/admin-model';
@@ -252,6 +260,171 @@ export function OverviewSection() {
 
 // ── Registry ─────────────────────────────────────────────────────────────────
 
+/**
+ * "Set up a gym" — provision a tenant directly from the console.
+ *
+ * The application queue is for gyms that come to the platform; this is for
+ * gyms the platform brings itself (a pilot, a partner, a gym whose paper
+ * application arrived by phone). Same provisioning as an approval: trial
+ * status, chosen plan, owner resolved from their email when the account
+ * exists — and the address is claimed up front so nobody prints a URL that
+ * later turns out to be taken.
+ */
+function SetupGymCard() {
+  const admin = useAdmin();
+  const { data, mutating } = admin;
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [slugTouched, setSlugTouched] = useState(false);
+  const [city, setCity] = useState('');
+  const [ownerEmail, setOwnerEmail] = useState('');
+  const [planId, setPlanId] = useState('');
+  const [accentColor, setAccentColor] = useState('');
+
+  /** Follows the name until the operator edits it by hand. */
+  const address = (slugTouched ? slug : slugify(name)).toLowerCase();
+  const plan = planId || data.plans[0]?.id || 'starter';
+  const ready = name.trim().length >= 2 && mutating === null;
+
+  async function submit() {
+    const chosen = address.trim();
+    if (chosen && !isValidSlug(chosen)) {
+      toast(`"${chosen}" cannot be a gym address (reserved words and punctuation).`, 'info');
+      return;
+    }
+    const res = await admin.createGym({
+      name: name.trim(),
+      ...(chosen ? { slug: chosen } : {}),
+      ...(city.trim() ? { city: city.trim() } : {}),
+      ...(ownerEmail.trim() ? { ownerEmail: ownerEmail.trim() } : {}),
+      planId: plan,
+      ...(accentColor.trim() ? { accentColor: accentColor.trim() } : {}),
+    });
+    if (res.ok) {
+      toast(`${name.trim()} set up at ${res.slug}.smartfit`, 'success');
+      if (res.note) toast(res.note, 'info');
+      setOpen(false);
+      setName('');
+      setSlug('');
+      setSlugTouched(false);
+      setCity('');
+      setOwnerEmail('');
+      setAccentColor('');
+    } else {
+      toast(admin.mutationError ?? 'Provisioning failed', 'info');
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="space-y-3 p-4 sm:p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-display text-lg font-extrabold tracking-tight">Set up a gym</p>
+            <p className="text-muted-foreground text-xs">
+              Provision a tenant directly — trial status, chosen plan, optional owner. For gyms the
+              platform brings itself; applicants still go through the queue.
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant={open ? 'outline' : 'default'}
+            className="rounded-full"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+          >
+            {open ? 'Close' : <Plus className="size-4" />} {open ? '' : 'Set up a gym'}
+          </Button>
+        </div>
+
+        {open && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field id="new-gym-name" label="Gym name" className="sm:col-span-2">
+              <Input
+                id="new-gym-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Atlas Strength Club"
+                maxLength={60}
+              />
+            </Field>
+            <Field
+              id="new-gym-slug"
+              label="Address (slug)"
+              hint="Left empty: derived from the name."
+            >
+              <Input
+                id="new-gym-slug"
+                value={address}
+                onChange={(e) => {
+                  setSlug(e.target.value);
+                  setSlugTouched(true);
+                }}
+                placeholder="atlas-strength"
+                maxLength={40}
+              />
+            </Field>
+            <Field id="new-gym-city" label="City">
+              <Input
+                id="new-gym-city"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Casablanca"
+                maxLength={60}
+              />
+            </Field>
+            <Field
+              id="new-gym-owner"
+              label="Owner email — optional"
+              hint="An existing account becomes the owner; otherwise assign one later."
+            >
+              <Input
+                id="new-gym-owner"
+                type="email"
+                value={ownerEmail}
+                onChange={(e) => setOwnerEmail(e.target.value)}
+                placeholder="owner@gym.com"
+              />
+            </Field>
+            <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+              <Field id="new-gym-plan" label="Platform plan">
+                <Select id="new-gym-plan" value={plan} onChange={(e) => setPlanId(e.target.value)}>
+                  {data.plans.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} — {formatMoney(p.monthlyPriceMinor, p.currency)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field id="new-gym-accent" label="Accent">
+                <Input
+                  id="new-gym-accent"
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
+                  placeholder="#8ad200"
+                  maxLength={7}
+                  className="w-24"
+                />
+              </Field>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
+              <Button size="sm" className="rounded-full" disabled={!ready} onClick={submit}>
+                <Plus className="size-4" /> Provision gym
+              </Button>
+              <p className="text-muted-foreground text-xs">
+                Lands as {address ? `${address}.smartfit` : 'a derived address'} on the{' '}
+                <span className="font-semibold">{plan}</span> plan, trial status.
+              </p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function RegistrySection() {
   const { data } = useAdmin();
   const [query, setQuery] = useState('');
@@ -273,6 +446,8 @@ export function RegistrySection() {
 
   return (
     <div className="space-y-4">
+      <SetupGymCard />
+
       <div className="flex flex-wrap items-end gap-3">
         <div className="relative min-w-56 flex-1">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -523,12 +698,12 @@ export function GymDetailSection({ slug }: { slug: string }) {
               </Button>
             </div>
             <div className="flex items-end gap-2">
-              <Field id="gym-owner" label="Assign owner (uid)" className="flex-1">
+              <Field id="gym-owner" label="Assign owner (uid or email)" className="flex-1">
                 <Input
                   id="gym-owner"
                   value={ownerUid}
                   onChange={(e) => setOwnerUid(e.target.value)}
-                  placeholder={gym.ownerUid || 'firebase uid of the new owner'}
+                  placeholder={gym.ownerUid || 'uid or email of the new owner'}
                 />
               </Field>
               <Button

@@ -183,11 +183,12 @@ tracker stays exactly as private as it was.
   works and staff changes apply instantly.
 - **A platform console for the operator** — `/admin` (gated on the `sfRole`
   claim, re-verified server-side on every route): KPI overview and MRR, a gym
-  registry with suspend/restore (the reversible kill switch), an application
-  queue whose approve provisions a tenant and its owner, plan & limits config,
-  offline payment recording (cash/transfer/CMI — the local norm), an
-  append-only audit log, and read-only view-as-gym impersonation. Gyms apply
-  from the public "List your gym" form on `/gyms`.
+  registry with suspend/restore (the reversible kill switch), "Set up a gym"
+  (provision a tenant directly — address, plan, owner by email), an
+  application queue whose approve provisions a tenant and its owner, plan &
+  limits config, offline payment recording (cash/transfer/CMI — the local
+  norm), an append-only audit log, and read-only view-as-gym impersonation.
+  Gyms apply from the public "List your gym" form on `/gyms`.
 - **Demo mode** — with no Firebase project configured, the whole tenant tree
   runs on a fixture (including a role/persona switcher), which is how the
   preview and `pnpm test:e2e` exercise it. `pnpm seed:b2b` provisions the same
