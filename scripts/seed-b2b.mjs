@@ -113,6 +113,29 @@ async function main() {
   console.log('\n▸ Ensuring accounts');
   for (const person of PEOPLE) await ensureUser(person);
 
+  // A platform admin is an operator, not a member-in-waiting: without a
+  // completed profile the app would walk them through member onboarding
+  // (weight, plan, gym, goal) on first sign-in. Seed a minimal done profile;
+  // the login gateway sends them to /admin regardless, but this keeps the
+  // dashboard coherent too if they ever wander in.
+  for (const person of PEOPLE.filter((p) => p.claim === 'platform-admin')) {
+    await db.doc(`users/${person.uid}`).set(
+      {
+        profile: {
+          name: person.name,
+          weightUnit: 'kg',
+          distanceUnit: 'km',
+          weeklyRestDays: 2,
+          planId: 'full-body',
+          onboardingDone: true,
+        },
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+    console.log(`  + users/${person.uid} profile (onboarding done)`);
+  }
+
   console.log('\n▸ Ensuring tenant');
   // The document id IS the slug — that is what makes subdomains unique.
   const gymRef = db.doc(`gyms/${SLUG}`);

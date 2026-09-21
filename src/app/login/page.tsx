@@ -114,8 +114,10 @@ export default function LoginPage() {
    * started there. A `?gym=` param (set by every "join this gym" link on a
    * tenant site) sends them back to that gym instead of the dashboard —
    * signing in to book a class and landing on a personal dashboard is a dead
-   * end. A profile that hasn't finished setup goes to onboarding first; the
-   * gym is one tap from there.
+   * end. A **platform admin** lands on `/admin`, their console — walking an
+   * operator through member setup (weight, plan, gym, goal) reads as a bug,
+   * with or without a completed profile. Everyone else: a profile that hasn't
+   * finished setup goes to onboarding first; the gym is one tap from there.
    */
   useEffect(() => {
     if (!cloud || initializing || !user || !ready) return;
@@ -130,7 +132,16 @@ export default function LoginPage() {
       router.replace(tenantPath(gym));
       return;
     }
-    router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
+    const memberRoute = state.profile.onboardingDone ? '/dashboard' : '/onboarding';
+    // Cached token read: the claim was minted at sign-in, and this gateway
+    // only runs for a just-signed-in user. On a read failure, fall through to
+    // the member route rather than blocking the redirect.
+    user
+      .getIdTokenResult(false)
+      .then((res) =>
+        router.replace(res.claims?.sfRole === 'platform-admin' ? '/admin' : memberRoute),
+      )
+      .catch(() => router.replace(memberRoute));
   }, [cloud, initializing, user, ready, state.profile.onboardingDone, router]);
 
   // A local-mode deployment has no accounts at all — showing a sign-in form
