@@ -113,8 +113,19 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       headers: { authorization: `Bearer ${token}` },
       cache: 'no-store',
     });
-    const body = (await res.json().catch(() => ({}))) as Partial<AdminData> & { error?: string };
-    if (!res.ok) throw new Error(body.error ?? 'The platform data could not be loaded.');
+    const body = (await res.json().catch(() => ({}))) as Partial<AdminData> & {
+      error?: string;
+      detail?: string;
+    };
+    if (!res.ok) {
+      // `detail` carries the server-side cause (Firestore error, missing
+      // config…) straight onto the console instead of a generic refusal.
+      throw new Error(
+        [body.error ?? 'The platform data could not be loaded.', body.detail]
+          .filter(Boolean)
+          .join(' — '),
+      );
+    }
     setData(body as AdminData);
   }, [user]);
 

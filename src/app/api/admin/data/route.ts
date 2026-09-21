@@ -62,7 +62,11 @@ export async function GET(req: Request): Promise<Response> {
       plans,
     });
   } catch (err) {
-    console.error('[admin/data] failed:', err instanceof Error ? err.message : err);
-    return json({ error: 'The platform data could not be loaded. Try again.' }, 500);
+    // The underlying message travels to the admin's screen (this endpoint is
+    // already claim-gated) and to the function log — "could not be loaded"
+    // alone sent operators hunting through Vercel logs for the real cause.
+    const detail = err instanceof Error ? err.message : String(err);
+    console.error('[admin/data] failed:', detail);
+    return json({ error: 'The platform data could not be loaded.', detail }, 500);
   }
 }

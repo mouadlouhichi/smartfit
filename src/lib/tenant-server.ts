@@ -81,6 +81,33 @@ function demoData(slug: string): ServerTenantData {
 export async function loadTenantServer(slug: string): Promise<ServerTenantData> {
   if (!adminConfigured()) return demoData(slug);
 
+  // A runtime Firebase failure (bad credentials, Firestore unreachable) must
+  // not 500 every tenant page: the storefront degrades to its not-found shape
+  // and the real cause lands in the server log, tagged. A hard 500 on a gym's
+  // public page is the one failure this app cannot show a visitor.
+  try {
+    return await loadTenantCloud(slug);
+  } catch (err) {
+    console.error(`[tenant] gyms/${slug}:`, err instanceof Error ? err.message : err);
+    return cloudUnavailable();
+  }
+}
+
+/** The degraded cloud shape: mode cloud, nothing resolved. */
+function cloudUnavailable(): ServerTenantData {
+  return {
+    mode: 'cloud',
+    gym: null,
+    roster: [],
+    classes: [],
+    slots: [],
+    bookings: [],
+    plans: [],
+    invoices: [],
+  };
+}
+
+async function loadTenantCloud(slug: string): Promise<ServerTenantData> {
   const { db } = getAdminServices();
   const gymSnap = await db.doc(`gyms/${slug}`).get();
   if (!gymSnap.exists) {
