@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { loadGymPrograms } from '@/lib/tenant-server';
+import { loadGymProgramsResult } from '@/lib/tenant-server';
 
 /**
  * The live gym list for signed-in member surfaces (Plan tab's "Your gym"
@@ -11,13 +11,11 @@ import { loadGymPrograms } from '@/lib/tenant-server';
  * member's own selection lives in their profile, client-side.
  */
 export async function GET() {
-  try {
-    const gyms = await loadGymPrograms();
-    return NextResponse.json({ gyms });
-  } catch (err) {
-    // loadGymPrograms degrades to [] on its own; this is belt-and-braces so
-    // a surprise never surfaces as an unhandled 500 HTML page.
-    console.error('[api/gym-programs]:', err);
+  const { gyms, error } = await loadGymProgramsResult();
+  // Distinguish "no gyms yet" (200, empty list) from "the platform read
+  // failed" (503) — the GymPicker shows a retryable message for the latter.
+  if (error) {
     return NextResponse.json({ error: 'gyms-unavailable' }, { status: 503 });
   }
+  return NextResponse.json({ gyms });
 }

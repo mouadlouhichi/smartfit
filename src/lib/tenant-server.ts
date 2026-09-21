@@ -251,12 +251,19 @@ function toGymProgram(gym: GymTenant, classes: GymClass[], slots: GymSlot[]): Gy
  * (two collection queries per gym, capped by the directory's limit of 100).
  * Fine for tens of gyms; batch into one aggregate read if that grows.
  */
-export async function loadGymPrograms(): Promise<GymProgram[]> {
+export async function loadGymProgramsResult(): Promise<{
+  gyms: GymProgram[];
+  /** Set when the platform read failed — callers can surface a retry state. */
+  error: string | null;
+}> {
   if (!adminConfigured()) {
-    return demoGyms().map((gym) => {
-      const fixture = demoFixture(gym.slug);
-      return toGymProgram(gym, fixture?.classes ?? [], fixture?.slots ?? []);
-    });
+    return {
+      gyms: demoGyms().map((gym) => {
+        const fixture = demoFixture(gym.slug);
+        return toGymProgram(gym, fixture?.classes ?? [], fixture?.slots ?? []);
+      }),
+      error: null,
+    };
   }
 
   try {
@@ -285,9 +292,17 @@ export async function loadGymPrograms(): Promise<GymProgram[]> {
         }
       }),
     );
-    return programs.filter((p): p is GymProgram => p !== null);
+    return { gyms: programs.filter((p): p is GymProgram => p !== null), error: null };
   } catch (err) {
     console.error('[gym-programs] could not load the gym list:', err);
-    return [];
+    return {
+      gyms: [],
+      error: err instanceof Error ? err.message : 'gym-list-unavailable',
+    };
   }
+}
+
+/** Thin wrapper for callers that only want the list (onboarding). */
+export async function loadGymPrograms(): Promise<GymProgram[]> {
+  return (await loadGymProgramsResult()).gyms;
 }

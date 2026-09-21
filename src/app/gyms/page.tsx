@@ -34,10 +34,12 @@ export default async function GymsPage() {
   // platform data layer fails: members can still reach a gym via its own
   // link, and the operator sees the real error in the server log.
   let gyms: Awaited<ReturnType<typeof listGymsServer>> = [];
+  let listFailed = false;
   try {
     gyms = await listGymsServer();
   } catch (err) {
     console.error('[gyms-directory] could not list gyms:', err);
+    listFailed = true;
   }
 
   return (
@@ -53,7 +55,18 @@ export default async function GymsPage() {
         </p>
       </header>
 
-      {gyms.length === 0 ? (
+      {listFailed ? (
+        <Card>
+          <CardContent className="p-6 text-sm">
+            <p className="font-bold">We couldn&rsquo;t load the gym list</p>
+            <p className="text-muted-foreground mt-1">
+              This looks like a problem on our side, not an empty platform — try again in a moment.
+              Operators: the server log line starting{' '}
+              <code className="bg-muted rounded px-1">[gyms-directory]</code> has the cause.
+            </p>
+          </CardContent>
+        </Card>
+      ) : gyms.length === 0 ? (
         <Card>
           <CardContent className="text-muted-foreground p-6 text-sm">
             No gyms are listed yet — be the first.
