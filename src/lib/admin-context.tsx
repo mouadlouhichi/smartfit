@@ -77,6 +77,12 @@ export interface AdminState extends AdminMutations {
   overview: AdminOverview;
   loading: boolean;
   error: string | null;
+  /**
+   * Server-side diagnostics lines (see /api/admin/debug), fetched
+   * automatically when the data load fails so the error card can name the
+   * cause instead of sending the operator to the function logs.
+   */
+  diagnostics: string[] | null;
   /** Name of the mutation in flight, or null. */
   mutating: string | null;
   mutationError: string | null;
@@ -103,6 +109,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   );
   const [loading, setLoading] = useState(mode === 'cloud');
   const [error, setError] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<string[] | null>(null);
   const [mutating, setMutating] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
 
@@ -129,14 +136,53 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     setData(body as AdminData);
   }, [user]);
 
+  /** Ask the server why the data load failed; render the answer verbatim. */
+  const runDiagnostics = useCallback(async () => {
+    if (!user) return;
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch('/api/admin/debug', {
+        headers: { authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      const body = (await res.json().catch(() => null)) as {
+        config?: { mode?: string; env?: Record<string, boolean | string | null> };
+        probes?: Array<{ label: string; ok: boolean; ms: number; error?: string }>;
+        hint?: string;
+      } | null;
+      if (!body) return;
+      const lines: string[] = [];
+      if (body.config?.mode) lines.push(`config: ${body.config.mode}`);
+      if (body.config?.env) {
+        lines.push(
+          'env: ' +
+            Object.entries(body.config.env)
+              .map(([k, v]) => `${k}: ${typeof v === 'boolean' ? (v ? 'set' : 'MISSING') : v}`)
+              .join(' · '),
+        );
+      }
+      for (const p of body.probes ?? []) {
+        lines.push(`${p.ok ? '✓' : '✗'} ${p.label} (${p.ms}ms)${p.ok ? '' : ` — ${p.error}`}`);
+      }
+      if (body.hint) lines.push(`hint: ${body.hint}`);
+      setDiagnostics(lines);
+    } catch {
+      setDiagnostics(['diagnostics unavailable — see the server function logs']);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (mode !== 'cloud' || !user) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setDiagnostics(null);
     fetchData()
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Something went wrong.');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Something went wrong.');
+          void runDiagnostics();
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -144,15 +190,19 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [mode, user, fetchData]);
+  }, [mode, user, fetchData, runDiagnostics]);
 
   const reload = useCallback(() => {
     if (mode !== 'cloud') return;
     setLoading(true);
+    setDiagnostics(null);
     fetchData()
-      .catch((err) => setError(err instanceof Error ? err.message : 'Something went wrong.'))
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Something went wrong.');
+        void runDiagnostics();
+      })
       .finally(() => setLoading(false));
-  }, [mode, fetchData]);
+  }, [mode, fetchData, runDiagnostics]);
 
   /** POST a mutation, then refetch — show what the server accepted. */
   const post = useCallback(
@@ -455,12 +505,13 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       overview,
       loading,
       error,
+      diagnostics,
       mutating,
       mutationError,
       reload,
       ...mutations,
     }),
-    [mode, data, overview, loading, error, mutating, mutationError, reload, mutations],
+    [mode, data, overview, loading, error, diagnostics, mutating, mutationError, reload, mutations],
   );
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

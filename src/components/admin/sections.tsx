@@ -121,13 +121,18 @@ function fmtDateTime(ms: number): string {
 }
 
 export function SectionError() {
-  const { error, reload } = useAdmin();
+  const { error, reload, diagnostics } = useAdmin();
   if (!error) return null;
   return (
     <Card className="border-red-500/40">
       <CardContent className="text-sm">
         <p className="font-semibold text-red-600">Could not load platform data</p>
         <p className="text-muted-foreground mt-1">{error}</p>
+        {diagnostics && diagnostics.length > 0 && (
+          <pre className="bg-muted mt-3 overflow-x-auto rounded-lg p-3 font-mono text-[11px] leading-relaxed whitespace-pre-wrap">
+            {diagnostics.join('\n')}
+          </pre>
+        )}
         <Button size="sm" variant="outline" className="mt-3" onClick={reload}>
           Try again
         </Button>
