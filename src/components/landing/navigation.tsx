@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AccountLink } from './account-link';
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Logo } from '@/components/brand';
@@ -78,22 +79,23 @@ export function Navigation() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
-            <Link
-              href="/login"
+            <AccountLink
+              signedOutOnly
+              onClick={() => setIsMobileMenuOpen(false)}
               className={`font-bold text-[color:var(--foreground)]/70 transition-all duration-500 hover:text-[color:var(--foreground)] ${
                 isScrolled ? 'text-sm' : 'text-base'
               }`}
             >
               Sign in
-            </Link>
-            <Link
-              href="/login"
+            </AccountLink>
+            <AccountLink
+              onClick={() => setIsMobileMenuOpen(false)}
               className={`inline-flex items-center rounded-full bg-[color:var(--primary)] text-white transition-all duration-500 hover:bg-[color:var(--primary)]/90 ${
                 isScrolled ? 'h-8 px-4 text-sm' : 'px-6 py-2.5'
               }`}
             >
               Start training
-            </Link>
+            </AccountLink>
           </div>
 
           <button
@@ -137,18 +139,19 @@ export function Navigation() {
             }`}
             style={{ transitionDelay: isMobileMenuOpen ? '300ms' : '0ms' }}
           >
-            <Link
-              href="/login"
+            <AccountLink
+              signedOutOnly
+              onClick={() => setIsMobileMenuOpen(false)}
               className="flex h-14 flex-1 items-center justify-center rounded-full border border-[color:var(--foreground)]/20 text-base"
             >
               Sign in
-            </Link>
-            <Link
-              href="/login"
+            </AccountLink>
+            <AccountLink
+              onClick={() => setIsMobileMenuOpen(false)}
               className="flex h-14 flex-1 items-center justify-center rounded-full bg-[color:var(--primary)] text-base text-white"
             >
               Start training
-            </Link>
+            </AccountLink>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { AccountLink } from './account-link';
 import { ArrowRight, Check } from 'lucide-react';
 
 const PLANS = [
@@ -105,8 +105,7 @@ export function PricingSection() {
                 ))}
               </ul>
 
-              <Link
-                href="/login"
+              <AccountLink
                 className={`group flex w-full items-center justify-center gap-2 py-4 text-sm font-medium transition-all ${
                   planData.popular
                     ? 'bg-[color:var(--primary)] text-white hover:bg-[color:var(--primary)]/90'
@@ -115,7 +114,7 @@ export function PricingSection() {
               >
                 {planData.cta}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </Link>
+              </AccountLink>
             </div>
           ))}
         </div>

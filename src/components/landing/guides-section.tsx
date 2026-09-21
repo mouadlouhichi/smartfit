@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AccountLink } from './account-link';
 import { ArrowRight } from 'lucide-react';
 
 const GUIDES = [
@@ -79,12 +80,9 @@ export function GuidesSection() {
         </div>
 
         <div className="mt-12 flex flex-wrap gap-3">
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 rounded-full bg-[color:var(--foreground)] px-6 py-3 text-sm font-medium text-[color:var(--background)] hover:bg-[color:var(--foreground)]/90"
-          >
+          <AccountLink className="inline-flex items-center gap-2 rounded-full bg-[color:var(--foreground)] px-6 py-3 text-sm font-medium text-[color:var(--background)] hover:bg-[color:var(--foreground)]/90">
             Start training free <ArrowRight className="h-4 w-4" />
-          </Link>
+          </AccountLink>
           <Link
             href="/#features"
             className="inline-flex items-center gap-2 rounded-full border border-[color:var(--foreground)]/10 px-6 py-3 text-sm font-medium hover:border-[color:var(--foreground)]/30"

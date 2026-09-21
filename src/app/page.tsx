@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { LandingSessionProvider } from '@/components/landing/account-link';
 import { Navigation } from '@/components/landing/navigation';
 import { HeroSection } from '@/components/landing/hero-section';
 import { WhatIsSection } from '@/components/landing/what-is-section';
@@ -47,21 +48,23 @@ export default function HomePage() {
       id="main-content"
       className="landing dark noise-overlay relative min-h-screen overflow-x-hidden"
     >
-      <Navigation />
-      <HeroSection />
-      <WhatIsSection />
-      <FeaturesSection />
-      <HowItWorksSection />
-      <FreeListSection />
-      <MetricsSection />
-      <PlansSection />
-      <ActivitySection />
-      <SecuritySection />
-      <PricingSection />
-      <GuidesSection />
-      <FaqSection />
-      <CtaSection />
-      <FooterSection />
+      <LandingSessionProvider>
+        <Navigation />
+        <HeroSection />
+        <WhatIsSection />
+        <FeaturesSection />
+        <HowItWorksSection />
+        <FreeListSection />
+        <MetricsSection />
+        <PlansSection />
+        <ActivitySection />
+        <SecuritySection />
+        <PricingSection />
+        <GuidesSection />
+        <FaqSection />
+        <CtaSection />
+        <FooterSection />
+      </LandingSessionProvider>
     </main>
   );
 }
