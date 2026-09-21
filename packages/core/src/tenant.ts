@@ -468,6 +468,16 @@ export function resolveTenantHost(
 
   const h = normalizeHost(host ?? '');
   if (!h) return null;
+  // PaaS-managed hosts are never tenants, whatever the apex configuration
+  // says: `vercel.app` sub-hosts are per-deployment aliases Vercel assigns
+  // (`smartfit-mouadlouhichis-projects.vercel.app`) and their prefix can be a
+  // perfectly valid slug — with the apex misconfigured to `vercel.app`, every
+  // deployment alias resolved to a phantom tenant and the middleware rewrote
+  // the entire app into the tenant tree (`/admin` and `/dashboard` 404, the
+  // landing page became "not open yet"). Real tenants hang off the
+  // deployment's own apex, never off a PaaS host nobody controls. `e2b.app`
+  // is the same class (sandbox previews).
+  if (h.endsWith('.vercel.app') || h.endsWith('.e2b.app')) return null;
   if (baseHosts.has(h)) return null;
 
   // Longest apex first so a nested apex wins over its parent.

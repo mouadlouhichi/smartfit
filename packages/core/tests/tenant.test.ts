@@ -191,6 +191,19 @@ test('resolveTenantHost refuses empty and absent hosts', () => {
   assert.equal(resolveTenantHost('acme.smartfit.app', {}), null);
 });
 
+test('resolveTenantHost never resolves PaaS deployment hosts, whatever the apex', () => {
+  // The trap in the wild: apex misconfigured to `vercel.app`, and a
+  // deployment alias whose prefix is a valid slug — the whole site rewrote
+  // into a phantom tenant (/admin and /dashboard 404, / said "not open yet").
+  const loose = { apexDomains: ['vercel.app'] };
+  assert.equal(resolveTenantHost('smartfit-mouadlouhichis-projects.vercel.app', loose), null);
+  assert.equal(resolveTenantHost('acme.vercel.app', loose), null);
+  const sandbox = { apexDomains: ['e2b.app'] };
+  assert.equal(resolveTenantHost('8080-abc123.e2b.app', sandbox), null);
+  // Real apexes keep resolving.
+  assert.equal(resolveTenantHost('acme.smartfit.app', APEX), 'acme');
+});
+
 test('resolveTenantHost honours explicit base hosts', () => {
   const opts = { apexDomains: ['e2b.app'], baseHosts: ['8080-abc123.e2b.app'] };
   // Without baseHosts this prefix is a perfectly valid slug — which is exactly
@@ -200,24 +213,26 @@ test('resolveTenantHost honours explicit base hosts', () => {
 });
 
 test('resolveTenantHost rejects a loose apex that would swallow the base host', () => {
-  // With apex e2b.app the sandbox host itself has a slug-shaped prefix.
+  // With a loose apex the sandbox host itself has a slug-shaped prefix. (The
+  // fixture is a neutral domain: the real PaaS suffixes vercel.app/e2b.app
+  // are never tenants at all — see the dedicated test above.)
   assert.equal(isValidSlug('8080-abc123'), true);
   assert.equal(
-    resolveTenantHost('8080-abc123.e2b.app', { apexDomains: ['e2b.app'] }),
+    resolveTenantHost('8080-abc123.paas-sandbox.test', { apexDomains: ['paas-sandbox.test'] }),
     '8080-abc123',
   );
 });
 
 test('resolveTenantHost rejects multi-label prefixes unless explicitly allowed', () => {
-  const loose = { apexDomains: ['e2b.app'] };
-  assert.equal(resolveTenantHost('acme.8080-abc123.e2b.app', loose), null);
+  const loose = { apexDomains: ['paas-sandbox.test'] };
+  assert.equal(resolveTenantHost('acme.8080-abc123.paas-sandbox.test', loose), null);
   assert.equal(
-    resolveTenantHost('acme.8080-abc123.e2b.app', { ...loose, allowNestedHosts: true }),
+    resolveTenantHost('acme.8080-abc123.paas-sandbox.test', { ...loose, allowNestedHosts: true }),
     'acme',
   );
   // A reserved leading label is still refused even when nesting is allowed.
   assert.equal(
-    resolveTenantHost('admin.8080-abc123.e2b.app', { ...loose, allowNestedHosts: true }),
+    resolveTenantHost('admin.8080-abc123.paas-sandbox.test', { ...loose, allowNestedHosts: true }),
     null,
   );
 });
