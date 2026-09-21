@@ -36,6 +36,7 @@ import {
   type GymMembership,
 } from '@smartfit/core';
 import { formatMoney, useTenant } from '@/lib/tenant-context';
+import { useAuth } from '@/lib/firebase/auth-context';
 import type { GymBooking, GymClass, GymSlot } from '@/lib/firebase/tenant-repo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1011,6 +1012,48 @@ function SettingsSection() {
 
 // ── Shell ────────────────────────────────────────────────────────────────────
 
+/**
+ * View-as banner. Persistent by design: it cannot be dismissed, only exited,
+ * and it says who is being impersonated. Entering a view-as session also
+ * appends to the platform audit trail (best-effort — a failed audit write
+ * must not break the read-only browse, but it is never silent on the server).
+ */
+function ViewAsBanner() {
+  const t = useTenant();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (t.mode !== 'cloud' || !user) return;
+    user
+      .getIdToken()
+      .then((token) =>
+        fetch('/api/admin/impersonate', {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ slug: t.slug }),
+        }),
+      )
+      .catch(() => {
+        /* the audit entry is best-effort; the read-only guarantee is not */
+      });
+  }, [t.mode, t.slug, user]);
+
+  return (
+    <div
+      role="status"
+      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 p-3 text-sm text-sky-700 dark:text-sky-300"
+    >
+      <span className="font-medium">
+        Viewing as {t.gym?.name ?? t.slug} — read-only. Every screen you see is what the gym sees;
+        nothing you click can change anything. This session is audited.
+      </span>
+      <Button asChild size="sm" variant="outline">
+        <a href={`/g/${t.slug}/console`}>Exit view-as</a>
+      </Button>
+    </div>
+  );
+}
+
 export function Console() {
   const t = useTenant();
   const [tab, setTab] = useState<string | null>(null);
@@ -1101,6 +1144,8 @@ export function Console() {
           the ID-token claim and the membership document are the sole inputs.
         </div>
       )}
+
+      {t.viewAs && <ViewAsBanner />}
 
       {t.mutationError && (
         <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-600">

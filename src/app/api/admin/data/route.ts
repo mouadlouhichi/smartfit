@@ -1,0 +1,44 @@
+/**
+ * GET /api/admin/data — everything one admin page load needs.
+ *
+ * One endpoint rather than one per section because the console's sections all
+ * read from the same world: suspending a gym changes the registry *and* the
+ * KPI band *and* possibly MRR. One response keeps them from disagreeing.
+ *
+ * The caller's `sfRole` claim is verified before anything is read — this data
+ * lives under `platform/**`, which the rules deny to browsers entirely.
+ */
+import {
+  json,
+  loadAdminRegistry,
+  loadApplications,
+  loadEffectivePlans,
+  loadPlatformInvoices,
+  loadRecentAudit,
+  requirePlatformAdmin,
+} from '@/lib/admin-server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: Request): Promise<Response> {
+  const auth = await requirePlatformAdmin(req);
+  if (auth.error) return auth.error;
+  const { services } = auth;
+
+  try {
+    // Plans first: the registry's MRR rollup is computed client-side against
+    // the same effective tiers, so both must come from this one response.
+    const plans = await loadEffectivePlans(services);
+    const [gyms, applications, audit, invoices] = await Promise.all([
+      loadAdminRegistry(services),
+      loadApplications(services),
+      loadRecentAudit(services),
+      loadPlatformInvoices(services),
+    ]);
+    return json({ mode: 'cloud', gyms, applications, audit, invoices, plans });
+  } catch (err) {
+    console.error('[admin/data] failed:', err instanceof Error ? err.message : err);
+    return json({ error: 'The platform data could not be loaded. Try again.' }, 500);
+  }
+}

@@ -558,6 +558,69 @@ async function main() {
     { merge: true },
   );
 
+  // ── Platform data (admin console) ───────────────────────────────────────
+  // The `/admin` console reads `platform/**` through the Admin SDK only, so
+  // this is the one way its queue, books and audit trail get demo content.
+  console.log('\n▸ Ensuring platform data');
+
+  await db
+    .collection('platform')
+    .doc('applications')
+    .collection('entries')
+    .doc('app-casa-boxing')
+    .set(
+      {
+        gymName: 'Casablanca Boxing Club',
+        slug: 'casa-boxing',
+        city: 'Casablanca',
+        email: 'contact@casaboxing.ma',
+        instagram: '@casaboxing',
+        message:
+          'Two rings, twelve coaches, running since 2014. We want online booking for our evening classes.',
+        status: 'pending',
+        createdAt: now - 2 * DAY,
+      },
+      { merge: true },
+    );
+
+  const platformPayments = [
+    ['pinv-seed-1', 0.2, 'transfer'],
+    ['pinv-seed-2', 31, 'cmi'],
+    ['pinv-seed-3', 62, 'cmi'],
+  ];
+  for (const [id, daysAgo, method] of platformPayments) {
+    await db
+      .collection('platform')
+      .doc('invoices')
+      .collection('entries')
+      .doc(id)
+      .set(
+        {
+          slug: SLUG,
+          amountMinor: 129_000,
+          currency: 'MAD',
+          method,
+          status: 'paid',
+          paidAt: now - Math.round(daysAgo * DAY),
+          recordedBy: 'b2b-admin',
+        },
+        { merge: true },
+      );
+  }
+
+  const auditRows = [
+    ['payment:record', SLUG, 0.2, { amountMinor: 129_000, method: 'transfer' }],
+    ['role:grant', 'b2b-admin', 60, { claim: 'sfRole' }],
+  ];
+  for (const [action, target, daysAgo, meta] of auditRows) {
+    await db
+      .collection('platform')
+      .doc('audit')
+      .collection('entries')
+      .add({ actorUid: 'b2b-admin', action, target, at: now - Math.round(daysAgo * DAY), meta });
+  }
+  console.log('  + 1 pending application, 3 platform payments, audit entries');
+
   console.log('\n✔ Seed complete.\n');
   console.log(`  Tenant subdomain : ${SLUG}  →  /g/${SLUG}`);
   console.log(`  Password (all)   : ${PASSWORD}`);

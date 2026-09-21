@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { MapPin, ArrowRight } from 'lucide-react';
 import { listGymsServer } from '@/lib/tenant-server';
 import { Wordmark } from '@/components/brand';
+import { ApplyCard } from '@/components/tenant/apply-card';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -47,11 +48,7 @@ export default async function GymsPage() {
       {gyms.length === 0 ? (
         <Card>
           <CardContent className="text-muted-foreground p-6 text-sm">
-            No gyms are listed yet. If you run one,{' '}
-            <Link href="/" className="underline underline-offset-4">
-              come back soon
-            </Link>{' '}
-            — self-serve applications are on the way.
+            No gyms are listed yet — be the first.
           </CardContent>
         </Card>
       ) : (
@@ -91,10 +88,17 @@ export default async function GymsPage() {
         </div>
       )}
 
-      <footer className="text-muted-foreground border-border/60 border-t pt-4 text-xs">
-        Gyms get their own address like <code className="font-mono">zone-fight.smartfit.app</code> —
-        every page is also reachable at{' '}
-        <code className="font-mono">smartfit.app/g/&#123;gym&#125;</code>.
+      <ApplyCard />
+
+      <footer className="text-muted-foreground border-border/60 flex flex-wrap justify-between gap-3 border-t pt-4 text-xs">
+        <span>
+          Gyms get their own address like <code className="font-mono">zone-fight.smartfit.app</code>{' '}
+          — every page is also reachable at{' '}
+          <code className="font-mono">smartfit.app/g/&#123;gym&#125;</code>.
+        </span>
+        <a href="/admin" className="hover:text-foreground underline underline-offset-4">
+          Platform admin
+        </a>
       </footer>
     </div>
   );

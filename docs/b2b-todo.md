@@ -169,14 +169,61 @@ the B2C app is untouched (see the guard below).
       the strongest statement available without a project
 - [ ] Reminders for booked classes (should-have; needs notifications infra)
 
-## Phase 8 — Platform admin ⬜
+## Phase 8 — Platform admin 🟡 (demo-verified; cloud writes unexercised)
 
-- [ ] `/admin` gate on the `sfRole` claim
-- [ ] KPI overview · gym registry · gym detail (suspend / restore / change plan)
-- [ ] Application queue → provision tenant + subdomain + owner claim
-- [ ] Plans & limits config
-- [ ] Revenue, incl. offline/transfer payment recording (CMI is the local gateway)
-- [ ] Audit log · view-as-gym impersonation (read-only, always audited)
+- [x] `/admin` gate on the `sfRole` claim — client check for UX, every route
+      re-verifies from the decoded token server-side. Claim staleness
+      (~1 h) handled visibly: the refusal card offers *Recheck my access*
+      (`getIdToken(true)`), it never just says no
+- [x] KPI overview — live gyms, platform MRR (active + past-due only; trials
+      are not revenue), members/staff/classes totals, collected 30d, new this
+      month, tenants-by-status, MRR by plan, pending-applications worklist.
+      `computeAdminOverview` is pure, **10 unit tests** (`tests/admin-model.test.ts`)
+- [x] Gym registry — searchable (name/slug/city), status-filtered, rollups
+      (members, classes, member revenue) assembled server-side by the Admin SDK
+- [x] Gym detail — profile, plan vs usage, lifecycle actions (suspend /
+      restore / close — reversible kill switch, field updates only), change
+      platform plan, assign owner (writes the membership row the rules read),
+      subscription payment history
+- [x] Application queue → approve provisions the tenant (`status: 'trial'`,
+      Starter plan, owner membership row when the email matches an account,
+      slug uniqueness enforced — a taken explicit slug fails loudly, a
+      generated one disambiguates); reject records a reason. Public intake is
+      the rate-limited `/api/apply` + the "List your gym" form on `/gyms`
+- [x] Plans & limits config — price/limits per tier, merged over
+      `platform/config`, every field bounded server-side
+      (`validatePlanPatch`, tested)
+- [x] Revenue — platform MRR, collected 30d, per-gym rollup, and
+      **offline payment recording** (cash / transfer / CMI — the local norm),
+      defaulting to the gym's plan price
+- [x] Audit log — every admin route appends actor/action/target/meta to
+      `platform/audit/entries` (same stream the claims route writes); shown
+      newest-first. Append-only by construction (Admin SDK only)
+- [x] View-as-gym impersonation — `/g/{slug}/console?viewAs=1` renders every
+      console screen **read-only by construction**: the tenant provider's
+      single write path refuses all mutations while the banner is up.
+      Persistent, named banner; entering the session is audited
+- [x] Demo fixtures (`admin-demo.ts`) — four gyms, a pending application, a
+      rejected one, payments, audit entries — so the whole console is
+      explorable in preview; `seed:b2b` now seeds the same shape into a real
+      project (1 pending application, 3 platform payments, audit entries)
+- [x] **Verified in the dev server**: all 7 `/admin` routes + detail render
+      with demo content (KPIs, registry rows, queue, tiers, payments, audit);
+      **and against the production build**: every route 200,
+      `POST /api/admin/gym` (the kill switch) refuses an unauthenticated call
+      with 401, `/api/apply` validates live (bad email → 400 with both
+      errors; reserved slug `admin` → the applicant-facing message)
+- [x] e2e (`e2e/tenant.spec.ts`, +4 tests): KPI band + registry filter,
+      suspend → audit entry, approve → provisioned tenant in registry,
+      plans edit. ⛔ runs in CI only (Playwright CDN unreachable here)
+- [ ] ⛔ Cloud writes unexercised — no Firebase project in the sandbox, so
+      provisioning, suspend/restore, plan changes, payment recording and the
+      apply intake have never run against real Firestore. Their Firestore
+      side-effects are Admin-SDK only (which bypasses rules by design), so
+      the emulator suite would not cover them either; they need a staging
+      project
+- [ ] Per-tenant feature flags (`platform/config.flags`)
+- [ ] Announcements to gym owners; data-export/delete for compliance
 
 ## Phase 9 — B2B billing ⬜
 
@@ -202,14 +249,16 @@ the B2C app is untouched (see the guard below).
 | --- | --- | --- |
 | `pnpm typecheck` | exit 0 | run after every phase so far |
 | `pnpm lint` | exit 0 | 0 errors; 1 **pre-existing** `<img>` warning at `profile-screen.tsx:775` |
-| `pnpm test` | **135/135** | +6 `tests/gym-share.test.ts` (share aggregates); includes the env-docs guard |
+| `pnpm test` | **145/145** | +10 `tests/admin-model.test.ts` (overview arithmetic, plan bounds, application intake); includes the env-docs guard |
 | `pnpm --filter @smartfit/core test` | **238/238** | was 171 before the pivot; +67 |
 | `pnpm test:rules` | ⛔ **cannot run here** | needs Java + emulator jar from GCS; checkin rules tests **written** (+1 test, 7 asserts) |
-| tenant routes (dev server) | ✅ all 200, clean log | `/`, `/g/{slug}`, `/g/{slug}/class/{classId}`, `/g/{slug}/console`, `/gyms`, `/dashboard`, `/login`; reserved + malformed slugs render the not-found state; unknown class id → 404 |
+| tenant routes (dev server) | ✅ all 200, clean log | `/`, `/g/{slug}`, `/g/{slug}/class/{classId}`, `/g/{slug}/console`, `/gyms` (incl. the apply form), `/dashboard`, `/login`; reserved + malformed slugs render the not-found state; unknown class id → 404 |
+| admin routes (dev server) | ✅ all 7 + gym detail | `/admin`, `/admin/gyms`, `/admin/gyms/{slug}`, `/admin/applications`, `/admin/plans`, `/admin/revenue`, `/admin/audit` render with demo content (KPI band, registry, queue, tiers, payments, audit) |
+| admin API guards (prod build) | ✅ | `GET /api/admin/data` → 401 without a token; `POST /api/admin/gym` (kill switch) → 401; `POST /api/apply` validates live: junk email → 400 with combined errors, reserved slug `admin` → applicant-facing message |
 | tenant SSR content (curl) | ✅ | storefront HTML contains the member section (membership card, My classes, Visits, Progress sharing), per-tenant `<title>`/`og:` metadata, class-detail occurrences with seat counts, directory entries |
-| `pnpm start` (production) | ✅ all 200 | every route served from the built output, including `/gyms`, `/login`, `/dashboard`, console + class pages. Gotcha found: building while `next dev` is running corrupts `.next` (prod then 500s half the routes) — **stop the dev server before `pnpm build`**; a clean rebuild of identical code serves everything |
-| `pnpm build` | ✅ **exit 0** | first full production build of the pivot; `/g/*` + `/gyms` correctly dynamic, middleware 32.9 kB |
-| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (7 tests); `cdn.playwright.dev` unreachable so browsers won't download — CI runs it |
+| `pnpm start` (production) | ✅ all 200 | 16 routes swept from the built output — dashboard, storefront, class detail, console, `/gyms`, all 7 admin pages, `/login`. Gotcha found: building while `next dev` is running corrupts `.next` (prod then 500s half the routes) — **stop the dev server before `pnpm build`** |
+| `pnpm build` | ✅ **exit 0** | `/g/*`, `/gyms`, `/admin/**` + all admin/apply API routes correctly dynamic; middleware 32.9 kB |
+| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (11 tests: tenant journey + admin console); `cdn.playwright.dev` unreachable so browsers won't download — CI runs it |
 
 ## Known environment constraints
 
@@ -220,3 +269,8 @@ the B2C app is untouched (see the guard below).
   unreachable, which is what blocks the Firestore emulator and Playwright browsers.
 - No Firebase project is configured, so the app runs in **local mode** — cloud-only
   paths cannot be exercised end-to-end here.
+- **ToastProvider is root-mounted** (`AppProviders`), as of Phase 8. It used to be
+  mounted per subtree (DashboardShell, then tenant shell, then admin), and every new
+  route tree 500'd on its first `useToast()` until someone remembered — that bug
+  happened three separate times. The stack is viewport-fixed, so one root mount is
+  position-identical; do not reintroduce per-shell mounts.

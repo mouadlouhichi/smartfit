@@ -129,3 +129,54 @@ test('an owner sees the business tabs the staff cannot', async ({ page }) => {
   await expect(page.getByRole('tab', { name: 'Revenue' })).toBeVisible();
   await expect(page.getByRole('tab', { name: 'Settings' })).toBeVisible();
 });
+
+// ── Platform admin (demo mode) ────────────────────────────────────────────────
+
+test('the admin console renders the KPI band and registry from demo data', async ({ page }) => {
+  await page.goto('/admin');
+  await expect(page.getByRole('heading', { name: 'SmartFit platform' })).toBeVisible();
+  await expect(page.getByText('Live gyms')).toBeVisible();
+  await expect(page.getByText('Platform MRR')).toBeVisible();
+  await expect(page.getByText('Applications waiting')).toBeVisible();
+
+  await page.getByRole('link', { name: 'Gyms' }).click();
+  await expect(page).toHaveURL(/\/admin\/gyms$/);
+  await expect(page.getByText('Zone Fight')).toBeVisible();
+  await expect(page.getByText('Atlas Fit Club')).toBeVisible();
+
+  // Status filter narrows the registry.
+  await page.getByLabel('Status').selectOption('suspended');
+  await expect(page.getByText('Pilates & Co')).toBeVisible();
+  await expect(page.getByText('Zone Fight')).toHaveCount(0);
+});
+
+test('an admin suspends a gym and the registry reflects it', async ({ page }) => {
+  await page.goto('/admin/gyms/iron-house');
+  await expect(page.getByRole('heading', { name: 'Iron House Strength' })).toBeVisible();
+  await page.getByRole('button', { name: 'Suspend' }).click();
+  await expect(page.getByText('Iron House Strength suspended')).toBeVisible();
+
+  // The audit trail records the action — append-only, visible here.
+  await page.goto('/admin/audit');
+  await expect(page.getByText('gym:suspend')).toBeVisible();
+});
+
+test('approving an application provisions a tenant', async ({ page }) => {
+  await page.goto('/admin/applications');
+  await expect(page.getByRole('heading', { name: 'Waiting for review' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Approve & provision' }).first().click();
+  await expect(page.getByText(/Provisioned/)).toBeVisible();
+
+  // The new gym appears in the registry, on a trial status.
+  await page.goto('/admin/gyms');
+  await expect(page.getByText('Casablanca Boxing Club')).toBeVisible();
+});
+
+test('plans config edits a tier', async ({ page }) => {
+  await page.goto('/admin/plans');
+  // The Field contract gives every control a stable id (see docs/design-system.md §4).
+  await page.locator('#starter-members').fill('150');
+  await page.getByRole('button', { name: 'Save Starter' }).click();
+  await expect(page.getByText('Starter updated')).toBeVisible();
+});

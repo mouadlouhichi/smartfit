@@ -174,6 +174,11 @@ export interface TenantState extends TenantMutations {
    * true in demo mode). Gates the member section against the join-CTA flash.
    */
   memberDataReady: boolean;
+  /**
+   * True while a platform admin is viewing this gym read-only
+   * (`/g/{slug}/console?viewAs=1`). Mutations are refused in `run()`.
+   */
+  viewAs: boolean;
   role: Role;
   metrics: TenantMetrics;
   demoRole: DemoRole | null;
@@ -217,12 +222,27 @@ export function TenantProvider({
   const [mutating, setMutating] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   /**
+   * View-as (impersonation): a platform admin browsing this gym read-only,
+   * entered via `?viewAs=1` from the admin console. Every mutation is refused
+   * while it is on — read-only is enforced in this provider, not in the UI
+   * that happens to be rendering, so no button anywhere can write.
+   */
+  const [viewAs, setViewAs] = useState(false);
+  /**
    * The uid whose member-half data (membership, my bookings, share) is on
    * screen, or null once resolved for a signed-out visitor. While it lags
    * behind `user` the member section stays hidden rather than flashing the
    * join CTA at someone who joined months ago.
    */
   const [resolvedUid, setResolvedUid] = useState<string | null>(null);
+
+  // Platform admins impersonate via ?viewAs=1 (cloud mode only — in demo the
+  // role switcher already renders every persona).
+  useEffect(() => {
+    if (mode !== 'cloud') return;
+    const on = new URLSearchParams(window.location.search).get('viewAs') === '1';
+    setViewAs(on);
+  }, [mode]);
 
   // Demo mutations read the latest collections to decide (is the class full?
   // whose booking is this?) before applying functional updates. A closure over
@@ -358,6 +378,12 @@ export function TenantProvider({
    */
   const runVal = useCallback(
     async <T,>(action: string, cloud: () => Promise<T>, demo: () => T): Promise<T | null> => {
+      // Impersonation is read-only by construction: the refusal lives here,
+      // in the single write path, so no screen can bypass it.
+      if (viewAs) {
+        setMutationError('Read-only — you are viewing as this gym. Exit the banner to act.');
+        return null;
+      }
       setMutating(action);
       setMutationError(null);
       try {
@@ -375,7 +401,7 @@ export function TenantProvider({
         setMutating(null);
       }
     },
-    [mode, fetchAll],
+    [mode, fetchAll, viewAs],
   );
 
   /**
@@ -669,6 +695,7 @@ export function TenantProvider({
       myCheckins,
       gymShare,
       memberDataReady,
+      viewAs,
       role,
       metrics,
       demoRole: mode === 'demo' ? demoRole : null,
@@ -698,6 +725,7 @@ export function TenantProvider({
     myCheckins,
     gymShare,
     memberDataReady,
+    viewAs,
     role,
     demoRole,
     reload,
