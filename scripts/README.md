@@ -63,3 +63,32 @@ class later **today** so the staff "Today" view is populated whatever day it
 runs. Idempotent: every write targets a deterministic document id, so re-run
 it freely (it also refreshes the "later today" slot). Sign in as any seeded
 account, then open `/g/{slug}` and switch the demo role, or `/g/{slug}/console`.
+
+## `promote-custom-gym.mjs` — turn a personal custom gym into a real tenant
+
+A member's "custom gyms" live in `users/{uid}/customGyms` — private data with
+owner-only rules. When that person wants to run a *real* gym on SmartFit, this
+script promotes one of them into a B2B tenant: it provisions `gyms/{slug}`
+(trial status, chosen platform plan), writes the owner membership row the
+security rules read, and converts every class into a real template — classes
+with a weekday + time also get their next occurrence scheduled as a slot.
+
+Nothing is moved: the original customGym document stays exactly where it was.
+
+```bash
+FIREBASE_PROJECT_ID=... FIREBASE_CLIENT_EMAIL=... FIREBASE_PRIVATE_KEY="..." \
+B2B_PROMOTE_UID=<uid> B2B_PROMOTE_GYM=<customGym doc id> \
+node scripts/promote-custom-gym.mjs
+```
+
+| Env | Default | Purpose |
+| --- | --- | --- |
+| `B2B_PROMOTE_UID` | — | The member whose custom gym is being promoted |
+| `B2B_PROMOTE_GYM` | — | The `customGyms` document id |
+| `B2B_GYM_SLUG` | slugged gym name | Tenant slug / subdomain; errors if taken |
+| `B2B_PLAN` | `starter` | Platform plan for the new tenant |
+| `B2B_PROMOTE_FORCE` | _unset_ | `1` allows merging into an existing tenant doc |
+
+Idempotent for classes and slots (document ids derive from the custom class
+ids), so a re-run updates in place. `pnpm seed:b2b` remains the way to stand
+up a full demo tenant with accounts and bookings.

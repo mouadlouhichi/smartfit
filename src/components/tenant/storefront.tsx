@@ -18,10 +18,11 @@ import { useMemo } from 'react';
 import { Clock, MapPin, Phone, Mail, AtSign, CalendarDays, Users, Dumbbell } from 'lucide-react';
 import { isGymLive, type GymTenant } from '@smartfit/core';
 import { useTenant, formatMoney } from '@/lib/tenant-context';
-import type { GymClass, GymSlot } from '@/lib/firebase/tenant-repo';
+import type { GymClass, GymSlot, MembershipPlanDoc } from '@/lib/firebase/tenant-repo';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { MyGym, SlotBookingActions } from '@/components/tenant/my-gym';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -67,6 +68,72 @@ function NotLive({ gym }: { gym: GymTenant | null }) {
           : 'The page is being set up. Check back shortly.'}
       </p>
     </div>
+  );
+}
+
+/**
+ * One published plan.
+ *
+ * The action is honest about who is looking: a stranger signs in (or jumps to
+ * the member section to join), a member *requests* the plan — a draft invoice
+ * the desk collects when the money changes hands. No button here can buy a
+ * membership outright, because no browser can mint a paid invoice.
+ */
+function PlanCard({ plan, joinHref }: { plan: MembershipPlanDoc; joinHref: string }) {
+  const t = useTenant();
+  const toast = useToast();
+  const isMember = !!t.membership;
+  const pending = t.myInvoices.some((i) => i.planId === plan.id && i.status === 'draft');
+
+  async function onRequest() {
+    const ok = await t.requestPlanPurchase(plan.id);
+    if (ok) toast('Request sent — pay at the desk to activate', 'success');
+    else toast(t.mutationError ?? 'Could not request that plan', 'info');
+  }
+
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base">{plan.name}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col gap-3">
+        <p className="text-3xl font-black tracking-tight">
+          {formatMoney(plan.priceMinor, plan.currency)}
+        </p>
+        <p className="text-muted-foreground text-xs capitalize">per {plan.period}</p>
+        {plan.description && (
+          <p className="text-muted-foreground flex-1 text-sm">{plan.description}</p>
+        )}
+        {typeof plan.joinFeeMinor === 'number' && plan.joinFeeMinor > 0 && (
+          <p className="text-muted-foreground text-xs">
+            + {formatMoney(plan.joinFeeMinor, plan.currency)} join fee
+          </p>
+        )}
+        {isMember ? (
+          pending ? (
+            <Badge
+              className="mt-auto justify-center bg-amber-500/15 text-amber-600"
+              variant="secondary"
+            >
+              Waiting for the desk
+            </Badge>
+          ) : (
+            <Button
+              className="mt-auto w-full"
+              variant="outline"
+              onClick={onRequest}
+              disabled={t.mutating !== null}
+            >
+              Choose this plan
+            </Button>
+          )
+        ) : (
+          <Button asChild className="mt-auto w-full">
+            <a href={joinHref}>Join</a>
+          </Button>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -309,28 +376,7 @@ export function Storefront() {
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {publishedPlans.map((plan) => (
-              <Card key={plan.id} className="flex flex-col">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{plan.name}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-3">
-                  <p className="text-3xl font-black tracking-tight">
-                    {formatMoney(plan.priceMinor, plan.currency)}
-                  </p>
-                  <p className="text-muted-foreground text-xs capitalize">per {plan.period}</p>
-                  {plan.description && (
-                    <p className="text-muted-foreground flex-1 text-sm">{plan.description}</p>
-                  )}
-                  {typeof plan.joinFeeMinor === 'number' && plan.joinFeeMinor > 0 && (
-                    <p className="text-muted-foreground text-xs">
-                      + {formatMoney(plan.joinFeeMinor, plan.currency)} join fee
-                    </p>
-                  )}
-                  <Button asChild className="mt-auto w-full">
-                    <a href={joinHref}>Join</a>
-                  </Button>
-                </CardContent>
-              </Card>
+              <PlanCard key={plan.id} plan={plan} joinHref={joinHref} />
             ))}
           </div>
         </section>

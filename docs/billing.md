@@ -80,7 +80,44 @@ specified so the finance work can land without touching product code:
 5. Decide provider precedence if both Stripe and CMI are live (today:
    Stripe first; likely: geo-based — CMI for MAD, Stripe otherwise).
 
-## 4. Rules that never change
+## 4. B2B — gym contracts & membership sales
+
+The `BillingProvider` above sells SmartFit **Pro to one person**. B2B adds two
+money flows it deliberately does not model, both built **offline-first**
+because that is how this market pays (bank transfer and cash; CMI at the
+terminal). The shared arithmetic lives in `src/lib/billing/gym-contract.ts`
+(pure, tested in `tests/gym-contract.test.ts`).
+
+**Platform → gym (the contract).** A gym pays a monthly platform fee. The
+path is *recorded* payments, not checkout links:
+
+- `/api/admin/payment` records a payment into `platform/invoices/entries`
+  (audited) and auto-converts a `trial` gym to `active` / clears `past_due`
+  (`gymStatusAfterPayment`) — money arriving must never un-suspend a gym.
+- Dunning-lite state is **derived, never stored**: `contractState()` maps the
+  last payment to `current → due (28d) → overdue (35d)`, shown as a badge in
+  the admin registry and on the gym page. Suspending an overdue gym stays a
+  human click.
+
+**Member → gym (a membership).** Two halves, one invariant — *the browser can
+never mint a paid invoice* (rules: `invoices` writes are operator-only; the
+online half is a server route):
+
+1. *Online:* a member picks a published plan on `/g/{slug}` →
+   `POST /api/billing/gym/purchase` (bearer, verifies membership, copies the
+   amount **server-side** from the published plan, idempotent per open
+   request) → a **draft** invoice appears in the console's "To collect" queue.
+2. *Desk:* staff collect it — `settlePlanPurchase()` writes the paid invoice
+   **and** applies the plan to the membership (status `active`, planId, expiry
+   extended by `extendedExpiry()`, which runs from the later of now and the
+   current expiry so renewing early never steals paid days) in one batch. A
+   walk-in sale uses the same write without a prior draft.
+
+Online CMI checkout for memberships is the same dormant contract as Pro's
+(§3): when finance delivers merchant keys, collecting a draft gains a
+`method: 'cmi'` server path and the purchase route is unchanged.
+
+## 5. Rules that never change
 
 - Trials are local and cardless; only `monthly`/`yearly`/`lifetime`
   stamps come from receipts and never expire client-side.

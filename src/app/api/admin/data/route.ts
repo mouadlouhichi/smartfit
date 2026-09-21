@@ -8,6 +8,7 @@
  * The caller's `sfRole` claim is verified before anything is read — this data
  * lives under `platform/**`, which the rules deny to browsers entirely.
  */
+import { contractState } from '@/lib/billing/gym-contract';
 import {
   json,
   loadAdminRegistry,
@@ -36,7 +37,30 @@ export async function GET(req: Request): Promise<Response> {
       loadRecentAudit(services),
       loadPlatformInvoices(services),
     ]);
-    return json({ mode: 'cloud', gyms, applications, audit, invoices, plans });
+    // The contract state is derived, never stored: it follows the recorded
+    // payments, so the badge cannot disagree with the books.
+    const paymentsBySlug = new Map<string, { paidAt: number; amountMinor: number }[]>();
+    for (const i of invoices) {
+      const list = paymentsBySlug.get(i.slug) ?? [];
+      list.push({ paidAt: i.paidAt, amountMinor: i.amountMinor });
+      paymentsBySlug.set(i.slug, list);
+    }
+    const withContract = gyms.map((g) => {
+      const payments = paymentsBySlug.get(g.slug) ?? [];
+      return {
+        ...g,
+        contract: contractState(g, payments),
+        lastPaymentAt: payments.length > 0 ? Math.max(...payments.map((p) => p.paidAt)) : undefined,
+      };
+    });
+    return json({
+      mode: 'cloud',
+      gyms: withContract,
+      applications,
+      audit,
+      invoices,
+      plans,
+    });
   } catch (err) {
     console.error('[admin/data] failed:', err instanceof Error ? err.message : err);
     return json({ error: 'The platform data could not be loaded. Try again.' }, 500);

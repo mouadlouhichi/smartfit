@@ -225,10 +225,43 @@ the B2C app is untouched (see the guard below).
 - [ ] Per-tenant feature flags (`platform/config.flags`)
 - [ ] Announcements to gym owners; data-export/delete for compliance
 
-## Phase 9 — B2B billing ⬜
+## Phase 9 — B2B billing 🟡 (demo-verified; cloud writes unexercised)
 
-- [ ] Gym-contract billing path alongside the existing Pro provider
-- [ ] Member membership purchase at the desk and online
+Both money flows are **offline-first** (transfer/cash are the local norm), the
+shared arithmetic is pure and tested (`src/lib/billing/gym-contract.ts`,
+**8 tests**), and one invariant holds everywhere: *a browser can never mint a
+paid invoice* — the rules make `invoices` operator-only and the online half is
+a server route. Full model: `docs/billing.md` §4.
+
+- [x] **Gym-contract billing path** alongside the Pro provider — recorded
+      payments (Phase 8) now also **auto-activate**: a payment converts
+      `trial` → `active` and clears `past_due`, but never overrides a suspend
+      (`gymStatusAfterPayment`, pinned by test). Dunning-lite contract state
+      (`current → due at 28d → overdue at 35d`, anchored to the last payment,
+      never the signup) is **derived, never stored**, so the badge cannot
+      disagree with the books: shown in the admin registry (overdue badge) and
+      on the gym page (state + last payment date)
+- [x] **Member purchase at the desk** — the console's sale now completes the
+      membership: `settlePlanPurchase()` writes the paid invoice **and**
+      applies plan/status/expiry in one batch (`extendedExpiry` runs from the
+      later of now and the current expiry, so renewing early never steals paid
+      days — pinned by test). Draft requests from the site appear in a
+      "To collect" queue with one-click collect
+- [x] **Member purchase online** — a published plan on `/g/{slug}` gets
+      "Choose this plan" for signed-in members →
+      `POST /api/billing/gym/purchase`: verifies the membership, copies the
+      amount **server-side** from the published plan, idempotent per open
+      request, records a **draft** invoice (a request, never a receipt). The
+      plan card then shows "Waiting for the desk" until collected. Online CMI
+      checkout remains the documented dormant contract (billing.md §3/§4)
+- [x] **Verified in the dev server (demo)**: member persona picks a plan →
+      draft appears; owner persona sees it in "To collect" → collecting marks
+      it paid and moves the membership (plan, status, expiry) in the same
+      render; walk-in sale applies the plan too
+- [ ] ⛔ Cloud writes unexercised (`/api/billing/gym/purchase`,
+      `settlePlanPurchase`, payment auto-activation) — no Firebase project
+      here; all three are Admin-SDK/client-batch writes against paths whose
+      rules-accepted shapes are pinned in `tests/rules/firestore-rules.test.ts`
 
 ## Phase 10 — Seed, docs, migration 🟡
 
@@ -239,7 +272,13 @@ the B2C app is untouched (see the guard below).
 - [x] `scripts/README.md` entry for `seed:b2b`
 - [x] `docs/firebase.md` — the `gyms/**` model (+ the member-share boundary in prose)
 - [x] README pivot section — "Gyms (B2B)" under Features + `seed:b2b` in Scripts
-- [ ] `customGyms` → tenant promotion script
+- [x] `customGyms` → tenant promotion script — `scripts/promote-custom-gym.mjs`
+      (`pnpm`-less `node scripts/…`): provisions `gyms/{slug}` (trial, chosen
+      plan), writes the owner membership row the rules read, converts every
+      class into a template and classes with weekday+time into scheduled
+      slots. **Nothing is moved** — the personal `customGyms` document stays
+      untouched (pivot plan §6). Documented in `scripts/README.md`;
+      ⛔ `node --check` only (needs a real project to run)
 
 ---
 
@@ -249,16 +288,17 @@ the B2C app is untouched (see the guard below).
 | --- | --- | --- |
 | `pnpm typecheck` | exit 0 | run after every phase so far |
 | `pnpm lint` | exit 0 | 0 errors; 1 **pre-existing** `<img>` warning at `profile-screen.tsx:775` |
-| `pnpm test` | **145/145** | +10 `tests/admin-model.test.ts` (overview arithmetic, plan bounds, application intake); includes the env-docs guard |
+| `pnpm test` | **153/153** | +10 `tests/admin-model.test.ts` (overview), +8 `tests/gym-contract.test.ts` (contract states, expiry extension); the env-docs guard caught 4 undocumented `B2B_PROMOTE_*` script vars — fixed in `.env.example` |
 | `pnpm --filter @smartfit/core test` | **238/238** | was 171 before the pivot; +67 |
 | `pnpm test:rules` | ⛔ **cannot run here** | needs Java + emulator jar from GCS; checkin rules tests **written** (+1 test, 7 asserts) |
 | tenant routes (dev server) | ✅ all 200, clean log | `/`, `/g/{slug}`, `/g/{slug}/class/{classId}`, `/g/{slug}/console`, `/gyms` (incl. the apply form), `/dashboard`, `/login`; reserved + malformed slugs render the not-found state; unknown class id → 404 |
 | admin routes (dev server) | ✅ all 7 + gym detail | `/admin`, `/admin/gyms`, `/admin/gyms/{slug}`, `/admin/applications`, `/admin/plans`, `/admin/revenue`, `/admin/audit` render with demo content (KPI band, registry, queue, tiers, payments, audit) |
 | admin API guards (prod build) | ✅ | `GET /api/admin/data` → 401 without a token; `POST /api/admin/gym` (kill switch) → 401; `POST /api/apply` validates live: junk email → 400 with combined errors, reserved slug `admin` → applicant-facing message |
+| billing guards + SSR (prod build) | ✅ | `POST /api/billing/gym/purchase` → 401 without a token (a browser cannot mint even a draft); storefront SSRs "Choose this plan" for the member persona; admin registry SSRs the derived "overdue" contract badge |
 | tenant SSR content (curl) | ✅ | storefront HTML contains the member section (membership card, My classes, Visits, Progress sharing), per-tenant `<title>`/`og:` metadata, class-detail occurrences with seat counts, directory entries |
-| `pnpm start` (production) | ✅ all 200 | 16 routes swept from the built output — dashboard, storefront, class detail, console, `/gyms`, all 7 admin pages, `/login`. Gotcha found: building while `next dev` is running corrupts `.next` (prod then 500s half the routes) — **stop the dev server before `pnpm build`** |
+| `pnpm start` (production) | ✅ all 200 | 16 routes swept from the built output — dashboard, storefront, class detail, console, `/gyms`, all 7 admin pages, `/login`, purchase API. Gotcha found: building while `next dev` is running corrupts `.next` (prod then 500s half the routes) — **stop the dev server before `pnpm build`** |
 | `pnpm build` | ✅ **exit 0** | `/g/*`, `/gyms`, `/admin/**` + all admin/apply API routes correctly dynamic; middleware 32.9 kB |
-| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (11 tests: tenant journey + admin console); `cdn.playwright.dev` unreachable so browsers won't download — CI runs it |
+| `pnpm test:e2e` | ⛔ **cannot run here** | `e2e/tenant.spec.ts` **written** (13 tests: tenant journey, admin console, membership purchase — online request → desk collection → membership applied); `cdn.playwright.dev` unreachable — CI runs it |
 
 ## Known environment constraints
 

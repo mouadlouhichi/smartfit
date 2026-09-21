@@ -180,3 +180,33 @@ test('plans config edits a tier', async ({ page }) => {
   await page.getByRole('button', { name: 'Save Starter' }).click();
   await expect(page.getByText('Starter updated')).toBeVisible();
 });
+
+// ── Membership purchase (demo mode) ───────────────────────────────────────────
+
+test('a member requests a plan online and the desk collects it', async ({ page }) => {
+  // As Amina (member): pick the Quarterly plan on the storefront.
+  await page.goto(GYM);
+  await personaSwitch(page).selectOption('member');
+  const quarterly = page.locator('section#pricing > div > *', { hasText: 'Quarterly' }).first();
+  await quarterly.getByRole('button', { name: 'Choose this plan' }).click();
+  await expect(page.getByText('Request sent — pay at the desk to activate')).toBeVisible();
+  // The card flips to "waiting" — one open request per member+plan.
+  await expect(quarterly.getByText('Waiting for the desk')).toBeVisible();
+
+  // As the owner: the request is in the Revenue tab's collection queue.
+  await page.goto(`${GYM}/console`);
+  await page.getByRole('tab', { name: 'Revenue' }).click();
+  const queue = page.getByText('To collect — online plan requests');
+  await expect(queue).toBeVisible();
+  await page.getByRole('button', { name: /Collect/ }).click();
+  await expect(page.getByText('Collected — membership applied')).toBeVisible();
+});
+
+test('a walk-in sale applies the plan to the membership', async ({ page }) => {
+  await page.goto(`${GYM}/console`);
+  await page.getByRole('tab', { name: 'Revenue' }).click();
+  await page.locator('#pay-member').selectOption({ label: 'Omar Tazi' });
+  await page.locator('#pay-plan').selectOption({ label: /Annual/ });
+  await page.getByRole('button', { name: 'Record payment' }).click();
+  await expect(page.getByText('Recorded 3,800 MAD — membership applied')).toBeVisible();
+});

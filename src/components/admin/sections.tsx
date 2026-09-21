@@ -322,6 +322,11 @@ export function RegistrySection() {
                 <span className="text-muted-foreground hidden tabular-nums sm:inline">
                   {gym.memberCount} members · {gym.classCount} classes
                 </span>
+                {gym.contract === 'overdue' && (
+                  <Badge className="bg-red-500/15 text-red-500" variant="secondary">
+                    overdue
+                  </Badge>
+                )}
                 <StatusBadge status={gym.status} />
                 <span className="hidden font-medium tabular-nums md:inline">
                   {gym.tenantPlanId}
@@ -394,6 +399,18 @@ export function GymDetailSection({ slug }: { slug: string }) {
               </a>
             )}
           </p>
+          {gym.contract && (
+            <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Contract:</span>
+              <StatusBadge status={gym.contract === 'current' ? 'active' : gym.contract} />
+              <span className="text-muted-foreground text-xs">
+                {gym.lastPaymentAt
+                  ? `last payment ${fmtDate(gym.lastPaymentAt)}`
+                  : 'no payment recorded yet'}
+                {gym.contract === 'overdue' && ' — consider suspending until it settles'}
+              </span>
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" asChild>

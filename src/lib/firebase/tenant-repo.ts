@@ -29,6 +29,7 @@ import {
   type GymTenant,
   type MemberStatus,
 } from '@smartfit/core';
+import { extendedExpiry } from '@/lib/billing/gym-contract';
 import { getFirebaseServices } from './config';
 
 // ── Paths ────────────────────────────────────────────────────────────────────
@@ -523,6 +524,64 @@ export async function issueInvoice(slug: string, invoice: InvoiceDoc): Promise<v
   const { doc, setDoc } = await import('firebase/firestore');
   const { id, ...rest } = invoice;
   await setDoc(doc(db, gymCol(slug, 'invoices'), id), clean(rest));
+}
+
+/**
+ * Collect a plan purchase at the desk: mark the invoice paid and apply the
+ * plan to the membership — one expiry, one status, no half-done sales.
+ *
+ * `invoiceId` collects an existing draft (the member requested online);
+ * without it a new paid invoice is issued (a walk-in sale). The membership
+ * patch is computed from the member's *current* row, so renewing early
+ * extends rather than restarts (see `extendedExpiry`).
+ */
+export async function settlePlanPurchase(
+  slug: string,
+  sale: {
+    memberUid: string;
+    plan: MembershipPlanDoc;
+    method: InvoiceDoc['method'];
+    issuedBy: string;
+    invoiceId?: string;
+  },
+): Promise<void> {
+  const { db } = await requireServices();
+  const { doc, getDoc, setDoc, writeBatch } = await import('firebase/firestore');
+
+  const memberRef = doc(db, gymCol(slug, 'members'), sale.memberUid);
+  const memberSnap = await getDoc(memberRef);
+  const member = memberSnap.exists() ? (memberSnap.data() as GymMembership) : null;
+  const now = Date.now();
+
+  const invoiceId = sale.invoiceId ?? `inv-${now.toString(36)}`;
+  const batch = writeBatch(db);
+
+  batch.set(
+    doc(db, gymCol(slug, 'invoices'), invoiceId),
+    clean({
+      memberUid: sale.memberUid,
+      planId: sale.plan.id,
+      amountMinor: sale.plan.priceMinor,
+      currency: sale.plan.currency,
+      status: 'paid',
+      method: sale.method,
+      issuedAt: now,
+      paidAt: now,
+      issuedBy: sale.issuedBy,
+    }),
+  );
+
+  batch.set(
+    memberRef,
+    clean({
+      planId: sale.plan.id,
+      status: 'active',
+      expiresAt: extendedExpiry(member?.expiresAt, sale.plan, now),
+    }),
+    { merge: true },
+  );
+
+  await batch.commit();
 }
 
 export async function loadInvoices(slug: string, memberUid?: string): Promise<InvoiceDoc[]> {

@@ -10,6 +10,7 @@
  * enough shape for every section to have something honest to say.
  */
 import { DEFAULT_TENANT_PLANS } from '@smartfit/core';
+import { contractState } from '@/lib/billing/gym-contract';
 import type {
   AdminApplication,
   AdminAuditEntry,
@@ -185,12 +186,29 @@ export function demoPlatformInvoices(): PlatformInvoice[] {
 
 /** The whole demo payload — the same shape `/api/admin/data` returns. */
 export function demoAdminData(): AdminData {
+  const invoices = demoPlatformInvoices();
+  // Contract state is *derived* here exactly as the cloud route derives it,
+  // so the demo badge and the real badge can never disagree by construction.
+  const paymentsBySlug = new Map<string, { paidAt: number; amountMinor: number }[]>();
+  for (const i of invoices) {
+    const list = paymentsBySlug.get(i.slug) ?? [];
+    list.push({ paidAt: i.paidAt, amountMinor: i.amountMinor });
+    paymentsBySlug.set(i.slug, list);
+  }
+  const gyms = demoAdminGyms().map((g) => {
+    const payments = paymentsBySlug.get(g.slug) ?? [];
+    return {
+      ...g,
+      contract: contractState(g, payments, now),
+      lastPaymentAt: payments.length > 0 ? Math.max(...payments.map((p) => p.paidAt)) : undefined,
+    };
+  });
   return {
     mode: 'demo',
-    gyms: demoAdminGyms(),
+    gyms,
     applications: demoApplications(),
     audit: demoAuditEntries(),
-    invoices: demoPlatformInvoices(),
+    invoices,
     plans: DEFAULT_TENANT_PLANS,
   };
 }

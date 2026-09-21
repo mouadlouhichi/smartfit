@@ -41,6 +41,10 @@ export interface AdminGymSummary {
   /** Sum of the gym's own paid invoices, all time (its members' money). */
   memberRevenueMinor: number;
   currency: string;
+  /** Where the gym stands on its platform contract (dunning-lite). */
+  contract?: 'trial' | 'current' | 'due' | 'overdue';
+  /** Last platform payment, when any. */
+  lastPaymentAt?: number;
 }
 
 /** A "list your gym" request. PII-light on purpose: what a stranger would type. */

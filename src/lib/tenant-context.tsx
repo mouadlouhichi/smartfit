@@ -80,6 +80,7 @@ import {
   saveMembership,
   savePlan,
   saveSlot,
+  settlePlanPurchase,
   shareWithGym,
   tenantErrorMessage,
   type BookSeatResult,
@@ -90,6 +91,7 @@ import {
   type InvoiceDoc,
   type MembershipPlanDoc,
 } from '@/lib/firebase/tenant-repo';
+import { extendedExpiry } from '@/lib/billing/gym-contract';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { DEMO_PERSONA_UIDS, demoCheckins, type DemoPersonaKey } from './tenant-demo';
@@ -137,6 +139,16 @@ export interface TenantMutations {
   promoteWaitlist: (bookingId: string) => Promise<boolean>;
   /** Publish (or revoke, with null) my opt-in progress aggregates. */
   updateGymShare: (share: Omit<GymShare, 'gymId'> | null) => Promise<boolean>;
+  /** Member: record a draft invoice for a published plan (paid at the desk). */
+  requestPlanPurchase: (planId: string) => Promise<boolean>;
+  /** Desk: collect a draft invoice — marks it paid and applies the plan. */
+  collectInvoice: (invoiceId: string, method: InvoiceDoc['method']) => Promise<boolean>;
+  /** Desk: sell a plan directly to a member (walk-in, no prior request). */
+  takePlanPayment: (
+    memberUid: string,
+    planId: string,
+    method: InvoiceDoc['method'],
+  ) => Promise<boolean>;
 }
 
 export interface TenantState extends TenantMutations {
@@ -253,6 +265,10 @@ export function TenantProvider({
   slotsRef.current = slots;
   const bookingsRef = useRef(bookings);
   bookingsRef.current = bookings;
+  const plansRef = useRef(plans);
+  plansRef.current = plans;
+  const invoicesRef = useRef(invoices);
+  invoicesRef.current = invoices;
 
   /** The demo persona's uid, or null (platform-admin is nobody here). */
   const demoUid = mode === 'demo' && demoRole ? DEMO_PERSONA_UIDS[demoRole] : null;
@@ -402,6 +418,61 @@ export function TenantProvider({
       }
     },
     [mode, fetchAll, viewAs],
+  );
+
+  /**
+   * Demo twin of `settlePlanPurchase`: mark the invoice paid (or mint one for
+   * a walk-in) and apply the plan to the roster row — the same arithmetic the
+   * cloud batch performs, so the demo behaves like the desk, not like a toy.
+   */
+  const applyPurchaseLocal = useCallback(
+    (invoiceId?: string, memberUid?: string, planId?: string) => {
+      const invoice = invoiceId ? invoicesRef.current.find((i) => i.id === invoiceId) : undefined;
+      const uid = invoice?.memberUid ?? memberUid;
+      const pid = invoice?.planId ?? planId;
+      if (!uid || !pid) throw new Error('That purchase no longer adds up.');
+      const plan = plansRef.current.find((p) => p.id === pid);
+      if (!plan) throw new Error('That plan does not exist.');
+
+      const now = Date.now();
+      setInvoices((rows) => {
+        if (invoice) {
+          return rows.map((i) =>
+            i.id === invoice.id
+              ? { ...i, status: 'paid' as const, paidAt: now, method: 'cash' as const }
+              : i,
+          );
+        }
+        return [
+          {
+            id: `inv-demo-${now}`,
+            memberUid: uid,
+            planId: pid,
+            amountMinor: plan.priceMinor,
+            currency: plan.currency,
+            status: 'paid' as const,
+            method: 'cash' as const,
+            issuedAt: now,
+            paidAt: now,
+            issuedBy: demoUid ?? 'demo',
+          },
+          ...rows,
+        ];
+      });
+      setRoster((rows) =>
+        rows.map((r) =>
+          r.uid === uid
+            ? {
+                ...r,
+                planId: pid,
+                status: 'active',
+                expiresAt: extendedExpiry(r.expiresAt, plan, now),
+              }
+            : r,
+        ),
+      );
+    },
+    [demoUid],
   );
 
   /**
@@ -636,8 +707,83 @@ export function TenantProvider({
           },
           () => setGymShare(share ? { ...share, gymId: slug } : null),
         ),
+      requestPlanPurchase: (planId) =>
+        run(
+          `purchase:${planId}`,
+          async () => {
+            if (!user) throw new Error('Sign in to choose a plan.');
+            const token = await user.getIdToken();
+            const res = await fetch('/api/billing/gym/purchase', {
+              method: 'POST',
+              headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+              body: JSON.stringify({ slug, planId }),
+            });
+            const body = (await res.json().catch(() => ({}))) as { error?: string };
+            if (!res.ok) throw new Error(body.error ?? 'The request could not be recorded.');
+          },
+          () => {
+            const uid = demoUid;
+            if (!uid) throw new Error('Switch to a member persona to choose a plan.');
+            const plan = plansRef.current.find((p) => p.id === planId);
+            if (!plan || plan.published === false) throw new Error('That plan is not available.');
+            if (
+              invoicesRef.current.some(
+                (i) => i.memberUid === uid && i.planId === planId && i.status === 'draft',
+              )
+            ) {
+              return; // already requested — same idempotence as the route
+            }
+            setInvoices((rows) => [
+              {
+                id: `inv-demo-${Date.now()}`,
+                memberUid: uid,
+                planId,
+                amountMinor: plan.priceMinor,
+                currency: plan.currency,
+                status: 'draft' as const,
+                issuedAt: Date.now(),
+                issuedBy: 'self-service',
+              },
+              ...rows,
+            ]);
+          },
+        ),
+      collectInvoice: (invoiceId, method) =>
+        run(
+          `collect:${invoiceId}`,
+          async () => {
+            if (!user) throw new Error('Sign in first.');
+            const invoice = invoicesRef.current.find((i) => i.id === invoiceId);
+            const plan = invoice ? plansRef.current.find((p) => p.id === invoice.planId) : null;
+            if (!invoice || !plan) throw new Error('That request no longer exists.');
+            await settlePlanPurchase(slug, {
+              memberUid: invoice.memberUid,
+              plan,
+              method,
+              issuedBy: user.uid,
+              invoiceId,
+            });
+          },
+          () => applyPurchaseLocal(invoiceId),
+        ),
+      takePlanPayment: (memberUid, planId, method) =>
+        run(
+          `sale:${memberUid}:${planId}`,
+          async () => {
+            if (!user) throw new Error('Sign in first.');
+            const plan = plansRef.current.find((p) => p.id === planId);
+            if (!plan) throw new Error('That plan does not exist.');
+            await settlePlanPurchase(slug, {
+              memberUid,
+              plan,
+              method,
+              issuedBy: user.uid,
+            });
+          },
+          () => applyPurchaseLocal(undefined, memberUid, planId),
+        ),
     }),
-    [run, runVal, slug, user, demoUid],
+    [run, runVal, slug, user, demoUid, applyPurchaseLocal],
   );
 
   /**

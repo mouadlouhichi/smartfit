@@ -9,13 +9,15 @@
  * recording "the usual" should be one click, and a discount is an explicit
  * choice with a note.
  */
+import type { GymStatus } from '@smartfit/core';
+import { gymStatusAfterPayment } from '@/lib/billing/gym-contract';
 import {
   appendPlatformAudit,
   json,
+  loadEffectivePlans,
   platformInvoiceCollection,
   requirePlatformAdmin,
 } from '@/lib/admin-server';
-import { loadEffectivePlans } from '@/lib/admin-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -76,7 +78,28 @@ export async function POST(req: Request): Promise<Response> {
     recordedBy: uid,
     ...(note ? { note } : {}),
   });
-  await appendPlatformAudit(services, uid, 'payment:record', slug, { amountMinor, method });
 
-  return json({ ok: true, id: ref.id, amountMinor, currency });
+  // Money arriving converts a trial into a paying customer and clears
+  // past_due — but never overrides a suspend/close (that stays a human
+  // decision; see gymStatusAfterPayment).
+  const before = (gymSnap.data() as { status?: GymStatus }).status;
+  const after = gymStatusAfterPayment(before ?? 'pending');
+  const activated = after !== before;
+  if (activated) {
+    await services.db.doc(`gyms/${slug}`).update({ status: after, updatedAt: paidAt });
+  }
+
+  await appendPlatformAudit(services, uid, 'payment:record', slug, {
+    amountMinor,
+    method,
+    ...(activated ? { activatedFrom: before } : {}),
+  });
+
+  return json({
+    ok: true,
+    id: ref.id,
+    amountMinor,
+    currency,
+    ...(activated ? { status: after } : {}),
+  });
 }

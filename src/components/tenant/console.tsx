@@ -686,6 +686,8 @@ function Revenue() {
   );
   const paid = invoices.filter((i) => i.status === 'paid');
   const total = paid.reduce((s, i) => s + i.amountMinor, 0);
+  /** Online plan requests waiting for the desk — the collection queue. */
+  const drafts = invoices.filter((i) => i.status === 'draft');
 
   const canIssue = t.can('invoice:issue');
   const [memberUid, setMemberUid] = useState('');
@@ -695,24 +697,25 @@ function Revenue() {
   async function takePayment() {
     const plan = t.plans.find((p) => p.id === planId);
     if (!memberUid || !plan) return;
-    const ok = await t.createInvoice({
-      id: `inv-${Date.now().toString(36)}`,
-      memberUid,
-      planId,
-      amountMinor: plan.priceMinor,
-      currency: plan.currency,
-      status: 'paid',
-      method,
-      issuedAt: Date.now(),
-      paidAt: Date.now(),
-    });
+    // A desk sale now completes the membership too: plan, status and expiry
+    // are applied in the same batch as the paid invoice.
+    const ok = await t.takePlanPayment(memberUid, planId, method);
     if (ok) {
-      toast(`Recorded ${formatMoney(plan.priceMinor, plan.currency)}`, 'success');
+      toast(
+        `Recorded ${formatMoney(plan.priceMinor, plan.currency)} — membership applied`,
+        'success',
+      );
       setMemberUid('');
       setPlanId('');
     } else {
       toast(t.mutationError ?? 'Could not record the payment', 'info');
     }
+  }
+
+  async function collect(invoiceId: string) {
+    const ok = await t.collectInvoice(invoiceId, method);
+    if (ok) toast('Collected — membership applied', 'success');
+    else toast(t.mutationError ?? 'Could not collect', 'info');
   }
 
   return (
@@ -727,12 +730,53 @@ function Revenue() {
         />
       </div>
 
+      {canIssue && drafts.length > 0 && (
+        <Card className="border-amber-500/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between text-base">
+              <span>To collect — online plan requests</span>
+              <Badge className="bg-amber-500/15 text-amber-600" variant="secondary">
+                {drafts.length}
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Members who chose a plan on the site and pay at the desk. Collecting marks the invoice
+              paid and applies the plan to their membership in one write.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {drafts.map((i) => {
+              const plan = t.plans.find((p) => p.id === i.planId);
+              return (
+                <div
+                  key={i.id}
+                  className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-sm last:border-0"
+                >
+                  <span>
+                    <span className="font-medium">
+                      {t.roster.find((r) => r.uid === i.memberUid)?.displayName ?? i.memberUid}
+                    </span>
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {plan?.name ?? i.planId} · {formatMoney(i.amountMinor, i.currency)}
+                    </span>
+                  </span>
+                  <Button size="sm" onClick={() => collect(i.id)} disabled={t.mutating !== null}>
+                    Collect ({method})
+                  </Button>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
       {canIssue && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Take a payment</CardTitle>
+            <CardTitle className="text-base">Sell a plan at the desk</CardTitle>
             <CardDescription>
-              Records a paid invoice. Refunds stay with the owner; issuing does not.
+              Walk-in sale: issues a paid invoice and applies the plan — status, tier and expiry —
+              to the member in one write.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -795,7 +839,7 @@ function Revenue() {
             >
               <span>{t.roster.find((r) => r.uid === i.memberUid)?.displayName ?? i.memberUid}</span>
               <span className="flex items-center gap-2">
-                <Badge variant="outline">{i.method ?? 'other'}</Badge>
+                <Badge variant="outline">{i.method ?? 'pending'}</Badge>
                 <Badge className={statusTone(i.status)} variant="secondary">
                   {i.status}
                 </Badge>
