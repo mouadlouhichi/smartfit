@@ -64,6 +64,25 @@ runs. Idempotent: every write targets a deterministic document id, so re-run
 it freely (it also refreshes the "later today" slot). Sign in as any seeded
 account, then open `/g/{slug}` and switch the demo role, or `/g/{slug}/console`.
 
+## `grant-admin.mjs` — promote one account to platform admin
+
+`/admin` is gated by the `sfRole: 'platform-admin'` custom claim on the signed-in
+user's ID token. Seeding the whole demo org just to let yourself in is overkill —
+grant the claim on your **existing** account instead:
+
+```bash
+FIREBASE_PROJECT_ID=... FIREBASE_CLIENT_EMAIL=... FIREBASE_PRIVATE_KEY=... \
+  node scripts/grant-admin.mjs you@example.com
+
+# revoke again:
+node scripts/grant-admin.mjs --remove you@example.com
+```
+
+Same service-account env as above. Claims are additive (unrelated custom claims
+are preserved). The account must already exist in Firebase Auth. After granting,
+**sign out and back in** — claims are minted into the ID token at sign-in, so the
+token already in the browser still says member.
+
 ## `promote-custom-gym.mjs` — turn a personal custom gym into a real tenant
 
 A member's "custom gyms" live in `users/{uid}/customGyms` — private data with

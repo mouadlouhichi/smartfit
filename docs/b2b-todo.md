@@ -187,7 +187,11 @@ the B2C app is untouched (see the guard below).
 - [x] `/admin` gate on the `sfRole` claim — client check for UX, every route
       re-verifies from the decoded token server-side. Claim staleness
       (~1 h) handled visibly: the refusal card offers *Recheck my access*
-      (`getIdToken(true)`), it never just says no
+      (`getIdToken(true)`), it never just says no. A **signed-out** visitor
+      gets a sign-in card (`/login?next=/admin`, validated same-app path)
+      — not the role-refusal message, which read as a verdict on an account
+      the app had never inspected. `scripts/grant-admin.mjs` promotes one
+      existing account (`--remove` revokes) without seeding the demo org
 - [x] KPI overview — live gyms, platform MRR (active + past-due only; trials
       are not revenue), members/staff/classes totals, collected 30d, new this
       month, tenants-by-status, MRR by plan, pending-applications worklist.

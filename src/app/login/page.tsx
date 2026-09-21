@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Loader2, Mail, ShieldCheck } from 'lucide-react';
 import { isValidSlug, tenantPath } from '@smartfit/core';
+
+/**
+ * Same-app absolute paths only: `/admin` passes, while `//evil.com`,
+ * `https://evil.com` and `login` (relative) do not. Gated surfaces (e.g. the
+ * platform-admin shell) set `?next=` so a sign-in lands back where it started —
+ * without this check that convenience would be an open redirect.
+ */
+function isSafeNextPath(path: string | null): path is string {
+  return !!path && /^\/(?!\/)/.test(path) && path !== '/login';
+}
 import { Wordmark } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -99,15 +109,23 @@ export default function LoginPage() {
    * Gateway.
    *
    * Only an already-authenticated visitor is redirected: a signed-out one
-   * came here to sign in, so they must always get the form. A `?gym=` param
-   * (set by every "join this gym" link on a tenant site) sends them back to
-   * that gym instead of the dashboard — signing in to book a class and
-   * landing on a personal dashboard is a dead end. A profile that hasn't
-   * finished setup goes to onboarding first; the gym is one tap from there.
+   * came here to sign in, so they must always get the form. A `?next=` param
+   * (set by gated surfaces such as /admin) wins — the visitor explicitly
+   * started there. A `?gym=` param (set by every "join this gym" link on a
+   * tenant site) sends them back to that gym instead of the dashboard —
+   * signing in to book a class and landing on a personal dashboard is a dead
+   * end. A profile that hasn't finished setup goes to onboarding first; the
+   * gym is one tap from there.
    */
   useEffect(() => {
     if (!cloud || initializing || !user || !ready) return;
-    const gym = new URLSearchParams(window.location.search).get('gym');
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next');
+    if (isSafeNextPath(next)) {
+      router.replace(next);
+      return;
+    }
+    const gym = params.get('gym');
     if (gym && isValidSlug(gym)) {
       router.replace(tenantPath(gym));
       return;
@@ -141,8 +159,16 @@ export default function LoginPage() {
               label="Continue on this device"
               className="mt-5 w-full"
               onClick={() => {
-                const gym = new URLSearchParams(window.location.search).get('gym');
-                router.replace(gym && isValidSlug(gym) ? tenantPath(gym) : '/dashboard');
+                const params = new URLSearchParams(window.location.search);
+                const next = params.get('next');
+                const gym = params.get('gym');
+                router.replace(
+                  isSafeNextPath(next)
+                    ? next
+                    : gym && isValidSlug(gym)
+                      ? tenantPath(gym)
+                      : '/dashboard',
+                );
               }}
             />
           </CardContent>

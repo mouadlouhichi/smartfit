@@ -125,6 +125,29 @@ function Spinner({ label }: { label: string }) {
   );
 }
 
+/**
+ * Signed-out visitors get a door, not a verdict. "Your account does not
+ * carry the role" is a non-answer to someone who never signed in — it reads
+ * as a verdict on an account the app cannot possibly have inspected.
+ */
+function SignInGate() {
+  return (
+    <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-3 p-6 text-center">
+      <span className="flex size-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+        <ShieldAlert className="size-6" />
+      </span>
+      <p className="text-lg font-bold">Platform operators sign in</p>
+      <p className="text-muted-foreground text-sm">
+        This area needs an account carrying the platform-admin role. Sign in and you will land right
+        back here.
+      </p>
+      <Button asChild className="mt-2">
+        <Link href="/login?next=/admin">Sign in</Link>
+      </Button>
+    </div>
+  );
+}
+
 function NoAccess({ onRecheck, busy }: { onRecheck: () => void; busy: boolean }) {
   return (
     <div className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-3 p-6 text-center">
@@ -207,9 +230,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   if (state === 'resolving') return <Spinner label="Checking your access…" />;
 
-  if (state === 'signed-out' || state === 'denied') {
-    return <NoAccess onRecheck={onRecheck} busy={rechecking} />;
-  }
+  if (state === 'signed-out') return <SignInGate />;
+
+  if (state === 'denied') return <NoAccess onRecheck={onRecheck} busy={rechecking} />;
 
   return (
     <div className="mx-auto max-w-6xl space-y-5 p-4 py-8 sm:p-6">
