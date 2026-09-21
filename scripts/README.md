@@ -20,6 +20,13 @@ export FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE 
 Alternatively, with `gcloud` / Application Default Credentials configured, just
 set `FIREBASE_PROJECT_ID` and the script uses `applicationDefault()`.
 
+**All scripts in this directory automatically load the repo's `.env`** (values
+already in your shell always win), so the `export` lines above can simply live
+in `.env` instead. They also accept the app-side `FIREBASE_ADMIN_PROJECT_ID` /
+`FIREBASE_ADMIN_CLIENT_EMAIL` / `FIREBASE_ADMIN_PRIVATE_KEY` names, or one
+`FIREBASE_ADMIN_SERVICE_ACCOUNT` JSON blob, if that is how your `.env` is
+configured for the deployed app.
+
 ### Run
 ```bash
 # writes to users/demo-user

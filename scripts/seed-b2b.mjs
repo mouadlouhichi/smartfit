@@ -17,7 +17,10 @@
  *
  * Env:
  *   FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
- *       Service-account credentials. NEVER prefix with NEXT_PUBLIC_.
+ *       Service-account credentials. The repo's .env is loaded automatically
+ *       (real env wins), and the app-side FIREBASE_ADMIN_* names (or one
+ *       FIREBASE_ADMIN_SERVICE_ACCOUNT JSON blob) are accepted too.
+ *       NEVER prefix with NEXT_PUBLIC_.
  *   B2B_PASSWORD     password for every seeded account (default SmartFit!234)
  *   B2B_GYM_SLUG     tenant slug / subdomain (default zone-fight)
  *   B2B_ADMIN_EMAIL  platform admin address (default admin@smartfit.app)
@@ -29,11 +32,11 @@
 import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { scriptCreds } from './lib/load-env.mjs';
 
-const projectId = process.env.FIREBASE_PROJECT_ID;
-const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-privateKey = privateKey.replace(/\\n/g, '\n');
+// Reads the environment *and* the repo .env (loaded automatically); accepts
+// the FIREBASE_ADMIN_* names and a FIREBASE_ADMIN_SERVICE_ACCOUNT blob too.
+const { projectId, clientEmail, privateKey } = scriptCreds();
 
 if (!projectId) {
   console.error('✖ Missing FIREBASE_PROJECT_ID. See scripts/README.md for required env vars.');

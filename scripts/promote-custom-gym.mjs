@@ -20,7 +20,8 @@
  *
  * Env:
  *   FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
- *       Service-account credentials (same as seed-b2b).
+ *       Service-account credentials (same as seed-b2b — the repo .env is
+ *       loaded automatically and FIREBASE_ADMIN_* names are accepted too).
  *   B2B_PROMOTE_UID   the uid whose customGyms collection holds the gym
  *   B2B_PROMOTE_GYM   the customGym document id to promote
  *   B2B_GYM_SLUG      tenant slug / subdomain (default: slugged gym name,
@@ -35,11 +36,11 @@
 import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
+import { scriptCreds } from './lib/load-env.mjs';
 
-const projectId = process.env.FIREBASE_PROJECT_ID;
-const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-privateKey = privateKey.replace(/\\n/g, '\n');
+// Reads the environment *and* the repo .env (loaded automatically — including
+// the B2B_* vars below); accepts FIREBASE_ADMIN_* names too.
+const { projectId, clientEmail, privateKey } = scriptCreds();
 
 const UID = process.env.B2B_PROMOTE_UID;
 const GYM_DOC_ID = process.env.B2B_PROMOTE_GYM;
