@@ -75,15 +75,15 @@ export function ProgressAchievementModal({
             aria-label={`Next milestone: ${milestone}-day streak`}
             className="absolute top-1/2 -right-16 hidden -translate-y-1/2 flex-col items-start gap-1 rounded-3xl border px-5 py-4 text-left sm:flex"
             style={{
-              borderColor: 'rgba(58,193,78,0.55)',
-              background: 'rgba(58,193,78,0.06)',
+              borderColor: 'rgba(138,210,0,0.55)',
+              background: 'rgba(138,210,0,0.06)',
               width: '9.5rem',
             }}
           >
             <span className="text-[11px] font-semibold text-white/50">Challenge</span>
-            <span className="text-2xl font-extrabold text-[#3ac14e] tabular-nums">{milestone}</span>
+            <span className="text-volt-soft text-2xl font-extrabold tabular-nums">{milestone}</span>
             <span className="text-xs text-white/60">Days · next streak goal</span>
-            <ChevronRight className="mt-1 h-4 w-4 text-[#3ac14e]" aria-hidden />
+            <ChevronRight className="text-volt-soft mt-1 h-4 w-4" aria-hidden />
           </button>
 
           {/* the streak flip-card */}

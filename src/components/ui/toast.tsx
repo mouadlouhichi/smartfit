@@ -39,10 +39,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           <div
             key={t.id}
             role="status"
-            className="bg-charcoal animate-toast-in flex max-w-full items-center gap-2.5 rounded-3xl px-4 py-2.5 text-center text-sm font-semibold text-white shadow-xl shadow-black/25 sm:rounded-full sm:pr-5 sm:pl-3.5 sm:text-left"
+            className="bg-charcoal/90 animate-toast-in flex max-w-full items-center gap-2.5 rounded-3xl border border-white/10 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-xl shadow-black/25 backdrop-blur-md sm:rounded-full sm:pr-5 sm:pl-3.5 sm:text-left"
           >
             {t.tone === 'success' ? (
-              <CheckCircle2 className="text-primary h-4.5 w-4.5 shrink-0" aria-hidden />
+              <CheckCircle2 className="text-volt h-4.5 w-4.5 shrink-0" aria-hidden />
             ) : (
               <Info className="h-4.5 w-4.5 shrink-0 text-white/70" aria-hidden />
             )}

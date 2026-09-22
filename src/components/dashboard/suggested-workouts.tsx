@@ -33,11 +33,11 @@ export function SuggestedWorkouts() {
 
   return (
     <>
-      <Card className="overflow-hidden border-[#A8FF00]/20">
-        <div className="bg-gradient-to-br from-[#A8FF00]/[0.08] to-transparent">
+      <Card className="border-volt/20 overflow-hidden">
+        <div className="from-volt/[0.08] bg-gradient-to-br to-transparent">
           <CardHeader>
             <CardTitle className="flex items-center gap-2.5 text-base">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#A8FF00] text-black shadow-[0_4px_12px_-4px_rgba(168,255,0,0.5)]">
+              <span className="bg-volt text-ink flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_4px_12px_-4px_rgba(138,210,0,0.5)]">
                 <Brain className="h-5 w-5" />
               </span>
               AI Suggested for you
@@ -52,22 +52,17 @@ export function SuggestedWorkouts() {
             {suggestions.slice(0, 4).map((s) => (
               <div
                 key={s.entry.name}
-                className="group flex items-center gap-3 rounded-[18px] border border-white/[0.06] bg-[#151515] p-3.5 transition-all hover:border-[#A8FF00]/20 hover:bg-[#1a1a1a]"
+                className="group border-border bg-secondary/60 hover:border-volt/40 hover:bg-secondary flex items-center gap-3 rounded-[18px] border p-3.5 transition-all"
               >
                 <ExerciseImage
                   name={s.entry.name}
-                  className="h-14 w-14 shrink-0 rounded-[12px] border border-white/[0.06]"
+                  className="border-border h-14 w-14 shrink-0 rounded-[12px] border"
                   animated={false}
                 />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <p className="truncate text-[13px] font-bold tracking-tight text-white">
-                      {s.entry.name}
-                    </p>
-                    <Badge
-                      variant="secondary"
-                      className="bg-white/[0.08] text-[10px] text-white/60"
-                    >
+                    <p className="truncate text-[13px] font-bold tracking-tight">{s.entry.name}</p>
+                    <Badge variant="secondary" className="text-[10px]">
                       {s.entry.equipment === 'pool'
                         ? 'Pool'
                         : s.entry.equipment === 'running'
@@ -75,27 +70,23 @@ export function SuggestedWorkouts() {
                           : 'Gym'}
                     </Badge>
                   </div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/50">
+                  <p className="text-muted-foreground mt-1 line-clamp-2 text-xs leading-relaxed">
                     {s.reason}
                   </p>
                   <div className="mt-1.5 flex gap-1">
-                    <Badge variant="outline" className="border-white/[0.08] text-[10px]">
+                    <Badge variant="outline" className="text-[10px]">
                       {exerciseMeasure(s.entry) === 'distance' ? 'Distance' : 'Strength'}
                     </Badge>
                     <Badge
                       variant="outline"
-                      className="border-[#A8FF00]/20 text-[10px] text-[#A8FF00]/80"
+                      className="border-volt/30 text-volt-ink dark:text-volt-soft text-[10px]"
                     >
                       <Flame className="mr-1 h-3 w-3" /> {s.entry.muscles[0]}
                     </Badge>
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-col gap-1.5">
-                  <Button
-                    size="sm"
-                    onClick={() => start(s.entry)}
-                    className="rounded-full bg-white text-black hover:bg-white/90"
-                  >
+                  <Button size="sm" onClick={() => start(s.entry)} className="rounded-full">
                     <Play className="h-3.5 w-3.5" /> Start
                   </Button>
                   <Button

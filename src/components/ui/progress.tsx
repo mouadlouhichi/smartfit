@@ -15,7 +15,12 @@ const Progress = React.forwardRef<
   >
     <ProgressPrimitive.Indicator
       className={cn(
-        'bg-primary h-full w-full flex-1 rounded-full transition-all',
+        // Volt energy ramp: the fill carries a light-to-full primary gradient
+        // (volt-dim → volt on the dark theme) so the bar reads as one lit
+        // stroke rather than a flat plate. A soft glow in dark lifts it off
+        // the track.
+        'from-primary/75 to-primary h-full w-full flex-1 rounded-full bg-gradient-to-r transition-all',
+        'dark:shadow-[0_0_12px_-2px_rgba(138,210,0,0.55)]',
         indicatorClassName,
       )}
       style={{ transform: `translateX(-${100 - Math.min(100, value ?? 0)}%)` }}

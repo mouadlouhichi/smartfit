@@ -8,7 +8,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
+        // Dark theme primary = the signature volt CTA (the same gradient +
+        // glow the session runner's .btn-volt ships): lighter volt top-left,
+        // deeper volt bottom-right, ink text, soft volt glow. Light theme
+        // stays the flat ink pill — the accent only ever carries near-black.
+        default:
+          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 dark:bg-gradient-to-br dark:from-volt-soft dark:via-volt dark:to-volt-dim dark:hover:brightness-[0.97] dark:shadow-[0_10px_24px_-14px_rgba(138,210,0,0.65),inset_0_1px_0_rgba(255,255,255,0.28)]',
         destructive: 'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
         outline: 'border border-border bg-card shadow-sm hover:bg-secondary',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/70',

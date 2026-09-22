@@ -2,6 +2,7 @@
 
 import { useId, useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useTablist } from '@/components/ui/use-tablist';
 import type { ExerciseMuscle } from '@smartfit/core';
 import { EXERCISE_MUSCLE_LABELS } from '@smartfit/core';
 import { FRONT, FRONT_SIL, BACK, BACK_SIL, type BodyRegion } from './body-paths';
@@ -144,6 +145,7 @@ export function MuscleMap({
 }) {
   const [view, setView] = useState<'front' | 'back'>('front');
   const gradId = useId();
+  const viewTabs = useTablist(2);
   const silhouette = view === 'front' ? FRONT_SIL : BACK_SIL;
   const regions = view === 'front' ? FRONT : BACK;
   const musclesInView = Array.from(new Set(regions.map((r) => r.muscle))) as ExerciseMuscle[];
@@ -152,11 +154,14 @@ export function MuscleMap({
     <div className={cn('flex flex-col items-center gap-3', compact ? 'gap-2' : 'gap-4', className)}>
       {/* View toggle */}
       <div className="bg-secondary flex rounded-full p-1" role="tablist" aria-label="Body view">
-        {(['front', 'back'] as const).map((v) => (
+        {(['front', 'back'] as const).map((v, i) => (
           <button
             key={v}
+            ref={viewTabs.setRef(i)}
             role="tab"
             aria-selected={view === v}
+            tabIndex={view === v ? 0 : -1}
+            onKeyDown={(e) => viewTabs.onKeyDown(e, i)}
             onClick={() => setView(v)}
             className={cn(
               'rounded-full px-5 py-1.5 text-sm font-bold capitalize transition-colors',

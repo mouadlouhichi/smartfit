@@ -17,7 +17,7 @@ export function ProBadge({
 }) {
   return (
     <span
-      className={`gold-edge pro-surface sheen relative inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-wide text-[#B4E761] uppercase ${className}`}
+      className={`gold-edge pro-surface sheen text-volt-soft relative inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-wide uppercase ${className}`}
       title="SmartFit Pro member"
     >
       <Crown className="h-3 w-3" aria-hidden />

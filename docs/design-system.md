@@ -61,20 +61,21 @@ screens       components/dashboard/screens/*, auth, onboarding, landing
 
 | Component | File | When to use | Notes |
 | --- | --- | --- | --- |
-| `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the volt pulse; mobile-first sizes — default h-11, sm h-9, icon 44px, compacted on sm+ |
+| `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the volt pulse; mobile-first sizes — default h-11, sm h-9, icon 44px, compacted on sm+; dark-theme default renders the volt CTA (soft→volt gradient, ink text, volt glow) matching `.btn-volt` |
 | `Input` | `ui/input.tsx` | free text, numbers | h-11 + 16px type on mobile (no iOS focus zoom), h-10 + text-sm on sm+, rounded-xl; `aria-invalid=true` → destructive border |
 | `Select` | `ui/select.tsx` | closed choice sets | styled native `<select>` + chevron; same invalid styling; keep native picker on mobile |
 | `DatePicker` | `ui/date-picker.tsx` | **every** date field | trigger styled like `Select`; the calendar popover is closed until pressed (native date inputs auto-open theirs on some devices). Month paging, Today/Yesterday quick picks, arrow/Home/End keyboard grid, `max` (default today) and `min` bounds, `weekStartsOn` follows the profile |
 | `Field` | `ui/field.tsx` | **every** labelled control | label + control + hint + error with a11y wiring; see §4 |
 | `Label` | `ui/label.tsx` | standalone labels (rare — prefer `Field`) | Radix label; clicking focuses the control |
-| `Card` / `CardHeader` / `CardTitle` / `CardContent` | `ui/card.tsx` | grouped content | screen sections; `card-hero` class for heroes |
+| `Card` / `CardHeader` / `CardTitle` / `CardContent` | `ui/card.tsx` | grouped content | screen sections; `card-hero` class for heroes; layered depth — soft ambient shadow in light, inset light edge + deeper drop in dark ("soft elevation") |
 | `Badge` | `ui/badge.tsx` | small status/meta | `variant="accent"` for highlights |
 | `Switch` | `ui/switch.tsx` | boolean toggles | Radix; needs its own visible label |
 | `Dialog` | `ui/dialog.tsx` | modals | mobile bottom sheet (grabber + swipe-to-dismiss + sticky `DialogFooter` action bar), centered dialog on sm+; via `modal-context` / `confirm-context` only; bespoke dark sheets (Pro) use `hideHandle`/`hideClose` + `SheetHandle` + a pinned `DialogFooter` |
 | `Tabs` | `ui/tabs.tsx` | in-page views | body screen measurement families |
-| `Progress` | `ui/progress.tsx` | goal/completion bars | pair with a numeric label |
-| `Skeleton` | `ui/skeleton.tsx` | loading placeholders | hydration shells |
-| `Toast` (`ToastProvider` / `useToast`) | `ui/toast.tsx` | transient action feedback | floating charcoal pill, bottom-center (above mobile nav, left of the desktop CTA); ≤3 stacked, auto-dismiss 3.6 s, `role="status"` + `aria-live="polite"` |
+| `Progress` | `ui/progress.tsx` | goal/completion bars | volt gradient fill (`from-primary/75 to-primary`) + soft glow in dark; pair with a numeric label |
+| `Skeleton` | `ui/skeleton.tsx` | loading placeholders | hydration shells; pulse + light sheen sweep (`skeleton-sheen`, reduced-motion aware) |
+| `useTablist` | `ui/use-tablist.ts` | hand-rolled `role="tablist"` groups | roving tabindex + arrow/Home/End keys with automatic activation; `noActivate` for tabs that must focus without activating (Pro-locked ranges) |
+| `Toast` (`ToastProvider` / `useToast`) | `ui/toast.tsx` | transient action feedback | floating charcoal glass pill (blur + hairline border), bottom-center (above mobile nav, left of the desktop CTA); success icon is always `text-volt` (the pill is charcoal in both themes — `text-primary` vanished on it in light mode); ≤3 stacked, auto-dismiss 3.6 s, `role="status"` + `aria-live="polite"` |
 
 ## 4. `Field` — the form-field system
 
@@ -136,7 +137,13 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
 - Errors: `role="alert"` so screen readers announce on commit.
 - Contrast: all token inks are AA in light and dark themes (dark `--primary #8AD200`
   always carries `--primary-foreground #0d1102`; light `--primary` is ink `#161616`).
-- Motion: `volt-glow`/`dot-typing` keyframes honor `prefers-reduced-motion`.
+- Focus: a `:focus-visible` baseline in `@layer base` outlines every focusable
+  element with `--ring` — components that style focus themselves
+  (`focus-visible:ring-2` + `outline-none` utilities) override it, so no
+  element ever shows two indicators.
+- Keyboard: every `role="tablist"` group uses `useTablist` (roving tabindex +
+  arrows/Home/End); Radix `Tabs` has this built in.
+- Motion: `volt-glow`/`dot-typing`/`skeleton-sheen` keyframes honor `prefers-reduced-motion`.
 
 ## 7. Stability contracts (E2E)
 

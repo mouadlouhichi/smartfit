@@ -71,7 +71,7 @@ export function RunHome({ runs, onStart }: { runs: WorkoutSession[]; onStart: ()
               : `Good ${timeOfDayLabel().toLowerCase()}`}
             {streak > 0 && (
               <span className="hero-tile inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px]">
-                <Flame className="h-3 w-3 text-[#8AD200]" aria-hidden />
+                <Flame className="text-volt h-3 w-3" aria-hidden />
                 {streak}-day streak
               </span>
             )}
@@ -115,18 +115,18 @@ export function RunHome({ runs, onStart }: { runs: WorkoutSession[]; onStart: ()
 
         {/* The week, at a glance */}
         <div className="grid gap-3">
-          <div className="relative overflow-hidden rounded-3xl bg-[linear-gradient(135deg,#8AD200,#699E00)] p-5 text-[#0d1102] shadow-lg">
+          <div className="from-volt to-volt-dim text-ink relative overflow-hidden rounded-3xl bg-gradient-to-br p-5 shadow-lg">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/10 px-2.5 py-1 text-[11px] font-bold">
               <Footprints className="h-3 w-3" aria-hidden /> Your distance · this week
             </span>
             <div className="mt-3 flex items-end justify-between gap-3">
               <p className="font-mono text-5xl leading-none font-extrabold tabular-nums">
                 {week.distance.toFixed(2)}
-                <span className="ml-1 text-lg font-extrabold text-[#0d1102]/75">km</span>
+                <span className="text-ink/75 ml-1 text-lg font-extrabold">km</span>
               </p>
-              <RunnerMark className="h-24 w-24 shrink-0 text-[#0d1102]/85" />
+              <RunnerMark className="text-ink/85 h-24 w-24 shrink-0" />
             </div>
-            <p className="mt-3 flex items-center gap-1.5 text-xs font-bold text-[#0d1102]/85">
+            <p className="text-ink/85 mt-3 flex items-center gap-1.5 text-xs font-bold">
               {deltaPct === null ? (
                 week.distance > 0 ? (
                   'First kilometres of the week — build from here.'
@@ -222,11 +222,7 @@ function WeekBars({ days }: { days: DayBar[] }) {
                 title={`${d.label} · ${d.distanceKm.toFixed(2)} km`}
                 className={cn(
                   'w-full rounded-lg transition-all duration-500',
-                  d.today
-                    ? 'bg-[linear-gradient(180deg,#8AD200,#8AD200)]'
-                    : d.distanceKm > 0
-                      ? 'bg-[#8AD200]/45'
-                      : 'bg-white/10',
+                  d.today ? 'bg-volt' : d.distanceKm > 0 ? 'bg-volt/45' : 'bg-white/10',
                 )}
                 style={{
                   height: `${d.distanceKm > 0 ? Math.max(10, (d.distanceKm / max) * 100) : 6}%`,
@@ -236,7 +232,7 @@ function WeekBars({ days }: { days: DayBar[] }) {
             <span
               className={cn(
                 'text-[10px] font-bold tracking-wide uppercase',
-                d.today ? 'text-[#8AD200]' : 'text-white/45',
+                d.today ? 'text-volt' : 'text-white/55',
               )}
             >
               {d.label.slice(0, 3)}
