@@ -114,10 +114,14 @@ jobs:
           if [ "$status" -ne 0 ]; then
             python3 - <<'PYLOG'
           from pathlib import Path
+          import re
           text = Path('/tmp/smartfit-rules.log').read_text(errors='replace')
-          excerpt = text[:24000] + ('\n...\n' + text[-8000:] if len(text) > 24000 else '')
-          escaped = excerpt.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print(f'::error title=Firestore rules test failure::{escaped}')
+          # GitHub truncates individual annotations. Emit failing TAP cases separately,
+          # not the expected permission-denied logging from passing negative tests.
+          failures = [text[m.start():].split('  ...', 1)[0][:3400] for m in re.finditer(r'(?m)^not ok ', text)]
+          for index, excerpt in enumerate(failures[:10] or [text[-3400:]], 1):
+              escaped = excerpt.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error title=Firestore rules failure {index}::{escaped}')
           PYLOG
           fi
           exit "$status"
@@ -131,10 +135,14 @@ jobs:
           if [ "$status" -ne 0 ]; then
             python3 - <<'PYLOG'
           from pathlib import Path
+          import re
           text = Path('/tmp/smartfit-integration.log').read_text(errors='replace')
-          excerpt = text[:24000] + ('\n...\n' + text[-8000:] if len(text) > 24000 else '')
-          escaped = excerpt.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
-          print(f'::error title=Firestore integration test failure::{escaped}')
+          # GitHub truncates individual annotations. Emit failing TAP cases separately,
+          # not the expected permission-denied logging from passing negative tests.
+          failures = [text[m.start():].split('  ...', 1)[0][:3400] for m in re.finditer(r'(?m)^not ok ', text)]
+          for index, excerpt in enumerate(failures[:10] or [text[-3400:]], 1):
+              escaped = excerpt.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error title=Firestore integration failure {index}::{escaped}')
           PYLOG
           fi
           exit "$status"
