@@ -7,6 +7,7 @@
  * into a valid `FitnessState`, dropping records it cannot repair, so a single
  * malformed row can never white-screen the app.
  */
+import { parseTrainingPreferences } from './personalization';
 import { CATEGORY_FALLBACK_COLOR } from './colors';
 import { DEFAULT_CATEGORIES, DEFAULT_WEEK_START } from './constants';
 import type {
@@ -204,6 +205,13 @@ function parseProfile(v: unknown): UserProfile {
         : null;
     const since = num(v.pro.since, 0);
     if (plan && since > 0) profile.pro = { plan, since };
+  }
+  if (v.trainingPreferences) {
+    try {
+      profile.trainingPreferences = parseTrainingPreferences(v.trainingPreferences);
+    } catch {
+      /* discard malformed preferences */
+    }
   }
   return profile;
 }

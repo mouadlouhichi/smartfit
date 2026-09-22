@@ -4,6 +4,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Loader2, Mail, ShieldCheck } from 'lucide-react';
+import { isValidSlug, tenantPath } from '@smartfit/core';
+
+/**
+ * Same-app absolute paths only: `/admin` passes, while `//evil.com`,
+ * `https://evil.com` and `login` (relative) do not. Gated surfaces (e.g. the
+ * platform-admin shell) set `?next=` so a sign-in lands back where it started —
+ * without this check that convenience would be an open redirect.
+ */
+function isSafeNextPath(path: string | null): path is string {
+  return !!path && /^\/(?!\/)/.test(path) && path !== '/login';
+}
 import { Wordmark } from '@/components/brand';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -98,12 +109,45 @@ export default function LoginPage() {
    * Gateway.
    *
    * Only an already-authenticated visitor is redirected: a signed-out one
-   * came here to sign in, so they must always get the form. A profile that
-   * hasn't finished setup goes to onboarding; everyone else to the dashboard.
+   * came here to sign in, so they must always get the form. A `?next=` param
+   * (set by gated surfaces such as /admin) wins — the visitor explicitly
+   * started there. A `?gym=` param (set by every "join this gym" link on a
+   * tenant site) sends them back to that gym instead of the dashboard —
+   * signing in to book a class and landing on a personal dashboard is a dead
+   * end. Then each persona gets its dedicated home (see /api/auth/home):
+   * platform admins → /admin, gym owners/staff → their console — a persona
+   * home wins over member onboarding, because an operator's console works
+   * without a tracker profile. Everyone else: a profile that hasn't finished
+   * setup goes to onboarding first. Any failure in the home lookup degrades
+   * to the member route — a redirect hint must never block sign-in.
    */
   useEffect(() => {
     if (!cloud || initializing || !user || !ready) return;
-    router.replace(state.profile.onboardingDone ? '/dashboard' : '/onboarding');
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get('next');
+    if (isSafeNextPath(next)) {
+      router.replace(next);
+      return;
+    }
+    const gym = params.get('gym');
+    if (gym && isValidSlug(gym)) {
+      router.replace(tenantPath(gym));
+      return;
+    }
+    const memberRoute = state.profile.onboardingDone ? '/dashboard' : '/onboarding';
+    user
+      .getIdToken()
+      .then((token) =>
+        fetch('/api/auth/home', {
+          headers: { authorization: `Bearer ${token}` },
+          // No caching: the answer follows the roster, which changes with
+          // every role a member is granted or loses.
+          cache: 'no-store',
+        }),
+      )
+      .then((res) => (res.ok ? res.json() : { home: null }))
+      .then((body: { home?: string | null }) => router.replace(body.home ?? memberRoute))
+      .catch(() => router.replace(memberRoute));
   }, [cloud, initializing, user, ready, state.profile.onboardingDone, router]);
 
   // A local-mode deployment has no accounts at all — showing a sign-in form
@@ -131,7 +175,18 @@ export default function LoginPage() {
             <PillCta
               label="Continue on this device"
               className="mt-5 w-full"
-              onClick={() => router.replace('/dashboard')}
+              onClick={() => {
+                const params = new URLSearchParams(window.location.search);
+                const next = params.get('next');
+                const gym = params.get('gym');
+                router.replace(
+                  isSafeNextPath(next)
+                    ? next
+                    : gym && isValidSlug(gym)
+                      ? tenantPath(gym)
+                      : '/dashboard',
+                );
+              }}
             />
           </CardContent>
         </Card>
@@ -377,6 +432,10 @@ export default function LoginPage() {
           Your training data is private to your account. See our{' '}
           <Link href="/privacy" className="hover:text-foreground underline underline-offset-2">
             privacy policy
+          </Link>
+          . Looking for your gym?{' '}
+          <Link href="/gyms" className="hover:text-foreground underline underline-offset-2">
+            Find it on SmartFit
           </Link>
           .
         </p>

@@ -12,7 +12,6 @@ import { DashboardHeader } from './dashboard-header';
 import { DashboardModals } from './dashboard-modals';
 import { ModalProvider, useModals } from './modal-context';
 import { ConfirmProvider } from './confirm-context';
-import { ToastProvider } from '@/components/ui/toast';
 import { MigrationPrompt, StorageWarningBanner, SyncBanner } from './sync-banner';
 import { InstallPrompt } from '@/components/pwa-install';
 
@@ -27,8 +26,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <ConfirmProvider>
       <ModalProvider>
-        <ToastProvider>
-          {/* Desktop layout: canvas-flushed content with a floating pill rail */}
+        {/* Toasts come from AppProviders (root) — see app-providers.tsx. */}
+        <>
           <div className="mx-auto flex min-h-dvh w-full max-w-[1500px] gap-0 p-0">
             {/* Dark rail (desktop) — floating rounded pill, per the reference */}
             <aside className="bg-charcoal sticky top-3 ml-3 hidden h-[calc(100dvh-1.5rem)] w-24 shrink-0 flex-col items-center rounded-[2.75rem] px-2 py-5 lg:flex">
@@ -40,7 +39,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 <Logo size={46} />
               </Link>
 
-              <nav className="flex flex-1 flex-col items-center gap-4">
+              <nav className="flex min-h-0 flex-1 flex-col items-center gap-4 overflow-y-auto">
                 {RAIL_ITEMS.map((item) => {
                   const active = isActive(pathname, item.href);
                   return (
@@ -103,7 +102,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <DashboardModals />
             <InstallPrompt />
           </div>
-        </ToastProvider>
+        </>
       </ModalProvider>
     </ConfirmProvider>
   );

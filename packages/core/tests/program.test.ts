@@ -2,10 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   FOCUS_CATEGORY,
-  GYM_PROGRAMS,
-  ZONE_FIGHT,
   emptyState,
-  getGymProgram,
+  findGymProgram,
   kgToTarget,
   parseStateJSON,
   suggestProgram,
@@ -13,6 +11,42 @@ import {
   suggestSummary,
   weeklyMix,
 } from '../src/index.ts';
+import type { GymProgram } from '../src/index.ts';
+
+/*
+ * Test fixture: a synthetic gym with a dense weekly grid — every day offers
+ * every focus, so the engine's day/focus matching always has a slot to find.
+ * The real app feeds `suggestProgram` GymPrograms built from live tenants
+ * (see src/lib/tenant-server.ts); the engine itself is tenant-agnostic.
+ */
+const FIXTURE_CLASSES = [
+  { id: 'cardio-burn', name: 'Cardio Burn', focus: 'cardio', intensity: 'high', minutes: 45 },
+  { id: 'hiit-45', name: 'HIIT 45', focus: 'hiit', intensity: 'high', minutes: 45 },
+  {
+    id: 'strength-f',
+    name: 'Strength Foundations',
+    focus: 'strength',
+    intensity: 'moderate',
+    minutes: 50,
+  },
+  { id: 'boxing-f', name: 'Boxing Fundamentals', focus: 'combat', intensity: 'high', minutes: 60 },
+  { id: 'mobility', name: 'Mobility & Recovery', focus: 'mind', intensity: 'low', minutes: 40 },
+  { id: 'aqua-fit', name: 'Aqua Fitness', focus: 'aqua', intensity: 'moderate', minutes: 45 },
+] as const;
+
+const TEST_GYM: GymProgram = {
+  id: 'test-gym',
+  name: 'Test Gym',
+  hours: 'Mon–Sat 06:30–22:30',
+  classes: Object.fromEntries(FIXTURE_CLASSES.map((c) => [c.id, c])),
+  week: FIXTURE_CLASSES.flatMap((c, i) =>
+    [1, 2, 3, 4, 5, 6].map((weekday) => ({
+      weekday,
+      time: ['06:30', '12:00', '18:00', '19:00', '20:00', '21:00'][i],
+      classId: c.id,
+    })),
+  ),
+};
 import type { BodyLog, FitnessState } from '../src/index.ts';
 
 function weightLog(kg: number, daysAgo = 0, createdAt = Date.now()): BodyLog {
@@ -33,10 +67,10 @@ function stateWith(extra: Partial<FitnessState['profile']> = {}, logs: BodyLog[]
   return { ...state, profile: { ...state.profile, ...extra }, bodyLogs: logs };
 }
 
-test('ZONE_FIGHT timetable is internally consistent', () => {
-  assert.ok(ZONE_FIGHT.week.length >= 40);
-  for (const slot of ZONE_FIGHT.week) {
-    assert.ok(ZONE_FIGHT.classes[slot.classId], `unknown class ${slot.classId}`);
+test('a gym program timetable is internally consistent', () => {
+  assert.ok(TEST_GYM.week.length >= 36);
+  for (const slot of TEST_GYM.week) {
+    assert.ok(TEST_GYM.classes[slot.classId], `unknown class ${slot.classId}`);
     assert.match(slot.time, /^\d{2}:\d{2}$/);
     assert.ok(slot.weekday >= 0 && slot.weekday <= 6);
   }
@@ -81,11 +115,11 @@ test('kgToTarget uses the latest weight log', () => {
 
 test('suggestProgram returns one real class per planned session', () => {
   const state = stateWith({ targetWeightKg: 78 }, [weightLog(84.5)]);
-  const suggested = suggestProgram(state);
+  const suggested = suggestProgram(state, TEST_GYM);
   assert.equal(suggested.length, 3); // full-body = 3×/week by default
 
   for (const s of suggested) {
-    const slot = ZONE_FIGHT.week.find(
+    const slot = TEST_GYM.week.find(
       (w) => w.weekday === s.weekday && w.time === s.time && w.classId === s.gymClass.id,
     );
     assert.ok(slot, `${s.gymClass.name} ${s.weekday} ${s.time} is not on the timetable`);
@@ -96,12 +130,12 @@ test('suggestProgram returns one real class per planned session', () => {
   assert.equal(new Set(keys).size, keys.length);
 
   // Deterministic: identical state → identical week.
-  assert.deepEqual(suggestProgram(state), suggested);
+  assert.deepEqual(suggestProgram(state, TEST_GYM), suggested);
 });
 
 test('suggestProgram days follow the plan split and adapt with the plan', () => {
   const state = stateWith({ planId: 'ppl', targetWeightKg: 78 }, [weightLog(84.5)]);
-  const suggested = suggestProgram(state);
+  const suggested = suggestProgram(state, TEST_GYM);
   assert.equal(suggested.length, 6); // ppl = 6×/week
   const days = suggested.map((s) => s.weekday);
   assert.equal(new Set(days).size, days.length, 'one session per day');
@@ -109,7 +143,7 @@ test('suggestProgram days follow the plan split and adapt with the plan', () => 
 
 test('a big gap biases the suggested week toward burn classes', () => {
   const state = stateWith({ planId: 'ppl', targetWeightKg: 78 }, [weightLog(90)]);
-  const burns = suggestProgram(state).filter(
+  const burns = suggestProgram(state, TEST_GYM).filter(
     (s) =>
       s.gymClass.focus === 'hiit' || s.gymClass.focus === 'cardio' || s.gymClass.focus === 'combat',
   );
@@ -118,7 +152,7 @@ test('a big gap biases the suggested week toward burn classes', () => {
 
 test('suggestedToSchedule maps onto schedule rows with built-in categories', () => {
   const state = stateWith({ targetWeightKg: 78 }, [weightLog(84.5)]);
-  const rows = suggestedToSchedule(suggestProgram(state));
+  const rows = suggestedToSchedule(suggestProgram(state, TEST_GYM));
   assert.equal(rows.length, 3);
   for (const row of rows) {
     assert.ok(Object.values(FOCUS_CATEGORY).includes(row.categoryId));
@@ -129,12 +163,14 @@ test('suggestedToSchedule maps onto schedule rows with built-in categories', () 
   }
 });
 
-test('gym registry resolves selections and rejects unknown ids', () => {
-  assert.equal(GYM_PROGRAMS.length, 1);
-  assert.equal(getGymProgram('zone-fight')?.id, 'zone-fight');
-  assert.equal(getGymProgram(''), null);
-  assert.equal(getGymProgram(undefined), null);
-  assert.equal(getGymProgram('gym-that-does-not-exist'), null);
+test('findGymProgram resolves selections and rejects unknown ids', () => {
+  const programs = [TEST_GYM];
+  assert.equal(findGymProgram(programs, 'test-gym')?.id, 'test-gym');
+  assert.equal(findGymProgram(programs, ''), null);
+  assert.equal(findGymProgram(programs, undefined), null);
+  assert.equal(findGymProgram(programs, 'gym-that-does-not-exist'), null);
+  // The list is the source of truth: a gym missing from it stops resolving.
+  assert.equal(findGymProgram([], 'test-gym'), null);
 });
 
 test('profile gymId survives parsing and junk is dropped', () => {

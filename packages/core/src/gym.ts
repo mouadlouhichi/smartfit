@@ -63,11 +63,13 @@ export interface CustomGym {
   builtInProgramId?: string;
 }
 
-// ── Built-in gyms converted to new format ────────────────────────────────────
+// ── Legacy built-in gyms ──────────────────────────────────────────────────────
+// The converter below built the "built-in gym" entries the retired Gym tab
+// seeded into `customGyms`. It is kept for history's sake only: nothing
+// imports it, and new state never seeds built-in gyms — real gyms are
+// tenants now (see program.ts). Existing accounts keep their data as-is.
 
-import { ZONE_FIGHT } from './program';
-
-export function builtInGymToCustom(gym: GymProgram): CustomGym {
+function builtInGymToCustom(gym: GymProgram): CustomGym {
   return {
     id: gym.id,
     name: gym.name,
@@ -102,8 +104,6 @@ export function builtInGymToCustom(gym: GymProgram): CustomGym {
     ],
   };
 }
-
-export const BUILT_IN_GYMS: CustomGym[] = [builtInGymToCustom(ZONE_FIGHT)];
 
 // ── AI Exercise Determination ────────────────────────────────────────────────
 
@@ -302,17 +302,6 @@ export function createGymClass(params: {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-export function getAllGyms(customGyms: CustomGym[] = []): CustomGym[] {
-  // Merge built-in + custom, dedup by id
-  const byId = new Map<string, CustomGym>();
-  for (const g of BUILT_IN_GYMS) byId.set(g.id, g);
-  for (const g of customGyms) byId.set(g.id, g);
-  return Array.from(byId.values()).sort((a, b) => {
-    if (a.custom !== b.custom) return a.custom ? 1 : -1;
-    return a.name.localeCompare(b.name);
-  });
-}
 
 export function findGym(gyms: CustomGym[], id: string): CustomGym | null {
   return gyms.find((g) => g.id === id) ?? null;

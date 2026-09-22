@@ -1,18 +1,7 @@
-/*
- * SmartFit service worker.
- *
- * Strategy:
- *  - navigations  : stale-while-revalidate — the cached shell paints
- *                   immediately (that is what makes a home-screen launch
- *                   feel instant), the network refreshes it in the
- *                   background, and the offline page is the last resort.
- *  - static build : cache-first (immutable, content-hashed by Next).
- *  - everything   : stale-while-revalidate for same-origin GETs.
- *
- * The app's *data* is already offline-capable (localStorage in local mode,
- * Firestore's IndexedDB cache in cloud mode); this only covers the shell.
+/* Only public static assets are cached. Private navigations and APIs stay network-only.
+ * Firestore/local account storage has its own explicit offline policy.
  */
-const VERSION = 'smartfit-v10'; // bigger flame mark + SWR navigations; evict old shells/icons
+const VERSION = 'smartfit-v11'; // evict all previous cached private HTML
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const OFFLINE_URL = '/offline';
@@ -55,7 +44,15 @@ function isStaticAsset(url) {
   return (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
-    /\.(?:png|jpg|jpeg|svg|webp|ico|woff2?)$/.test(url.pathname)
+    url.pathname.startsWith('/images/')
+  );
+}
+function cacheable(response) {
+  return (
+    response.ok &&
+    !response.redirected &&
+    response.type !== 'opaque' &&
+    !/private|no-store/i.test(response.headers.get('Cache-Control') || '')
   );
 }
 
@@ -66,28 +63,18 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // never touch Firebase/API traffic
 
-  // App shell navigations: stale-while-revalidate. A home-screen tap paints
-  // the cached shell on the first frame instead of waiting on the network;
-  // the fresh response lands in the cache for the next launch. waitUntil
-  // keeps the worker alive long enough to finish that background refresh.
+  // API and React server-component requests must never be cached as static assets.
+  if (url.pathname.startsWith('/api/') || request.headers.has('RSC')) return;
   if (request.mode === 'navigate') {
     event.respondWith(
-      (async () => {
-        const cache = await caches.open(SHELL_CACHE);
-        const cached = await cache.match(request);
-        const network = fetch(request)
-          .then((response) => {
-            const copy = response.clone();
-            cache.put(request, copy).catch(() => undefined);
-            return response;
-          })
-          .catch(() => null);
-        if (cached) {
-          event.waitUntil(network.then(() => undefined));
-          return cached;
-        }
-        return (await network) ?? (await caches.match(OFFLINE_URL));
-      })(),
+      fetch(request).catch(
+        async () =>
+          (await caches.match(OFFLINE_URL)) ??
+          new Response('You are offline. Reconnect to continue.', {
+            status: 503,
+            headers: { 'Content-Type': 'text/plain' },
+          }),
+      ),
     );
     return;
   }
@@ -99,8 +86,15 @@ self.addEventListener('fetch', (event) => {
         (cached) =>
           cached ??
           fetch(request).then((response) => {
-            const copy = response.clone();
-            caches.open(ASSET_CACHE).then((c) => c.put(request, copy)).catch(() => undefined);
+            if (cacheable(response)) {
+              const copy = response.clone();
+              event.waitUntil(
+                caches
+                  .open(ASSET_CACHE)
+                  .then((c) => c.put(request, copy))
+                  .catch(() => undefined),
+              );
+            }
             return response;
           }),
       ),

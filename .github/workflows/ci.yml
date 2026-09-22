@@ -10,6 +10,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Browser CI deliberately exercises the isolated demo, not a live Firebase project.
+  SMARTFIT_DEPLOYMENT: demo
+
 jobs:
   lint:
     name: Lint & format
@@ -58,6 +62,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @smartfit/core test
       - run: pnpm test
+      - run: pnpm test:server
 
   e2e:
     name: E2E smoke (production build, local mode)
@@ -100,10 +105,55 @@ jobs:
           # firebase-tools requires Java 21+ for the Firestore emulator
           java-version: 21
       - name: Run rules unit tests against the Firestore emulator
-        run: >-
-          npx -y firebase-tools@latest emulators:exec --only firestore
-          --project smartfit-rules-ci
-          "node --import tsx --test tests/rules/firestore-rules.test.ts"
+        run: |
+          # Preserve the real exit code; expose a bounded diagnostic in check annotations
+          # as well as the full job log (log-storage access may be unavailable to reviewers).
+          set +e
+          pnpm test:rules 2>&1 | tee /tmp/smartfit-rules.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PYLOG'
+          from pathlib import Path
+          import re
+          text = Path('/tmp/smartfit-rules.log').read_text(errors='replace')
+          # GitHub truncates individual annotations. Emit failing TAP cases separately,
+          # not the expected permission-denied logging from passing negative tests.
+          failures = [text[m.start():].split('  ...', 1)[0][:3400] for m in re.finditer(r'(?m)^not ok ', text)]
+          for index, excerpt in enumerate(failures[:10] or [text[-3400:]], 1):
+              escaped = excerpt.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error title=Firestore rules failure {index}::{escaped}')
+          PYLOG
+          fi
+          exit "$status"
+      - name: Test real Auth tokens, role transactions and Firestore rules together
+        run: |
+          # Preserve the real exit code; expose a bounded diagnostic in check annotations
+          # as well as the full job log (log-storage access may be unavailable to reviewers).
+          set +e
+          pnpm test:integration 2>&1 | tee /tmp/smartfit-integration.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PYLOG'
+          from pathlib import Path
+          import re
+          text = Path('/tmp/smartfit-integration.log').read_text(errors='replace')
+          # GitHub truncates individual annotations. Emit failing TAP cases separately,
+          # not the expected permission-denied logging from passing negative tests.
+          failures = [text[m.start():].split('  ...', 1)[0][:3400] for m in re.finditer(r'(?m)^not ok ', text)]
+          for index, excerpt in enumerate(failures[:10] or [text[-3400:]], 1):
+              escaped = excerpt.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+              print(f'::error title=Firestore integration failure {index}::{escaped}')
+          PYLOG
+          fi
+          exit "$status"
+      - name: Upload emulator logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authorization-emulator-logs
+          path: '*-debug.log'
+          if-no-files-found: ignore
+          retention-days: 3
 
   mobile-typecheck:
     name: Mobile typecheck

@@ -31,7 +31,7 @@ import { CategoryIcon } from '@/components/category-icon';
 import { INTENSITY_META, PLANS, WEEKDAYS, WEEKDAYS_LONG } from '@smartfit/core';
 import {
   categoryById,
-  getGymProgram,
+  findGymProgram,
   getPlan,
   suggestProgram,
   suggestedToSchedule,
@@ -40,10 +40,10 @@ import {
 import { formatCalories, formatDateLabel, formatDistance, formatMinutes } from '@smartfit/core';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import type { ScheduledWorkout } from '@smartfit/core';
+import type { GymProgram, ScheduledWorkout } from '@smartfit/core';
 import { ExerciseLibrary } from '../exercise-library';
 import { ScreenHeader } from '../screen-header';
-import { GymManagement } from '../gym/gym-management';
+import { GymPicker } from '../gym/gym-picker';
 
 /** Small neutral metadata pill used across rows. */
 function MetaChip({ children }: { children: React.ReactNode }) {
@@ -70,10 +70,16 @@ export function PlanScreen() {
   const [filter, setFilter] = useState('all');
   const [pageError, setPageError] = useState<string | null>(null);
 
-  // Selected gym program (Profile → Gym program): suggestions are built from
-  // its real timetable and recomputed whenever the strategy, latest weight
-  // log or target weight changes.
-  const gymProgram = useMemo(() => getGymProgram(state.profile.gymId), [state.profile.gymId]);
+  // The selected gym is a tenant, resolved against the live list the
+  // GymPicker loads; suggestions are built from its real timetable and
+  // recomputed whenever the strategy, latest weight log or target changes.
+  const [gymPrograms, setGymPrograms] = useState<GymProgram[]>([]);
+  const gymProgram = useMemo(
+    () => findGymProgram(gymPrograms, state.profile.gymId),
+    [gymPrograms, state.profile.gymId],
+  );
+  // A gym whose timetable yields nothing importable (no published classes)
+  // shows the card's explanatory state rather than an "Import 0" button.
   const suggested = useMemo(
     () => (gymProgram ? suggestProgram(state, gymProgram) : []),
     [state, gymProgram],
@@ -194,11 +200,11 @@ export function PlanScreen() {
         </CardContent>
       </Card>
 
-      {/* ── Gym Management - Redesigned with add/delete, programs, AI classes ── */}
-      <GymManagement />
+      {/* ── Your gym — real tenants, their live timetables ── */}
+      <GymPicker programs={gymPrograms} onLoad={setGymPrograms} />
 
-      {/* ── Suggested program (legacy - now part of gym management, but keep quick import) ── */}
-      {gymProgram && suggested.length > 0 && (
+      {/* ── Quick import: the selected gym's suggested week ── */}
+      {gymProgram && gymProgram.week.length > 0 && suggested.length > 0 && (
         <Card className="border-volt/20 bg-volt/5">
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center gap-2.5 text-base">

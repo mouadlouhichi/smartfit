@@ -34,3 +34,16 @@ export * from './exercises';
 export * from './extended-catalog';
 export * from './suggestions';
 export * from './gym';
+export * from './rbac';
+export * from './tenant';
+
+export * from './content';
+export * from './coaching';
+
+export * from './personalization';
+
+export * from './team';
+
+export * from './team-audit';
+
+export * from './gym-roster';

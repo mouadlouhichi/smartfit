@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AccountLink } from './account-link';
 import { useReveal } from './use-reveal';
 
 const ACTIVITIES = [
@@ -46,12 +47,9 @@ export function ActivitySection() {
             your strategy from Profile anytime.
           </p>
           <div className="mt-6 flex justify-center gap-3">
-            <Link
-              href="/login"
-              className="inline-flex items-center rounded-full border border-[color:var(--foreground)]/10 px-4 py-2 text-xs font-medium transition-colors hover:border-[color:var(--foreground)]/30"
-            >
+            <AccountLink className="inline-flex items-center rounded-full border border-[color:var(--foreground)]/10 px-4 py-2 text-xs font-medium transition-colors hover:border-[color:var(--foreground)]/30">
               Start with a plan →
-            </Link>
+            </AccountLink>
             <Link
               href="/#plans"
               className="inline-flex items-center rounded-full border border-[color:var(--foreground)]/10 px-4 py-2 text-xs font-medium transition-colors hover:border-[color:var(--foreground)]/30"

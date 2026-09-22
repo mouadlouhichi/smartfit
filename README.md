@@ -149,6 +149,54 @@ shared domain package — but applies them to **training** instead of money.
 - **Marketing site** included (landing, features, how-it-works, plans, FAQ),
   plus `/privacy` and `/terms`.
 
+### Gyms (B2B)
+
+SmartFit is also a **product gyms buy**: a tenant gets its own site, its team
+gets a console, and its members get booking — while every member's private
+tracker stays exactly as private as it was.
+
+- **A storefront per gym** — `smartfit.app/g/{slug}` today, `{slug}.smartfit.app`
+  in production (middleware rewrites the host into the same tree). Server
+  rendered with the gym's own branding: name, accent colour, timetable with
+  live seat counts, published pricing, per-tenant page metadata and a class
+  detail page per template. `/gyms` is the public directory.
+- **The member experience lives on the gym's site, not in the tracker** — join
+  in one tap (trial membership), a membership card with status/expiry/visits,
+  book / cancel / waitlist directly from the timetable, "My classes", door
+  check-in history, and an **opt-in progress share** that spells out the three
+  aggregates the gym can see (sessions this month, streak, attendance) and is
+  revoked by deleting one document. The tracker's gym surfaces are tenants too:
+  onboarding's "Your gym" picker and the Plan tab's "Your gym" card list the
+  live gyms (`/api/gym-programs`) and build the suggested week from the
+  selected gym's real timetable — the personal "custom gyms" builder is
+  retired from the UI (existing data stays in each account, untouched).
+- **One console tree, two audiences** — `/g/{slug}/console` renders what the
+  role's capabilities allow and nothing more (a denied section is *absent*, not
+  disabled, so staff never learn a Revenue tab exists). Owners get the
+  business: MRR, occupancy, at-risk worklist, roster, timetable, plans,
+  payments, branding. Staff land on **Today**: front-desk search, check-in,
+  attendance / no-show, waitlist promotion.
+- **Roles enforced twice** — the same capability table drives the UI
+  (`@smartfit/core` RBAC) and the Firestore rules (the real boundary, since the
+  browser writes straight to the database). Per-gym roles come from the
+  membership document, not a claim, so "owner of gym A, member of gym B" just
+  works and staff changes apply instantly.
+- **A platform console for the operator** — `/admin` (gated on the `sfRole`
+  claim, re-verified server-side on every route): KPI overview and MRR, a gym
+  registry with suspend/restore (the reversible kill switch), "Set up a gym"
+  (provision a tenant directly — address, plan, owner by email), an
+  application queue whose approve provisions a tenant and its owner, plan &
+  limits config, offline payment recording (cash/transfer/CMI — the local
+  norm), an append-only audit log, and read-only view-as-gym impersonation.
+  Gyms apply from the public "List your gym" form on `/gyms`.
+- **Demo mode** — with no Firebase project configured, the whole tenant tree
+  runs on a fixture (including a role/persona switcher), which is how the
+  preview and `pnpm test:e2e` exercise it. `pnpm seed:b2b` provisions the same
+  shape into a real project.
+
+See [`docs/b2b-pivot-plan.md`](docs/b2b-pivot-plan.md) for the design and
+[`docs/b2b-todo.md`](docs/b2b-todo.md) for implementation status.
+
 ## 🧱 Tech stack
 
 | Layer            | Web (root `src/`)                        | Mobile (`apps/mobile`)                    |
@@ -189,14 +237,18 @@ The web app runs from the repo root; mobile and the shared package are workspace
 
 ```bash
 pnpm dev            # start the Next.js web app (root)
-pnpm build          # production build of the web app
+pnpm build          # production build; requires matching Firebase client/admin configuration
+# For a deliberate demo only: SMARTFIT_DEPLOYMENT=demo pnpm build
 pnpm typecheck      # tsc --noEmit for the web app
 pnpm lint           # ESLint (next/core-web-vitals) across the monorepo
 pnpm format         # Prettier --write  (pnpm format:check in CI)
 pnpm test           # web lib tests (hydration, write queue, auth errors, diagnostics)
 pnpm test:e2e       # Playwright smoke suite against the production build (needs pnpm build first)
-pnpm test:rules     # Firestore rules tests against the emulator (needs Java 17+)
+pnpm test:rules     # Firestore rules tests against the emulator (needs Java 21+)
+pnpm test:integration # Real Auth + Firestore emulator authorization/transaction tests
+pnpm audit:team --project PROJECT # Read-only owner/membership release preflight
 pnpm seed           # populate a Firestore demo account (needs admin creds)
+pnpm seed:b2b       # provision the B2B demo tenant: owner, staff, members, timetable
 
 pnpm --filter @smartfit/core test          # core domain tests
 pnpm --filter @smartfit/mobile typecheck   # mobile types
@@ -219,6 +271,8 @@ missing from `.env.example`, so this list cannot drift.
 | `NEXT_PUBLIC_FIREBASE_*` | web | _unset_ | A **complete** set (API key, auth domain, project id, app id) switches the app into cloud mode; anything missing keeps it local. Optional extras: `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` |
 | `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` | web | _unset_ | reCAPTCHA v3 site key from Firebase App Check; when set, the client attests every request (enable enforcement in the console only after deploying it) |
 | `NEXT_PUBLIC_ERROR_ENDPOINT` | web | _unset_ | Optional **self-hosted**, cookie-free collector for crash reports and web vitals. Unset = nothing is ever sent (see `docs/ops-runbook.md`) |
+| `NEXT_PUBLIC_APEX_DOMAIN` | web | _unset_ | Apex domain(s) a gym subdomain hangs off, comma-separated — `acme` + `smartfit.app` serves `acme.smartfit.app`. Empty disables host resolution and every tenant stays on the canonical `/g/{slug}` path (preview / local mode). See `docs/b2b-pivot-plan.md` §8 |
+| `NEXT_PUBLIC_BASE_HOST` | web | _unset_ | Exact host(s), comma-separated, that are never tenants. Guards against a loose apex making the base host itself look like a slug |
 
 ### Coach
 
@@ -253,6 +307,7 @@ missing from `.env.example`, so this list cannot drift.
 | `GOOGLE_CLOUD_PROJECT` | platform | _unset_ | Optional Google-hosted runtime project id used with Application Default Credentials; normally injected by the platform |
 | `SEED_UID` | script | `demo-user` | UID that `pnpm seed` writes the demo history to |
 | `SEED_EMAIL` | script | _unset_ | Email for the seeded account when it is created |
+| `B2B_*` | script | see `.env.example` | `pnpm seed:b2b` — provisions the B2B demo tenant: a platform admin (`sfRole` claim), a gym owner, staff and members, plus classes, slots, bookings, plans and invoices. Idempotent. `B2B_PASSWORD`, `B2B_GYM_SLUG`, `B2B_ADMIN_EMAIL`, `B2B_FORCE` |
 
 Env access is centralised and validated in `src/lib/env.ts` (web) and
 `apps/mobile/src/lib/env.ts` (invalid plan values fall back to the default). See
@@ -398,14 +453,14 @@ coach → export → erase, plus deep-link guards, reload persistence, legal/404
 pages and the PWA asset chain.
 
 ```bash
-pnpm build && pnpm test:e2e
+SMARTFIT_DEPLOYMENT=demo pnpm build && SMARTFIT_DEPLOYMENT=demo pnpm test:e2e
 ```
 
 **Security rules (`tests/rules/`)** — ownership and payload validation against
 the Firestore emulator (advisory CI job until observed green, then blocking):
 
 ```bash
-pnpm test:rules   # requires Java 17+
+pnpm test:rules   # requires Java 21+
 ```
 
 ## 📦 Mobile builds (EAS)
@@ -458,3 +513,8 @@ Notes for the monorepo:
   convergence already ships via the storage-event bridge.
 - Launch ops: see `docs/ops-runbook.md` (App Check enforcement, billing alarms,
   scheduled Firestore exports, collector for diagnostics).
+
+### Current team authorization and release checks
+
+See [Team access and release readiness (22 September)](docs/team-access-and-release-readiness.md)
+for membership-based grants/revocation, the explicit demo build flag, and remaining cloud launch gates.

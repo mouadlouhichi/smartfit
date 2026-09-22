@@ -14,16 +14,23 @@
     "jsx": "preserve",
     "incremental": true,
     "allowImportingTsExtensions": true,
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": ["./src/*"],
-      "@smartfit/core": ["./packages/core/src/index.ts"]
+      "@smartfit/core": ["./packages/core/src/index.ts"],
+      "@smartfit/core/tenant": ["./packages/core/src/tenant.ts"],
+      "@smartfit/core/rbac": ["./packages/core/src/rbac.ts"]
     }
   },
   "include": [
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "scripts/**/*.ts",
     "tests/**/*.ts",
     ".next/types/**/*.ts"
   ],

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AccountLink } from './account-link';
 import { AnimatedWave } from './animated-wave';
 import { Logo } from '@/components/brand';
 
@@ -17,6 +18,7 @@ const FOOTER_LINKS = [
   {
     title: 'Training',
     links: [
+      { name: 'Training library', href: '/library' },
       { name: 'All styles explained', href: '/#plans' },
       { name: 'Push / Pull / Legs', href: '/#plans' },
       { name: 'Upper / Lower', href: '/#plans' },
@@ -38,6 +40,7 @@ const FOOTER_LINKS = [
       { name: 'Open dashboard', href: '/dashboard' },
       { name: 'Get started', href: '/onboarding' },
       { name: 'Sign in', href: '/login' },
+      { name: 'Help & support', href: '/support' },
       { name: 'Your data', href: '/#security' },
     ],
   },
@@ -80,13 +83,22 @@ export function FooterSection() {
                 <h3 className="mb-6 text-sm font-medium">{title}</h3>
                 <ul className="space-y-4">
                   {links.map((link) => (
-                    <li key={`${title}-${link.name}`}>
-                      <Link
-                        href={link.href}
-                        className="inline-flex items-center gap-2 text-sm text-[color:var(--muted-foreground)] transition-colors hover:text-[color:var(--foreground)]"
-                      >
-                        {link.name}
-                      </Link>
+                    <li key={`${title}-${link.name}`} className="empty:hidden">
+                      {['/login', '/dashboard', '/onboarding'].includes(link.href) ? (
+                        <AccountLink
+                          signedOutOnly={link.href !== '/dashboard'}
+                          className="inline-flex items-center gap-2 text-sm text-[color:var(--muted-foreground)] transition-colors hover:text-[color:var(--foreground)]"
+                        >
+                          {link.name}
+                        </AccountLink>
+                      ) : (
+                        <Link
+                          href={link.href}
+                          className="inline-flex items-center gap-2 text-sm text-[color:var(--muted-foreground)] transition-colors hover:text-[color:var(--foreground)]"
+                        >
+                          {link.name}
+                        </Link>
+                      )}
                     </li>
                   ))}
                 </ul>

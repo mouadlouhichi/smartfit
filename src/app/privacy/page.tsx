@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/privacy' },
 };
 
-const UPDATED = '7 September 2026';
+const UPDATED = '21 September 2026';
 
 export default function PrivacyPage() {
   return (
@@ -27,7 +27,8 @@ export default function PrivacyPage() {
           <p>
             SmartFit is a training log. It stores what you type into it and nothing else. There are
             no advertising trackers, no analytics SDKs, no third-party profiling, and your training
-            data is never sold or shared.
+            data is never sold. Support conversations and coaching information you explicitly share
+            have the access rules described below.
           </p>
         </section>
 
@@ -41,9 +42,10 @@ export default function PrivacyPage() {
           </p>
           <p>
             <strong>Account mode.</strong> If you sign in, your data is stored in Google Cloud
-            Firestore under your user id and is readable only by you. Security rules deny every
-            request that is not from your own signed-in account. A cached copy is also kept on your
-            device so the app works offline; signing out removes that copy.
+            Firestore. Your personal fitness records and training preferences are readable only by
+            your own signed-in account. Support and gym coaching records are stored separately and
+            served through authorized server routes. A cached copy is also kept on your device so
+            the app works offline; signing out removes that copy.
           </p>
         </section>
 
@@ -59,8 +61,33 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p>
-            We do not collect location, contacts, health-kit data, device identifiers or behavioural
-            analytics.
+            GPS routes are recorded only when you use the run tracker and grant location access. We
+            do not import contacts or health-platform data.
+          </p>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-display text-xl font-bold">
+            Support, coaching and training preferences
+          </h2>
+          <p>
+            Training preferences include your chosen days, equipment, experience, exclusions and
+            whether automatic suggestions should pause for professional advice. They remain part of
+            your private profile. Support agents and platform administrators can read support
+            conversations, not your private fitness records. Do not put passwords, payment
+            credentials or medical records in tickets.
+          </p>
+          <p>
+            Coaching requires an active gym membership and your acceptance of an assigned trainer.
+            The assigned trainer, gym owner and staff can read the assignment, prescribed routine
+            and its conversation. Your personal workout history and body measurements are not
+            disclosed by accepting coaching. Declining pauses further coaching; removing an
+            assignment deletes its routine and conversation. Reassignment starts fresh consent
+            without sharing the old conversation.
+          </p>
+          <p>
+            On-device previews of these workspaces use sessionStorage and are labelled demo-only.
+            They do not create support tickets or change cloud account roles.
           </p>
         </section>
 
@@ -120,16 +147,20 @@ export default function PrivacyPage() {
           <h2 className="font-display text-xl font-bold">Your controls</h2>
           <ul className="list-disc space-y-1 pl-5">
             <li>
-              <strong>Export.</strong> Profile → Export JSON gives you every record we hold, in a
-              portable format, at any time.
+              <strong>Export.</strong> Profile → Data → Export JSON includes your complete personal
+              training records and, in account mode, your support tickets and coaching assignments.
+              Operational audit records, gym billing records and editorial revisions are not part of
+              this fitness backup. Importing it restores fitness data, not conversations or account
+              roles.
             </li>
             <li>
               <strong>Erase.</strong> Profile → Erase everything deletes all your training data
               immediately, on the device and in the cloud.
             </li>
             <li>
-              <strong>Delete account.</strong> Profile → Delete account removes your data and your
-              sign-in credentials permanently. This cannot be undone.
+              <strong>Delete account.</strong> Profile → Delete account removes your private fitness
+              data, your support tickets, coaching assignments in which you are a member or trainer,
+              and your sign-in credentials permanently. This cannot be undone.
             </li>
           </ul>
         </section>
@@ -137,9 +168,13 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="font-display text-xl font-bold">Retention</h2>
           <p>
-            Data is kept until you delete it. There is no backup archive that survives an account
-            deletion beyond the short window Google&apos;s infrastructure needs to propagate the
-            removal.
+            Personal fitness records and support conversations are kept until account deletion.
+            Coaching assignments can also be removed individually. Deletion removes these live
+            records and is retried if a service fails. Security audit logs, published editorial
+            revisions and gym financial or membership records are separate operational records and
+            are not erased by this account deletion flow. Support replies authored by an operator in
+            another requester&apos;s ticket remain part of that ticket. Contact the deployment
+            operator about retention of those records and infrastructure backups.
           </p>
         </section>
 
@@ -155,7 +190,11 @@ export default function PrivacyPage() {
         <section className="space-y-3">
           <h2 className="font-display text-xl font-bold">Contact</h2>
           <p>
-            Questions about this policy, or a data request? Open an issue on the{' '}
+            Questions about this policy, or a private data request? Use{' '}
+            <Link href="/support" className="text-primary underline">
+              Support
+            </Link>
+            . For non-private project feedback, use the{' '}
             <a
               className="text-primary font-medium underline-offset-4 hover:underline"
               href="https://github.com/mouadlouhichi/smartfit"

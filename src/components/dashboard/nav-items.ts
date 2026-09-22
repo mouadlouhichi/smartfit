@@ -1,4 +1,6 @@
 import {
+  BookOpen,
+  SlidersHorizontal,
   LayoutDashboard,
   CalendarCheck,
   Target,
@@ -21,6 +23,13 @@ export interface NavItem {
 /** Canonical app routes (also used by the mobile floating pill). */
 export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, short: 'Home' },
+  { href: '/dashboard/library', label: 'Library', icon: BookOpen, short: 'Library' },
+  {
+    href: '/dashboard/personalize',
+    label: 'Personalize',
+    icon: SlidersHorizontal,
+    short: 'For you',
+  },
   { href: '/dashboard/run', label: 'Run', icon: Footprints, short: 'Run' },
   { href: '/dashboard/plan', label: 'Training plan', icon: CalendarCheck, short: 'Plan' },
   { href: '/dashboard/goals', label: 'Goals', icon: Target, short: 'Goals' },
@@ -36,6 +45,8 @@ export const NAV_ITEMS: NavItem[] = [
  */
 export const RAIL_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/dashboard/library', label: 'Library', icon: BookOpen },
+  { href: '/dashboard/personalize', label: 'Personalize', icon: SlidersHorizontal },
   { href: '/dashboard/run', label: 'Run', icon: Footprints },
   { href: '/dashboard/progress', label: 'Progress', icon: LineChart },
   { href: '/dashboard/coach', label: 'Insights', icon: Sparkles },
