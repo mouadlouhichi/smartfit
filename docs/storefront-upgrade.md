@@ -38,3 +38,25 @@ class of the current weekday is the fixture intended by the test.
 
 These checks use demo fixtures. No deployment, live Firebase verification, payment
 provider verification or production certification was performed.
+
+## Landing-style motion follow-up
+
+- Tenant-accent ambient gradients and a blueprint grid behind the page and hero.
+- Lightweight rotating SVG wireframe artwork inspired by the landing page sphere.
+- Bounded scroll/fine-pointer parallax on cover imagery only; text and booking controls
+  remain stationary. Touch devices do not receive pointer tilt.
+- An editorial “Make room for more” section with a looping ribbon using the current
+  gym's class disciplines, plus one-shot section entrances and class-card hover depth.
+- Navigation includes a pause/resume button. System reduced-motion preferences take
+  precedence, including changes made while the page is open. Hidden tabs stop motion;
+  hero/statement loops pause outside the viewport. The owner draft preview is static.
+- Decorative layers ignore pointer events and are hidden from assistive technology.
+  Content is never initially hidden by reveal CSS, including with JavaScript disabled.
+- No animation dependencies, video assets or continuously running JavaScript render
+  loop were added. Parallax batches scroll/pointer work into requestAnimationFrame.
+
+Follow-up verification: 14 browser checks passed (4 new motion checks, 2 storefront,
+3 branding, 5 tenant/member journey regressions), 209 web unit tests, web typecheck,
+lint (the existing profile-screen image warning only), and explicit demo production
+build. Desktop dark and mobile light visuals inspected. Not deployed or live-Firebase
+verified.

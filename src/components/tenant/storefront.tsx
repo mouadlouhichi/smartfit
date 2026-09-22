@@ -28,6 +28,7 @@ import { Artwork } from '@/components/ui/artwork';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { GymGallery, brandColors } from './brand-media';
 import { StorefrontHero } from './storefront-hero';
+import { StorefrontMotion, MotionToggle, TrainingStatement } from './storefront-motion';
 import { cn } from '@/lib/utils';
 import {
   GYM_FOCUS_LABELS,
@@ -288,8 +289,8 @@ export function Storefront() {
     .join(', ');
   const openDays = gym.hours ? Object.values(gym.hours).filter(Boolean).length : null;
   return (
-    <div
-      className="gym-storefront bg-background pb-24 sm:pb-0"
+    <StorefrontMotion
+      className="gym-storefront bg-background relative isolate pb-24 sm:pb-0"
       style={{ '--gym-accent': accent, '--gym-foreground': foreground } as CSSProperties}
     >
       <a
@@ -326,6 +327,7 @@ export function Storefront() {
             ))}
           </div>
           <div className="flex items-center gap-1.5 sm:gap-3">
+            <MotionToggle />
             <ThemeToggle />
             {can('checkin:door') && (
               <Button asChild size="sm" variant="outline" className="hidden text-xs sm:inline-flex">
@@ -371,7 +373,7 @@ export function Storefront() {
           </div>
         )}
       </nav>
-      <main className="mx-auto max-w-7xl space-y-16 px-4 pt-5 pb-12 sm:px-6 sm:pt-7 lg:space-y-24 lg:px-8">
+      <main className="relative mx-auto max-w-7xl space-y-16 px-4 pt-5 pb-12 sm:px-6 sm:pt-7 lg:space-y-24 lg:px-8">
         <div>
           {mode === 'demo' && (
             <div className="text-muted-foreground mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2 text-[10px]">
@@ -427,7 +429,7 @@ export function Storefront() {
             )}
           </div>
         </div>
-        <section id="about" className="grid items-start gap-8 lg:grid-cols-2 lg:gap-20">
+        <section data-reveal id="about" className="grid items-start gap-8 lg:grid-cols-2 lg:gap-20">
           <SectionHeading number="01" eyebrow="Meet your gym" title="Find your kind of strong." />
           <div>
             <p className="text-muted-foreground text-base leading-relaxed">
@@ -448,7 +450,7 @@ export function Storefront() {
             </div>
           </div>
         </section>
-        <section id="classes" className="space-y-7">
+        <section data-reveal id="classes" className="space-y-7">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <SectionHeading
               number="02"
@@ -467,7 +469,7 @@ export function Storefront() {
                 <Link
                   key={cls.id}
                   href={`/g/${slug}/class/${cls.id}`}
-                  className="group bg-card focus-visible:ring-ring overflow-hidden rounded-3xl border transition-shadow hover:shadow-lg focus-visible:ring-2"
+                  className="sf-class-card group bg-card focus-visible:ring-ring overflow-hidden rounded-3xl border transition-shadow hover:shadow-lg focus-visible:ring-2"
                 >
                   <div className="relative h-56 overflow-hidden">
                     <Artwork
@@ -516,6 +518,7 @@ export function Storefront() {
             </p>
           )}
         </section>
+        <TrainingStatement labels={focuses.map((f) => GYM_FOCUS_LABELS[f] ?? f)} />
         <section id="timetable" className="space-y-7">
           <SectionHeading
             number="03"
@@ -662,7 +665,7 @@ export function Storefront() {
             </div>
           )}
         </section>
-        <section id="pricing" className="space-y-7">
+        <section data-reveal id="pricing" className="space-y-7">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <SectionHeading
               number="04"
@@ -749,7 +752,7 @@ export function Storefront() {
           )}
         </div>
         <GymGallery gym={gym} />
-        <section id="visit" className="space-y-7">
+        <section data-reveal id="visit" className="space-y-7">
           <SectionHeading
             number="05"
             eyebrow="See you here"
@@ -844,7 +847,7 @@ export function Storefront() {
           </div>
         </section>
       </main>
-      <footer className="bg-secondary/20 border-t">
+      <footer className="bg-secondary/20 relative border-t">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-6 px-6 py-8">
           <div>
             <p className="text-sm font-bold">{gym.name}</p>
@@ -879,6 +882,6 @@ export function Storefront() {
           </a>
         </Button>
       </div>
-    </div>
+    </StorefrontMotion>
   );
 }

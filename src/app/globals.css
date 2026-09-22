@@ -1215,3 +1215,276 @@ a {
 .gym-storefront :is(section, [id='membership']) {
   scroll-margin-top: 6.5rem;
 }
+
+/* Tenant landing motion: all content stays visible without JS; motion is opt-in after hydration. */
+.sf-ambient {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+.sf-ambient i {
+  position: absolute;
+  top: 180px;
+  right: -180px;
+  width: min(900px, 100vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    color-mix(in srgb, var(--gym-accent) 11%, transparent),
+    transparent 65%
+  );
+  animation: sf-drift 22s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+.sf-ambient i:nth-child(2) {
+  top: 1500px;
+  left: -300px;
+  right: auto;
+  animation-delay: -10s;
+}
+.sf-ambient-grid {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1600px;
+  opacity: 0.045;
+  background-image:
+    linear-gradient(currentColor 1px, transparent 1px),
+    linear-gradient(90deg, currentColor 1px, transparent 1px);
+  background-size: 90px 90px;
+  mask-image: linear-gradient(transparent, black 20%, transparent 90%);
+}
+.sf-hero-atmosphere {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.sf-hero-glow {
+  position: absolute;
+  inset: -25%;
+  opacity: 0.2;
+  background: radial-gradient(ellipse at 25% 55%, var(--gym-accent), transparent 42%);
+  animation: sf-drift 16s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+.sf-hero-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  background-image:
+    linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: linear-gradient(120deg, black, transparent 65%);
+}
+.sf-orbit {
+  width: 100%;
+  height: 100%;
+  color: var(--gym-accent);
+}
+.sf-orbit-spin {
+  transform-origin: 250px 250px;
+  animation: sf-orbit-turn 65s linear infinite;
+  animation-play-state: paused;
+}
+.sf-hero-atmosphere > .sf-orbit {
+  position: absolute;
+  width: 530px;
+  height: 530px;
+  left: -210px;
+  bottom: -285px;
+  opacity: 0.28;
+}
+.sf-hero-photo {
+  isolation: isolate;
+}
+.sf-hero-compass {
+  backdrop-filter: blur(8px);
+  background: #0003;
+}
+.sf-hero-compass svg {
+  animation: sf-compass 10s ease-in-out infinite;
+  animation-play-state: paused;
+}
+.sf-parallax-cover {
+  transform: translate3d(var(--sf-shift-x, 0px), var(--sf-shift-y, 0px), 0) scale(1.12);
+}
+.sf-hero[data-preview] .sf-parallax-cover {
+  transform: none;
+}
+.sf-statement {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border-radius: 2rem;
+  background: #090b09;
+  color: white;
+}
+.sf-statement::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    ellipse at 85% 30%,
+    color-mix(in srgb, var(--gym-accent) 18%, transparent),
+    transparent 55%
+  );
+}
+.sf-statement-orbit {
+  position: absolute;
+  pointer-events: none;
+  right: -90px;
+  top: -70px;
+  width: 570px;
+  height: 570px;
+  opacity: 0.38;
+}
+.sf-outline-word {
+  color: var(--gym-accent);
+}
+@supports (-webkit-text-stroke: 1px white) {
+  .sf-outline-word {
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--gym-accent);
+  }
+}
+.sf-statement-cta {
+  background: var(--gym-accent);
+  color: var(--gym-foreground);
+}
+.sf-ribbon {
+  border-top: 1px solid #ffffff20;
+  overflow: hidden;
+  background: #0003;
+}
+.sf-ribbon-track {
+  display: flex;
+  width: max-content;
+  animation: sf-ribbon-slide 32s linear infinite;
+  animation-play-state: paused;
+}
+.sf-ribbon-group {
+  display: flex;
+  flex-shrink: 0;
+  gap: 3rem;
+  align-items: center;
+  padding: 1.35rem 1.5rem;
+}
+.sf-ribbon-group > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3rem;
+  font-size: clamp(1.3rem, 3vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.sf-ribbon-star {
+  color: var(--gym-accent);
+  font-weight: 400;
+}
+.gym-storefront[data-motion='running']
+  :is(.sf-ambient i, .sf-hero-glow, .sf-orbit-spin, .sf-ribbon-track, .sf-hero-compass svg) {
+  animation-play-state: running;
+}
+.gym-storefront
+  [data-motion-scene][data-in-view='false']
+  :is(.sf-hero-glow, .sf-orbit-spin, .sf-ribbon-track, .sf-hero-compass svg) {
+  animation-play-state: paused;
+}
+.gym-storefront[data-motion='running'] [data-revealed='true'] {
+  animation: sf-section-in 0.7s ease-out both;
+}
+.gym-storefront [data-reveal]:focus-within {
+  animation: none;
+}
+.gym-storefront[data-motion='paused'] .sf-parallax-cover {
+  transform: none;
+}
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .gym-storefront[data-motion='running'] .sf-class-card {
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease;
+  }
+  .gym-storefront[data-motion='running'] .sf-class-card:hover {
+    transform: translateY(-5px);
+  }
+}
+@keyframes sf-drift {
+  from {
+    transform: translate3d(-3%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(5%, 4%, 0) scale(1.12);
+  }
+}
+@keyframes sf-orbit-turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes sf-compass {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  50% {
+    transform: rotate(90deg);
+  }
+}
+@keyframes sf-ribbon-slide {
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes sf-section-in {
+  from {
+    opacity: 0.45;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 639px) {
+  .sf-statement-orbit {
+    width: 390px;
+    height: 390px;
+    right: -210px;
+    top: -30px;
+    opacity: 0.25;
+  }
+  .sf-ambient i {
+    animation: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gym-storefront *,
+  .gym-storefront *::before,
+  .gym-storefront *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+  .sf-parallax-cover {
+    transform: none !important;
+  }
+}
+@media (max-width: 639px) {
+  .sf-hero:not([data-preview]) .sf-parallax-cover {
+    transform: translate3d(var(--sf-shift-x, 0px), var(--sf-shift-y, 0px), 0) scale(1.24);
+  }
+  .gym-storefront[data-motion='paused'] .sf-parallax-cover {
+    transform: none;
+  }
+}
+.gym-storefront[data-motion='paused'] .sf-class-card img {
+  transform: none;
+  transition: none;
+}

@@ -105,9 +105,39 @@ jobs:
           # firebase-tools requires Java 21+ for the Firestore emulator
           java-version: 21
       - name: Run rules unit tests against the Firestore emulator
-        run: pnpm test:rules
+        run: |
+          # Preserve the real exit code; expose a bounded diagnostic in check annotations
+          # as well as the full job log (log-storage access may be unavailable to reviewers).
+          set +e
+          pnpm test:rules 2>&1 | tee /tmp/smartfit-rules.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PYLOG'
+          from pathlib import Path
+          text = Path('/tmp/smartfit-rules.log').read_text(errors='replace')
+          excerpt = text[:24000] + ('\n...\n' + text[-8000:] if len(text) > 24000 else '')
+          escaped = excerpt.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print(f'::error title=Firestore rules test failure::{escaped}')
+          PYLOG
+          fi
+          exit "$status"
       - name: Test real Auth tokens, role transactions and Firestore rules together
-        run: pnpm test:integration
+        run: |
+          # Preserve the real exit code; expose a bounded diagnostic in check annotations
+          # as well as the full job log (log-storage access may be unavailable to reviewers).
+          set +e
+          pnpm test:integration 2>&1 | tee /tmp/smartfit-integration.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            python3 - <<'PYLOG'
+          from pathlib import Path
+          text = Path('/tmp/smartfit-integration.log').read_text(errors='replace')
+          excerpt = text[:24000] + ('\n...\n' + text[-8000:] if len(text) > 24000 else '')
+          escaped = excerpt.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+          print(f'::error title=Firestore integration test failure::{escaped}')
+          PYLOG
+          fi
+          exit "$status"
       - name: Upload emulator logs on failure
         if: failure()
         uses: actions/upload-artifact@v4

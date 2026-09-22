@@ -6,6 +6,8 @@ import { Artwork } from '@/components/ui/artwork';
 import { Button } from '@/components/ui/button';
 import { GymLogo, brandColors } from './brand-media';
 import { cn } from '@/lib/utils';
+import type { CSSProperties } from 'react';
+import { OrbitArtwork, useHeroParallax } from './storefront-motion';
 
 /** One component for both the owner's draft preview and the published gym page. */
 export function StorefrontHero({
@@ -16,6 +18,7 @@ export function StorefrontHero({
   preview?: boolean;
 }) {
   const { accent, foreground } = brandColors(gym);
+  const motionRef = useHeroParallax(preview);
   const layout = gym.branding?.heroLayout ?? 'split';
   const label = gym.branding?.ctaLabel?.trim() || 'See pricing';
   const content = (
@@ -115,7 +118,7 @@ export function StorefrontHero({
   const image = (
     <div
       className={cn(
-        'overflow-hidden',
+        'sf-hero-photo overflow-hidden',
         layout === 'banner'
           ? 'absolute inset-0'
           : 'relative h-full min-h-64 @min-[600px]:min-h-[480px]',
@@ -124,7 +127,7 @@ export function StorefrontHero({
       <Artwork
         src={gymCover(gym.branding)}
         eager={!preview}
-        className="absolute inset-0 h-full w-full object-cover"
+        className="sf-parallax-cover absolute inset-0 h-full w-full object-cover"
         style={{ objectPosition: gym.branding?.coverPosition ?? 'center' }}
       />
       <div
@@ -138,7 +141,7 @@ export function StorefrontHero({
       {layout === 'split' && (
         <div
           aria-hidden="true"
-          className="absolute top-5 right-5 flex size-12 items-center justify-center rounded-full border border-white/35 text-white"
+          className="sf-hero-compass absolute top-5 right-5 flex size-12 items-center justify-center rounded-full border border-white/35 text-white"
         >
           <MoveUpRight className="size-5" />
         </div>
@@ -152,12 +155,21 @@ export function StorefrontHero({
   );
   return (
     <header
+      ref={motionRef}
+      data-motion-scene
+      data-preview={preview || undefined}
+      style={{ '--gym-accent': accent, '--gym-foreground': foreground } as CSSProperties}
       className={cn(
-        '@container relative isolate overflow-hidden rounded-[2rem] bg-zinc-950 text-white',
+        'sf-hero @container relative isolate overflow-hidden rounded-[2rem] bg-zinc-950 text-white',
         layout === 'banner' && !preview && 'min-h-[540px]',
       )}
     >
       {layout === 'banner' && image}
+      <div className="sf-hero-atmosphere" aria-hidden="true">
+        <div className="sf-hero-glow" />
+        <div className="sf-hero-grid" />
+        <OrbitArtwork />
+      </div>
       <div
         className={cn('relative', layout === 'split' && 'grid @min-[600px]:grid-cols-[1fr_1fr]')}
       >
