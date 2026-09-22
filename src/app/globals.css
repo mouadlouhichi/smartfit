@@ -1204,3 +1204,14 @@ a {
   stroke: var(--primary);
   stroke-width: 3;
 }
+
+/* Tenant branding affects actions, not body/link colors whose contrast depends on the theme. */
+.gym-storefront :is(button, a).bg-primary {
+  background-color: var(--gym-accent);
+  color: var(--gym-foreground);
+}
+
+/* Keep storefront anchors visible below its sticky, tenant-branded navigation. */
+.gym-storefront :is(section, [id='membership']) {
+  scroll-margin-top: 6.5rem;
+}

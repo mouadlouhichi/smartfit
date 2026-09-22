@@ -25,8 +25,16 @@
  * resolved for the tenant they are acting in.
  */
 
-/** The four product roles. */
-export const ROLES = ['member', 'platform-admin', 'gym-owner', 'gym-staff'] as const;
+/** Product roles. Premium is an entitlement, never a privileged role. */
+export const ROLES = [
+  'member',
+  'platform-admin',
+  'gym-owner',
+  'gym-staff',
+  'gym-trainer',
+  'content-manager',
+  'support-agent',
+] as const;
 
 export type Role = (typeof ROLES)[number];
 
@@ -46,7 +54,7 @@ export const PLATFORM_ADMIN_CLAIM_VALUE = 'platform-admin';
  * global claim, never a membership row. `gym-owner` is also implied by
  * `gyms/{gymId}.ownerUid`, which rules treat as authoritative.
  */
-export const GYM_ROLES = ['owner', 'staff', 'member'] as const;
+export const GYM_ROLES = ['owner', 'staff', 'trainer', 'member'] as const;
 
 export type GymRole = (typeof GYM_ROLES)[number];
 
@@ -59,6 +67,11 @@ export type GymRole = (typeof GYM_ROLES)[number];
  * acting on somebody else's.
  */
 export const CAPABILITIES = [
+  'content:manage',
+  'support:manage',
+  'coaching:assign',
+  'coaching:read:assigned',
+  'coaching:feedback',
   // ── Tenant & platform ──────────────────────────────────────────────────
   'gym:create',
   'gym:read:any',
@@ -145,6 +158,11 @@ const MEM = 'member' as const;
  * dead capability, and the test suite flags it.
  */
 export const PERMISSION_MATRIX: Record<Capability, readonly Role[]> = {
+  'content:manage': [PA, 'content-manager'],
+  'support:manage': [PA, 'support-agent'],
+  'coaching:assign': [PA, OWN],
+  'coaching:read:assigned': [PA, OWN, STAFF, 'gym-trainer', MEM],
+  'coaching:feedback': [PA, OWN, 'gym-trainer', MEM],
   // ── Tenant & platform ──────────────────────────────────────────────────
   // Provisioning a tenant is a platform act: it allocates a subdomain and
   // issues the owner claim.
@@ -172,7 +190,7 @@ export const PERMISSION_MATRIX: Record<Capability, readonly Role[]> = {
   'pricing:publish': [PA, OWN],
   // Public storefront. Anonymous visitors are handled separately by
   // PUBLIC_CAPABILITIES — this row covers signed-in roles.
-  'public:read': [PA, OWN, STAFF, MEM],
+  'public:read': [PA, OWN, STAFF, MEM, 'gym-trainer', 'content-manager', 'support-agent'],
 
   // ── Scheduling, bookings, check-in ─────────────────────────────────────
   'class:create': [PA, OWN, STAFF],
@@ -180,12 +198,12 @@ export const PERMISSION_MATRIX: Record<Capability, readonly Role[]> = {
   'class:delete': [PA, OWN],
   'timetable:publish': [PA, OWN],
   'class:attend:mark': [PA, OWN, STAFF],
-  'booking:create:self': [PA, OWN, STAFF, MEM],
+  'booking:create:self': [PA, OWN, STAFF, MEM, 'gym-trainer', 'content-manager', 'support-agent'],
   'booking:create:any': [PA, OWN, STAFF],
-  'booking:cancel:self': [PA, OWN, STAFF, MEM],
+  'booking:cancel:self': [PA, OWN, STAFF, MEM, 'gym-trainer', 'content-manager', 'support-agent'],
   'booking:cancel:any': [PA, OWN, STAFF],
   'booking:read:gym': [PA, OWN, STAFF],
-  'booking:read:self': [PA, OWN, STAFF, MEM],
+  'booking:read:self': [PA, OWN, STAFF, MEM, 'gym-trainer', 'content-manager', 'support-agent'],
   'waitlist:promote': [PA, OWN, STAFF],
   'checkin:door': [PA, OWN, STAFF],
 
@@ -196,10 +214,10 @@ export const PERMISSION_MATRIX: Record<Capability, readonly Role[]> = {
   'member:notes:write': [PA, OWN, STAFF],
   // Removing a member is destructive and financial — owner only.
   'member:remove': [PA, OWN],
-  'member:self:read': [PA, OWN, STAFF, MEM],
+  'member:self:read': [PA, OWN, STAFF, MEM, 'gym-trainer', 'content-manager', 'support-agent'],
   // Granted to every role: an owner is also a member of their own gym and must
   // be able to share (or withhold) their own aggregates like anyone else.
-  'member:data:share': [PA, OWN, STAFF, MEM],
+  'member:data:share': [PA, OWN, STAFF, MEM, 'gym-trainer', 'content-manager', 'support-agent'],
   'staff:invite': [PA, OWN],
   'staff:remove': [PA, OWN],
   'staff:role:change': [PA, OWN],
@@ -214,7 +232,15 @@ export const PERMISSION_MATRIX: Record<Capability, readonly Role[]> = {
   'revenue:read': [PA, OWN],
   // Staff see only what they personally sold, never gym totals.
   'revenue:read:self': [PA, OWN, STAFF],
-  'membership:purchase:self': [PA, OWN, STAFF, MEM],
+  'membership:purchase:self': [
+    PA,
+    OWN,
+    STAFF,
+    MEM,
+    'gym-trainer',
+    'content-manager',
+    'support-agent',
+  ],
 
   // ── Marketing, facility, reporting ─────────────────────────────────────
   'broadcast:send': [PA, OWN, STAFF],
@@ -309,6 +335,8 @@ export function roleFromGymRole(gymRole: GymRole | null | undefined): Role {
       return 'gym-owner';
     case 'staff':
       return 'gym-staff';
+    case 'trainer':
+      return 'gym-trainer';
     case 'member':
       return 'member';
     default:
@@ -327,6 +355,9 @@ export function roleRank(role: Role): number {
     case 'gym-owner':
       return 3;
     case 'gym-staff':
+    case 'gym-trainer':
+    case 'content-manager':
+    case 'support-agent':
       return 2;
     case 'member':
       return 1;
@@ -365,6 +396,12 @@ export function roleLabel(role: Role): string {
       return 'Gym owner';
     case 'gym-staff':
       return 'Gym staff';
+    case 'gym-trainer':
+      return 'Trainer';
+    case 'content-manager':
+      return 'Content manager';
+    case 'support-agent':
+      return 'Support agent';
     case 'member':
       return 'Member';
     default:

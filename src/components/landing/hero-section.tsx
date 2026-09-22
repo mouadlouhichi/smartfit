@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { AccountLink } from './account-link';
 import { ArrowRight } from 'lucide-react';
 import { AnimatedSphere } from './animated-sphere';
 
@@ -93,10 +94,10 @@ export function HeroSection() {
           </p>
 
           <div className="flex flex-col items-start gap-4 sm:flex-row lg:-translate-y-6">
-            <Link href="/login" className="btn-primary group">
+            <AccountLink className="btn-primary group">
               Start training free
               <ArrowRight className="ms-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
+            </AccountLink>
             <Link href="/#how-it-works" className="btn-outline">
               See how it works
             </Link>

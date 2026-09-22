@@ -20,11 +20,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "node --import tsx --test tests/*.test.ts",
-    "test:all": "pnpm --filter @smartfit/core test && pnpm test",
+    "test:all": "pnpm --filter @smartfit/core test && pnpm test && pnpm test:server",
     "test:e2e": "playwright test",
     "prepare": "git config core.hooksPath .githooks || true",
-    "test:rules": "npx -y firebase-tools@latest emulators:exec --only firestore --project smartfit-rules-ci \"node --import tsx --test tests/rules/firestore-rules.test.ts\"",
-    "seed:b2b": "node scripts/seed-b2b.mjs"
+    "test:rules": "npx -y firebase-tools@15.30.2 emulators:exec --only firestore --project demo-smartfit-rules \"node --import tsx --test tests/rules/firestore-rules.test.ts\"",
+    "seed:b2b": "node scripts/seed-b2b.mjs",
+    "test:server": "node --conditions=react-server --import tsx --test tests/server/*.test.ts",
+    "audit:team": "node --import tsx scripts/audit-team-access.ts",
+    "test:integration": "npx -y firebase-tools@15.30.2 emulators:exec --only auth,firestore --project demo-smartfit-integration \"node --conditions=react-server --import tsx --test tests/integration/*.test.ts\""
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
@@ -76,5 +79,10 @@
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20"
+  },
+  "pnpm": {
+    "overrides": {
+      "jose": "^4.15.9"
+    }
   }
 }

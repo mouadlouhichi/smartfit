@@ -1,15 +1,15 @@
 /**
  * Security-rules unit tests, run against the Firestore emulator:
  *
- *   npx firebase-tools emulators:exec --only firestore --project smartfit-rules-ci \
+ *   npx firebase-tools emulators:exec --only firestore --project demo-smartfit-rules \
  *     "node --import tsx --test tests/rules/firestore-rules.test.ts"
  *
  * (or `pnpm test:rules` with firebase-tools installed). The emulator must be
  * running — CI does this in the `firestore-rules` job; these tests are
  * deliberately NOT part of `pnpm test`, which runs without an emulator.
  *
- * The rules are the only server-side enforcement SmartFit has: every write
- * goes straight from the browser to Firestore. These tests pin the two
+ * Rules enforce the browser-to-Firestore boundary. Admin-backed HTTP handlers
+ * enforce their own authorization and are covered by separate integration tests. These tests pin the two
  * promises they make — (1) your data is reachable only by you, and (2) what
  * you write must be a sane training record, not arbitrary junk.
  */
@@ -42,7 +42,7 @@ const VALID_SESSION = {
 
 before(async () => {
   env = await initializeTestEnvironment({
-    projectId: 'smartfit-rules-ci',
+    projectId: 'demo-smartfit-rules',
     firestore: {
       rules: readFileSync(new URL('../../firestore.rules', import.meta.url), 'utf8'),
     },
@@ -563,6 +563,36 @@ test('tenant: staff can take attendance and book for anyone', async () => {
   await assertSucceeds(getDoc(doc(staff, 'gyms', GYM_A, 'bookings', 'b3')));
 });
 
+test('tenant: check-ins are staff-recorded, member-read, append-only', async () => {
+  await seedTenants();
+  const staff = env.authenticatedContext(STAFF).firestore();
+  const member = env.authenticatedContext(MEMBER).firestore();
+  const visit = { uid: MEMBER, at: Date.now(), by: STAFF };
+
+  // Only the front desk records a visit — a member may not forge attendance.
+  await assertFails(setDoc(doc(member, 'gyms', GYM_A, 'checkins', 'v1'), visit));
+  await assertSucceeds(setDoc(doc(staff, 'gyms', GYM_A, 'checkins', 'v1'), visit));
+
+  // A member reads their own history, not anybody else's.
+  await assertSucceeds(getDoc(doc(member, 'gyms', GYM_A, 'checkins', 'v1')));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'gyms', GYM_A, 'checkins', 'v2'), {
+      ...visit,
+      uid: OUTSIDER,
+    });
+  });
+  await assertFails(getDoc(doc(member, 'gyms', GYM_A, 'checkins', 'v2')));
+
+  // History is append-only for everyone, staff included.
+  await assertFails(
+    setDoc(doc(staff, 'gyms', GYM_A, 'checkins', 'v1'), { ...visit, at: 1234567890 }),
+  );
+  await assertFails(deleteDoc(doc(staff, 'gyms', GYM_A, 'checkins', 'v1')));
+
+  // And the payload must look like a visit, not junk storage.
+  await assertFails(setDoc(doc(staff, 'gyms', GYM_A, 'checkins', 'v3'), { ...visit, at: -1 }));
+});
+
 test('tenant: classes and slots are staff-writable, member-readable, owner-deletable', async () => {
   await seedTenants();
   const member = env.authenticatedContext(MEMBER).firestore();
@@ -736,4 +766,272 @@ test('sharing: the document must name the gym it is filed under', async () => {
   const owner = env.authenticatedContext(OWNER).firestore();
   await assertFails(deleteDoc(doc(owner, 'users', MEMBER, 'gymShares', GYM_A)));
   await assertSucceeds(deleteDoc(doc(member, 'users', MEMBER, 'gymShares', GYM_A)));
+});
+
+test('trainers and specialist claims never grant roster, finance or other users’ fitness access', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, 'gyms', 'role-fixture', 'members', 'trainer'), {
+      role: 'trainer',
+      status: 'active',
+      joinedAt: 1,
+      checkins: 0,
+    });
+    await setDoc(doc(db, 'gyms', 'role-fixture', 'members', 'member'), {
+      role: 'member',
+      status: 'active',
+      joinedAt: 1,
+      checkins: 0,
+    });
+  });
+  for (const [uid, claim] of [
+    ['trainer', null],
+    ['editor', 'content-manager'],
+    ['agent', 'support-agent'],
+  ] as const) {
+    const db = env.authenticatedContext(uid, claim ? { sfRole: claim } : {}).firestore();
+    await assertFails(getDoc(doc(db, 'gyms', 'role-fixture', 'members', 'member')));
+    await assertFails(getDoc(doc(db, 'gyms', 'role-fixture', 'invoices', 'private')));
+    await assertFails(getDoc(doc(db, 'users', ALICE)));
+    await assertFails(
+      setDoc(doc(db, 'platform', 'content', 'entries', 'bypass'), { status: 'published' }),
+    );
+    await assertFails(getDoc(doc(db, 'platform', 'support', 'entries', 'private')));
+    await assertFails(
+      setDoc(doc(db, 'gyms', 'role-fixture', 'coaching', 'member'), { trainerUid: uid }),
+    );
+  }
+});
+
+test('staff cannot promote themselves, members or trainers into privileged roles', async () => {
+  const membership = { status: 'active', joinedAt: 1, checkins: 0 };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    for (const [uid, role] of [
+      ['owner', 'owner'],
+      ['staff', 'staff'],
+      ['member', 'member'],
+      ['trainer', 'trainer'],
+    ])
+      await setDoc(doc(ctx.firestore(), 'gyms', 'role-fixture', 'members', uid), {
+        ...membership,
+        role,
+      });
+  });
+  const staff = env.authenticatedContext('staff').firestore();
+  for (const uid of ['staff', 'member', 'trainer'])
+    await assertFails(
+      setDoc(doc(staff, 'gyms', 'role-fixture', 'members', uid), { ...membership, role: 'owner' }),
+    );
+  await assertFails(
+    setDoc(doc(staff, 'gyms', 'role-fixture', 'members', 'new-trainer'), {
+      ...membership,
+      role: 'trainer',
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(staff, 'gyms', 'role-fixture', 'members', 'member'), {
+      ...membership,
+      role: 'member',
+      notes: 'Follow up',
+    }),
+  );
+  const owner = env.authenticatedContext('owner').firestore();
+  await assertSucceeds(
+    setDoc(doc(owner, 'gyms', 'role-fixture', 'members', 'new-trainer'), {
+      ...membership,
+      role: 'trainer',
+    }),
+  );
+});
+
+test('structured training preferences validate without exposing private profiles', async () => {
+  const db = env.authenticatedContext('preferences-user').firestore();
+  const preferences = {
+    schemaVersion: 1,
+    goal: 'fitness',
+    experience: 'beginner',
+    location: 'home',
+    days: [1, 3, 5],
+    minutes: 20,
+    equipment: ['bodyweight'],
+    constraints: [],
+    excludedExercises: [],
+    needsClearance: false,
+  };
+  const ref = doc(db, 'users', 'preferences-user');
+  await assertSucceeds(
+    setDoc(ref, { profile: { name: 'Private', trainingPreferences: preferences } }),
+  );
+  for (const patch of [
+    { days: [7] },
+    { minutes: 999 },
+    { equipment: ['unsafe'] },
+    { schemaVersion: 0 },
+    { needsClearance: 'no' },
+    { excludedExercises: ['unknown'] },
+  ])
+    await assertFails(
+      setDoc(ref, { profile: { trainingPreferences: { ...preferences, ...patch } } }),
+    );
+});
+
+test('tenant branding: only owners can save bounded raster logos and presentation settings', async () => {
+  await seedTenants();
+  const owner = env.authenticatedContext(OWNER).firestore();
+  const ref = doc(owner, 'gyms', GYM_A);
+  const current = (await getDoc(ref)).data()!;
+  const branding = {
+    logoData: 'data:image/webp;base64,UklGRg==',
+    logoShape: 'circle',
+    heroLayout: 'banner',
+    coverPreset: 'studio',
+    coverPosition: 'center',
+    ctaLabel: 'Explore memberships',
+    accentColor: '#7c3aed',
+    amenities: ['Lockers'],
+    galleryUrls: ['https://example.com/photo.jpg'],
+  };
+  await assertSucceeds(setDoc(ref, { ...current, branding }));
+  for (const patch of [
+    { logoData: 'data:image/svg+xml;base64,PHN2Zz4=' },
+    { logoData: 'data:image/png;base64,' + 'A'.repeat(32768) },
+    { galleryUrls: ['javascript:alert(1)'] },
+    { heroLayout: 'unknown' },
+    { amenities: ['Unsupported'] },
+    { coverUrl: 'https://user:pass@example.com/image.png' },
+  ])
+    await assertFails(setDoc(ref, { ...current, branding: { ...branding, ...patch } }));
+  for (const uid of [STAFF, MEMBER])
+    await assertFails(
+      setDoc(doc(env.authenticatedContext(uid).firestore(), 'gyms', GYM_A), {
+        ...current,
+        branding,
+      }),
+    );
+});
+
+test('team: even owners/admin clients cannot grant privileged roles or forge role audit metadata', async () => {
+  await seedTenants();
+  for (const ctx of [env.authenticatedContext(OWNER), adminCtx()]) {
+    const db = ctx.firestore();
+    await assertFails(
+      setDoc(doc(db, 'gyms', GYM_A, 'members', MEMBER), { role: 'staff' }, { merge: true }),
+    );
+    await assertFails(
+      setDoc(doc(db, 'gyms', GYM_A, 'members', 'new-staff'), membership('new-staff', 'staff')),
+    );
+    await assertFails(
+      setDoc(
+        doc(db, 'gyms', GYM_A, 'members', MEMBER),
+        { roleChangedBy: OWNER, roleChangedAt: Date.now() },
+        { merge: true },
+      ),
+    );
+  }
+});
+test('team: current membership grants and revokes access for the same authenticated context', async () => {
+  await seedTenants();
+  const db = env.authenticatedContext(MEMBER, { sfRole: 'gym-owner' }).firestore();
+  const privateRef = doc(db, 'gyms', GYM_A, 'members', STAFF);
+  await assertFails(getDoc(privateRef));
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(
+      doc(ctx.firestore(), 'gyms', GYM_A, 'members', MEMBER),
+      { role: 'staff' },
+      { merge: true },
+    ),
+  );
+  await assertSucceeds(getDoc(privateRef));
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(
+      doc(ctx.firestore(), 'gyms', GYM_A, 'members', MEMBER),
+      { role: 'member' },
+      { merge: true },
+    ),
+  );
+  await assertFails(getDoc(privateRef));
+});
+test('team: frozen and expired staff lose roster access, even with a tenant role claim', async () => {
+  for (const patch of [
+    { status: 'frozen' },
+    { status: 'cancelled' },
+    { status: 'expired' },
+    { expiresAt: 1 },
+  ]) {
+    await seedTenants();
+    await env.withSecurityRulesDisabled((ctx) =>
+      setDoc(doc(ctx.firestore(), 'gyms', GYM_A, 'members', STAFF), patch, { merge: true }),
+    );
+    const db = env.authenticatedContext(STAFF, { sfRole: 'gym-staff' }).firestore();
+    await assertFails(getDoc(doc(db, 'gyms', GYM_A, 'members', MEMBER)));
+    await assertFails(
+      setDoc(doc(db, 'gyms', GYM_A, 'members', MEMBER), { notes: 'Forbidden' }, { merge: true }),
+    );
+    await assertSucceeds(getDoc(doc(db, 'gyms', GYM_A, 'members', STAFF)));
+  }
+});
+test('team: metadata ownership alone and a forged owner row cannot operate a gym', async () => {
+  await seedTenants();
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await deleteDoc(doc(ctx.firestore(), 'gyms', GYM_A, 'members', OWNER));
+    await setDoc(
+      doc(ctx.firestore(), 'gyms', GYM_A, 'members', STAFF),
+      { role: 'owner' },
+      { merge: true },
+    );
+  });
+  for (const uid of [OWNER, STAFF])
+    await assertFails(
+      getDoc(doc(env.authenticatedContext(uid).firestore(), 'gyms', GYM_A, 'members', MEMBER)),
+    );
+});
+test('team: owner row cannot be deleted, demoted or disabled directly; staff cannot remove their grant', async () => {
+  await seedTenants();
+  const db = env.authenticatedContext(OWNER).firestore();
+  const own = doc(db, 'gyms', GYM_A, 'members', OWNER);
+  await assertFails(deleteDoc(own));
+  await assertFails(setDoc(own, { role: 'member' }, { merge: true }));
+  await assertFails(setDoc(own, { status: 'frozen' }, { merge: true }));
+  await assertFails(
+    deleteDoc(doc(env.authenticatedContext(STAFF).firestore(), 'gyms', GYM_A, 'members', STAFF)),
+  );
+});
+test('team: suspended gym denies staff access and owner cannot edit platform contract fields', async () => {
+  await seedTenants();
+  const db = env.authenticatedContext(OWNER).firestore();
+  await assertFails(
+    setDoc(doc(db, 'gyms', GYM_A), { tenantPlanId: 'enterprise' }, { merge: true }),
+  );
+  await assertFails(setDoc(doc(db, 'gyms', GYM_A), { createdAt: 0 }, { merge: true }));
+  await env.withSecurityRulesDisabled((ctx) =>
+    setDoc(doc(ctx.firestore(), 'gyms', GYM_A), { status: 'suspended' }, { merge: true }),
+  );
+  await assertFails(getDoc(doc(db, 'gyms', GYM_A, 'members', MEMBER)));
+  await assertFails(
+    getDoc(doc(env.authenticatedContext(STAFF).firestore(), 'gyms', GYM_A, 'members', MEMBER)),
+  );
+});
+
+test('team: role audit events are server-only and member identity mirrors cannot be forged', async () => {
+  await seedTenants();
+  const db = env.authenticatedContext(OWNER).firestore();
+  await assertFails(
+    setDoc(doc(db, 'gyms', GYM_A, 'audit', 'fake-role-change'), {
+      actorUid: OWNER,
+      action: 'staff:role:change',
+      at: Date.now(),
+      target: MEMBER,
+    }),
+  );
+  await assertFails(
+    setDoc(doc(db, 'gyms', GYM_A, 'audit', 'fake-actor'), {
+      actorUid: STAFF,
+      action: 'member:update',
+      at: Date.now(),
+      target: MEMBER,
+    }),
+  );
+  await assertFails(
+    setDoc(doc(db, 'gyms', GYM_A, 'members', MEMBER), { uid: STAFF }, { merge: true }),
+  );
 });

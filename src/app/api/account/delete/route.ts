@@ -1,3 +1,4 @@
+import { deleteFeatureAccountData } from '@/lib/feature-account-data';
 import { getAdminServices, deletionJobPath } from '@/lib/firebase/admin';
 
 export const runtime = 'nodejs';
@@ -162,6 +163,7 @@ export async function POST(req: Request): Promise<Response> {
     // A previous attempt may have removed every user document but lost the
     // response before deleting Auth. Do not repeat a potentially long wipe.
     if (claim.status !== 'firestore-cleaned') {
+      await deleteFeatureAccountData(services.db, uid);
       await services.db.recursiveDelete(services.db.doc(`users/${uid}`));
       await jobRef.set(
         {

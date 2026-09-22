@@ -17,7 +17,10 @@
  *
  * Env:
  *   FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
- *       Service-account credentials. NEVER prefix with NEXT_PUBLIC_.
+ *       Service-account credentials. The repo's .env is loaded automatically
+ *       (real env wins), and the app-side FIREBASE_ADMIN_* names (or one
+ *       FIREBASE_ADMIN_SERVICE_ACCOUNT JSON blob) are accepted too.
+ *       NEVER prefix with NEXT_PUBLIC_.
  *   B2B_PASSWORD     password for every seeded account (default SmartFit!234)
  *   B2B_GYM_SLUG     tenant slug / subdomain (default zone-fight)
  *   B2B_ADMIN_EMAIL  platform admin address (default admin@smartfit.app)
@@ -28,12 +31,12 @@
  */
 import { initializeApp, applicationDefault, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
+import { scriptCreds } from './lib/load-env.mjs';
 
-const projectId = process.env.FIREBASE_PROJECT_ID;
-const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-let privateKey = process.env.FIREBASE_PRIVATE_KEY || '';
-privateKey = privateKey.replace(/\\n/g, '\n');
+// Reads the environment *and* the repo .env (loaded automatically); accepts
+// the FIREBASE_ADMIN_* names and a FIREBASE_ADMIN_SERVICE_ACCOUNT blob too.
+const { projectId, clientEmail, privateKey } = scriptCreds();
 
 if (!projectId) {
   console.error('✖ Missing FIREBASE_PROJECT_ID. See scripts/README.md for required env vars.');
@@ -73,6 +76,18 @@ const PEOPLE = [
     email: `staff@${SLUG}.smartfit.app`,
     name: 'Salma Bennani',
   },
+  {
+    uid: 'b2b-editor',
+    email: 'content@smartfit.app',
+    name: 'Content Manager',
+    claim: 'content-manager',
+  },
+  {
+    uid: 'b2b-support',
+    email: 'support@smartfit.app',
+    name: 'Support Agent',
+    claim: 'support-agent',
+  },
   { uid: 'b2b-trainer', email: `trainer@${SLUG}.smartfit.app`, name: 'Karim Idrissi' },
   { uid: 'b2b-member-1', email: `member1@${SLUG}.smartfit.app`, name: 'Amina Rachidi' },
   { uid: 'b2b-member-2', email: `member2@${SLUG}.smartfit.app`, name: 'Omar Tazi' },
@@ -109,6 +124,29 @@ async function ensureUser({ uid, email, name, claim }) {
 async function main() {
   console.log('\n▸ Ensuring accounts');
   for (const person of PEOPLE) await ensureUser(person);
+
+  // A platform admin is an operator, not a member-in-waiting: without a
+  // completed profile the app would walk them through member onboarding
+  // (weight, plan, gym, goal) on first sign-in. Seed a minimal done profile;
+  // the login gateway sends them to /admin regardless, but this keeps the
+  // dashboard coherent too if they ever wander in.
+  for (const person of PEOPLE.filter((p) => p.claim === 'platform-admin')) {
+    await db.doc(`users/${person.uid}`).set(
+      {
+        profile: {
+          name: person.name,
+          weightUnit: 'kg',
+          distanceUnit: 'km',
+          weeklyRestDays: 2,
+          planId: 'full-body',
+          onboardingDone: true,
+        },
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+    console.log(`  + users/${person.uid} profile (onboarding done)`);
+  }
 
   console.log('\n▸ Ensuring tenant');
   // The document id IS the slug — that is what makes subdomains unique.
@@ -179,7 +217,7 @@ async function main() {
     },
     {
       uid: 'b2b-trainer',
-      role: 'staff',
+      role: 'trainer',
       status: 'active',
       checkins: 141,
       lastVisitAt: now - 2 * DAY,
@@ -327,6 +365,26 @@ async function main() {
     console.log(`  + slots/${s.id} (${new Date(startsAt).toLocaleString()})`);
   }
 
+  // One class later today (clamped before midnight), so the staff "Today"
+  // view has attendance rows whatever day the seed runs.
+  const endOfToday = new Date();
+  endOfToday.setHours(23, 59, 0, 0);
+  const liveStart = Math.min(now + 2 * 3_600_000, endOfToday.getTime() - 5 * 60_000);
+  if (liveStart > now) {
+    await db.doc(`gyms/${SLUG}/slots/slot-live-hiit`).set(
+      {
+        classId: 'cls-hiit',
+        startsAt: liveStart,
+        endsAt: liveStart + classById['cls-hiit'].minutes * 60_000,
+        capacity: classById['cls-hiit'].capacity,
+        booked: 0,
+        cancelled: false,
+      },
+      { merge: true },
+    );
+    console.log(`  + slots/slot-live-hiit (${new Date(liveStart).toLocaleString()})`);
+  }
+
   // ── Bookings (with seat counts kept consistent) ─────────────────────────
   console.log('\n▸ Ensuring bookings');
   const bookingPlan = [
@@ -335,8 +393,11 @@ async function main() {
     ['slot-wed-strength', ['b2b-member-2'], 'booked'],
     ['slot-thu-boxing', ['b2b-member-1', 'b2b-member-2', 'b2b-member-3'], 'booked'],
     ['slot-fri-mobility', ['b2b-member-3'], 'waitlist'],
+    ['slot-live-hiit', ['b2b-member-1', 'b2b-member-2'], 'booked'],
+    ['slot-live-hiit', ['b2b-member-3'], 'waitlist'],
   ];
   const nameByUid = Object.fromEntries(PEOPLE.map((p) => [p.uid, p.name]));
+  const seatedBySlot = {};
   for (const [slotId, uids, status] of bookingPlan) {
     for (const uid of uids) {
       await db
@@ -346,13 +407,40 @@ async function main() {
           { merge: true },
         );
     }
-    // The counter must agree with the bookings, or the class looks full when
-    // it is not — the transaction in tenant-repo.ts keeps these in step at
-    // runtime; the seed has to do it by hand.
-    const seated = status === 'booked' ? uids.length : 0;
-    await db.doc(`gyms/${SLUG}/slots/${slotId}`).set({ booked: seated }, { merge: true });
-    console.log(`  + bookings for ${slotId}: ${uids.length} (${seated} seated)`);
+    // Accumulate: several plan rows can target the same slot (seated plus
+    // waitlist), and the counter must reflect them all.
+    seatedBySlot[slotId] = (seatedBySlot[slotId] ?? 0) + (status === 'booked' ? uids.length : 0);
+    console.log(`  + bookings for ${slotId}: ${uids.length} (${status})`);
   }
+  // The counter must agree with the bookings, or the class looks full when it
+  // is not — the transaction in tenant-repo.ts keeps these in step at runtime;
+  // the seed has to do it by hand.
+  for (const [slotId, seated] of Object.entries(seatedBySlot)) {
+    await db.doc(`gyms/${SLUG}/slots/${slotId}`).set({ booked: seated }, { merge: true });
+  }
+
+  // ── Door visits ─────────────────────────────────────────────────────────
+  // The roster rows above carry the counters; these records are what a member
+  // scrolls through in "Visits". Deterministic ids keep re-runs idempotent.
+  console.log('\n▸ Ensuring check-ins');
+  const visitPlan = [
+    ['b2b-member-1', 0.4],
+    ['b2b-owner', 1],
+    ['b2b-member-1', 3],
+    ['b2b-member-3', 2],
+    ['b2b-member-1', 5],
+    ['b2b-trainer', 2],
+    ['b2b-member-1', 8],
+    ['b2b-member-1', 12],
+    ['b2b-member-2', 26],
+  ];
+  for (let i = 0; i < visitPlan.length; i++) {
+    const [uid, daysAgo] = visitPlan[i];
+    await db
+      .doc(`gyms/${SLUG}/checkins/chk-seed-${i}`)
+      .set({ uid, at: now - Math.round(daysAgo * DAY), by: 'b2b-staff' }, { merge: true });
+  }
+  console.log(`  + ${visitPlan.length} door visits`);
 
   // ── Membership plans ────────────────────────────────────────────────────
   console.log('\n▸ Ensuring membership plans');
@@ -489,24 +577,68 @@ async function main() {
     );
   console.log('  + users/b2b-member-1/gymShares (opt-in aggregates only)');
 
-  // ── Platform namespace ──────────────────────────────────────────────────
-  await db.doc('platform/config/platform').set(
-    {
-      reservedSubdomains: FieldValue.arrayUnion(SLUG),
-      updatedAt: now,
-    },
-    { merge: true },
-  );
-  await db.doc('platform/tenants/' + SLUG).set(
-    {
-      slug: SLUG,
-      status: 'active',
-      tenantPlanId: 'growth',
-      ownerUid: 'b2b-owner',
-      updatedAt: now,
-    },
-    { merge: true },
-  );
+  // ── Platform data (admin console) ───────────────────────────────────────
+  // The `/admin` console reads `platform/**` through the Admin SDK only, so
+  // this is the one way its queue, books and audit trail get demo content.
+  console.log('\n▸ Ensuring platform data');
+
+  await db
+    .collection('platform')
+    .doc('applications')
+    .collection('entries')
+    .doc('app-casa-boxing')
+    .set(
+      {
+        gymName: 'Casablanca Boxing Club',
+        slug: 'casa-boxing',
+        city: 'Casablanca',
+        email: 'contact@casaboxing.ma',
+        instagram: '@casaboxing',
+        message:
+          'Two rings, twelve coaches, running since 2014. We want online booking for our evening classes.',
+        status: 'pending',
+        createdAt: now - 2 * DAY,
+      },
+      { merge: true },
+    );
+
+  const platformPayments = [
+    ['pinv-seed-1', 0.2, 'transfer'],
+    ['pinv-seed-2', 31, 'cmi'],
+    ['pinv-seed-3', 62, 'cmi'],
+  ];
+  for (const [id, daysAgo, method] of platformPayments) {
+    await db
+      .collection('platform')
+      .doc('invoices')
+      .collection('entries')
+      .doc(id)
+      .set(
+        {
+          slug: SLUG,
+          amountMinor: 129_000,
+          currency: 'MAD',
+          method,
+          status: 'paid',
+          paidAt: now - Math.round(daysAgo * DAY),
+          recordedBy: 'b2b-admin',
+        },
+        { merge: true },
+      );
+  }
+
+  const auditRows = [
+    ['payment:record', SLUG, 0.2, { amountMinor: 129_000, method: 'transfer' }],
+    ['role:grant', 'b2b-admin', 60, { claim: 'sfRole' }],
+  ];
+  for (const [action, target, daysAgo, meta] of auditRows) {
+    await db
+      .collection('platform')
+      .doc('audit')
+      .collection('entries')
+      .add({ actorUid: 'b2b-admin', action, target, at: now - Math.round(daysAgo * DAY), meta });
+  }
+  console.log('  + 1 pending application, 3 platform payments, audit entries');
 
   console.log('\n✔ Seed complete.\n');
   console.log(`  Tenant subdomain : ${SLUG}  →  /g/${SLUG}`);

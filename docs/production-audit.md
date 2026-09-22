@@ -1,5 +1,7 @@
 # SmartFit — Production-Readiness Audit (historical)
 
+> **Latest focused update:** [Team access and release readiness, 22 September 2026](./team-access-and-release-readiness.md).
+>
 > **Superseded on 11 September 2026.** This document records the 8 September review of an older
 > tree. Use [`mvp-audit-2026-09-11.md`](./mvp-audit-2026-09-11.md) for the current verdict; in
 > particular, the old claims about billing, deletion, queue semantics, and Firebase setup have been

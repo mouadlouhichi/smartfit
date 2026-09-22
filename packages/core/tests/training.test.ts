@@ -483,6 +483,7 @@ test('set metadata is preserved only when valid', () => {
       ],
     }),
   );
+  assert.ok(parsed);
   const sets = parsed.sessions[0]?.exercises[0]?.sets ?? [];
   assert.deepEqual(sets[0], {
     reps: 8,

@@ -167,7 +167,19 @@ export function ProfileScreen() {
     setDataError(null);
     try {
       const full = await collectFullState();
-      const blob = new Blob([JSON.stringify(full, null, 2)], { type: 'application/json' });
+      let serviceData: unknown;
+      if (cloud && user) {
+        const response = await fetch('/api/account/export', {
+          headers: { authorization: `Bearer ${await user.getIdToken()}` },
+          cache: 'no-store',
+        });
+        if (!response.ok) throw new Error('Supplementary account export failed.');
+        serviceData = await response.json();
+      }
+      const blob = new Blob(
+        [JSON.stringify({ ...full, ...(serviceData ? { serviceData } : {}) }, null, 2)],
+        { type: 'application/json' },
+      );
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -353,6 +365,17 @@ export function ProfileScreen() {
 
   return (
     <div className="grid max-w-full min-w-0 gap-5">
+      <div className="flex flex-wrap gap-3">
+        <Button asChild variant="outline">
+          <Link href="/dashboard/personalize">Training preferences</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/coaching">My coaching</Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/support">Help & support</Link>
+        </Button>
+      </div>
       <section className="card-hero max-w-full min-w-0 p-4 sm:p-8" aria-label="Profile summary">
         <p className="text-volt-ink mb-3 text-[11px] font-bold tracking-[0.18em] uppercase">
           Profile
@@ -639,17 +662,15 @@ export function ProfileScreen() {
                     <Building2 className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="text-sm font-bold">Gym Management</p>
+                    <p className="text-sm font-bold">Your gym</p>
                     <p className="text-muted-foreground text-xs">
-                      {state.customGyms?.length
-                        ? `${state.customGyms.length} custom gyms · ${state.customGyms.reduce((a, g) => a + g.programs.length, 0)} programs`
-                        : 'Add your gyms, create programs, join AI-powered courses'}
+                      Pick a gym running on SmartFit and build your week from its real timetable
                     </p>
                   </div>
                 </div>
                 <Button size="sm" asChild className="rounded-full">
                   <Link href="/dashboard/plan">
-                    Manage <ArrowRight className="h-4 w-4" />
+                    Choose <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -752,8 +773,8 @@ export function ProfileScreen() {
                 className="hover:bg-secondary/50 flex items-center justify-between rounded-2xl border p-4 transition-colors"
               >
                 <div>
-                  <p className="text-sm font-bold">Gym Management</p>
-                  <p className="text-muted-foreground text-xs">Add gyms, programs, AI courses</p>
+                  <p className="text-sm font-bold">Your gym</p>
+                  <p className="text-muted-foreground text-xs">Pick a gym, build your week</p>
                 </div>
                 <ArrowRight className="text-muted-foreground h-4 w-4" />
               </Link>
@@ -836,9 +857,6 @@ export function ProfileScreen() {
               <Badge variant="secondary">{counts.goals} goals</Badge>
               <Badge variant="secondary">{counts.measurements} measurements</Badge>
               <Badge variant="secondary">{state.categories.length} activity types</Badge>
-              {state.customGyms && state.customGyms.length > 0 && (
-                <Badge variant="secondary">{state.customGyms.length} custom gyms</Badge>
-              )}
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => openModal('category')}>

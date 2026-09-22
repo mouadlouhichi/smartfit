@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { AccountLink } from './account-link';
 import { useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { AnimatedTetrahedron } from './animated-tetrahedron';
@@ -49,10 +50,10 @@ export function CtaSection() {
                   logged session takes about thirty seconds.
                 </p>
                 <div className="flex flex-col items-start gap-4 sm:flex-row">
-                  <Link href="/login" className="btn-primary group">
+                  <AccountLink className="btn-primary group">
                     Start training free
                     <ArrowRight className="ms-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Link>
+                  </AccountLink>
                   <Link href="/#pricing" className="btn-outline">
                     See features
                   </Link>

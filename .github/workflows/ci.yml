@@ -10,6 +10,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Browser CI deliberately exercises the isolated demo, not a live Firebase project.
+  SMARTFIT_DEPLOYMENT: demo
+
 jobs:
   lint:
     name: Lint & format
@@ -58,6 +62,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @smartfit/core test
       - run: pnpm test
+      - run: pnpm test:server
 
   e2e:
     name: E2E smoke (production build, local mode)
@@ -100,10 +105,17 @@ jobs:
           # firebase-tools requires Java 21+ for the Firestore emulator
           java-version: 21
       - name: Run rules unit tests against the Firestore emulator
-        run: >-
-          npx -y firebase-tools@latest emulators:exec --only firestore
-          --project smartfit-rules-ci
-          "node --import tsx --test tests/rules/firestore-rules.test.ts"
+        run: pnpm test:rules
+      - name: Test real Auth tokens, role transactions and Firestore rules together
+        run: pnpm test:integration
+      - name: Upload emulator logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authorization-emulator-logs
+          path: '*-debug.log'
+          if-no-files-found: ignore
+          retention-days: 3
 
   mobile-typecheck:
     name: Mobile typecheck

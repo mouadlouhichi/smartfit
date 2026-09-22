@@ -1,4 +1,6 @@
 'use client';
+import { GymLogo } from './brand-media';
+import { TeamManager as Staff } from './team-manager';
 
 /**
  * Gym owner + staff console.
@@ -14,10 +16,13 @@
  * server accepted — not an optimistic guess that the rules may have rejected.
  */
 import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import {
+  Dumbbell,
+  ShieldCheck,
+  ArrowUpRight,
   Banknote,
   CalendarDays,
-  ExternalLink,
   LayoutDashboard,
   Layers,
   Plus,
@@ -29,6 +34,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import {
+  isGymCustomer,
   AT_RISK_DAYS,
   isAtRisk,
   roleLabel,
@@ -36,6 +42,7 @@ import {
   type GymMembership,
 } from '@smartfit/core';
 import { formatMoney, useTenant } from '@/lib/tenant-context';
+import { useAuth } from '@/lib/firebase/auth-context';
 import type { GymBooking, GymClass, GymSlot } from '@/lib/firebase/tenant-repo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,6 +52,8 @@ import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/toast';
+import { MemberDirectory } from './member-directory';
+import { ProfileStudio } from './profile-studio';
 import { cn } from '@/lib/utils';
 
 // ── Nav ──────────────────────────────────────────────────────────────────────
@@ -64,7 +73,7 @@ const SECTIONS: Section[] = [
   { id: 'members', label: 'Members', icon: Users, capability: 'member:roster:read' },
   { id: 'revenue', label: 'Revenue', icon: Banknote, capability: 'revenue:read' },
   { id: 'plans', label: 'Plans', icon: Layers, capability: 'plan:manage' },
-  { id: 'staff', label: 'Staff', icon: UserCog, capability: 'staff:invite' },
+  { id: 'staff', label: 'Team', icon: UserCog, capability: 'staff:invite' },
   { id: 'settings', label: 'Settings', icon: SettingsIcon, capability: 'branding:edit' },
 ];
 
@@ -100,7 +109,8 @@ function Metric({
   );
 }
 
-function statusTone(status: GymMembership['status'] | string) {
+/** Badge colour for a membership/invoice/booking status. Shared with the member view. */
+export function statusTone(status: GymMembership['status'] | string) {
   switch (status) {
     case 'active':
     case 'paid':
@@ -138,12 +148,16 @@ function Overview() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric
           label="Active members"
-          value={String(m.activeMembers)}
-          hint={`${t.roster.length} on the roster`}
+          value={t.rosterStatus === 'ready' ? String(m.activeMembers) : '—'}
+          hint={
+            t.rosterStatus === 'ready'
+              ? `${t.roster.length} people, including staff`
+              : 'Roster not yet verified'
+          }
         />
         <Metric
           label="MRR"
-          value={formatMoney(m.mrrMinor)}
+          value={t.rosterStatus === 'ready' ? formatMoney(m.mrrMinor) : '—'}
           hint="Active memberships, normalised"
           tone="good"
         />
@@ -246,6 +260,9 @@ function Today() {
       .slice(0, 5);
   }, [query, t.roster]);
 
+  const canMark = t.can('class:attend:mark');
+  const canPromote = t.can('waitlist:promote');
+
   async function onCheckIn(uid: string, name: string) {
     const ok = await t.checkInMember(uid);
     if (ok) {
@@ -254,6 +271,22 @@ function Today() {
     } else {
       toast(t.mutationError ?? 'Check-in failed', 'info');
     }
+  }
+
+  async function onMark(b: GymBooking, status: 'attended' | 'no_show') {
+    const ok = await t.markBookingAttendance(b.id, status);
+    if (ok) {
+      const name = b.memberName ?? b.uid;
+      toast(status === 'attended' ? `${name} attended` : `${name} marked as no-show`, 'success');
+    } else {
+      toast(t.mutationError ?? 'Could not mark attendance', 'info');
+    }
+  }
+
+  async function onPromote(b: GymBooking) {
+    const ok = await t.promoteWaitlist(b.id);
+    if (ok) toast(`${b.memberName ?? b.uid} promoted from the waitlist`, 'success');
+    else toast(t.mutationError ?? 'Could not promote', 'info');
   }
 
   return (
@@ -305,9 +338,12 @@ function Today() {
       ) : (
         todays.map((slot) => {
           const cls = classById.get(slot.classId);
-          const seated = (bookingsBySlot.get(slot.id) ?? []).filter((b) => b.status === 'booked');
+          const all = (bookingsBySlot.get(slot.id) ?? []).filter((b) => b.status !== 'cancelled');
+          const seated = all.filter((b) => b.status === 'booked' || b.status === 'attended');
+          const waitlist = all.filter((b) => b.status === 'waitlist');
+          const left = Math.max(0, slot.capacity - slot.booked);
           return (
-            <Card key={slot.id}>
+            <Card key={slot.id} data-slot-id={slot.id}>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-base">
                   <span>{cls?.name ?? 'Class'}</span>
@@ -320,19 +356,53 @@ function Today() {
                 </CardTitle>
                 <CardDescription>
                   {cls?.studio} · {cls?.instructorName} · {seated.length}/{slot.capacity} booked
+                  {waitlist.length > 0 && ` · ${waitlist.length} waiting`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-1">
-                {seated.length === 0 ? (
+                {all.length === 0 ? (
                   <p className="text-muted-foreground text-sm">Nobody booked yet.</p>
                 ) : (
-                  seated.map((b) => (
+                  all.map((b) => (
                     <div
                       key={b.id}
-                      className="border-border/60 flex items-center justify-between border-b py-1.5 text-sm last:border-0"
+                      className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b py-1.5 text-sm last:border-0"
                     >
                       <span>{b.memberName ?? b.uid}</span>
-                      <Badge variant="outline">{b.status}</Badge>
+                      <span className="flex items-center gap-1.5">
+                        <Badge variant="outline">{b.status.replace('_', ' ')}</Badge>
+                        {b.status === 'booked' && canMark && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onMark(b, 'attended')}
+                              disabled={t.mutating !== null}
+                            >
+                              Attended
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => onMark(b, 'no_show')}
+                              disabled={t.mutating !== null}
+                            >
+                              No-show
+                            </Button>
+                          </>
+                        )}
+                        {b.status === 'waitlist' && canPromote && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onPromote(b)}
+                            disabled={t.mutating !== null || left === 0}
+                            title={left === 0 ? 'The class is full' : 'Take the next seat'}
+                          >
+                            Promote
+                          </Button>
+                        )}
+                      </span>
                     </div>
                   ))
                 )}
@@ -526,99 +596,6 @@ function Timetable() {
   );
 }
 
-function Members() {
-  const t = useTenant();
-  const toast = useToast();
-  const now = Date.now();
-  const members = useMemo(
-    () => t.roster.filter((r) => r.role === 'member').sort((a, b) => b.joinedAt - a.joinedAt),
-    [t.roster],
-  );
-  const canEdit = t.can('member:status:change');
-  const canCheckIn = t.can('checkin:door');
-
-  async function toggleFreeze(m: GymMembership) {
-    const next = m.status === 'frozen' ? 'active' : 'frozen';
-    const ok = await t.setMemberStatus(m.uid, next);
-    if (ok)
-      toast(`${m.displayName ?? m.uid} ${next === 'frozen' ? 'frozen' : 'reactivated'}`, 'success');
-    else toast(t.mutationError ?? 'Could not update the member', 'info');
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Roster</CardTitle>
-        <CardDescription>
-          {members.length} members. A member not seen in {AT_RISK_DAYS} days is flagged.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-1">
-        {members.map((m) => {
-          const risk = isAtRisk(m, now);
-          const daysLeft =
-            typeof m.expiresAt === 'number' ? Math.ceil((m.expiresAt - now) / 86_400_000) : null;
-          return (
-            <div
-              key={m.uid}
-              className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b py-2 last:border-0"
-            >
-              <div className="min-w-0">
-                <p className="flex items-center gap-2 font-medium">
-                  {m.displayName ?? m.uid}
-                  {risk && (
-                    <Badge className="bg-amber-500/15 text-amber-600" variant="secondary">
-                      at risk
-                    </Badge>
-                  )}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  joined {new Date(m.joinedAt).toLocaleDateString('en-GB')} · {m.checkins} check-ins
-                  {typeof m.lastVisitAt === 'number' &&
-                    ` · last ${Math.floor((now - m.lastVisitAt) / 86_400_000)}d ago`}
-                </p>
-                {m.notes && (
-                  <p className="text-muted-foreground mt-0.5 text-xs italic">{m.notes}</p>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {daysLeft !== null && m.status === 'active' && (
-                  <span className="text-muted-foreground text-xs tabular-nums">
-                    {daysLeft >= 0 ? `${daysLeft}d left` : 'lapsed'}
-                  </span>
-                )}
-                <Badge className={statusTone(m.status)} variant="secondary">
-                  {m.status}
-                </Badge>
-                {canCheckIn && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => t.checkInMember(m.uid)}
-                    disabled={t.mutating === `checkin:${m.uid}`}
-                  >
-                    Check in
-                  </Button>
-                )}
-                {canEdit && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => toggleFreeze(m)}
-                    disabled={t.mutating === `member:${m.uid}`}
-                  >
-                    {m.status === 'frozen' ? 'Activate' : 'Freeze'}
-                  </Button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
-  );
-}
-
 function Revenue() {
   const t = useTenant();
   const toast = useToast();
@@ -628,6 +605,8 @@ function Revenue() {
   );
   const paid = invoices.filter((i) => i.status === 'paid');
   const total = paid.reduce((s, i) => s + i.amountMinor, 0);
+  /** Online plan requests waiting for the desk — the collection queue. */
+  const drafts = invoices.filter((i) => i.status === 'draft');
 
   const canIssue = t.can('invoice:issue');
   const [memberUid, setMemberUid] = useState('');
@@ -637,24 +616,25 @@ function Revenue() {
   async function takePayment() {
     const plan = t.plans.find((p) => p.id === planId);
     if (!memberUid || !plan) return;
-    const ok = await t.createInvoice({
-      id: `inv-${Date.now().toString(36)}`,
-      memberUid,
-      planId,
-      amountMinor: plan.priceMinor,
-      currency: plan.currency,
-      status: 'paid',
-      method,
-      issuedAt: Date.now(),
-      paidAt: Date.now(),
-    });
+    // A desk sale now completes the membership too: plan, status and expiry
+    // are applied in the same batch as the paid invoice.
+    const ok = await t.takePlanPayment(memberUid, planId, method);
     if (ok) {
-      toast(`Recorded ${formatMoney(plan.priceMinor, plan.currency)}`, 'success');
+      toast(
+        `Recorded ${formatMoney(plan.priceMinor, plan.currency)} — membership applied`,
+        'success',
+      );
       setMemberUid('');
       setPlanId('');
     } else {
       toast(t.mutationError ?? 'Could not record the payment', 'info');
     }
+  }
+
+  async function collect(invoiceId: string) {
+    const ok = await t.collectInvoice(invoiceId, method);
+    if (ok) toast('Collected — membership applied', 'success');
+    else toast(t.mutationError ?? 'Could not collect', 'info');
   }
 
   return (
@@ -669,12 +649,53 @@ function Revenue() {
         />
       </div>
 
+      {canIssue && drafts.length > 0 && (
+        <Card className="border-amber-500/40">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center justify-between text-base">
+              <span>To collect — online plan requests</span>
+              <Badge className="bg-amber-500/15 text-amber-600" variant="secondary">
+                {drafts.length}
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Members who chose a plan on the site and pay at the desk. Collecting marks the invoice
+              paid and applies the plan to their membership in one write.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {drafts.map((i) => {
+              const plan = t.plans.find((p) => p.id === i.planId);
+              return (
+                <div
+                  key={i.id}
+                  className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-sm last:border-0"
+                >
+                  <span>
+                    <span className="font-medium">
+                      {t.roster.find((r) => r.uid === i.memberUid)?.displayName ?? i.memberUid}
+                    </span>
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {plan?.name ?? i.planId} · {formatMoney(i.amountMinor, i.currency)}
+                    </span>
+                  </span>
+                  <Button size="sm" onClick={() => collect(i.id)} disabled={t.mutating !== null}>
+                    Collect ({method})
+                  </Button>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
       {canIssue && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Take a payment</CardTitle>
+            <CardTitle className="text-base">Sell a plan at the desk</CardTitle>
             <CardDescription>
-              Records a paid invoice. Refunds stay with the owner; issuing does not.
+              Walk-in sale: issues a paid invoice and applies the plan — status, tier and expiry —
+              to the member in one write.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -737,7 +758,7 @@ function Revenue() {
             >
               <span>{t.roster.find((r) => r.uid === i.memberUid)?.displayName ?? i.memberUid}</span>
               <span className="flex items-center gap-2">
-                <Badge variant="outline">{i.method ?? 'other'}</Badge>
+                <Badge variant="outline">{i.method ?? 'pending'}</Badge>
                 <Badge className={statusTone(i.status)} variant="secondary">
                   {i.status}
                 </Badge>
@@ -844,126 +865,73 @@ function Plans() {
   );
 }
 
-function Staff() {
-  const t = useTenant();
-  const staff = t.roster.filter((r) => r.role === 'owner' || r.role === 'staff');
-  return (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base">Team</CardTitle>
-        <CardDescription>
-          Roles come from the membership document the security rules read — not from a claim, so
-          adding staff takes effect immediately rather than waiting on a token refresh.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-1">
-        {staff.map((s) => (
-          <div
-            key={s.uid}
-            className="border-border/60 flex items-center justify-between border-b py-2 last:border-0"
-          >
-            <span className="font-medium">{s.displayName ?? s.uid}</span>
-            <Badge variant="secondary">{s.role}</Badge>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-}
+// ── Shell ────────────────────────────────────────────────────────────────────
 
-function SettingsSection() {
+/**
+ * View-as banner. Persistent by design: it cannot be dismissed, only exited,
+ * and it says who is being impersonated. Entering a view-as session also
+ * appends to the platform audit trail (best-effort — a failed audit write
+ * must not break the read-only browse, but it is never silent on the server).
+ */
+function ViewAsBanner() {
   const t = useTenant();
-  const toast = useToast();
-  const [name, setName] = useState(t.gym?.name ?? '');
-  const [tagline, setTagline] = useState(t.gym?.branding?.tagline ?? '');
-  const [phone, setPhone] = useState(t.gym?.contact?.phone ?? '');
-  const [accent, setAccent] = useState(t.gym?.branding?.accentColor ?? '#8ad200');
+  const { user } = useAuth();
 
-  async function save() {
-    const ok = await t.updateGym({
-      name: name.trim(),
-      branding: { ...t.gym?.branding, tagline: tagline.trim(), accentColor: accent },
-      contact: { ...t.gym?.contact, phone: phone.trim() },
-    });
-    if (ok) toast('Saved', 'success');
-    else toast(t.mutationError ?? 'Could not save', 'info');
-  }
+  useEffect(() => {
+    if (t.mode !== 'cloud' || !user) return;
+    user
+      .getIdToken()
+      .then((token) =>
+        fetch('/api/admin/impersonate', {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+          body: JSON.stringify({ slug: t.slug }),
+        }),
+      )
+      .catch(() => {
+        /* the audit entry is best-effort; the read-only guarantee is not */
+      });
+  }, [t.mode, t.slug, user]);
 
   return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Branding</CardTitle>
-          <CardDescription>
-            Shows on the public storefront immediately. Status, slug and owner are not editable here
-            — the rules reject an owner changing them, so those are platform-admin actions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Field id="set-name" label="Gym name">
-              <Input id="set-name" value={name} onChange={(e) => setName(e.target.value)} />
-            </Field>
-            <Field id="set-tagline" label="Tagline">
-              <Input
-                id="set-tagline"
-                value={tagline}
-                onChange={(e) => setTagline(e.target.value)}
-              />
-            </Field>
-            <Field id="set-phone" label="Phone">
-              <Input id="set-phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-            </Field>
-            <Field id="set-accent" label="Accent colour">
-              <Input
-                id="set-accent"
-                type="color"
-                value={accent}
-                onChange={(e) => setAccent(e.target.value)}
-              />
-            </Field>
-          </div>
-          <Button onClick={save} disabled={t.mutating !== null}>
-            Save changes
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Tenant</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1 text-sm">
-          <p>
-            <span className="text-muted-foreground">Slug / subdomain: </span>
-            <code className="font-mono">{t.slug}</code>
-          </p>
-          <p>
-            <span className="text-muted-foreground">Status: </span>
-            {t.gym?.status ?? '—'}
-          </p>
-          <p>
-            <span className="text-muted-foreground">Platform plan: </span>
-            {t.gym?.tenantPlanId ?? '—'}
-          </p>
-        </CardContent>
-      </Card>
+    <div
+      role="status"
+      className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 p-3 text-sm text-sky-700 dark:text-sky-300"
+    >
+      <span className="font-medium">
+        Viewing {t.gym?.name ?? t.slug} — read-only gym workspace; changes are disabled. Your
+        platform identity is unchanged.
+      </span>
+      <Button asChild size="sm" variant="outline">
+        <a href={`/admin/gyms/${t.slug}`}>Exit view-as</a>
+      </Button>
     </div>
   );
 }
-
-// ── Shell ────────────────────────────────────────────────────────────────────
 
 export function Console() {
   const t = useTenant();
   const [tab, setTab] = useState<string | null>(null);
 
+  const [wide, setWide] = useState(false);
+  const [interactive, setInteractive] = useState(false);
+  useEffect(() => {
+    setInteractive(true);
+    const media = window.matchMedia('(min-width: 1024px)');
+    const update = () => setWide(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
   const visible = useMemo(() => SECTIONS.filter((s) => t.can(s.capability)), [t]);
 
   // Staff land on Today; the owner lands on Overview. Derived from whatever the
   // capability filter leaves first, so it cannot point at a hidden section.
   useEffect(() => {
-    if (tab === null && visible.length > 0) setTab(visible[0].id);
+    if (tab === null && visible.length > 0) {
+      const requested = new URLSearchParams(window.location.search).get('tab');
+      setTab(visible.find((section) => section.id === requested)?.id ?? visible[0].id);
+    }
   }, [tab, visible]);
 
   useEffect(() => {
@@ -988,9 +956,15 @@ export function Console() {
       <div className="mx-auto max-w-md p-6 text-center">
         <p className="text-lg font-bold">You have no console access to this gym</p>
         <p className="text-muted-foreground mt-2 text-sm">
-          You are signed in as a member. Ask the gym owner to add you as staff if you should have
-          access.
+          An active owner or staff membership is required. Access may have been removed, frozen or
+          expired, or this gym may be unavailable. Ask the gym owner if you should have access.
+          Trainers can use the coaching workspace.
         </p>
+        {t.error && (
+          <p role="alert" className="text-destructive mt-3 text-sm">
+            {t.error} Reconnect and reload this page to verify access.
+          </p>
+        )}
         <Button asChild variant="outline" className="mt-4">
           <a href={`/g/${t.slug}`}>Back to {t.gym?.name ?? 'the gym'}</a>
         </Button>
@@ -999,91 +973,183 @@ export function Console() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-5 p-4 sm:p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-black tracking-tight">{t.gym?.name ?? t.slug}</h1>
-          <p className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
-            <Badge variant="secondary">{roleLabel(t.role)}</Badge>
-            <a
-              href={`/g/${t.slug}`}
-              className="hover:text-foreground inline-flex items-center gap-1"
-            >
-              storefront <ExternalLink className="size-3" />
-            </a>
+    <div className="bg-secondary/25 min-h-dvh sm:p-4 lg:p-6">
+      <Tabs
+        value={tab ?? undefined}
+        onValueChange={setTab}
+        orientation={wide ? 'vertical' : 'horizontal'}
+        className="bg-background border-border/70 mx-auto grid max-w-[1540px] overflow-hidden sm:rounded-3xl sm:border lg:min-h-[calc(100dvh-3rem)] lg:grid-cols-[210px_minmax(0,1fr)]"
+      >
+        <aside className="bg-card flex flex-col border-b px-3 py-4 lg:border-r lg:border-b-0 lg:px-4 lg:py-6">
+          <Link href="/" className="mb-5 flex items-center gap-2.5 px-2">
+            <span className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-xl">
+              <Dumbbell className="size-4" />
+            </span>
+            <span className="text-xl font-black tracking-tight">
+              SmartFit<span className="text-primary">.</span>
+            </span>
+          </Link>
+          <p className="text-muted-foreground mb-3 hidden px-3 text-[9px] font-semibold tracking-[0.2em] uppercase lg:block">
+            Gym workspace
           </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {t.mode === 'demo' && (
-            <div className="border-border bg-muted/40 flex items-center gap-2 rounded-lg border border-dashed p-1.5">
-              <span className="text-muted-foreground px-1 text-xs">Demo role</span>
-              <select
-                aria-label="Demo role"
-                className="bg-background rounded-md border px-2 py-1 text-xs"
-                value={t.demoRole ?? 'gym-owner'}
-                onChange={(e) => t.setDemoRole(e.target.value as typeof t.role)}
+          <TabsList
+            aria-label="Gym workspace sections"
+            className="grid h-auto w-full grid-cols-4 gap-1 rounded-none bg-transparent p-0 lg:flex lg:flex-col lg:items-stretch lg:gap-1.5"
+          >
+            {visible.map((section) => (
+              <TabsTrigger
+                key={section.id}
+                aria-label={section.label}
+                disabled={!interactive}
+                value={section.id}
+                className="data-[state=active]:bg-primary/10 flex min-w-0 flex-col gap-1.5 rounded-xl px-1 py-2.5 text-[10px] data-[state=active]:shadow-none lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:py-3 lg:text-xs"
               >
-                <option value="gym-owner">Gym owner</option>
-                <option value="gym-staff">Gym staff</option>
-                <option value="member">Member</option>
-                <option value="platform-admin">Platform admin</option>
-              </select>
+                <section.icon className="size-4 shrink-0" />
+                <span>{section.label}</span>
+                {section.id === 'members' && (
+                  <span className="bg-secondary ml-auto hidden min-w-5 rounded-md px-1 py-0.5 text-center text-[9px] tabular-nums lg:inline-block">
+                    {t.rosterStatus === 'ready' ? t.roster.filter(isGymCustomer).length : '—'}
+                  </span>
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <div className="mt-8 hidden flex-1 flex-col justify-end lg:flex">
+            <div className="bg-secondary/55 rounded-2xl p-4">
+              <span className="text-primary">
+                <ShieldCheck className="size-5" />
+              </span>
+              <p className="mt-3 text-xs font-semibold">
+                {t.viewAs ? 'A safe look inside' : 'Your gym. Your community.'}
+              </p>
+              <p className="text-muted-foreground mt-2 text-[10px] leading-relaxed">
+                {t.viewAs
+                  ? 'Browse your gym’s data without changing memberships or settings.'
+                  : 'Keep your members, classes and team connected in one workspace.'}
+              </p>
             </div>
-          )}
-          <Button size="sm" variant="outline" onClick={t.reload} disabled={t.loading}>
-            <RefreshCw className="size-3.5" /> Refresh
-          </Button>
-        </div>
-      </header>
-
-      {t.mode === 'demo' && (
-        <div className="border-border bg-muted/40 text-muted-foreground rounded-xl border border-dashed p-3 text-xs">
-          Demo data — no Firebase project is configured, so edits apply to this session only and are
-          lost on reload. The role switcher above only changes what this UI renders; in cloud mode
-          the ID-token claim and the membership document are the sole inputs.
-        </div>
-      )}
-
-      {t.mutationError && (
-        <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-600">
-          {t.mutationError}
-        </div>
-      )}
-
-      <Tabs value={tab ?? undefined} onValueChange={setTab}>
-        <TabsList className="flex-wrap">
-          {visible.map((s) => (
-            <TabsTrigger key={s.id} value={s.id}>
-              <s.icon className="mr-1.5 size-3.5" />
-              {s.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        <TabsContent value="overview" className="mt-4">
-          <Overview />
-        </TabsContent>
-        <TabsContent value="today" className="mt-4">
-          <Today />
-        </TabsContent>
-        <TabsContent value="timetable" className="mt-4">
-          <Timetable />
-        </TabsContent>
-        <TabsContent value="members" className="mt-4">
-          <Members />
-        </TabsContent>
-        <TabsContent value="revenue" className="mt-4">
-          <Revenue />
-        </TabsContent>
-        <TabsContent value="plans" className="mt-4">
-          <Plans />
-        </TabsContent>
-        <TabsContent value="staff" className="mt-4">
-          <Staff />
-        </TabsContent>
-        <TabsContent value="settings" className="mt-4">
-          <SettingsSection />
-        </TabsContent>
+            <div className="mt-5 flex min-w-0 items-center gap-2.5 border-t pt-5">
+              {t.gym && <GymLogo gym={t.gym} className="size-9 rounded-xl text-xs" />}
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-semibold">{t.gym?.name ?? t.slug}</p>
+                <p className="text-muted-foreground mt-0.5 text-[10px]">
+                  {t.mode === 'demo' ? 'Demo workspace' : 'Gym management'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </aside>
+        <main className="min-w-0">
+          <header className="bg-card flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 lg:px-8">
+            <div>
+              <p className="text-muted-foreground mb-1 text-[10px]">
+                Workspace <span className="mx-2 opacity-40">/</span>{' '}
+                {visible.find((section) => section.id === tab)?.label ?? 'Overview'}
+              </p>
+              <h1 className="text-sm font-semibold tracking-tight">{t.gym?.name ?? t.slug}</h1>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground mr-1 hidden text-[11px] sm:inline">
+                {roleLabel(t.role)}
+              </span>
+              <Button asChild size="sm" variant="ghost" className="text-xs">
+                <Link href={`/g/${t.slug}`}>
+                  storefront <ArrowUpRight className="size-3.5" />
+                </Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-xl text-xs">
+                <Link href={`/g/${t.slug}/coaching`}>Coaching</Link>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-xl"
+                onClick={t.reload}
+                disabled={t.loading}
+                aria-label="Refresh"
+              >
+                <RefreshCw className="size-3.5" />
+              </Button>
+            </div>
+          </header>
+          <div className="space-y-5 p-4 sm:p-6 lg:p-8">
+            {t.mode === 'demo' && (
+              <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed px-3 py-2 text-[10px]">
+                <span>Demo workspace · sample data · changes last for this session only</span>
+                <label className="flex items-center gap-2">
+                  <span>Demo role</span>
+                  <select
+                    aria-label="Demo role"
+                    disabled={!interactive}
+                    className="bg-background rounded-lg border px-2 py-1 text-[11px]"
+                    value={t.demoRole ?? 'gym-owner'}
+                    onChange={(e) =>
+                      t.setDemoRole(e.target.value as NonNullable<typeof t.demoRole>)
+                    }
+                  >
+                    <option value="gym-owner">Gym owner</option>
+                    <option value="gym-staff">Gym staff</option>
+                    <option value="member">Member</option>
+                    <option value="prospect">Prospect (not a member)</option>
+                    <option value="platform-admin">Platform admin</option>
+                  </select>
+                </label>
+              </div>
+            )}
+            {t.viewAs && <ViewAsBanner />}
+            {t.error && (
+              <div
+                role="alert"
+                className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm"
+              >
+                <p className="font-semibold">Some workspace data couldn’t be loaded</p>
+                <p className="text-muted-foreground mt-1 text-xs">{t.error}</p>
+                <Button className="mt-3" variant="outline" size="sm" onClick={t.reload}>
+                  Retry workspace data
+                </Button>
+              </div>
+            )}
+            {t.mutationError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-600"
+              >
+                {t.mutationError}
+              </div>
+            )}
+            <TabsContent value="overview" className="mt-4">
+              <Overview />
+            </TabsContent>
+            <TabsContent value="today" className="mt-4">
+              <Today />
+            </TabsContent>
+            <TabsContent value="timetable" className="mt-4">
+              <Timetable />
+            </TabsContent>
+            <TabsContent value="members" className="mt-4">
+              <MemberDirectory />
+            </TabsContent>
+            <TabsContent value="revenue" className="mt-4">
+              <Revenue />
+            </TabsContent>
+            <TabsContent value="plans" className="mt-4">
+              <Plans />
+            </TabsContent>
+            <TabsContent value="staff" className="mt-4">
+              <Staff />
+              <Button asChild variant="outline" className="mt-4">
+                <Link href={`/g/${t.slug}/coaching`}>Manage trainers & coaching</Link>
+              </Button>
+            </TabsContent>
+            <TabsContent
+              forceMount
+              value="settings"
+              className={cn('mt-4', tab !== 'settings' && 'hidden')}
+            >
+              <ProfileStudio />
+            </TabsContent>
+          </div>
+        </main>
       </Tabs>
     </div>
   );

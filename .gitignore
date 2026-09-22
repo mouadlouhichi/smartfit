@@ -58,3 +58,6 @@ packages/*/.turbo/
 
 # local image-search working files
 /image-search/
+
+# Local emulator diagnostics (may include synthetic auth/request metadata)
+*-debug.log

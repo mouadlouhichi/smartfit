@@ -59,6 +59,19 @@ function baseHosts(): string[] {
  * extension are assets, which have no tenant.
  */
 function isExempt(pathname: string): boolean {
+  if (
+    [
+      '/studio',
+      '/support',
+      '/library',
+      '/dashboard',
+      '/admin',
+      '/login',
+      '/onboarding',
+      '/gyms',
+    ].some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  )
+    return true;
   if (pathname.startsWith('/api/') || pathname === '/api') return true;
   if (pathname.startsWith('/_next/')) return true;
   if (pathname.startsWith('/images/') || pathname.startsWith('/fonts/')) return true;

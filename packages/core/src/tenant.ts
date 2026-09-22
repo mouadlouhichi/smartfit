@@ -171,7 +171,27 @@ export function checkLimit(
 
 // ── Documents ────────────────────────────────────────────────────────────────
 
+export const GYM_AMENITIES = [
+  'Showers',
+  'Lockers',
+  'Parking',
+  'Personal training',
+  'Group classes',
+  'Accessible entrance',
+  'Wi-Fi',
+  'Recovery area',
+] as const;
+
 export interface GymBranding {
+  /** Small raster logo, optimized on-device; avoids a separate storage dependency. */
+  logoData?: string;
+  logoShape?: 'rounded' | 'circle' | 'square';
+  heroLayout?: 'split' | 'banner' | 'minimal';
+  coverPreset?: 'strength' | 'studio' | 'combat' | 'recovery';
+  coverPosition?: 'top' | 'center' | 'bottom';
+  ctaLabel?: string;
+  amenities?: (typeof GYM_AMENITIES)[number][];
+  galleryUrls?: string[];
   logoUrl?: string;
   coverUrl?: string;
   /** Hex accent used by the public site. */
@@ -232,8 +252,11 @@ export interface GymTenant {
  * resolution the security rules `get()`.
  */
 export interface GymMembership {
+  /** Server-owned team change metadata; the reason lives in the gym audit trail. */
+  roleChangedAt?: number;
+  roleChangedBy?: string;
   uid: string;
-  role: 'owner' | 'staff' | 'member';
+  role: 'owner' | 'staff' | 'trainer' | 'member';
   status: MemberStatus;
   joinedAt: number;
   expiresAt?: number;
@@ -299,6 +322,7 @@ export const RESERVED_SUBDOMAINS: readonly string[] = [
   'static',
   // First-party routes — a tenant named `login` would shadow the real one.
   'g',
+  'gyms',
   'login',
   'logout',
   'signup',
@@ -312,6 +336,8 @@ export const RESERVED_SUBDOMAINS: readonly string[] = [
   'settings',
   'help',
   'support',
+  'studio',
+  'library',
   'blog',
   'careers',
   'press',
@@ -467,6 +493,16 @@ export function resolveTenantHost(
 
   const h = normalizeHost(host ?? '');
   if (!h) return null;
+  // PaaS-managed hosts are never tenants, whatever the apex configuration
+  // says: `vercel.app` sub-hosts are per-deployment aliases Vercel assigns
+  // (`smartfit-mouadlouhichis-projects.vercel.app`) and their prefix can be a
+  // perfectly valid slug — with the apex misconfigured to `vercel.app`, every
+  // deployment alias resolved to a phantom tenant and the middleware rewrote
+  // the entire app into the tenant tree (`/admin` and `/dashboard` 404, the
+  // landing page became "not open yet"). Real tenants hang off the
+  // deployment's own apex, never off a PaaS host nobody controls. `e2b.app`
+  // is the same class (sandbox previews).
+  if (h.endsWith('.vercel.app') || h.endsWith('.e2b.app')) return null;
   if (baseHosts.has(h)) return null;
 
   // Longest apex first so a nested apex wins over its parent.

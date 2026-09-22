@@ -37,7 +37,7 @@ firebase deploy --only firestore:rules,firestore:indexes
 - The sessions query works — the composite index (`date desc, createdAt desc`)
   is required by the bounded history load; without it every cold start fails
   with `failed-precondition` and falls back to the local cache.
-- Rules tests: `pnpm test:rules` (needs Java 17+ locally; CI runs it in the
+- Rules tests: `pnpm test:rules` (needs Java 21+ locally; CI runs it in the
   `firestore-rules` job).
 - The account deletion endpoint (`POST /api/account/delete`) uses the Admin
   SDK and the server-only `accountDeletionJobs/{uid}` collection. The client
@@ -154,3 +154,27 @@ list it in any user-facing surface until the parity work in
 additionally require: EAS project setup (`eas build` credentials), a Data
 safety form, a privacy policy URL, and — once auth ships — an in-app account
 deletion path.
+
+
+## Team access release — 22 September 2026
+
+See [the current release checklist](./team-access-and-release-readiness.md) before deploying
+membership-based role changes. In particular, reconcile authoritative owner memberships,
+run the Java 21 Firestore emulator suite, and ship the new rules and web application together.
+Do not assume a successful demo build proves cloud authorization or provider readiness.
+
+Production builds now fail when Firebase client/admin configuration is incomplete or targets
+different projects. `SMARTFIT_DEPLOYMENT=demo` is the explicit opt-out for intentional previews
+and local production-build tests, **not** a repair for a real deployment's missing credentials.
+Google-hosted ADC requires `SMARTFIT_ADMIN_ADC=true` and a matching project ID. CI's credential-free
+browser jobs explicitly select demo mode. This guard checks configuration, not live connectivity.
+
+
+### Automated team-access preflight
+
+Before the coordinated rules/API release, run `pnpm audit:team --project PROJECT` with
+read-only credentials; see `scripts/README.md` for options and report handling. A truncated
+or failed scan exits 2; blocking findings exit 1. Only an exit-0 **complete** report with
+reviewed warnings clears this preflight, not the whole production launch. No live audit
+has been performed by the local implementation tests. Run both `pnpm test:rules` and
+`pnpm test:integration` with Java 21; CI now runs both as blocking steps.

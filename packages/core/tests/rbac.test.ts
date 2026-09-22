@@ -113,19 +113,29 @@ test('rolesWith agrees with can for every capability', () => {
 
 // ── The four roles ───────────────────────────────────────────────────────────
 
-test('exactly the four product roles exist', () => {
-  assert.deepEqual([...ROLES].sort(), ['gym-owner', 'gym-staff', 'member', 'platform-admin']);
+test('all seven product roles exist', () => {
+  assert.deepEqual([...ROLES].sort(), [
+    'content-manager',
+    'gym-owner',
+    'gym-staff',
+    'gym-trainer',
+    'member',
+    'platform-admin',
+    'support-agent',
+  ]);
   assert.equal(DEFAULT_ROLE, 'member');
 });
 
 test('membership roles map onto product roles', () => {
   assert.equal(roleFromGymRole('owner'), 'gym-owner');
   assert.equal(roleFromGymRole('staff'), 'gym-staff');
+  assert.equal(roleFromGymRole('trainer'), 'gym-trainer');
   assert.equal(roleFromGymRole('member'), 'member');
   assert.equal(roleFromGymRole(null), 'member');
   assert.equal(roleFromGymRole(undefined), 'member');
+  // @ts-expect-error Exercise the runtime guard for corrupt persisted values.
   assert.equal(roleFromGymRole('nonsense'), 'member');
-  assert.deepEqual([...GYM_ROLES].sort(), ['member', 'owner', 'staff']);
+  assert.deepEqual([...GYM_ROLES].sort(), ['member', 'owner', 'staff', 'trainer']);
 });
 
 test('unknown role strings degrade to the least privilege, never throw', () => {

@@ -50,7 +50,7 @@ service cloud.firestore {
     //     gym B", and adding staff must not wait on a token refresh.
     //
     // Rules budget only a handful of get()/exists() calls per evaluation, so
-    // role resolution is exactly one document lookup and never a query.
+    // role resolution uses cached gym/membership document lookups, never a query.
 
     function isSignedIn() {
       return request.auth != null;
@@ -72,22 +72,23 @@ service cloud.firestore {
       return isSignedIn() && exists(membershipPath(gymId, request.auth.uid));
     }
 
-    // '' when there is no membership, so callers can compare safely instead of
-    // tripping on a null field access.
+    // Gym access is read from the CURRENT membership, never a tenant token claim.
+    function activeGymMembership(gymId) {
+      let m = get(membershipPath(gymId, request.auth.uid)).data;
+      return m.status in ['active', 'trial']
+        && (!('expiresAt' in m) || m.expiresAt > request.time.toMillis());
+    }
     function gymRole(gymId) {
-      return hasMembership(gymId) ? get(membershipPath(gymId, request.auth.uid)).data.role : '';
+      return hasMembership(gymId) && activeGymMembership(gymId)
+        && get(/databases/$(database)/documents/gyms/$(gymId)).data.status in ['active','trial','past_due']
+        ? get(membershipPath(gymId, request.auth.uid)).data.role : '';
     }
-
-    // Owner-or-above. `gyms/{gymId}.ownerUid` is authoritative for create-time
-    // and for a membership row that went missing; the membership doc governs
-    // every other case.
     function isGymOwner(gymId) {
-      return isPlatformAdmin() || gymRole(gymId) == 'owner';
+      return isPlatformAdmin() || (gymRole(gymId) == 'owner'
+        && get(/databases/$(database)/documents/gyms/$(gymId)).data.ownerUid == request.auth.uid);
     }
-
-    // Owner or staff — anyone who operates the gym rather than uses it.
     function isGymOperator(gymId) {
-      return isPlatformAdmin() || gymRole(gymId) in ['owner', 'staff'];
+      return isGymOwner(gymId) || gymRole(gymId) == 'staff';
     }
 
     // Timestamps accepted anywhere in the tenant tree.
@@ -114,6 +115,29 @@ service cloud.firestore {
         && gymId.matches('^[a-z0-9][a-z0-9-]{0,46}[a-z0-9]$');
     }
 
+    function brandImageUrl(v) {
+      return strAtMost(v, 2048) && (v == '' || v.matches('https://[^/@?#]+([/?#].*)?'));
+    }
+    function validGymBranding(b) {
+      return b is map && b.keys().hasOnly(['logoUrl','coverUrl','accentColor','tagline','description','logoData','logoShape','heroLayout','coverPreset','coverPosition','ctaLabel','amenities','galleryUrls'])
+        && (!('logoUrl' in b) || brandImageUrl(b.logoUrl))
+        && (!('coverUrl' in b) || brandImageUrl(b.coverUrl))
+        && (!('accentColor' in b) || b.accentColor.matches('#[0-9a-fA-F]{6}'))
+        && (!('tagline' in b) || strAtMost(b.tagline,160))
+        && (!('description' in b) || strAtMost(b.description,2000))
+        && (!('logoData' in b) || strAtMost(b.logoData,32768) && (b.logoData == '' || b.logoData.matches('data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}')))
+        && (!('logoShape' in b) || b.logoShape in ['rounded','circle','square'])
+        && (!('heroLayout' in b) || b.heroLayout in ['split','banner','minimal'])
+        && (!('coverPreset' in b) || b.coverPreset in ['strength','studio','combat','recovery'])
+        && (!('coverPosition' in b) || b.coverPosition in ['top','center','bottom'])
+        && (!('ctaLabel' in b) || strAtMost(b.ctaLabel,32))
+        && (!('amenities' in b) || b.amenities is list && b.amenities.size() <= 8 && b.amenities.hasOnly(['Showers','Lockers','Parking','Personal training','Group classes','Accessible entrance','Wi-Fi','Recovery area']))
+        && (!('galleryUrls' in b) || b.galleryUrls is list && b.galleryUrls.size() <= 3
+          && (b.galleryUrls.size() < 1 || brandImageUrl(b.galleryUrls[0]))
+          && (b.galleryUrls.size() < 2 || brandImageUrl(b.galleryUrls[1]))
+          && (b.galleryUrls.size() < 3 || brandImageUrl(b.galleryUrls[2])));
+    }
+
     function validGymDoc(gymId) {
       return slugMatchesId(gymId)
         && strAtMost(request.resource.data.name, 100)
@@ -123,8 +147,7 @@ service cloud.firestore {
         && validTs(request.resource.data.createdAt)
         && request.resource.data.size() <= 14
         && (!('subdomain' in request.resource.data) || strAtMost(request.resource.data.subdomain, 48))
-        && (!('branding' in request.resource.data) || request.resource.data.branding is map
-              && request.resource.data.branding.size() <= 6)
+        && (!('branding' in request.resource.data) || validGymBranding(request.resource.data.branding))
         && (!('contact' in request.resource.data) || request.resource.data.contact is map
               && request.resource.data.contact.size() <= 5)
         && (!('location' in request.resource.data) || request.resource.data.location is map
@@ -134,7 +157,7 @@ service cloud.firestore {
     }
 
     function validMembership() {
-      return request.resource.data.role in ['owner', 'staff', 'member']
+      return request.resource.data.role in ['owner', 'staff', 'trainer', 'member']
         && isMembershipStatus(request.resource.data.status)
         && validTs(request.resource.data.joinedAt)
         && numBetween(request.resource.data.checkins, 0, 10000000)
@@ -182,6 +205,15 @@ service cloud.firestore {
         && (!('memberName' in request.resource.data) || strAtMost(request.resource.data.memberName, 80))
         && (!('markedBy' in request.resource.data) || strAtMost(request.resource.data.markedBy, 128))
         && (!('markedAt' in request.resource.data) || validTs(request.resource.data.markedAt));
+    }
+
+    // A door visit. Written by the front desk alongside the roster counter.
+    function validCheckin() {
+      return strAtMost(request.resource.data.uid, 128)
+        && validTs(request.resource.data.at)
+        && request.resource.data.size() <= 5
+        && (!('by' in request.resource.data) || strAtMost(request.resource.data.by, 128))
+        && (!('slotId' in request.resource.data) || strAtMost(request.resource.data.slotId, 128));
     }
 
     function validMembershipPlan() {
@@ -247,9 +279,26 @@ service cloud.firestore {
       return validPro(profile) || keepsServerProStamp(profile);
     }
 
+    function validTrainingPreferences(p) {
+      return p is map && p.size() == 10 && p.schemaVersion == 1
+        && p.goal in ['strength', 'muscle', 'fitness']
+        && p.experience in ['beginner', 'intermediate', 'advanced']
+        && p.location in ['home', 'gym', 'outdoors']
+        && p.days is list && p.days.size() > 0 && p.days.size() <= 6
+        && p.days.hasOnly([0, 1, 2, 3, 4, 5, 6])
+        && p.minutes in [15, 20, 30, 45, 60]
+        && p.equipment is list && p.equipment.size() > 0 && p.equipment.size() <= 2
+        && p.equipment.hasOnly(['bodyweight', 'dumbbells'])
+        && p.constraints is list && p.constraints.size() <= 2
+        && p.constraints.hasOnly(['no-floor', 'no-overhead'])
+        && p.excludedExercises is list && p.excludedExercises.size() <= 30
+        && p.excludedExercises.hasOnly(['bodyweight-squat', 'wall-pushup', 'standing-calf-raise', 'glute-bridge', 'dumbbell-curl', 'dumbbell-press'])
+        && p.needsClearance is bool;
+    }
+
     function validProfile(profile) {
       return profile is map
-        && profile.size() <= 15
+        && profile.size() <= 16
         && (!('name' in profile) || strAtMost(profile.name, 80))
         && (!('weightUnit' in profile) || profile.weightUnit in ['kg', 'lb'])
         && (!('distanceUnit' in profile) || profile.distanceUnit in ['km', 'mi'])
@@ -265,6 +314,7 @@ service cloud.firestore {
         && (!('sex' in profile) || profile.sex in ['female', 'male'])
         && (!('ageYears' in profile) || numBetween(profile.ageYears, 10, 100))
         && (!('heightCm' in profile) || numBetween(profile.heightCm, 100, 250))
+        && (!('trainingPreferences' in profile) || validTrainingPreferences(profile.trainingPreferences))
         && validProWrite(profile);
     }
 
@@ -434,7 +484,7 @@ service cloud.firestore {
     // a tenant safely.
     match /gyms/{gymId} {
       allow read: if isSignedIn();
-      // Provisioning allocates a subdomain and issues the owner claim, so it is
+      // Provisioning allocates a subdomain and creates the owner membership, so it is
       // a platform act (see `gym:create`). An owner cannot self-provision.
       allow create: if isPlatformAdmin() && validGymDoc(gymId);
       // An owner edits their own gym but may not change lifecycle status or
@@ -442,9 +492,7 @@ service cloud.firestore {
       // platform-admin action respectively.
       allow update: if isPlatformAdmin() && validGymDoc(gymId)
         || isGymOwner(gymId) && validGymDoc(gymId)
-             && request.resource.data.status == resource.data.status
-             && request.resource.data.ownerUid == resource.data.ownerUid
-             && request.resource.data.slug == resource.data.slug;
+             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','branding','contact','location','hours','updatedAt']);
       // Closing a gym destroys its members' bookings and history. Platform only;
       // an owner asks support. `gym:delete` in the matrix is the UI affordance.
       allow delete: if isPlatformAdmin();
@@ -454,17 +502,22 @@ service cloud.firestore {
       // single-document read with no query.
       match /members/{memberUid} {
         allow read: if isGymOperator(gymId) || isSelf(memberUid);
-        // Staff add members; a person may also enrol themselves — but only ever
-        // as a plain member, never as staff or owner.
-        allow create: if isGymOperator(gymId) && validMembership()
-          || isSelf(memberUid) && validMembership()
-               && request.resource.data.role == 'member'
-               && request.resource.data.checkins == 0;
-        // Role and status are the gym's to set. A member editing their own row
-        // could otherwise promote themselves or extend their own expiry.
-        allow update: if isGymOperator(gymId) && validMembership();
-        // Leaving is a member's own right; removing someone else is owner-only.
-        allow delete: if isGymOwner(gymId) || isSelf(memberUid);
+        // All privileged role changes go through the audited server transaction.
+        allow create: if validMembership()
+          && (!('uid' in request.resource.data) || request.resource.data.uid == memberUid) && request.resource.data.role == 'member'
+          && !request.resource.data.keys().hasAny(['roleChangedAt','roleChangedBy'])
+          && (isGymOperator(gymId) || isSelf(memberUid) && request.resource.data.checkins == 0);
+        allow update: if isGymOperator(gymId) && validMembership()
+          && (!('uid' in request.resource.data) || request.resource.data.uid == memberUid)
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role','roleChangedAt','roleChangedBy'])
+          && (isGymOwner(gymId) || resource.data.role == 'member')
+          // Never let a direct client update disable the authoritative owner.
+          && (memberUid != get(/databases/$(database)/documents/gyms/$(gymId)).data.ownerUid
+            || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status','expiresAt']));
+        // Leaving a plain membership is self-service. Remove team access first.
+        allow delete: if resource.data.role == 'member'
+          && memberUid != get(/databases/$(database)/documents/gyms/$(gymId)).data.ownerUid
+          && (isGymOwner(gymId) || isSelf(memberUid));
       }
 
       // ── class templates ────────────────────────────────────────────────
@@ -499,6 +552,18 @@ service cloud.firestore {
                && request.resource.data.status == 'cancelled'
                && validBooking());
         allow delete: if isGymOwner(gymId);
+      }
+
+      // ── door visits ──────────────────────────────────────────────────────
+      // The membership row keeps a counter for the console's metrics; this
+      // collection is the visit-by-visit history a member sees. Visits are
+      // recorded by staff (a member must not be able to forge attendance) and
+      // are append-only — rewriting history is not a front-desk operation.
+      match /checkins/{visitId} {
+        allow read: if isGymOperator(gymId)
+          || (isSignedIn() && resource.data.uid == request.auth.uid);
+        allow create: if isGymOperator(gymId) && validCheckin();
+        allow update, delete: if false;
       }
 
       // ── membership tiers & pricing ─────────────────────────────────────
@@ -573,7 +638,9 @@ service cloud.firestore {
       // Append-only. A log the subject can edit or delete is not a log.
       match /audit/{entryId} {
         allow read: if isGymOwner(gymId);
-        allow create: if isGymOperator(gymId) && validAuditEntry();
+        allow create: if isGymOperator(gymId) && validAuditEntry()
+          && request.resource.data.actorUid == request.auth.uid
+          && request.resource.data.action != 'staff:role:change';
         allow update, delete: if false;
       }
     }

@@ -1,6 +1,5 @@
 'use client';
 
-import { ToastProvider } from '@/components/ui/toast';
 import { TenantProvider, type TenantInitialData } from '@/lib/tenant-context';
 
 /**
@@ -11,10 +10,10 @@ import { TenantProvider, type TenantInitialData } from '@/lib/tenant-context';
  * the payload here. Keeping this file tiny means the provider is the only thing
  * that hydrates, and the storefront's content is already in the HTML.
  *
- * `ToastProvider` lives here rather than in `AppProviders` because the rest of
- * the app mounts it inside `DashboardShell`, and tenant routes are outside
- * `/dashboard`. Mounting it twice would be harmless but confusing; mounting it
- * nowhere would make every `useToast()` on a tenant page throw.
+ * Toasts used to be mounted here (and inside `DashboardShell`) because the
+ * stack was assumed to be subtree-dependent; it is viewport-fixed, so it now
+ * mounts once at the root (`AppProviders`) and every route tree — dashboard,
+ * tenant, admin, public — can `useToast()`.
  */
 export function TenantShell({
   slug,
@@ -27,7 +26,7 @@ export function TenantShell({
 }) {
   return (
     <TenantProvider slug={slug} initial={initial}>
-      <ToastProvider>{children}</ToastProvider>
+      {children}
     </TenantProvider>
   );
 }

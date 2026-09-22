@@ -14,7 +14,11 @@
     "jsx": "preserve",
     "incremental": true,
     "allowImportingTsExtensions": true,
-    "plugins": [{ "name": "next" }],
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
       "@/*": ["./src/*"],
       "@smartfit/core": ["./packages/core/src/index.ts"],
@@ -26,6 +30,7 @@
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "scripts/**/*.ts",
     "tests/**/*.ts",
     ".next/types/**/*.ts"
   ],
