@@ -61,7 +61,7 @@ service cloud.firestore {
     }
 
     function isPlatformAdmin() {
-      return isSignedIn() && request.auth.token.sfRole == 'platform-admin';
+      return isSignedIn() && request.auth.token.get('sfRole', '') == 'platform-admin';
     }
 
     function membershipPath(gymId, uid) {
@@ -139,21 +139,22 @@ service cloud.firestore {
     }
 
     function validGymDoc(gymId) {
+      let d = request.resource.data;
       return slugMatchesId(gymId)
-        && strAtMost(request.resource.data.name, 100)
-        && isGymStatus(request.resource.data.status)
-        && strAtMost(request.resource.data.tenantPlanId, 40)
-        && strAtMost(request.resource.data.ownerUid, 128)
-        && validTs(request.resource.data.createdAt)
-        && request.resource.data.size() <= 14
-        && (!('subdomain' in request.resource.data) || strAtMost(request.resource.data.subdomain, 48))
-        && (!('branding' in request.resource.data) || validGymBranding(request.resource.data.branding))
-        && (!('contact' in request.resource.data) || request.resource.data.contact is map
-              && request.resource.data.contact.size() <= 5)
-        && (!('location' in request.resource.data) || request.resource.data.location is map
-              && request.resource.data.location.size() <= 5)
-        && (!('hours' in request.resource.data) || request.resource.data.hours is map
-              && request.resource.data.hours.size() <= 7);
+        && strAtMost(d.name, 100)
+        && isGymStatus(d.status)
+        && strAtMost(d.tenantPlanId, 40)
+        && strAtMost(d.ownerUid, 128)
+        && validTs(d.createdAt)
+        && d.size() <= 14
+        && (!('subdomain' in d) || strAtMost(d.subdomain, 48))
+        && (!('branding' in d) || validGymBranding(d.branding))
+        && (!('contact' in d) || d.contact is map
+              && d.contact.size() <= 5)
+        && (!('location' in d) || d.location is map
+              && d.location.size() <= 5)
+        && (!('hours' in d) || d.hours is map
+              && d.hours.size() <= 7);
     }
 
     function validMembership() {
@@ -490,9 +491,11 @@ service cloud.firestore {
       // An owner edits their own gym but may not change lifecycle status or
       // transfer ownership — those are `gym:suspend` / `gym:restore` and a
       // platform-admin action respectively.
-      allow update: if isPlatformAdmin() && validGymDoc(gymId)
-        || isGymOwner(gymId) && validGymDoc(gymId)
-             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','branding','contact','location','hours','updatedAt']);
+      // Validate once: evaluating the full branding map in both branches can
+      // exceed Firestore's 1000-expression budget for a legitimate owner update.
+      allow update: if validGymDoc(gymId)
+        && (isPlatformAdmin() || (isGymOwner(gymId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name','branding','contact','location','hours','updatedAt'])));
       // Closing a gym destroys its members' bookings and history. Platform only;
       // an owner asks support. `gym:delete` in the matrix is the UI affordance.
       allow delete: if isPlatformAdmin();

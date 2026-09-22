@@ -193,7 +193,7 @@ test('the root profile document must carry a bounded profile map', async () => {
   await assertFails(setDoc(ref, { profile: { weightUnit: 'stone' } }));
   await assertFails(setDoc(ref, { profile: { weeklyRestDays: 7 } }));
   await assertFails(setDoc(ref, { profile: { planId: 'anything' } }));
-  // 16 junk keys — validProfile caps the map at 15 fields.
+  // 17 keys exceed the 16-field cap (including trainingPreferences).
   await assertFails(
     setDoc(ref, {
       profile: {
@@ -213,6 +213,7 @@ test('the root profile document must carry a bounded profile map', async () => {
         n: 14,
         o: 15,
         p: 16,
+        q: 17,
       },
     }),
   );
@@ -683,6 +684,9 @@ test('tenant: the audit trail is append-only', async () => {
 test('tenant: the platform namespace is unreachable from a browser', async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), 'platform', 'config'), { reserved: ['acme'] });
+    await setDoc(doc(ctx.firestore(), 'platform', 'applications', 'entries', 'app-1'), {
+      status: 'pending',
+    });
   });
   const admin = adminCtx().firestore();
   const owner = env.authenticatedContext(OWNER).firestore();
@@ -690,7 +694,7 @@ test('tenant: the platform namespace is unreachable from a browser', async () =>
   // bypasses rules, and that is the only sanctioned path.
   await assertFails(getDoc(doc(admin, 'platform', 'config')));
   await assertFails(getDoc(doc(owner, 'platform', 'config')));
-  await assertFails(getDoc(doc(owner, 'platform', 'applications', 'app-1')));
+  await assertFails(getDoc(doc(owner, 'platform', 'applications', 'entries', 'app-1')));
 });
 
 test('tenant: member training data never appears in the tenant tree', async () => {
@@ -771,6 +775,11 @@ test('sharing: the document must name the gym it is filed under', async () => {
 test('trainers and specialist claims never grant roster, finance or other users’ fitness access', async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
+    await setDoc(doc(db, 'gyms', 'role-fixture'), {
+      ...VALID_GYM,
+      slug: 'role-fixture',
+      ownerUid: 'owner',
+    });
     await setDoc(doc(db, 'gyms', 'role-fixture', 'members', 'trainer'), {
       role: 'trainer',
       status: 'active',
@@ -806,6 +815,11 @@ test('trainers and specialist claims never grant roster, finance or other users�
 test('staff cannot promote themselves, members or trainers into privileged roles', async () => {
   const membership = { status: 'active', joinedAt: 1, checkins: 0 };
   await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), 'gyms', 'role-fixture'), {
+      ...VALID_GYM,
+      slug: 'role-fixture',
+      ownerUid: 'owner',
+    });
     for (const [uid, role] of [
       ['owner', 'owner'],
       ['staff', 'staff'],
@@ -837,6 +851,13 @@ test('staff cannot promote themselves, members or trainers into privileged roles
   );
   const owner = env.authenticatedContext('owner').firestore();
   await assertSucceeds(
+    setDoc(doc(owner, 'gyms', 'role-fixture', 'members', 'walk-in'), {
+      ...membership,
+      role: 'member',
+    }),
+  );
+  // Team grants are server-only audited transactions, even for an owner.
+  await assertFails(
     setDoc(doc(owner, 'gyms', 'role-fixture', 'members', 'new-trainer'), {
       ...membership,
       role: 'trainer',
@@ -881,6 +902,10 @@ test('tenant branding: only owners can save bounded raster logos and presentatio
   const ref = doc(owner, 'gyms', GYM_A);
   const current = (await getDoc(ref)).data()!;
   const branding = {
+    logoUrl: 'https://example.com/logo.png',
+    coverUrl: 'https://example.com/cover.jpg',
+    tagline: 'Build your routine',
+    description: 'A complete branded gym profile.',
     logoData: 'data:image/webp;base64,UklGRg==',
     logoShape: 'circle',
     heroLayout: 'banner',
@@ -888,8 +913,21 @@ test('tenant branding: only owners can save bounded raster logos and presentatio
     coverPosition: 'center',
     ctaLabel: 'Explore memberships',
     accentColor: '#7c3aed',
-    amenities: ['Lockers'],
-    galleryUrls: ['https://example.com/photo.jpg'],
+    amenities: [
+      'Showers',
+      'Lockers',
+      'Parking',
+      'Personal training',
+      'Group classes',
+      'Accessible entrance',
+      'Wi-Fi',
+      'Recovery area',
+    ],
+    galleryUrls: [
+      'https://example.com/photo.jpg',
+      'https://example.com/photo2.jpg',
+      'https://example.com/photo3.jpg',
+    ],
   };
   await assertSucceeds(setDoc(ref, { ...current, branding }));
   for (const patch of [
