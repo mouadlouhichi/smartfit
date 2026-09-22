@@ -311,7 +311,7 @@ export function DatePicker({
                       selected
                         ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
                         : disabledDay
-                          ? 'text-muted-foreground/30 cursor-not-allowed hover:bg-transparent'
+                          ? 'text-muted-foreground/70 cursor-not-allowed hover:bg-transparent'
                           : 'text-popover-foreground hover:bg-secondary',
                       !selected && !disabledDay && isToday && 'ring-primary/40 ring-1 ring-inset',
                     )}

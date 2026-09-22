@@ -6,7 +6,13 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
     <div
       ref={ref}
       className={cn(
-        'border-border bg-card text-card-foreground max-w-full min-w-0 rounded-2xl border shadow-sm',
+        // 2026 depth: a hairline top-light edge plus a wide, soft ambient
+        // shadow in light mode; in dark mode shadows alone vanish on the
+        // near-black canvas, so the card carries an inset light edge and a
+        // deeper drop — "soft elevation" instead of a flat plate.
+        'border-border bg-card text-card-foreground max-w-full min-w-0 rounded-2xl border',
+        'shadow-[0_1px_2px_rgba(0,0,0,0.05),0_10px_30px_-18px_rgba(0,0,0,0.16)]',
+        'dark:shadow-[inset_0_1px_0_rgba(237,235,230,0.06),0_18px_44px_-24px_rgba(0,0,0,0.9)]',
         className,
       )}
       {...props}

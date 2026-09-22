@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useStore } from '@/lib/store-context';
+import { useTablist } from '@/components/ui/use-tablist';
 import { useModals } from '../modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -100,6 +101,7 @@ export function ProfileScreen() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [verifySent, setVerifySent] = useState(false);
   const [tab, setTab] = useState<ProfileTab>('overview');
+  const profileTabs = useTablist(PROFILE_TABS.length);
   const achievements = useMemo(() => computeAchievements(state), [state]);
   const [targetInput, setTargetInput] = useState(() =>
     state.profile.targetWeightKg != null
@@ -451,11 +453,14 @@ export function ProfileScreen() {
         role="tablist"
         aria-label="Profile sections"
       >
-        {PROFILE_TABS.map((t) => (
+        {PROFILE_TABS.map((t, i) => (
           <button
             key={t.key}
+            ref={profileTabs.setRef(i)}
             role="tab"
             aria-selected={tab === t.key}
+            tabIndex={tab === t.key ? 0 : -1}
+            onKeyDown={(e) => profileTabs.onKeyDown(e, i)}
             onClick={() => setTab(t.key)}
             className={cn(
               'flex flex-1 shrink-0 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors',

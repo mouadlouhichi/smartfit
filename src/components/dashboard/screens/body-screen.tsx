@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { cn } from '@/lib/utils';
+import { useTablist } from '@/components/ui/use-tablist';
 import { useModals } from '../modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -74,6 +75,7 @@ export function BodyScreen() {
   const { openModal, openWith } = useModals();
   const [pageError, setPageError] = useState<string | null>(null);
   const [mode, setMode] = useState<'measure' | 'muscles'>('muscles');
+  const bodyTabs = useTablist(2);
 
   async function loadMore() {
     setPageError(null);
@@ -146,11 +148,14 @@ export function BodyScreen() {
             { key: 'measure', label: 'Measurements', icon: Ruler },
             { key: 'muscles', label: 'Train by muscle', icon: PersonStanding },
           ] as const
-        ).map((t) => (
+        ).map((t, i) => (
           <button
             key={t.key}
+            ref={bodyTabs.setRef(i)}
             role="tab"
             aria-selected={mode === t.key}
+            tabIndex={mode === t.key ? 0 : -1}
+            onKeyDown={(e) => bodyTabs.onKeyDown(e, i)}
             onClick={() => setMode(t.key)}
             className={cn(
               'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-colors min-[420px]:px-6',

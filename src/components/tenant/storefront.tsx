@@ -469,7 +469,7 @@ export function Storefront() {
                 <Link
                   key={cls.id}
                   href={`/g/${slug}/class/${cls.id}`}
-                  className="sf-class-card group bg-card focus-visible:ring-ring overflow-hidden rounded-3xl border transition-shadow hover:shadow-lg focus-visible:ring-2"
+                  className="sf-class-card group bg-card focus-visible:ring-ring overflow-hidden rounded-3xl border transition-shadow hover:shadow-lg focus-visible:ring-2 focus-visible:outline-none"
                 >
                   <div className="relative h-56 overflow-hidden">
                     <Artwork

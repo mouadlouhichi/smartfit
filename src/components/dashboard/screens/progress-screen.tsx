@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useStore } from '@/lib/store-context';
+import { useTablist } from '@/components/ui/use-tablist';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Ring } from '../ring';
@@ -89,6 +90,9 @@ export function ProgressScreen() {
   const pro = hasProAccess(state);
   const [range, setRange] = useState<Range>('weekly');
   const days = RANGES.find((r) => r.key === range)!.days;
+  // Arrowing through the ranges must not auto-open the Pro paywall when focus
+  // lands on a locked range — focus it, let the click/Enter open the modal.
+  const rangeTabs = useTablist(RANGES.length, (i) => !!RANGES[i].pro && !pro);
 
   const rangeAgg = useMemo(() => aggregate(rangeDaysSessions(state, days)), [state, days]);
   // The equally-sized window immediately before — for honest "vs previous"
@@ -201,13 +205,16 @@ export function ProgressScreen() {
           role="tablist"
           aria-label="Stats range"
         >
-          {RANGES.map((r) => {
+          {RANGES.map((r, i) => {
             const locked = !!r.pro && !pro;
             return (
               <button
                 key={r.key}
+                ref={rangeTabs.setRef(i)}
                 role="tab"
                 aria-selected={range === r.key}
+                tabIndex={range === r.key ? 0 : -1}
+                onKeyDown={(e) => rangeTabs.onKeyDown(e, i)}
                 onClick={() => (locked ? openWith({ kind: 'pro' }) : setRange(r.key))}
                 className={cn(
                   'flex flex-1 shrink-0 items-center justify-center gap-1 rounded-full px-2.5 py-2 text-xs font-bold whitespace-nowrap transition-all sm:flex-none sm:px-4 sm:text-sm',

@@ -109,7 +109,7 @@ export function StorefrontHero({
           </>
         )}
       </div>
-      <div className="mt-10 flex items-center gap-3 text-[9px] font-medium tracking-[.18em] text-white/45 uppercase">
+      <div className="mt-10 flex items-center gap-3 text-[10px] font-medium tracking-[.18em] text-white/55 uppercase">
         <span className="h-px w-8" style={{ backgroundColor: accent }} />
         Start where you are. Go further.
       </div>
@@ -147,7 +147,7 @@ export function StorefrontHero({
         </div>
       )}
       {!safeImageUrl(gym.branding?.coverUrl) && (
-        <span className="absolute right-4 bottom-4 rounded-full bg-black/65 px-3 py-1 text-[9px] text-white/80">
+        <span className="absolute right-4 bottom-4 rounded-full bg-black/65 px-3 py-1 text-[10px] text-white/80">
           Illustrative artwork · SmartFit
         </span>
       )}

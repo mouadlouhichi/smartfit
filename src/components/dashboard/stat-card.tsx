@@ -33,7 +33,7 @@ export function StatCard({
           <p className="text-muted-foreground truncate text-xs font-medium tracking-wide uppercase">
             {label}
           </p>
-          <p className="text-xl font-bold tracking-tight sm:text-2xl">{value}</p>
+          <p className="text-xl font-bold tracking-tight tabular-nums sm:text-2xl">{value}</p>
         </div>
       </div>
       {sub && <p className="text-muted-foreground mt-2 text-xs">{sub}</p>}

@@ -24,6 +24,7 @@ import { useStore } from '@/lib/store-context';
 import { useModals } from './modal-context';
 import { MUSCLE_GROUP, MUSCLE_GROUP_COLOR } from '@/components/body/muscle-map';
 import { cn } from '@/lib/utils';
+import { useTablist } from '@/components/ui/use-tablist';
 
 /**
  * Today's workout — the reference workout-day sheet, embedded on the
@@ -127,6 +128,7 @@ export function TodaysWorkoutCard() {
     programs.findIndex((p) => p.todaySlot),
   );
   const [dayIdx, setDayIdx] = useState(todayIdx);
+  const dayTabs = useTablist(Math.max(1, programs.length));
   const day = programs[Math.min(dayIdx, programs.length - 1)];
 
   const weeklyDone = useMemo(() => {
@@ -176,30 +178,33 @@ export function TodaysWorkoutCard() {
   });
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-white/[0.06] bg-[#0e0e0e] shadow-[0_16px_40px_-16px_rgba(0,0,0,0.6)]">
+    <div className="bg-ink-card relative overflow-hidden rounded-[28px] border border-white/[0.06] shadow-[0_16px_40px_-16px_rgba(0,0,0,0.6)]">
       {/* Subtle gradient glow */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.03] to-transparent" />
-      <div className="pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full bg-[#A8FF00]/[0.06] blur-[40px]" />
+      <div className="bg-volt/[0.06] pointer-events-none absolute -top-24 left-1/2 h-48 w-96 -translate-x-1/2 rounded-full blur-[40px]" />
 
       <div className="relative p-5 sm:p-6">
         {/* ── Day switcher — premium segmented control ─────────── */}
         {programs.length > 1 && (
           <div
-            className="no-scrollbar mx-auto flex w-fit max-w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-white/[0.08] bg-[#1a1a1a] p-1.5 shadow-inner"
+            className="bg-charcoal-2 no-scrollbar mx-auto flex w-fit max-w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-white/[0.08] p-1.5 shadow-inner"
             role="tablist"
             aria-label="Workout day"
           >
             {programs.map((p, i) => (
               <button
                 key={p.title}
+                ref={dayTabs.setRef(i)}
                 role="tab"
                 aria-selected={i === dayIdx}
+                tabIndex={i === dayIdx ? 0 : -1}
+                onKeyDown={(e) => dayTabs.onKeyDown(e, i)}
                 onClick={() => setDayIdx(i)}
                 className={cn(
                   'rounded-full px-5 py-2 text-[13px] font-bold whitespace-nowrap transition-all duration-300',
                   i === dayIdx
-                    ? 'bg-[#A8FF00] text-black shadow-[0_4px_12px_-4px_rgba(168,255,0,0.5)]'
-                    : 'text-white/50 hover:bg-white/[0.06] hover:text-white/80',
+                    ? 'bg-volt text-ink shadow-[0_4px_12px_-4px_rgba(138,210,0,0.5)]'
+                    : 'text-white/60 hover:bg-white/[0.06] hover:text-white/85',
                 )}
               >
                 {p.title}
@@ -211,7 +216,7 @@ export function TodaysWorkoutCard() {
         {/* ── Date · duration · intensity ─────────────────────────────── */}
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white/90">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#A8FF00] shadow-[0_0_8px_#A8FF00]" />
+            <span className="bg-volt h-1.5 w-1.5 rounded-full shadow-[0_0_8px_#8ad200]" />
             {dateLabel}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60">
@@ -221,8 +226,8 @@ export function TodaysWorkoutCard() {
         </div>
 
         {/* ── Streak tile — enhanced growth card ──────────── */}
-        <div className="mt-4 flex items-center gap-3.5 rounded-[18px] border border-[#A8FF00]/20 bg-gradient-to-br from-[#A8FF00]/[0.08] to-[#A8FF00]/[0.02] p-4 shadow-[inset_0_1px_0_0_rgba(168,255,0,0.1)]">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-[14px] bg-[#A8FF00] text-black shadow-[0_4px_12px_-4px_rgba(168,255,0,0.6)]">
+        <div className="border-volt/20 from-volt/[0.08] to-volt/[0.02] mt-4 flex items-center gap-3.5 rounded-[18px] border bg-gradient-to-br p-4 shadow-[inset_0_1px_0_0_rgba(138,210,0,0.12)]">
+          <span className="bg-volt text-ink grid h-11 w-11 shrink-0 place-items-center rounded-[14px] shadow-[0_4px_12px_-4px_rgba(138,210,0,0.6)]">
             <Flame className="h-5 w-5" strokeWidth={2.5} />
           </span>
           <div className="min-w-0 flex-1">
@@ -233,7 +238,7 @@ export function TodaysWorkoutCard() {
               Keep the streak alive — {day.title.toLowerCase()} is next up
             </p>
           </div>
-          <div className="h-2 w-2 animate-pulse rounded-full bg-[#A8FF00] shadow-[0_0_8px_#A8FF00]" />
+          <div className="bg-volt h-2 w-2 animate-pulse rounded-full shadow-[0_0_8px_#8ad200]" />
         </div>
 
         {day.split ? (
@@ -248,7 +253,7 @@ export function TodaysWorkoutCard() {
                 return (
                   <div
                     key={m}
-                    className="group relative overflow-hidden rounded-[18px] border border-white/[0.06] bg-[#151515] p-4 transition-all duration-300 hover:border-white/[0.1] hover:bg-[#1a1a1a]"
+                    className="group bg-charcoal-2 relative overflow-hidden rounded-[18px] border border-white/[0.06] p-4 transition-all duration-300 hover:border-white/[0.1] hover:bg-white/[0.06]"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                     <div className="relative">
@@ -264,16 +269,16 @@ export function TodaysWorkoutCard() {
                           </span>
                         </span>
                         {planned > 0 && (
-                          <span className="inline-flex items-center rounded-full bg-[#A8FF00] px-2 py-0.5 text-[11px] font-extrabold text-black shadow-[0_2px_8px_-2px_rgba(168,255,0,0.5)]">
+                          <span className="bg-volt text-ink inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-extrabold shadow-[0_2px_8px_-2px_rgba(138,210,0,0.5)]">
                             +{planned}
                           </span>
                         )}
                       </div>
                       <div className="mt-2 flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[#3ac14e]/15 px-2 py-0.5 text-[11px] font-bold text-[#3ac14e]">
+                        <span className="bg-volt/15 text-volt-soft inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold">
                           ↑ Growing
                         </span>
-                        <span className="text-[11px] font-medium text-white/40">
+                        <span className="text-[11px] font-medium text-white/55">
                           {pct}% this week
                         </span>
                       </div>
@@ -308,7 +313,7 @@ export function TodaysWorkoutCard() {
               {day.exercises.map((ex) => (
                 <li
                   key={ex.name}
-                  className="group flex items-center justify-between gap-3 rounded-[16px] border border-white/[0.06] bg-[#151515] px-4 py-3.5 transition-all duration-200 hover:border-white/[0.1] hover:bg-[#1e1e1e]"
+                  className="group bg-charcoal-2 flex items-center justify-between gap-3 rounded-[16px] border border-white/[0.06] px-4 py-3.5 transition-all duration-200 hover:border-white/[0.1] hover:bg-white/[0.06]"
                 >
                   <span className="flex min-w-0 items-center gap-3">
                     <span
@@ -329,7 +334,7 @@ export function TodaysWorkoutCard() {
             </ul>
           </>
         ) : (
-          <p className="mt-4 rounded-[18px] border border-white/[0.06] bg-[#151515] p-4 text-sm leading-relaxed text-white/60">
+          <p className="bg-charcoal-2 mt-4 rounded-[18px] border border-white/[0.06] p-4 text-sm leading-relaxed text-white/60">
             {formatMinutes(day.durationMin)} of {cat?.name?.toLowerCase() ?? 'training'} — no
             resistance routine to preview. Lace up and go.
           </p>
@@ -339,9 +344,9 @@ export function TodaysWorkoutCard() {
         <button
           type="button"
           onClick={startDay}
-          className="press group relative mt-5 flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-white text-[15px] font-extrabold tracking-tight text-[#0d1102] shadow-[0_8px_24px_-8px_rgba(255,255,255,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(255,255,255,0.5)]"
+          className="press group text-ink relative mt-5 flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-white text-[15px] font-extrabold tracking-tight shadow-[0_8px_24px_-8px_rgba(255,255,255,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(255,255,255,0.5)]"
         >
-          <span className="absolute inset-0 bg-gradient-to-r from-[#A8FF00]/0 via-[#A8FF00]/10 to-[#A8FF00]/0 opacity-0 transition-opacity group-hover:opacity-100" />
+          <span className="from-volt/0 via-volt/10 to-volt/0 absolute inset-0 bg-gradient-to-r opacity-0 transition-opacity group-hover:opacity-100" />
           <span className="relative">Set as Today&apos;s workout</span>
           <span className="relative grid h-6 w-6 place-items-center rounded-full bg-black text-white transition-transform group-hover:translate-x-0.5">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none">

@@ -234,7 +234,7 @@ export function MuscleMapModal({
                       className={cn(
                         'flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold transition-colors',
                         active
-                          ? 'border-volt bg-volt text-[#0d1102]'
+                          ? 'border-volt bg-volt text-ink'
                           : 'border-white/8 bg-white/[0.04] text-white/70 hover:bg-white/[0.08] hover:text-white',
                       )}
                     >
@@ -322,7 +322,7 @@ export function MuscleMapModal({
                               className={cn(
                                 'absolute -top-1.5 -left-1.5 grid h-5 w-5 place-items-center rounded-full border text-[10px] font-extrabold transition-colors',
                                 on
-                                  ? 'bg-volt border-volt text-[#0d1102]'
+                                  ? 'bg-volt border-volt text-ink'
                                   : 'border-white/25 bg-[#0a0a09] text-transparent',
                               )}
                             >
@@ -372,7 +372,7 @@ export function MuscleMapModal({
               <Flame className="h-4.5 w-4.5" aria-hidden />
               {picks.length === 0 ? 'Pick an exercise' : "Set as Today's workout"}
               {picks.length > 0 && (
-                <span className="text-xs font-bold text-[#0d1102]/70">
+                <span className="text-ink/70 text-xs font-bold">
                   · {picks.length} exercise{picks.length === 1 ? '' : 's'}
                 </span>
               )}

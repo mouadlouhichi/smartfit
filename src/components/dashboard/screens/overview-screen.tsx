@@ -15,6 +15,7 @@ import {
   UtensilsCrossed,
 } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
+import { useTablist } from '@/components/ui/use-tablist';
 import { useModals } from '../modal-context';
 import { CoachPanel } from '../coach-panel';
 import { EmptyState } from '../empty-state';
@@ -57,6 +58,10 @@ export function OverviewScreen() {
   const { openModal, openWith } = useModals();
   const [range, setRange] = useState<Range>('Weekly');
   const [programFilter, setProgramFilter] = useState('All type');
+  // The category rail is a live tablist — its length changes with the user's
+  // categories, so the hook count updates every render (the hook only needs
+  // the current length to wrap arrow navigation).
+  const programTabs = useTablist(1 + state.categories.length);
 
   const week = useMemo(() => thisWeek(state), [state]);
   const series = useMemo(() => weeklySeries(state, 8), [state]);
@@ -273,7 +278,7 @@ export function OverviewScreen() {
                 id: null as string | null,
                 name: 'All type',
                 icon: 'layout-grid',
-                color: '#A8FF00',
+                color: '#8ad200',
                 count: state.sessions.length,
               },
               ...state.categories.map((c) => ({
@@ -283,29 +288,32 @@ export function OverviewScreen() {
                 color: c.color,
                 count: state.sessions.filter((s) => s.categoryId === c.id).length,
               })),
-            ].map((c) => {
+            ].map((c, i) => {
               const selected = programFilter === c.name;
               return (
                 <button
                   key={c.name}
+                  ref={programTabs.setRef(i)}
                   role="tab"
                   aria-selected={selected}
+                  tabIndex={selected ? 0 : -1}
+                  onKeyDown={(e) => programTabs.onKeyDown(e, i)}
                   onClick={() => startCategory(c.name, c.id)}
                   className={cn(
                     'group relative flex min-w-[6.5rem] shrink-0 snap-start flex-col items-center gap-2 rounded-[20px] border px-3 py-4 text-center transition-all duration-300 sm:min-w-0',
                     'hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]',
                     selected
-                      ? 'border-[#A8FF00]/80 bg-[#121412] shadow-[0_0_0_1px_#A8FF00,0_0_20px_-8px_#A8FF00] ring-1 ring-[#A8FF00]/30'
-                      : 'border-white/[0.08] bg-[#151515] hover:border-[#A8FF00]/30 hover:bg-[#1a1a1a] hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]',
+                      ? 'border-volt/80 bg-ink-card ring-volt/30 shadow-[0_0_0_1px_#8ad200,0_0_20px_-8px_#8ad200] ring-1'
+                      : 'bg-charcoal-2 hover:border-volt/30 border-white/[0.08] hover:bg-white/[0.06] hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]',
                   )}
                 >
                   {selected && (
-                    <span className="absolute inset-0 rounded-[20px] bg-gradient-to-b from-[#A8FF00]/[0.08] to-transparent" />
+                    <span className="from-volt/[0.08] absolute inset-0 rounded-[20px] bg-gradient-to-b to-transparent" />
                   )}
                   <span
                     className={cn(
                       'relative grid h-11 w-11 place-items-center rounded-[14px] transition-all duration-300',
-                      selected ? 'shadow-[0_4px_12px_-4px_rgba(168,255,0,0.4)]' : '',
+                      selected ? 'shadow-[0_4px_12px_-4px_rgba(138,210,0,0.4)]' : '',
                     )}
                     style={{
                       backgroundColor: selected ? `${c.color}18` : `${c.color}14`,
@@ -316,15 +324,15 @@ export function OverviewScreen() {
                     <CategoryIcon name={c.icon} size={20} />
                   </span>
                   <div className="relative flex flex-col items-center gap-0.5">
-                    <span className="w-full truncate text-[13px] leading-tight font-bold tracking-tight">
+                    <span className="w-full truncate text-[13px] leading-tight font-bold tracking-tight text-white">
                       {c.name}
                     </span>
                     <span
                       className={cn(
                         'rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums transition-colors',
                         selected
-                          ? 'bg-[#A8FF00] text-black'
-                          : 'bg-white/[0.08] text-white/50 group-hover:bg-white/[0.12] group-hover:text-white/70',
+                          ? 'bg-volt text-ink'
+                          : 'bg-white/[0.08] text-white/60 group-hover:bg-white/[0.12] group-hover:text-white/80',
                       )}
                     >
                       {c.count}

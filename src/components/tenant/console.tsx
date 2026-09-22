@@ -989,7 +989,7 @@ export function Console() {
               SmartFit<span className="text-primary">.</span>
             </span>
           </Link>
-          <p className="text-muted-foreground mb-3 hidden px-3 text-[9px] font-semibold tracking-[0.2em] uppercase lg:block">
+          <p className="text-muted-foreground mb-3 hidden px-3 text-[10px] font-semibold tracking-[0.2em] uppercase lg:block">
             Gym workspace
           </p>
           <TabsList
@@ -1007,7 +1007,7 @@ export function Console() {
                 <section.icon className="size-4 shrink-0" />
                 <span>{section.label}</span>
                 {section.id === 'members' && (
-                  <span className="bg-secondary ml-auto hidden min-w-5 rounded-md px-1 py-0.5 text-center text-[9px] tabular-nums lg:inline-block">
+                  <span className="bg-secondary ml-auto hidden min-w-5 rounded-md px-1 py-0.5 text-center text-[10px] tabular-nums lg:inline-block">
                     {t.rosterStatus === 'ready' ? t.roster.filter(isGymCustomer).length : '—'}
                   </span>
                 )}
