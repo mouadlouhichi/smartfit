@@ -56,6 +56,7 @@ import {
   PAGE_SIZE,
   type CollectionName,
 } from './firebase/repo';
+import { blockedCollectionNotice, describeLoadFailure } from './firebase/load-errors';
 import { WriteQueue, type SyncStatus } from './firebase/write-queue';
 import { clearAllRunDrafts, clearRunDraft } from './run-sensors';
 
@@ -163,6 +164,10 @@ interface StoreContextValue {
   /** Cloud write health, so the UI can tell the user when a save failed. */
   syncStatus: SyncStatus;
   syncError: string | null;
+  /** Collections the current rules refused; empty on a healthy account. */
+  blockedCollections: string[];
+  /** One-line notice for the banner, or null when nothing is blocked. */
+  blockedNotice: string | null;
   retrySync: () => void;
 
   /**
@@ -181,6 +186,8 @@ interface StoreContextValue {
   /** Set when the on-device mirror could not be written (quota exceeded). */
   storageFull: boolean;
   dismissStorageWarning: () => void;
+  /** Hide the "some data is blocked" notice for this session. */
+  dismissBlockedNotice: () => void;
 
   /** Local data awaiting import into a freshly created cloud account. */
   pendingMigration: PendingMigration | null;
@@ -253,6 +260,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [loadingMore, setLoadingMore] = useState<'sessions' | 'body' | null>(null);
   const [storageFull, setStorageFull] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /**
+   * Collections the deployed rules refused. Not an error — the account loaded —
+   * but the athlete deserves to know a slice of it is missing rather than
+   * discover an empty check-in list and assume the data is gone.
+   */
+  const [blockedCollections, setBlockedCollections] = useState<string[]>([]);
   const [loadAttempt, setLoadAttempt] = useState(0);
 
   const queueRef = useRef<WriteQueue | null>(null);
@@ -316,7 +329,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       // ── Cloud mode, signed in ─────────────────────────────────────────
       const owner = uidValue;
       try {
-        const remote = await loadUserState(owner);
+        const blocked: string[] = [];
+        const remote = await loadUserState(owner, (name) => {
+          if (!blocked.includes(name)) blocked.push(name);
+        });
         if (cancelled) return;
 
         const decision = decideCloudHydration({
@@ -333,6 +349,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           if (cancelled) return;
         }
 
+        setBlockedCollections(blocked);
         setSnapshot({ owner, ready: true, state: decision.state });
         // Offered, never applied automatically — a new account starts clean.
         setPendingMigration(decision.migration);
@@ -340,7 +357,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         // there is very likely older history to page through on demand.
         setHasMoreSessions(decision.state.sessions.length >= INITIAL_SESSION_LIMIT);
         setHasMoreBodyLogs(decision.state.bodyLogs.length >= PAGE_SIZE);
-      } catch {
+      } catch (err) {
         // Offline or Firestore unreachable: fall back to this account's
         // cached copy so the app is usable rather than stuck or empty.
         if (cancelled) return;
@@ -348,7 +365,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         if (!cached) {
           // Never manufacture an incomplete profile after a failed read: it
           // sends returning users through setup and can overwrite cloud data.
-          setLoadError("We couldn't load your account. Check your connection and try again.");
+          // The message names the real cause — a rules or index problem is not
+          // a connection problem, and blaming Wi-Fi for one turns a five-minute
+          // deploy into a support ticket.
+          setLoadError(describeLoadFailure(err));
           return;
         }
         setSnapshot({ owner, ready: true, state: cached });
@@ -498,12 +518,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       cloud,
       syncStatus,
       syncError,
+      blockedCollections,
+      blockedNotice: blockedCollectionNotice(blockedCollections),
       retrySync: () => queue.retry(),
 
       hasMoreSessions,
       hasMoreBodyLogs,
       loadingMore,
       dismissStorageWarning: () => setStorageFull(false),
+      dismissBlockedNotice: () => setBlockedCollections([]),
       storageFull,
 
       loadEarlierSessions: async () => {
@@ -948,6 +971,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     owner,
     syncStatus,
     syncError,
+    blockedCollections,
     hasMoreSessions,
     hasMoreBodyLogs,
     loadingMore,

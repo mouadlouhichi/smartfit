@@ -12,7 +12,12 @@ import { DashboardHeader } from './dashboard-header';
 import { DashboardModals } from './dashboard-modals';
 import { ModalProvider, useModals } from './modal-context';
 import { ConfirmProvider } from './confirm-context';
-import { MigrationPrompt, StorageWarningBanner, SyncBanner } from './sync-banner';
+import {
+  BlockedDataBanner,
+  MigrationPrompt,
+  StorageWarningBanner,
+  SyncBanner,
+} from './sync-banner';
 import { InstallPrompt } from '@/components/pwa-install';
 import { useI18n } from '@/lib/i18n-context';
 
@@ -86,6 +91,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <DashboardHeader />
               <MigrationPrompt />
               <SyncBanner />
+              <BlockedDataBanner />
               <StorageWarningBanner />
               <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-6 lg:pt-5">
                 <div

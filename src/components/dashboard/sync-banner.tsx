@@ -1,7 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle, CloudUpload, HardDrive, Loader2, RefreshCw } from 'lucide-react';
+import {
+  AlertTriangle,
+  CloudUpload,
+  HardDrive,
+  Loader2,
+  RefreshCw,
+  ShieldAlert,
+} from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { Button } from '@/components/ui/button';
 
@@ -115,6 +122,36 @@ export function StorageWarningBanner() {
         </span>
       </p>
       <Button size="sm" variant="ghost" onClick={dismissStorageWarning}>
+        Dismiss
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Told when a slice of the account could not be read at all.
+ *
+ * The account loaded, so this is not the failure screen — but a collection the
+ * deployed rules refuse shows up later as "my check-ins are gone", which reads
+ * as data loss. Naming the collection and the fix turns that into a one-line
+ * deploy instead of a mystery. Dismissible, because the rest of the app works.
+ */
+export function BlockedDataBanner() {
+  const { cloud, blockedNotice, blockedCollections, dismissBlockedNotice } = useStore();
+
+  if (!cloud || blockedCollections.length === 0 || !blockedNotice) return null;
+
+  return (
+    <div
+      role="status"
+      className="border-border bg-secondary/70 mx-4 mb-3 flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3 sm:mx-6 lg:mx-8"
+    >
+      <ShieldAlert className="text-muted-foreground h-4 w-4 shrink-0" />
+      <p className="min-w-0 flex-1 text-sm">
+        <span className="font-semibold">Some of your data is blocked.</span>{' '}
+        <span className="text-muted-foreground">{blockedNotice}</span>
+      </p>
+      <Button size="sm" variant="ghost" onClick={dismissBlockedNotice}>
         Dismiss
       </Button>
     </div>

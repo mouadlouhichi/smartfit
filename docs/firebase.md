@@ -58,6 +58,33 @@ queries need (`sessions` and `bodyLogs`, both `date desc, createdAt desc`).
 **Without them the cloud load fails with `failed-precondition`** and the app
 silently falls back to the local cache — deploy them before the first user.
 
+### Deploy the rules **with** the app, not after it
+
+A release that starts reading a new collection needs its rules live at the same
+time. Firestore denies anything no rule matches, so a client running ahead of
+the deployed rules gets `permission-denied` on that read.
+
+Three things keep that from becoming an outage, and all three are deliberate:
+
+1. **Rules and indexes are part of the release.** Run
+   `firebase deploy --only firestore:rules,firestore:indexes` in the same
+   maintenance window as the app deploy, before traffic reaches the new build.
+2. **A refused collection costs that collection, not the account.** Every
+   read in the hydration path goes through `readOrFallback`
+   (`src/lib/firebase/load-errors.ts`): `permission-denied` on a secondary
+   collection degrades it to empty and reports it, so the athlete still gets
+   their data. A network failure is *not* degraded — it still throws, so the
+   cached copy is used rather than an empty account being shown (and later
+   written back).
+3. **The failure names its cause.** A blocked collection shows a banner saying
+   which one; a total failure says whether to deploy rules, deploy indexes,
+   sign in again, or check the network — instead of blaming the connection for
+   every problem.
+
+`tests/load-errors.test.ts` pins both the boundary (only `permission-denied`
+degrades) and the copy, and asserts structurally that no raw read sneaks back
+into `loadUserState`.
+
 ### Rules tests
 
 The rules are a security boundary and have unit tests that run against the
