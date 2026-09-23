@@ -231,7 +231,11 @@ test('language: the progress hero and the badge wall are French too', async ({ p
   await expect(hero.getByText('Exercice', { exact: true })).toBeVisible();
   await expect(hero.getByText('Brûlées', { exact: true })).toBeVisible();
   await expect(hero.getByText(/\d+ min pour fermer l’anneau d’exercice/)).toBeVisible();
-  // A fresh account is on the last-day window, which has its own singular form.
+  // The window follows the selected range — a week by default.
+  await expect(hero.getByText('7 derniers jours', { exact: true })).toBeVisible();
+  // The range control above the card is copy too, and picking the single day
+  // proves the window's singular form, which English spells with a suffix.
+  await page.getByRole('tab', { name: 'Jour', exact: true }).click();
   await expect(hero.getByText('Dernier jour', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Vos statistiques' })).toBeVisible();
 

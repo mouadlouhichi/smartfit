@@ -72,12 +72,39 @@ const RING_ROWS = [0, 1, 2, 3, 4, 5, 6];
 const DAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 type RingCell = { date: string; rings: DayRings } | null;
-const RANGES: { key: Range; label: string; short: string; days: number; pro?: boolean }[] = [
-  { key: 'daily', label: 'Daily', short: 'Day', days: 1 },
-  { key: 'weekly', label: 'Weekly', short: 'Week', days: 7 },
-  { key: 'monthly', label: 'Monthly', short: 'Month', days: 30 },
-  { key: 'quarter', label: 'Quarter', short: 'Qtr', days: 90, pro: true },
-  { key: 'year', label: 'Year', short: 'Year', days: 364, pro: true },
+const RANGES: { key: Range; labelKey: string; shortKey: string; days: number; pro?: boolean }[] = [
+  {
+    key: 'daily',
+    labelKey: 'progress.range.daily',
+    shortKey: 'progress.range.short.daily',
+    days: 1,
+  },
+  {
+    key: 'weekly',
+    labelKey: 'progress.range.weekly',
+    shortKey: 'progress.range.short.weekly',
+    days: 7,
+  },
+  {
+    key: 'monthly',
+    labelKey: 'progress.range.monthly',
+    shortKey: 'progress.range.short.monthly',
+    days: 30,
+  },
+  {
+    key: 'quarter',
+    labelKey: 'progress.range.quarter',
+    shortKey: 'progress.range.short.quarter',
+    days: 90,
+    pro: true,
+  },
+  {
+    key: 'year',
+    labelKey: 'progress.range.year',
+    shortKey: 'progress.range.short.year',
+    days: 364,
+    pro: true,
+  },
 ];
 
 /** Sessions in the `days`-long window ending today. */
@@ -263,7 +290,7 @@ export function ProgressScreen() {
         <div
           className="bg-secondary no-scrollbar flex w-full max-w-sm min-w-0 overflow-x-auto rounded-full p-1 sm:w-auto sm:flex-none sm:overflow-visible"
           role="tablist"
-          aria-label="Stats range"
+          aria-label={t('progress.range.aria')}
         >
           {RANGES.map((r, i) => {
             const locked = !!r.pro && !pro;
@@ -284,8 +311,8 @@ export function ProgressScreen() {
                 )}
               >
                 {locked && <Lock className="h-3 w-3 shrink-0" aria-hidden />}
-                <span className="sm:hidden">{r.short}</span>
-                <span className="hidden sm:inline">{r.label}</span>
+                <span className="sm:hidden">{t(r.shortKey)}</span>
+                <span className="hidden sm:inline">{t(r.labelKey)}</span>
               </button>
             );
           })}
@@ -498,10 +525,14 @@ export function ProgressScreen() {
           </div>
         )}
         {state.sessions.length > 0 && (
-          <ul className="sr-only" aria-label="Weekly active minutes data">
+          <ul className="sr-only" aria-label={t('progress.chart.weeklyAria')}>
             {series.map((week) => (
               <li key={week.label}>
-                {week.label}: {week.minutes} active minutes, {week.workouts} sessions
+                {t('progress.chart.weekRow', {
+                  label: week.label,
+                  minutes: week.minutes,
+                  workouts: week.workouts,
+                })}
               </li>
             ))}
           </ul>
@@ -669,12 +700,16 @@ export function ProgressScreen() {
             <span className="bg-chart-4/10 text-foreground flex h-8 w-8 items-center justify-center rounded-xl">
               <DumbbellIcon className="h-4 w-4" aria-hidden />
             </span>
-            Volume by muscle · last {days} days
+            {t('progress.chart.volumeTitle', { count: days })}
           </p>
-          <ul className="sr-only" aria-label={`Muscle volume for the last ${days} days`}>
+          <ul className="sr-only" aria-label={t('progress.chart.volumeAria', { count: days })}>
             {muscles.slice(0, 8).map((m) => (
               <li key={m.muscle}>
-                {m.label}: {formatVolume(m.volume, state.profile.weightUnit)}, {m.sets} sets
+                {t('progress.chart.muscleRow', {
+                  label: m.label,
+                  volume: formatVolume(m.volume, state.profile.weightUnit),
+                  sets: m.sets,
+                })}
               </li>
             ))}
           </ul>
