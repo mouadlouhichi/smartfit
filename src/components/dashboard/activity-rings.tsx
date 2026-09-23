@@ -5,6 +5,7 @@ import { Activity, Flame, Timer } from 'lucide-react';
 import type { ActivityRings } from '@smartfit/core';
 import { formatCalories, formatMinutes } from '@smartfit/core';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n-context';
 
 /**
  * Three concentric closing rings — the retention visual the whole category
@@ -181,35 +182,45 @@ export function ActivityRingsLegend({
   tone?: 'default' | 'onDark';
 }) {
   const dark = tone === 'onDark';
+  const { t } = useI18n();
   const rows = [
     {
       icon: Flame,
       color: 'var(--chart-1)',
-      label: 'Move',
+      label: t('overview.rings.move'),
       pct: rings.calories.pct,
       value: rings.calories.target > 0 ? formatCalories(rings.calories.value) : '—',
-      target: rings.calories.target > 0 ? formatCalories(rings.calories.target) : 'set a goal',
+      target:
+        rings.calories.target > 0
+          ? formatCalories(rings.calories.target)
+          : t('overview.rings.setGoal'),
     },
     {
       icon: Timer,
       color: 'var(--chart-2)',
-      label: 'Exercise',
+      label: t('overview.rings.exercise'),
       pct: rings.minutes.pct,
       value: formatMinutes(rings.minutes.value),
-      target: rings.minutes.target > 0 ? formatMinutes(rings.minutes.target) : 'set a goal',
+      target:
+        rings.minutes.target > 0
+          ? formatMinutes(rings.minutes.target)
+          : t('overview.rings.setGoal'),
     },
     {
       icon: Activity,
       color: 'var(--chart-3)',
-      label: 'Sessions',
+      label: t('overview.rings.sessions'),
       pct: rings.sessions.pct,
       value: `${rings.sessions.value}`,
-      target: rings.sessions.target > 0 ? `${rings.sessions.target} this week` : 'set a goal',
+      target:
+        rings.sessions.target > 0
+          ? t('overview.rings.weekTarget', { target: rings.sessions.target })
+          : t('overview.rings.setGoal'),
     },
   ];
 
   return (
-    <ul className="grid gap-2.5" aria-label="Today's activity details">
+    <ul className="grid gap-2.5" aria-label={t('overview.rings.detailsAria')}>
       {rows.map((row) => (
         <li
           key={row.label}

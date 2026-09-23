@@ -206,6 +206,19 @@ test('language: the progress hero and the badge wall are French too', async ({ p
   await page.getByRole('button', { name: 'Français' }).click();
   await expect(page.getByRole('link', { name: 'Tableau de bord' }).first()).toBeVisible();
 
+  // ── the overview feed ────────────────────────────────────────────────────
+  await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Santé en chiffres' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Indicateurs de santé' })).toBeVisible();
+  // The metric tiles, the ring legend and the summary controls are all copy.
+  await expect(page.getByText('Minutes actives')).toBeVisible();
+  await expect(page.getByText('Objectif hebdo')).toBeVisible();
+  await expect(page.getByText('Nutrition du jour')).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Semaine' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Jour' })).toBeVisible();
+  // Nothing on the feed may show a raw catalogue key.
+  await expect(page.getByText(/overview\.|coach\.|unit\./)).toHaveCount(0);
+
   // ── the first card ───────────────────────────────────────────────────────
   await page.goto('/dashboard/progress');
   const hero = page.getByRole('region', { name: 'Note de santé et anneaux d’objectifs' });

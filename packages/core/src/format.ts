@@ -1,6 +1,7 @@
 import { BODY_UNIT_META } from './constants';
 import type { BodyUnit, DistanceUnit, UserProfile, WeightUnit } from './types';
 import { bodyDisplayUnit, bodyValueToDisplay, fromKg, fromKm } from './units';
+import type { Translator } from './i18n';
 
 export function formatMinutes(min: number): string {
   const m = Math.round(min);
@@ -120,14 +121,14 @@ export function formatDateLabel(iso: string): string {
   return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-export function relativeDay(iso: string, now = new Date()): string {
+export function relativeDay(iso: string, now = new Date(), t?: Translator): string {
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const [y, m, d] = iso.split('-').map(Number);
   const date = new Date(y, (m ?? 1) - 1, d ?? 1);
   const diff = Math.round((date.getTime() - today.getTime()) / 86_400_000);
-  if (diff === 0) return 'Today';
-  if (diff === -1) return 'Yesterday';
-  if (diff === 1) return 'Tomorrow';
+  if (diff === 0) return t?.('time.today') ?? 'Today';
+  if (diff === -1) return t?.('time.yesterday') ?? 'Yesterday';
+  if (diff === 1) return t?.('time.tomorrow') ?? 'Tomorrow';
   return formatDateLabel(iso);
 }

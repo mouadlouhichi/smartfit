@@ -5,6 +5,7 @@ import { Crown, Loader2, Send, Sparkles, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useModals } from './modal-context';
 import {
@@ -142,26 +143,30 @@ function writeAiUse(owner: string, count: number) {
  * One honest sentence about why an AI answer did not arrive — the athlete sees
  * this under a coach bubble that was answered from their own data instead.
  */
-function aiFallbackNotice(error: unknown, stopped: boolean): string {
-  if (stopped) return 'Stopped the AI answer — here is your coach on your own data.';
+function aiFallbackNotice(
+  error: unknown,
+  stopped: boolean,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  if (stopped) return t('coach.notice.stopped');
   const message = (error instanceof Error ? error.message : '').replace(/\s+/g, ' ').trim();
   if (/took too long|did not respond in time/i.test(message)) {
-    return 'The AI endpoint timed out — answered from your on-device data instead.';
+    return t('coach.notice.timeout');
   }
   if (/not configured/i.test(message)) {
-    return 'This deployment has no AI provider configured — answered on-device.';
+    return t('coach.notice.unconfigured');
   }
   if (/rate limit|quota|\(429\)/i.test(message)) {
-    return 'The AI provider\u2019s free limit is reached — answered from your on-device data.';
+    return t('coach.notice.quota');
   }
   // A rejected key, an unknown model, a provider-side outage: the provider's
   // own words are the most useful thing an operator can see here, so pass them
   // through (shortened) instead of hiding them behind "unavailable".
   if (message) {
     const detail = message.length > 150 ? `${message.slice(0, 149)}…` : message;
-    return `AI unavailable — ${detail} Answered from your on-device data.`;
+    return t('coach.notice.unavailable', { detail });
   }
-  return 'AI unavailable right now — answered from your on-device data.';
+  return t('coach.notice.offline');
 }
 
 /**
@@ -174,6 +179,7 @@ function aiFallbackNotice(error: unknown, stopped: boolean): string {
  * coach always answers even with no provider, no network, or no key.
  */
 export function useCoachConversation() {
+  const { t } = useI18n();
   const { state } = useStore();
   const { user, mode } = useAuth();
   // Firebase uid isolates cloud accounts; local and signed-out sessions use
@@ -334,13 +340,13 @@ export function useCoachConversation() {
             clearTimeout(flushTimer);
             flushTimer = null;
           }
-          if (id === null) throw new CoachAiError('AI response was empty.');
+          if (id === null) throw new CoachAiError(t('coach.error.empty'));
           flush();
           const trimmed = streamed.trim();
-          if (!trimmed) throw new CoachAiError('AI response was empty.');
+          if (!trimmed) throw new CoachAiError(t('coach.error.empty'));
           settle(
             stoppedRef.current
-              ? { text: trimmed, notice: 'Stopped — this answer may be incomplete.' }
+              ? { text: trimmed, notice: t('coach.notice.incompleteStopped') }
               : { text: trimmed },
           );
         } catch (e) {
@@ -356,8 +362,8 @@ export function useCoachConversation() {
             settle({
               text: streamed.trim(),
               notice: stoppedRef.current
-                ? 'Stopped — this answer may be incomplete.'
-                : 'The AI connection dropped — this answer may be incomplete.',
+                ? t('coach.notice.incompleteStopped')
+                : t('coach.notice.incompleteDrop'),
             });
             return;
           }
@@ -370,7 +376,7 @@ export function useCoachConversation() {
           await wait(400);
           if (!aliveRef.current) return;
           const stopped = stoppedRef.current;
-          const notice = aiFallbackNotice(e, stoppedRef.current);
+          const notice = aiFallbackNotice(e, stoppedRef.current, t);
           setMessages((m) => [
             ...m,
             {
@@ -430,14 +436,15 @@ export function useCoachConversation() {
 /** Free-tier limit notice with the Pro upsell — sits above the composer. */
 export function CoachFreeLimitNotice({ show }: { show: boolean }) {
   const { openWith } = useModals();
+  const { t } = useI18n();
   if (!show) return null;
   return (
     <div className="bg-secondary mb-2 flex items-center justify-between gap-2 rounded-xl px-3 py-2">
       <p className="text-xs font-medium">
-        Free AI replies used for today ({FREE_COACH_REPLIES_PER_DAY}). Pro is unlimited.
+        {t('coach.limit', { used: FREE_COACH_REPLIES_PER_DAY })}
       </p>
       <Button size="sm" variant="outline" onClick={() => openWith({ kind: 'pro' })}>
-        <Crown className="h-3.5 w-3.5" /> Go Pro
+        <Crown className="h-3.5 w-3.5" /> {t('coach.goPro')}
       </Button>
     </div>
   );
@@ -510,14 +517,15 @@ export function CoachChips({ chips }: { chips: CoachChip[] }) {
  * here (the conversation then answers on-device).
  */
 function ThinkingBubble({ ai, host, onStop }: { ai: boolean; host?: string; onStop?: () => void }) {
+  const { t } = useI18n();
   const captions = ai
     ? [
-        host ? `Asking ${host}…` : 'Asking the AI coach…',
-        'Reading your training log…',
-        'Checking this week and your goals…',
-        'Almost there…',
+        host ? t('coach.thinking.host', { host }) : t('coach.thinking.ai'),
+        t('coach.thinking.log'),
+        t('coach.thinking.week'),
+        t('coach.thinking.almost'),
       ]
-    : ['Looking through your log…', 'Adding up this week…'];
+    : [t('coach.thinking.scan'), t('coach.thinking.adding')];
 
   const [step, setStep] = useState(0);
   const [seconds, setSeconds] = useState(0);
@@ -548,7 +556,7 @@ function ThinkingBubble({ ai, host, onStop }: { ai: boolean; host?: string; onSt
       </div>
       <span className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-[11px]">
         <span aria-live="polite">
-          {slow ? 'Still working — the provider is slow…' : captions[step % captions.length]}
+          {slow ? t('coach.thinking.slow') : captions[step % captions.length]}
         </span>
         {ai && seconds >= 3 && (
           <span className="tabular-nums opacity-80" aria-hidden>
@@ -561,16 +569,12 @@ function ThinkingBubble({ ai, host, onStop }: { ai: boolean; host?: string; onSt
             onClick={onStop}
             className="text-muted-foreground hover:text-foreground hover:bg-secondary inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold transition-colors"
           >
-            <Square className="h-2.5 w-2.5 fill-current" aria-hidden /> Stop
+            <Square className="h-2.5 w-2.5 fill-current" aria-hidden /> {t('coach.stop')}
           </button>
         )}
       </span>
       <span className="text-muted-foreground/80 mt-0.5 px-1 text-[10px] italic">
-        {slow
-          ? 'Free AI endpoints can take a while — Stop answers instantly from your own data.'
-          : ai
-            ? 'Using a privacy-limited summary of your stats'
-            : 'Keeping everything on this device'}
+        {slow ? t('coach.source.slow') : ai ? t('coach.source.summary') : t('coach.source.local')}
       </span>
     </div>
   );
@@ -672,7 +676,7 @@ export function CoachMessages({
 
 export function CoachComposer({
   onSend,
-  placeholder = 'Ask your coach anything…',
+  placeholder,
   disabled = false,
 }: {
   onSend: (text: string) => void;
@@ -680,6 +684,7 @@ export function CoachComposer({
   disabled?: boolean;
 }) {
   const [input, setInput] = useState('');
+  const { t } = useI18n();
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -693,13 +698,13 @@ export function CoachComposer({
       <Input
         value={input}
         onChange={(e) => setInput(e.target.value)}
-        placeholder={placeholder}
-        aria-label="Message your coach"
+        placeholder={placeholder ?? t('coach.composer.askPlaceholder')}
+        aria-label={t('coach.composer.aria')}
         className="border-border bg-card h-12 flex-1 rounded-full pl-5 shadow-sm sm:h-12"
       />
       <Button
         type="submit"
-        aria-label="Send"
+        aria-label={t('coach.send')}
         size="icon"
         disabled={disabled || !input.trim()}
         className="shadow-primary/30 h-12 w-12 shrink-0 rounded-full shadow-md sm:h-12 sm:w-12"
@@ -743,6 +748,7 @@ export function CoachQuickReplies({
 
 /** Compact coach used in the dashboard's right-hand column. */
 export function CoachPanel({ className }: { className?: string }) {
+  const { t } = useI18n();
   const {
     messages,
     send,
@@ -765,7 +771,7 @@ export function CoachPanel({ className }: { className?: string }) {
     >
       <div className="flex min-w-0 items-start justify-between gap-3 px-5 pt-5">
         <span className="bg-primary text-primary-foreground shadow-primary/30 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold shadow-md">
-          <Sparkles className="h-4 w-4" /> Your coach
+          <Sparkles className="h-4 w-4" /> {t('coach.title')}
         </span>
         {aiAvailable && (
           <CoachAiSource
@@ -790,7 +796,11 @@ export function CoachPanel({ className }: { className?: string }) {
 
       <div className="p-4 pt-1">
         <CoachFreeLimitNotice show={capped && aiAvailable} />
-        <CoachComposer onSend={send} placeholder="Type something…" disabled={thinking} />
+        <CoachComposer
+          onSend={send}
+          placeholder={t('coach.composer.placeholder')}
+          disabled={thinking}
+        />
       </div>
     </div>
   );

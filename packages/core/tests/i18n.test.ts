@@ -153,6 +153,11 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
     'A pure placeholder template ("{value} / {target} {unit}") — the words it renders come from the unit keys.',
   'progress.ring.distance': 'Distance.',
   'ach.sessions-100.name': '"Centurion" is the same word in both languages.',
+  'overview.metrics.distance': 'Distance.',
+  'overview.stat.distance': 'Distance.',
+  'overview.measure.distance': 'Distance.',
+  'overview.metrics.min': 'The abbreviation for minutes.',
+  'overview.quick.stats': '"Stats" is idiomatic French too, and the tile is tiny.',
 };
 
 test('the translations are actually translated, not copied', () => {
