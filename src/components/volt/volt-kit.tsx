@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n-context';
 import { Logo } from '@/components/brand';
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -269,14 +270,18 @@ export function GradeRing({
   size = 92,
   stroke = 9,
   label,
+  ariaLabel,
   className,
 }: {
   value: number;
   size?: number;
   stroke?: number;
   label?: string;
+  /** Overrides the composed "<label>: N of 100" — for callers with their own key. */
+  ariaLabel?: string;
   className?: string;
 }) {
+  const { t } = useI18n();
   const clamped = Math.max(0, Math.min(100, Math.round(value)));
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
@@ -285,7 +290,13 @@ export function GradeRing({
       className={cn('relative inline-grid shrink-0 place-items-center', className)}
       style={{ width: size, height: size }}
       role="img"
-      aria-label={`${label ?? 'Score'}: ${clamped} of 100`}
+      aria-label={
+        ariaLabel ??
+        t('progress.ring.score', {
+          label: label ?? t('progress.ring.scoreFallback'),
+          value: clamped,
+        })
+      }
     >
       <svg width={size} height={size} className="-rotate-90" aria-hidden>
         <circle

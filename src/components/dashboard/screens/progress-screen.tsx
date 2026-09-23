@@ -246,13 +246,13 @@ export function ProgressScreen() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-volt-ink text-[11px] font-bold tracking-[0.18em] uppercase">
-            Progress
+            {t('progress.eyebrow')}
           </p>
           <h1 className="font-display-tight text-xl font-extrabold tracking-tight sm:text-2xl">
             {t('progress.title')}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {state.sessions.length} session{state.sessions.length === 1 ? '' : 's'} logged all-time
+            {t('progress.sessionsLogged', { count: state.sessions.length })}
             {streak > 0 ? ` · ${t('progress.streak', { count: streak })}` : ''}
           </p>
         </div>
@@ -304,7 +304,12 @@ export function ProgressScreen() {
             </h2>
             <p className="hero-muted mt-1 max-w-[17rem] text-sm">{gradeCopy}</p>
           </div>
-          <GradeRing value={healthScore} size={88} label={t('progress.grade')} />
+          <GradeRing
+            value={healthScore}
+            size={88}
+            label={t('progress.grade')}
+            ariaLabel={t('progress.grade.aria', { value: healthScore })}
+          />
         </div>
         <div className="mt-5 mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
           <p className="eyebrow hero-muted">

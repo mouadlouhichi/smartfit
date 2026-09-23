@@ -556,12 +556,19 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
 
     // ── progress hero ─────────────────────────────────────────────────────
     'progress.title': 'Your Stats',
+    'progress.eyebrow': 'Progress',
+    'progress.sessionsLogged': {
+      one: '{count} session logged all-time',
+      other: '{count} sessions logged all-time',
+    },
     'progress.grade': 'Health Grade',
     'progress.grade.perfect': 'Perfect progress — keep going like this.',
     'progress.grade.solid': 'Solid work — one more session moves the needle.',
     'progress.grade.building': 'Every session counts. Let’s build momentum.',
     'progress.window': 'Last {count} days',
     'progress.window.one': 'Last day',
+    'progress.ring.score': '{label}: {value} of 100',
+    'progress.ring.scoreFallback': 'Score',
     'progress.ring.exercise': 'Exercise',
     'progress.ring.burned': 'Burned',
     'progress.ring.distance': 'Distance',
@@ -1004,12 +1011,19 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
 
     // ── héros de progression ──────────────────────────────────────────────
     'progress.title': 'Vos statistiques',
+    'progress.eyebrow': 'Progression',
+    'progress.sessionsLogged': {
+      one: '{count} séance enregistrée au total',
+      other: '{count} séances enregistrées au total',
+    },
     'progress.grade': 'Note de santé',
     'progress.grade.perfect': 'Progression parfaite — continuez comme ça.',
     'progress.grade.solid': 'Du bon travail — une séance de plus fait la différence.',
     'progress.grade.building': 'Chaque séance compte. Prenons de l’élan.',
     'progress.window': '{count} derniers jours',
     'progress.window.one': 'Dernier jour',
+    'progress.ring.scoreFallback': 'Score',
+    'progress.ring.score': '{label} : {value} sur 100',
     'progress.ring.exercise': 'Exercice',
     'progress.ring.burned': 'Brûlées',
     'progress.ring.distance': 'Distance',

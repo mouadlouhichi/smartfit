@@ -158,6 +158,7 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'overview.measure.distance': 'Distance.',
   'overview.metrics.min': 'The abbreviation for minutes.',
   'overview.quick.stats': '"Stats" is idiomatic French too, and the tile is tiny.',
+  'progress.ring.scoreFallback': 'Score is the word in both languages.',
 };
 
 test('the translations are actually translated, not copied', () => {

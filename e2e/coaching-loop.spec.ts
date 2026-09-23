@@ -224,25 +224,29 @@ test('language: the progress hero and the badge wall are French too', async ({ p
   const hero = page.getByRole('region', { name: 'Note de santé et anneaux d’objectifs' });
   await expect(hero).toBeVisible();
   await expect(hero.getByRole('heading', { name: 'Note de santé' })).toBeVisible();
-  await expect(hero.getByText('Note de santé : 0 sur 100')).toBeVisible();
-  // The ring labels and the "what to do next" line are copy, not key strings.
-  await expect(hero.getByText('Exercice')).toBeVisible();
-  await expect(hero.getByText('Brûlées')).toBeVisible();
-  await expect(hero.getByText(/pour fermer l’anneau d’exercice/)).toBeVisible();
+  // The score is announced, not painted: the ring carries it as its name.
+  await expect(hero.getByRole('img', { name: /^Note de santé : \d+ sur 100$/ })).toBeVisible();
+  // The ring labels are exact strings — "exercice" also appears inside the
+  // "what to do next" sentence, so a substring match would be ambiguous.
+  await expect(hero.getByText('Exercice', { exact: true })).toBeVisible();
+  await expect(hero.getByText('Brûlées', { exact: true })).toBeVisible();
+  await expect(hero.getByText(/\d+ min pour fermer l’anneau d’exercice/)).toBeVisible();
   // A fresh account is on the last-day window, which has its own singular form.
-  await expect(hero.getByText('Dernier jour')).toBeVisible();
+  await expect(hero.getByText('Dernier jour', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Vos statistiques' })).toBeVisible();
 
   // ── the wall ─────────────────────────────────────────────────────────────
-  const wall = page.getByText(/sur 22 obtenus/);
+  const wall = page.getByText(/^\d+ sur 22 obtenus$/);
   await wall.scrollIntoViewIfNeeded();
   await expect(wall).toBeVisible();
   // Locked badges name themselves and their progress in French.
-  await expect(page.getByText('Premier sang')).toBeVisible();
-  await expect(page.getByText('Enregistrez votre toute première séance.')).toBeVisible();
-  await expect(page.getByText('0 / 1 séance')).toBeVisible();
-  await expect(page.getByText('0 / 30 jours')).toBeVisible();
-  await expect(page.getByText('La plus longue pause à ce jour')).toBeVisible();
+  await expect(page.getByText('Premier sang', { exact: true })).toBeVisible();
+  await expect(
+    page.getByText('Enregistrez votre toute première séance.', { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText('0 / 1 séance', { exact: true })).toBeVisible();
+  await expect(page.getByText('0 / 30 jours', { exact: true })).toBeVisible();
+  await expect(page.getByText(/^La plus longue pause à ce jour/)).toBeVisible();
   // No catalogue key may reach the screen.
   await expect(page.getByText(/ach\.|unit\./)).toHaveCount(0);
 });
