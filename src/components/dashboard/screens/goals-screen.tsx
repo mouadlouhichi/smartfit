@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { CalendarClock, CheckCircle2, Pencil, Plus, Target } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals } from '../modal-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,6 +40,7 @@ const METRIC_STYLE: Record<GoalMetric, { ring: string; tile: string }> = {
 export function GoalsScreen() {
   const { state } = useStore();
   const { openModal, openWith } = useModals();
+  const { t } = useI18n();
 
   const goals = useMemo(() => state.goals.map((g) => ({ g, p: goalProgress(state, g) })), [state]);
   const done = goals.filter((x) => x.p.done).length;
@@ -47,12 +49,12 @@ export function GoalsScreen() {
   return (
     <div className="grid gap-5">
       <ScreenHeader
-        eyebrow="Goals"
-        title="Your goals"
-        subtitle={`${done}/${goals.length} hit this period · goals reset weekly or monthly.`}
+        eyebrow={t('goals.eyebrow')}
+        title={t('goals.title')}
+        subtitle={t('goals.subtitle', { done, total: goals.length })}
         action={
           <Button onClick={() => openModal('goal')}>
-            <Plus className="h-4 w-4" /> New goal
+            <Plus className="h-4 w-4" /> {t('goals.new')}
           </Button>
         }
       />
@@ -67,13 +69,11 @@ export function GoalsScreen() {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-bold">
                 {done === goals.length
-                  ? 'Every goal hit this period — outstanding.'
-                  : `${done} of ${goals.length} goals hit this period`}
+                  ? t('goals.allHit')
+                  : t('goals.someHit', { done, total: goals.length })}
               </p>
               <p className="text-muted-foreground text-xs">
-                {done === goals.length
-                  ? 'Raise the bar or add a new goal to keep the streak alive.'
-                  : 'Keep going — the rings below show exactly how close you are.'}
+                {done === goals.length ? t('goals.allHitHint') : t('goals.someHitHint')}
               </p>
             </div>
             <span className="bg-secondary text-secondary-foreground shrink-0 self-start rounded-full px-3 py-1 text-xs font-bold tabular-nums">
@@ -89,12 +89,9 @@ export function GoalsScreen() {
             <span className="bg-accent text-accent-foreground flex h-14 w-14 items-center justify-center rounded-2xl">
               <Target className="h-7 w-7" />
             </span>
-            <p className="font-semibold">No goals yet</p>
-            <p className="text-muted-foreground max-w-xs text-sm">
-              Set a target for workouts, active minutes, calories or distance and watch the ring
-              fill up.
-            </p>
-            <Button onClick={() => openModal('goal')}>Create your first goal</Button>
+            <p className="font-semibold">{t('goals.emptyTitle')}</p>
+            <p className="text-muted-foreground max-w-xs text-sm">{t('goals.emptyBody')}</p>
+            <Button onClick={() => openModal('goal')}>{t('goals.emptyCta')}</Button>
           </CardContent>
         </Card>
       )}
@@ -176,7 +173,7 @@ export function GoalsScreen() {
                       )}
                       {p.done && (
                         <Badge className="gap-1">
-                          <CheckCircle2 className="h-3 w-3" /> Done
+                          <CheckCircle2 className="h-3 w-3" /> {t('goals.done')}
                         </Badge>
                       )}
                     </div>

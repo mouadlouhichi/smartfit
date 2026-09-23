@@ -16,6 +16,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals } from '../modal-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
@@ -65,6 +66,7 @@ export function PlanScreen() {
     loadEarlierSessions,
   } = useStore();
   const { openModal, openWith } = useModals();
+  const { t } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
   const [filter, setFilter] = useState('all');
@@ -132,12 +134,12 @@ export function PlanScreen() {
   return (
     <div className="grid gap-5">
       <ScreenHeader
-        eyebrow="Training"
-        title="Training plan"
-        subtitle="Your weekly structure, exercise library and complete workout log."
+        eyebrow={t('plan.eyebrow')}
+        title={t('plan.title')}
+        subtitle={t('plan.subtitle')}
         action={
           <Button onClick={() => openModal('schedule')}>
-            <Plus className="h-4 w-4" /> Schedule session
+            <Plus className="h-4 w-4" /> {t('plan.schedule')}
           </Button>
         }
       />
@@ -149,30 +151,32 @@ export function PlanScreen() {
             <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
               <CalendarCheck2 className="h-4.5 w-4.5" aria-hidden />
             </span>
-            Strategy
+            {t('plan.strategy')}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-5 sm:grid-cols-2">
           <div className="grid gap-2">
             <div className="flex flex-wrap items-center gap-2">
               <p className="font-display text-lg font-extrabold tracking-tight">{plan.name}</p>
-              <Badge variant="accent">{plan.sessionsPerWeek}×/week</Badge>
+              <Badge variant="accent">{t('plan.perWeek', { count: plan.sessionsPerWeek })}</Badge>
             </div>
-            <Field id="plan-strategy" label="Training strategy" hint={plan.description}>
+            <Field id="plan-strategy" label={t('plan.strategyLabel')} hint={plan.description}>
               <Select
                 value={state.profile.planId}
                 onChange={(e) => updateProfile({ planId: e.target.value as typeof plan.id })}
               >
                 {PLANS.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} · {p.sessionsPerWeek}×/week
+                    {p.name} · {t('plan.perWeek', { count: p.sessionsPerWeek })}
                   </option>
                 ))}
               </Select>
             </Field>
           </div>
           <div className="grid gap-2">
-            <span className="text-muted-foreground text-xs font-medium">Weekly split</span>
+            <span className="text-muted-foreground text-xs font-medium">
+              {t('plan.weeklySplit')}
+            </span>
             <div className="flex flex-wrap gap-1.5">
               {WEEKDAYS.map((d, i) => {
                 const slot = plan.split.find((s) => s.weekday === i);
@@ -193,9 +197,7 @@ export function PlanScreen() {
                 );
               })}
             </div>
-            <p className="text-muted-foreground text-xs">
-              Coloured days follow the strategy&rsquo;s focus — hover a day to see it.
-            </p>
+            <p className="text-muted-foreground text-xs">{t('plan.weeklySplitHint')}</p>
           </div>
         </CardContent>
       </Card>
@@ -211,7 +213,7 @@ export function PlanScreen() {
               <span className="bg-volt text-ink flex h-9 w-9 items-center justify-center rounded-xl">
                 <Sparkles className="h-4.5 w-4.5" aria-hidden />
               </span>
-              Quick Import: Suggested Week
+              {t('plan.quickImport')}
               <Badge variant="accent">{gymProgram.name}</Badge>
             </CardTitle>
             <p className="text-muted-foreground text-xs">{mixLine}</p>
@@ -278,10 +280,9 @@ export function PlanScreen() {
       {/* ── Week schedule ──────────────────────────────────────────────── */}
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Your week</h2>
+          <h2 className="text-sm font-semibold">{t('plan.yourWeek')}</h2>
           <span className="bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-xs font-bold tabular-nums">
-            {state.schedule.filter((s) => s.active).length} active session
-            {state.schedule.filter((s) => s.active).length === 1 ? '' : 's'}
+            {t('plan.activeSessions', { count: state.schedule.filter((x) => x.active).length })}
           </span>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -315,13 +316,13 @@ export function PlanScreen() {
                       </span>
                       {isToday && (
                         <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase">
-                          Today
+                          {t('time.today')}
                         </span>
                       )}
                     </span>
                     {items.length === 0 && (
                       <span className="text-muted-foreground inline-flex items-center gap-1 text-xs font-medium">
-                        <Moon className="h-3.5 w-3.5" aria-hidden /> Rest
+                        <Moon className="h-3.5 w-3.5" aria-hidden /> {t('plan.rest')}
                       </span>
                     )}
                   </div>
@@ -437,19 +438,19 @@ export function PlanScreen() {
             <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
               <Clock className="h-4.5 w-4.5" aria-hidden />
             </span>
-            Workout log
+            {t('plan.log.title')}
             <span className="bg-secondary text-secondary-foreground rounded-full px-2.5 py-0.5 text-xs font-bold tabular-nums">
               {log.length}
             </span>
           </CardTitle>
           <Select
             id="log-filter"
-            aria-label="Filter workout log by activity type"
+            aria-label={t('plan.log.filterAria')}
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="h-9 w-full min-[480px]:w-40"
           >
-            <option value="all">All types</option>
+            <option value="all">{t('plan.log.allTypes')}</option>
             {state.categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -462,12 +463,14 @@ export function PlanScreen() {
             (state.sessions.length === 0 ? (
               <EmptyState
                 icon={Clock}
-                title="Nothing logged yet"
-                body="Once you log a workout it shows up here. Tap any entry to see the exercises, notes and distance you recorded — or to fix a mistake."
-                action={<Button onClick={() => openModal('workout')}>Log a workout</Button>}
+                title={t('plan.log.emptyTitle')}
+                body={t('plan.log.emptyBody')}
+                action={
+                  <Button onClick={() => openModal('workout')}>{t('plan.log.emptyCta')}</Button>
+                }
               />
             ) : (
-              <p className="text-muted-foreground text-sm">No workouts match this filter.</p>
+              <p className="text-muted-foreground text-sm">{t('plan.log.noMatch')}</p>
             ))}
           {log.map((s) => {
             const cat = categoryById(state, s.categoryId);
@@ -503,7 +506,7 @@ export function PlanScreen() {
                     )}
                     {s.exercises && s.exercises.length > 0 && (
                       <MetaChip>
-                        {s.exercises.length} exercise{s.exercises.length === 1 ? '' : 's'}
+                        {t('plan.log.exerciseCount', { count: s.exercises.length })}
                       </MetaChip>
                     )}
                   </div>
@@ -529,11 +532,9 @@ export function PlanScreen() {
                 ) : (
                   <History className="h-4 w-4" />
                 )}
-                Load earlier workouts
+                {t('plan.log.loadEarlier')}
               </Button>
-              <p className="text-muted-foreground text-[11px]">
-                Long histories load in pages — older workouts stay in your account until you do.
-              </p>
+              <p className="text-muted-foreground text-[11px]">{t('plan.log.pagingHint')}</p>
               {pageError && <p className="text-destructive text-xs">{pageError}</p>}
             </div>
           )}
@@ -541,7 +542,7 @@ export function PlanScreen() {
       </Card>
 
       <Button variant="ghost" className="self-start" onClick={() => openModal('category')}>
-        <Tag className="h-4 w-4" /> Manage activity types
+        <Tag className="h-4 w-4" /> {t('plan.manageTypes')}
       </Button>
     </div>
   );

@@ -159,6 +159,14 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'overview.metrics.min': 'The abbreviation for minutes.',
   'overview.quick.stats': '"Stats" is idiomatic French too, and the tile is tiny.',
   'progress.ring.scoreFallback': 'Score is the word in both languages.',
+  'profile.pro.title': '“SmartFit Pro” is the product name.',
+  'profile.field.weightUnitHintKg': '“cm” is the unit symbol.',
+  'profile.unit.miles': '“Miles” is the French word for miles.',
+  // Latin-derived statistical nouns French borrowed unchanged; "Calories"
+  // would need a locale explanation, the others are simply the same word.
+  'progress.stat.calories': 'Calories — the word is the same in French.',
+  'progress.stat.distance': 'Distance.',
+  'progress.mix.total': '“total” is the French word too.',
 };
 
 test('the translations are actually translated, not copied', () => {

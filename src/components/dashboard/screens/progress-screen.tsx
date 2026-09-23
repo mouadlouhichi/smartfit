@@ -118,7 +118,7 @@ function rangeDaysSessions(state: ReturnType<typeof useStore>['state'], days: nu
 }
 
 export function ProgressScreen() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { state } = useStore();
   const { openWith } = useModals();
   const pro = hasProAccess(state);
@@ -423,36 +423,40 @@ export function ProgressScreen() {
         <StatCard
           icon={CalendarDays}
           tile="bg-primary/10 text-primary"
-          label="Sessions"
+          label={t('progress.stat.sessions')}
           value={`${rangeAgg.workouts}`}
-          sub={`last ${days} day${days === 1 ? '' : 's'}`}
+          sub={
+            days === 1 ? t('progress.stat.lastDay') : t('progress.stat.lastDays', { count: days })
+          }
           current={rangeAgg.workouts}
           previous={prevAgg.workouts}
         />
         <StatCard
           icon={Timer}
           tile="bg-chart-2/10 text-foreground"
-          label="Active time"
+          label={t('progress.stat.activeTime')}
           value={formatMinutes(rangeAgg.minutes)}
-          sub={`last ${days} day${days === 1 ? '' : 's'}`}
+          sub={
+            days === 1 ? t('progress.stat.lastDay') : t('progress.stat.lastDays', { count: days })
+          }
           current={rangeAgg.minutes}
           previous={prevAgg.minutes}
         />
         <StatCard
           icon={Flame}
           tile="bg-chart-4/10 text-foreground"
-          label="Calories"
+          label={t('progress.stat.calories')}
           value={formatCalories(rangeAgg.calories)}
-          sub="burned"
+          sub={t('progress.stat.burned')}
           current={rangeAgg.calories}
           previous={prevAgg.calories}
         />
         <StatCard
           icon={Footprints}
           tile="bg-clay/10 text-foreground"
-          label="Distance"
+          label={t('progress.stat.distance')}
           value={formatDistance(rangeAgg.distance ?? 0, distanceUnit)}
-          sub="covered"
+          sub={t('progress.stat.covered')}
           current={rangeAgg.distance ?? 0}
           previous={prevAgg.distance ?? 0}
         />
@@ -465,26 +469,22 @@ export function ProgressScreen() {
             <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
               <TrendingUp className="h-4 w-4" aria-hidden />
             </span>
-            Active minutes · last 8 weeks
+            {t('progress.volume.title')}
           </p>
           {seriesMinutes > 0 && (
             <span className="bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-xs font-bold tabular-nums">
-              {formatMinutes(seriesMinutes)} total
+              {t('progress.volume.total', { value: formatMinutes(seriesMinutes) })}
             </span>
           )}
         </div>
         {state.sessions.length === 0 ? (
           <EmptyState
             icon={BarChart3}
-            title="No data yet"
-            body="Log workouts to see your weekly volume trend."
+            title={t('progress.volume.emptyTitle')}
+            body={t('progress.volume.emptyBody')}
           />
         ) : (
-          <div
-            className="h-56 w-full"
-            role="img"
-            aria-label="Active minutes per week for the last eight weeks"
-          >
+          <div className="h-56 w-full" role="img" aria-label={t('progress.volume.aria')}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={series} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <defs>
@@ -546,20 +546,20 @@ export function ProgressScreen() {
             <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
               <Flame className="h-4 w-4" aria-hidden />
             </span>
-            Activity rings
+            {t('progress.rings.title')}
           </p>
           <div className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-bold tabular-nums">
             <span>
-              Streak <b className="text-foreground">{ringStats.current}</b>
+              {t('progress.rings.streak')} <b className="text-foreground">{ringStats.current}</b>
             </span>
             <span>
-              Best <b className="text-foreground">{ringStats.best}</b>
+              {t('progress.rings.best')} <b className="text-foreground">{ringStats.best}</b>
             </span>
             <span>
-              Ring run <b className="text-foreground">{ringStats.ringStreak}</b>
+              {t('progress.rings.run')} <b className="text-foreground">{ringStats.ringStreak}</b>
             </span>
             <span>
-              Weeks on target{' '}
+              {t('progress.rings.weeksOnTarget')}{' '}
               <b className="text-foreground">
                 {ringStats.weeksOnTarget}/{ringStats.weeksChecked}
               </b>
@@ -569,15 +569,15 @@ export function ProgressScreen() {
         {state.sessions.length === 0 ? (
           <EmptyState
             icon={Flame}
-            title="No rings closed yet"
-            body="Log a session and today's three rings start filling — move, exercise and showed-up."
+            title={t('progress.rings.emptyTitle')}
+            body={t('progress.rings.emptyBody')}
           />
         ) : (
           <div className="no-scrollbar min-w-0 overflow-x-auto">
             <div
               className="grid min-w-[360px] gap-1.5"
               role="img"
-              aria-label="Ring history, last 8 weeks"
+              aria-label={t('progress.rings.historyAria')}
             >
               {RING_ROWS.map((rowIdx) => (
                 <div key={rowIdx} className="flex items-center gap-1.5">
@@ -590,7 +590,13 @@ export function ProgressScreen() {
                       <span key={ci} className="flex min-w-0 flex-1 justify-center">
                         {cell ? (
                           <span
-                            title={`${formatDateLabel(cell.date)}${cell.rings.closed ? ' — all rings closed' : ''}`}
+                            title={
+                              cell.rings.closed
+                                ? t('progress.rings.cellClosed', {
+                                    date: formatDateLabel(cell.date, locale),
+                                  })
+                                : formatDateLabel(cell.date, locale)
+                            }
                           >
                             <MiniRings rings={cell.rings} size={26} />
                           </span>
@@ -617,13 +623,13 @@ export function ProgressScreen() {
           <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
             <CalendarDays className="h-4 w-4" aria-hidden />
           </span>
-          Consistency
+          {t('progress.consistency.title')}
         </p>
         {state.sessions.length === 0 ? (
           <EmptyState
             icon={CalendarDays}
-            title="No days trained yet"
-            body="Your training grid fills in as you log sessions — a visual streak to protect."
+            title={t('progress.consistency.emptyTitle')}
+            body={t('progress.consistency.emptyBody')}
           />
         ) : (
           <ConsistencyHeatmap
@@ -641,14 +647,14 @@ export function ProgressScreen() {
             <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
               <Trophy className="h-4 w-4" aria-hidden />
             </span>
-            Personal records
+            {t('progress.records.title')}
           </p>
         </div>
         {records.length === 0 ? (
           <EmptyState
             icon={Trophy}
-            title="No records yet"
-            body="Log a set with a weight and rep count and SmartFit scores your one-rep max."
+            title={t('progress.records.emptyTitle')}
+            body={t('progress.records.emptyBody')}
           />
         ) : (
           <ul className="grid gap-2">
@@ -664,14 +670,16 @@ export function ProgressScreen() {
                   <p className="truncate text-sm font-bold">{r.name}</p>
                   <p className="text-muted-foreground text-xs tabular-nums">
                     {r.bestReps} × {formatWeight(r.bestWeight, state.profile.weightUnit)} ·{' '}
-                    {relativeDay(r.date)}
+                    {relativeDay(r.date, new Date(), t)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="font-display text-base font-extrabold tabular-nums">
                     {formatWeight(r.bestE1rm, state.profile.weightUnit)}
                   </p>
-                  <p className="text-muted-foreground text-[10px] tracking-wide uppercase">e1RM</p>
+                  <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
+                    {t('progress.records.e1rm')}
+                  </p>
                 </div>
               </li>
             ))}
@@ -685,7 +693,7 @@ export function ProgressScreen() {
           <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
             <Medal className="h-4 w-4" aria-hidden />
           </span>
-          Achievements
+          {t('progress.achievements.title')}
         </p>
         <AchievementWall achievements={achievements} />
       </Card>
@@ -740,12 +748,12 @@ export function ProgressScreen() {
       <div className="grid gap-5 lg:grid-cols-2">
         {/* ── Activity mix ─────────────────────────────────────────────── */}
         <Card className="p-5">
-          <p className="font-display mb-4 text-sm font-bold">Time by activity</p>
+          <p className="font-display mb-4 text-sm font-bold">{t('progress.mix.title')}</p>
           {breakdown.length === 0 ? (
             <EmptyState
               icon={BarChart3}
-              title="Nothing logged"
-              body="Your activity mix will appear here."
+              title={t('progress.mix.emptyTitle')}
+              body={t('progress.mix.emptyBody')}
             />
           ) : (
             <div className="flex flex-col gap-4 min-[480px]:flex-row min-[480px]:items-center min-[480px]:gap-5">
@@ -758,7 +766,7 @@ export function ProgressScreen() {
                     {formatMinutes(totalMin)}
                   </span>
                   <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
-                    total
+                    {t('progress.mix.total')}
                   </span>
                 </div>
               </div>
@@ -798,29 +806,33 @@ export function ProgressScreen() {
         {/* ── Intensity ────────────────────────────────────────────────── */}
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between gap-2">
-            <p className="font-display text-sm font-bold">Intensity spread</p>
+            <p className="font-display text-sm font-bold">{t('progress.intensity.title')}</p>
             <Link
               href="/dashboard/body"
               className="text-primary text-xs font-semibold hover:underline"
             >
-              See body trends →
+              {t('progress.intensity.link')}
             </Link>
           </div>
           {intensityData.length === 0 ? (
             <EmptyState
               icon={Flame}
-              title="No sessions"
-              body="Intensity distribution shows up after logging."
+              title={t('progress.intensity.emptyTitle')}
+              body={t('progress.intensity.emptyBody')}
             />
           ) : (
             <>
-              <ul className="sr-only" aria-label="Intensity distribution">
+              <ul className="sr-only" aria-label={t('progress.intensity.aria')}>
                 {intensityData.map((d) => {
                   const total = intensityData.reduce((a, x) => a + x.value, 0);
                   const pct = Math.round((d.value / total) * 100);
                   return (
                     <li key={d.key}>
-                      {d.name}: {d.value} session{d.value === 1 ? '' : 's'}, {pct}%
+                      {t('progress.intensity.row', {
+                        name: d.name,
+                        count: t('unit.sessions', { count: d.value }),
+                        pct,
+                      })}
                     </li>
                   );
                 })}

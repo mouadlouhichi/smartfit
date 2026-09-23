@@ -115,10 +115,19 @@ function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-export function formatDateLabel(iso: string): string {
+/**
+ * "Mon, 3 Mar"-style label. The month and weekday names are the one piece of
+ * copy `Intl` can translate for us, so the locale is the only thing to pass —
+ * the pattern itself is fine in both languages.
+ */
+export function formatDateLabel(iso: string, locale?: string): string {
   const [y, m, d] = iso.split('-').map(Number);
   const date = new Date(y, (m ?? 1) - 1, d ?? 1);
-  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return date.toLocaleDateString(locale === 'fr' ? 'fr-FR' : undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 export function relativeDay(iso: string, now = new Date(), t?: Translator): string {
