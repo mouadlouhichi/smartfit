@@ -100,6 +100,33 @@ test('every dynamic prefix has keys behind it in both locales', () => {
   }
 });
 
+test('a tab label and the heading it opens are different keys', () => {
+  // The profile tabs and the cards they reveal were asserted by text in the
+  // e2e suite, and both reading "Your data" made a strict-mode locator match
+  // two elements. A tab is a label; the card is a heading; they are separate
+  // keys and, in the tab rail, deliberately shorter.
+  //
+  // A section's `aria-label` echoing its own visible heading is *not* a case of
+  // this: the two are reached by different roles, and a labelled region is
+  // supposed to repeat its heading.
+  const pairs: [tab: string, heading: string][] = [
+    ['profile.tab.data', 'profile.data.title'],
+    ['profile.tab.badges', 'profile.badges.title'],
+  ];
+  for (const [tab, heading] of pairs) {
+    for (const locale of ['en', 'fr'] as const) {
+      const tabValue = MESSAGES[locale][tab];
+      const headingValue = MESSAGES[locale][heading];
+      assert.ok(tabValue && headingValue, `${locale}: ${tab} or ${heading} is missing`);
+      assert.notDeepEqual(
+        tabValue,
+        headingValue,
+        `${locale}: "${tab}" and "${heading}" read the same, so a text locator cannot tell them apart`,
+      );
+    }
+  }
+});
+
 test('catalogue keys are unique per locale and ordered the same way', () => {
   // A duplicate key in an object literal silently wins the last one; comparing
   // the two locales' key lists catches a key added to one and forgotten in the
