@@ -15,6 +15,7 @@ import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals, usePayload } from '../modal-context';
 import { useConfirm } from '../confirm-context';
 import {
@@ -36,6 +37,7 @@ interface RoutineRow {
 
 export function ScheduleModal() {
   const { state, addSchedule, updateSchedule, deleteSchedule } = useStore();
+  const { t } = useI18n();
   const { closeModal, openWith } = useModals();
   const confirmDialog = useConfirm();
   const payload = usePayload('schedule');
@@ -99,7 +101,7 @@ export function ScheduleModal() {
     e.preventDefault();
     const mins = Number(duration);
     if (!Number.isFinite(mins) || mins <= 0) {
-      setDurationError('Enter how long the session should be.');
+      setDurationError(t('modal.schedule.durationError'));
       return;
     }
     // Free tier: a 4th routine template is a Pro feature — route to the paywall.
@@ -110,7 +112,7 @@ export function ScheduleModal() {
     }
     setDurationError(null);
     const record = {
-      title: title.trim() || 'Scheduled session',
+      title: title.trim() || t('modal.schedule.fallbackTitle'),
       categoryId,
       weekday,
       timeOfDay: time,
@@ -127,9 +129,9 @@ export function ScheduleModal() {
   async function remove() {
     if (!editing) return;
     const ok = await confirmDialog({
-      title: 'Remove from your weekly plan?',
+      title: t('modal.schedule.removeTitle'),
       body: `"${editing.title}" will no longer be scheduled. Logged workouts are kept.`,
-      confirmLabel: 'Remove session',
+      confirmLabel: t('modal.schedule.removeConfirm'),
       destructive: true,
     });
     if (!ok) return;
@@ -142,17 +144,16 @@ export function ScheduleModal() {
       <DialogContent>
         <form onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit session' : 'Plan a session'}</DialogTitle>
-            <DialogDescription>
-              Recurring slots build your week. Today&apos;s slots appear on the dashboard so you can
-              tick them off as you train.
-            </DialogDescription>
+            <DialogTitle>
+              {editing ? t('modal.schedule.title.edit') : t('modal.schedule.title.new')}
+            </DialogTitle>
+            <DialogDescription>{t('modal.schedule.blurb')}</DialogDescription>
           </DialogHeader>
 
           <div className="mt-4 grid gap-4">
-            <Field id="s-title" label="Title">
+            <Field id="s-title" label={t('modal.field.title')}>
               <Input
-                placeholder="e.g. Upper body"
+                placeholder={t('modal.field.upperBody')}
                 value={title}
                 maxLength={120}
                 onChange={(e) => setTitle(e.target.value)}
@@ -160,7 +161,7 @@ export function ScheduleModal() {
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field id="s-cat" label="Type">
+              <Field id="s-cat" label={t('modal.field.type')}>
                 <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                   {state.categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -187,10 +188,10 @@ export function ScheduleModal() {
                 time input needs more than the ~70px a 3-column phone row
                 gives it. */}
             <div className="grid grid-cols-2 gap-2 min-[430px]:grid-cols-3 sm:gap-3">
-              <Field id="s-time" label="Time">
+              <Field id="s-time" label={t('modal.field.time')}>
                 <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
               </Field>
-              <Field id="s-dur" label="Minutes" error={durationError}>
+              <Field id="s-dur" label={t('modal.field.minutes')} error={durationError}>
                 <Input
                   type="number"
                   min={5}
@@ -201,7 +202,11 @@ export function ScheduleModal() {
                   }}
                 />
               </Field>
-              <Field id="s-int" label="Intensity" className="col-span-2 min-[430px]:col-span-1">
+              <Field
+                id="s-int"
+                label={t('modal.field.intensity')}
+                className="col-span-2 min-[430px]:col-span-1"
+              >
                 <Select
                   value={intensity}
                   onChange={(e) => setIntensity(e.target.value as Intensity)}
@@ -218,15 +223,12 @@ export function ScheduleModal() {
             {/* ── Routine builder: the exercise list the guided runner loads ─ */}
             <div className="grid gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Routine</span>
+                <span className="text-sm font-medium">{t('modal.schedule.routine')}</span>
                 <Button type="button" variant="outline" size="sm" onClick={addRoutineRow}>
-                  <Plus className="h-3.5 w-3.5" /> Add exercise
+                  <Plus className="h-3.5 w-3.5" /> {t('modal.schedule.addExercise')}
                 </Button>
               </div>
-              <p className="text-muted-foreground text-xs">
-                Optional — a routine becomes a reusable template the Start button loads, pre-filled
-                with your last numbers.
-              </p>
+              <p className="text-muted-foreground text-xs">{t('modal.schedule.routineHint')}</p>
               {routine.length === 0 ? null : (
                 <ul className="grid gap-2">
                   {routine.map((row) => (
@@ -250,8 +252,8 @@ export function ScheduleModal() {
                               rows.map((r) => (r.id === row.id ? { ...r, name: v } : r)),
                             )
                           }
-                          placeholder="Exercise (e.g. Squat)"
-                          ariaLabel={`Routine exercise`}
+                          placeholder={t('modal.schedule.exercisePlaceholder')}
+                          ariaLabel={t('modal.schedule.routineExerciseAria')}
                         />
                       </div>
                       <label className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs">
@@ -273,14 +275,14 @@ export function ScheduleModal() {
                             )
                           }
                           className="border-input bg-field h-8 w-12 rounded-lg border text-center text-sm font-semibold min-[480px]:w-14"
-                          aria-label="Target sets"
+                          aria-label={t('modal.schedule.targetSetsAria')}
                         />
-                        <span>sets</span>
+                        <span>{t('modal.schedule.sets')}</span>
                       </label>
                       <button
                         type="button"
                         onClick={() => setRoutine((rows) => rows.filter((r) => r.id !== row.id))}
-                        aria-label="Remove exercise"
+                        aria-label={t('modal.schedule.removeExerciseAria')}
                         className="text-muted-foreground hover:text-destructive press flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
                       >
                         <X className="h-4 w-4" />
@@ -302,12 +304,16 @@ export function ScheduleModal() {
 
             <label className="border-border flex items-center justify-between rounded-xl border px-3 py-2.5">
               <span className="text-sm">
-                <span className="font-medium">Active</span>
+                <span className="font-medium">{t('modal.schedule.active')}</span>
                 <span className="text-muted-foreground block text-xs">
-                  Inactive slots stay in your plan but don&apos;t show up on the dashboard.
+                  {t('modal.schedule.activeHint')}
                 </span>
               </span>
-              <Switch checked={active} onCheckedChange={setActive} aria-label="Slot active" />
+              <Switch
+                checked={active}
+                onCheckedChange={setActive}
+                aria-label={t('modal.schedule.activeAria')}
+              />
             </label>
           </div>
 
@@ -319,7 +325,7 @@ export function ScheduleModal() {
                 onClick={remove}
                 className="text-destructive hover:text-destructive w-full sm:w-auto"
               >
-                <Trash2 className="h-4 w-4" /> Remove
+                <Trash2 className="h-4 w-4" /> {t('modal.schedule.remove')}
               </Button>
             )}
             {/* Mobile: full-width stacked actions (the footer is
@@ -332,10 +338,10 @@ export function ScheduleModal() {
                 onClick={closeModal}
                 className="w-full sm:w-auto"
               >
-                Cancel
+                {t('action.cancel')}
               </Button>
               <Button type="submit" className="w-full sm:w-auto">
-                {editing ? 'Save session' : 'Add to plan'}
+                {editing ? t('modal.schedule.save') : t('modal.schedule.saveNew')}
               </Button>
             </div>
           </DialogFooter>

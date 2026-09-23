@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals, usePayload } from '../modal-context';
 import { CategoryIcon } from '@/components/category-icon';
 import {
@@ -43,6 +44,7 @@ const EMPTY_ROUTE: GeoPoint[] = [];
  */
 export function SessionDetailModal() {
   const { state } = useStore();
+  const { t } = useI18n();
   const { closeModal, openWith } = useModals();
   const payload = usePayload('session-detail');
   const open = payload !== null;
@@ -92,18 +94,18 @@ export function SessionDetailModal() {
           </DialogHeader>
 
           <div className="mt-2 grid grid-cols-3 gap-2">
-            <Stat icon={<Clock className="h-4 w-4" />} label="Duration">
+            <Stat icon={<Clock className="h-4 w-4" />} label={t('modal.detail.duration')}>
               {formatMinutes(session.durationMin)}
             </Stat>
-            <Stat icon={<Flame className="h-4 w-4" />} label="Energy">
+            <Stat icon={<Flame className="h-4 w-4" />} label={t('modal.detail.energy')}>
               {formatCalories(session.calories)}
             </Stat>
             {session.distanceKm !== undefined ? (
-              <Stat icon={<Route className="h-4 w-4" />} label="Distance">
+              <Stat icon={<Route className="h-4 w-4" />} label={t('modal.detail.distance')}>
                 {formatDistance(session.distanceKm, state.profile.distanceUnit)}
               </Stat>
             ) : (
-              <Stat label="Intensity">
+              <Stat label={t('modal.detail.intensity')}>
                 {/* A dot + label instead of a Badge: the pill is wider than
                     an ~80px stat cell on phones. */}
                 <span className="inline-flex items-center gap-1.5">
@@ -120,7 +122,8 @@ export function SessionDetailModal() {
 
           {session.distanceKm !== undefined && (
             <p className="text-muted-foreground text-xs">
-              Intensity: <span className="text-foreground font-medium">{intensity.label}</span>
+              {t('modal.detail.intensityLabel')}{' '}
+              <span className="text-foreground font-medium">{intensity.label}</span>
             </p>
           )}
 
@@ -131,20 +134,18 @@ export function SessionDetailModal() {
                 <RouteMap route={route} className="h-full w-full" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold">Share card</p>
-                <p className="text-muted-foreground text-xs">
-                  Transparent, Volt or Ink — layer it over a photo for Instagram.
-                </p>
+                <p className="text-sm font-bold">{t('modal.detail.shareCard')}</p>
+                <p className="text-muted-foreground text-xs">{t('modal.detail.shareBlurb')}</p>
               </div>
               <Button size="sm" onClick={() => setShareOpen(true)}>
-                <Share2 className="h-4 w-4" /> Share
+                <Share2 className="h-4 w-4" /> {t('modal.detail.share')}
               </Button>
             </div>
           )}
 
           {exercises.length > 0 && (
             <div className="grid gap-2">
-              <h3 className="text-sm font-semibold">Exercises</h3>
+              <h3 className="text-sm font-semibold">{t('modal.detail.exercises')}</h3>
               <ul className="divide-border border-border divide-y overflow-hidden rounded-xl border">
                 {exercises.map((ex, i) => {
                   const known = !!matchExercise(ex.name);
@@ -158,7 +159,7 @@ export function SessionDetailModal() {
                           type="button"
                           onClick={() => setDetailName(ex.name)}
                           className="hover:bg-secondary -mx-2 flex min-w-0 items-center gap-3 rounded-lg px-2 py-1 text-left transition-colors"
-                          title="How to do it"
+                          title={t('modal.detail.howTo')}
                         >
                           <ExerciseImage name={ex.name} className="h-11 w-11 shrink-0 rounded-lg" />
                           <span className="text-foreground truncate text-sm font-medium">
@@ -185,7 +186,7 @@ export function SessionDetailModal() {
           {session.notes && (
             <div className="grid gap-1.5">
               <h3 className="flex items-center gap-1.5 text-sm font-semibold">
-                <StickyNote className="text-muted-foreground h-4 w-4" /> Notes
+                <StickyNote className="text-muted-foreground h-4 w-4" /> {t('modal.detail.notes')}
               </h3>
               <p className="bg-secondary text-foreground/90 rounded-xl px-3 py-2.5 text-sm leading-relaxed">
                 {session.notes}
@@ -194,17 +195,15 @@ export function SessionDetailModal() {
           )}
 
           {exercises.length === 0 && !session.notes && (
-            <p className="text-muted-foreground text-sm">
-              No exercises or notes were recorded for this session.
-            </p>
+            <p className="text-muted-foreground text-sm">{t('modal.detail.noEntries')}</p>
           )}
 
           <DialogFooter className="mt-2">
             <Button type="button" variant="ghost" onClick={closeModal}>
-              Close
+              {t('modal.detail.close')}
             </Button>
             <Button type="button" onClick={() => openWith({ kind: 'workout', session })}>
-              <Pencil className="h-4 w-4" /> Edit
+              <Pencil className="h-4 w-4" /> {t('modal.detail.edit')}
             </Button>
           </DialogFooter>
         </DialogContent>

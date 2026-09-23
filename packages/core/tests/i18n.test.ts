@@ -162,6 +162,20 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'profile.pro.title': '“SmartFit Pro” is the product name.',
   'profile.field.weightUnitHintKg': '“cm” is the unit symbol.',
   'profile.unit.miles': '“Miles” is the French word for miles.',
+  'library.muscle.biceps': 'Biceps — the muscle keeps its Latin name in French.',
+  'library.muscle.triceps': 'Triceps — same.',
+  'library.equipment.machine': '“Machine” is the French word here.',
+  'library.equipment.kettlebell': 'The loanword is what French gyms say.',
+  // Field labels and units: the same word or symbol on both sides.
+  'modal.field.date': 'Date.',
+  'modal.field.type': 'Type.',
+  'modal.field.minutes': 'Minutes.',
+  'modal.field.notes': 'Notes.',
+  'modal.detail.notes': 'Notes.',
+  'modal.detail.distance': 'Distance.',
+  'modal.workout.kcal': 'The unit symbol.',
+  'library.sort.az': '“A–Z” is the sorting convention in both languages.',
+  'modal.schedule.routine': '“Routine” is the French word too.',
   // Latin-derived statistical nouns French borrowed unchanged; "Calories"
   // would need a locale explanation, the others are simply the same word.
   'progress.stat.calories': 'Calories — the word is the same in French.',

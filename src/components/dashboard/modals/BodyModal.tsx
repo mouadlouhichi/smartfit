@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { CategoryIcon, chipAccentStyle } from '@/components/category-icon';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals, usePayload } from '../modal-context';
 import { useConfirm } from '../confirm-context';
 import {
@@ -35,6 +36,7 @@ import { Trash2 } from 'lucide-react';
  */
 export function BodyModal() {
   const { state, addBodyLog, deleteBodyLog } = useStore();
+  const { t } = useI18n();
   const { closeModal } = useModals();
   const confirmDialog = useConfirm();
   const payload = usePayload('body');
@@ -70,7 +72,7 @@ export function BodyModal() {
     e.preventDefault();
     const typed = Number(value);
     if (!value.trim() || !Number.isFinite(typed) || typed <= 0) {
-      setValueError('Enter the measured value.');
+      setValueError(t('modal.body.valueError'));
       return;
     }
     setValueError(null);
@@ -80,7 +82,7 @@ export function BodyModal() {
       date,
       unit,
       value: bodyValueToCanonical(Number(value), unit, state.profile),
-      label: unit === 'custom' ? label.trim() || 'Measurement' : undefined,
+      label: unit === 'custom' ? label.trim() || t('modal.field.measurement') : undefined,
     });
     setValue('');
     closeModal();
@@ -89,9 +91,9 @@ export function BodyModal() {
   async function remove() {
     if (!editing) return;
     const ok = await confirmDialog({
-      title: 'Delete this measurement?',
+      title: t('modal.body.deleteTitle'),
       body: `The ${bodyLabel(editing.unit, editing.label).toLowerCase()} entry from ${editing.date} will be removed. This cannot be undone.`,
-      confirmLabel: 'Delete entry',
+      confirmLabel: t('modal.body.deleteConfirm'),
       destructive: true,
     });
     if (!ok) return;
@@ -113,25 +115,24 @@ export function BodyModal() {
                 <CategoryIcon name={icon} size={22} />
               </span>
               <div className="min-w-0">
-                <DialogTitle>{editing ? 'Edit measurement' : 'Log a measurement'}</DialogTitle>
-                <DialogDescription>
-                  Track body weight and measurements over time to see real progress. Your weight
-                  also personalises calorie estimates.
-                </DialogDescription>
+                <DialogTitle>
+                  {editing ? t('modal.body.title.edit') : t('modal.body.title.new')}
+                </DialogTitle>
+                <DialogDescription>{t('modal.body.blurb')}</DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
           <div className="mt-5 grid gap-4">
             <div className="grid grid-cols-2 gap-3">
-              <Field id="b-date" label="Date">
+              <Field id="b-date" label={t('modal.field.date')}>
                 <DatePicker
                   value={date}
                   onValueChange={setDate}
                   weekStartsOn={state.profile.weekStartsOn ?? 1}
                 />
               </Field>
-              <Field id="b-unit" label="Measurement">
+              <Field id="b-unit" label={t('modal.field.measurement')}>
                 <Select value={unit} onChange={(e) => setUnit(e.target.value as BodyUnit)}>
                   {Object.entries(BODY_UNIT_META).map(([k, m]) => (
                     <option key={k} value={k}>
@@ -146,9 +147,9 @@ export function BodyModal() {
             </div>
 
             {unit === 'custom' && (
-              <Field id="b-label" label="Name">
+              <Field id="b-label" label={t('modal.field.name')}>
                 <Input
-                  placeholder="e.g. Thigh"
+                  placeholder={t('modal.field.nameThigh')}
                   value={label}
                   maxLength={40}
                   onChange={(e) => setLabel(e.target.value)}
@@ -185,7 +186,7 @@ export function BodyModal() {
                 onClick={remove}
                 className="text-destructive hover:text-destructive w-full sm:w-auto"
               >
-                <Trash2 className="h-4 w-4" /> Delete
+                <Trash2 className="h-4 w-4" /> {t('action.delete')}
               </Button>
             )}
             {/* Mobile: full-width stacked actions (the footer is
@@ -198,10 +199,10 @@ export function BodyModal() {
                 onClick={closeModal}
                 className="w-full sm:w-auto"
               >
-                Cancel
+                {t('action.cancel')}
               </Button>
               <Button type="submit" className="w-full sm:w-auto">
-                {editing ? 'Save' : 'Save measurement'}
+                {editing ? t('modal.body.save') : t('modal.body.saveNew')}
               </Button>
             </div>
           </DialogFooter>

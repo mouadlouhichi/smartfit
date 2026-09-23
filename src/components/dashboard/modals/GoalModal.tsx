@@ -111,7 +111,7 @@ export function GoalModal() {
     e.preventDefault();
     const typed = Number(target);
     if (!Number.isFinite(typed) || typed <= 0) {
-      setTargetError('Enter a target bigger than zero.');
+      setTargetError(t('modal.goal.targetError'));
       return;
     }
     setTargetError(null);
@@ -133,9 +133,9 @@ export function GoalModal() {
   async function remove() {
     if (!editing) return;
     const ok = await confirmDialog({
-      title: 'Delete this goal?',
+      title: t('modal.goal.deleteTitle'),
       body: `"${editing.name}" and its progress will be removed. This cannot be undone.`,
-      confirmLabel: 'Delete goal',
+      confirmLabel: t('modal.goal.deleteConfirm'),
       destructive: true,
     });
     if (!ok) return;
@@ -148,7 +148,9 @@ export function GoalModal() {
       <DialogContent>
         <form onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit goal' : 'Set a goal'}</DialogTitle>
+            <DialogTitle>
+              {editing ? t('modal.goal.title.edit') : t('modal.goal.title.new')}
+            </DialogTitle>
             <DialogDescription>
               Goals persist across weeks and reset their progress each{' '}
               {cadence === 'weekly' ? 'week' : 'month'}.
@@ -156,16 +158,16 @@ export function GoalModal() {
           </DialogHeader>
 
           <div className="mt-4 grid gap-4">
-            <Field id="g-name" label="Name">
+            <Field id="g-name" label={t('modal.field.name')}>
               <Input
-                placeholder="e.g. Train 5 days a week"
+                placeholder={t('modal.goal.placeholder')}
                 value={name}
                 maxLength={80}
                 onChange={(e) => setName(e.target.value)}
               />
             </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field id="g-metric" label="Track">
+              <Field id="g-metric" label={t('modal.goal.track')}>
                 <Select value={metric} onChange={(e) => setMetric(e.target.value as GoalMetric)}>
                   {Object.entries(GOAL_METRIC_META).map(([k, m]) => (
                     <option key={k} value={k}>
@@ -174,10 +176,10 @@ export function GoalModal() {
                   ))}
                 </Select>
               </Field>
-              <Field id="g-cadence" label="Reset">
+              <Field id="g-cadence" label={t('modal.goal.reset')}>
                 <Select value={cadence} onChange={(e) => setCadence(e.target.value as GoalCadence)}>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
+                  <option value="weekly">{t('modal.goal.weekly')}</option>
+                  <option value="monthly">{t('modal.goal.monthly')}</option>
                 </Select>
               </Field>
             </div>
@@ -224,7 +226,7 @@ export function GoalModal() {
                 onClick={remove}
                 className="text-destructive hover:text-destructive w-full sm:w-auto"
               >
-                <Trash2 className="h-4 w-4" /> Delete
+                <Trash2 className="h-4 w-4" /> {t('action.delete')}
               </Button>
             )}
             {/* Mobile: full-width stacked actions (the footer is
@@ -237,10 +239,10 @@ export function GoalModal() {
                 onClick={closeModal}
                 className="w-full sm:w-auto"
               >
-                Cancel
+                {t('action.cancel')}
               </Button>
               <Button type="submit" className="w-full sm:w-auto">
-                {editing ? 'Save goal' : 'Create goal'}
+                {editing ? t('modal.goal.save') : t('modal.goal.create')}
               </Button>
             </div>
           </DialogFooter>
@@ -288,7 +290,7 @@ function DeadlineField({
         </Button>
         {value && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onChange('')}>
-            Clear
+            {t('modal.goal.clear')}
           </Button>
         )}
         {value && preview && (
