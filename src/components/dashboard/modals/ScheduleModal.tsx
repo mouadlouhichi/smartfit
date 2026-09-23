@@ -272,7 +272,7 @@ export function ScheduleModal() {
                               ),
                             )
                           }
-                          className="border-input bg-background h-8 w-12 rounded-lg border text-center text-sm font-semibold min-[480px]:w-14"
+                          className="border-input bg-field h-8 w-12 rounded-lg border text-center text-sm font-semibold min-[480px]:w-14"
                           aria-label="Target sets"
                         />
                         <span>sets</span>

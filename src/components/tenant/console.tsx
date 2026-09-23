@@ -1076,12 +1076,14 @@ export function Console() {
             {t.mode === 'demo' && (
               <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed px-3 py-2 text-[10px]">
                 <span>Demo workspace · sample data · changes last for this session only</span>
-                <label className="flex items-center gap-2">
+                <span className="flex items-center gap-2">
                   <span>Demo role</span>
-                  <select
+                  {/* Compact chrome: same Select component, just narrower. */}
+                  <Select
                     aria-label="Demo role"
                     disabled={!interactive}
-                    className="bg-background rounded-lg border px-2 py-1 text-[11px]"
+                    size="compact"
+                    className="min-w-40"
                     value={t.demoRole ?? 'gym-owner'}
                     onChange={(e) =>
                       t.setDemoRole(e.target.value as NonNullable<typeof t.demoRole>)
@@ -1092,8 +1094,8 @@ export function Console() {
                     <option value="member">Member</option>
                     <option value="prospect">Prospect (not a member)</option>
                     <option value="platform-admin">Platform admin</option>
-                  </select>
-                </label>
+                  </Select>
+                </span>
               </div>
             )}
             {t.viewAs && <ViewAsBanner />}

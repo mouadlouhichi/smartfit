@@ -383,6 +383,25 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
     return d.getHours() < 9;
   });
 
+  // ── signals for the second half of the wall ────────────────────────────
+  // Longest single session, longest gap between sessions, and the best
+  // distance — all derived, so nothing can drift from the log.
+  const longestMin = sessions.reduce((max, s) => Math.max(max, s.durationMin), 0);
+  const longestKm = sessions.reduce((max, s) => Math.max(max, s.distanceKm ?? 0), 0);
+  const distinctMoves = new Set(
+    sessions.flatMap((s) => s.exercises.map((e) => e.name.trim().toLowerCase())).filter(Boolean),
+  ).size;
+  const dates = [...new Set(sessions.map((s) => s.date))].sort();
+  const longestGapDays = dates.reduce((max, date, i) => {
+    if (i === 0) return max;
+    const days = Math.round(
+      (Date.parse(`${date}T12:00:00Z`) - Date.parse(`${dates[i - 1]}T12:00:00Z`)) / 86_400_000,
+    );
+    return Math.max(max, days);
+  }, 0);
+  const weekRun = consecutiveWeeks(dates, now);
+  const weekendWeek = weekendPairs(dates);
+
   return [
     {
       id: 'first-session',
@@ -484,7 +503,249 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       progressLabel: earlyBird.length > 0 ? 'Earned' : 'Train before 9am',
       threshold: 1,
     },
+
+    // ── tiers that take longer than a week ───────────────────────────────
+    // Same ladder as above, one rung further out. `ratchet` keeps each row to
+    // one line of maths so a new badge stays a one-line idea.
+    ratchet({
+      id: 'streak-14',
+      name: 'Fortnight Forged',
+      description: 'Train 14 days in a row.',
+      icon: 'shield',
+      tint: '#7ea88f',
+      value: streak,
+      target: 14,
+      unit: 'days',
+    }),
+    ratchet({
+      id: 'streak-30',
+      name: 'Iron Month',
+      description: 'Train 30 days in a row.',
+      icon: 'crown',
+      tint: '#d3b04a',
+      value: streak,
+      target: 30,
+      unit: 'days',
+    }),
+    ratchet({
+      id: 'sessions-100',
+      name: 'Centurion',
+      description: 'Complete 100 sessions.',
+      icon: 'medal',
+      tint: '#9aa8e0',
+      value: count,
+      target: 100,
+      unit: 'sessions',
+    }),
+    ratchet({
+      id: 'hours-50',
+      name: 'Fifty Hours In',
+      description: 'Accumulate 50 hours of training.',
+      icon: 'clock',
+      tint: '#b7a8e0',
+      value: minutes,
+      target: 3000,
+      unit: 'hours',
+      scale: 60,
+    }),
+    ratchet({
+      id: 'tonnage-50t',
+      name: 'Iron Hauler',
+      description: 'Move 50 tonnes of iron.',
+      icon: 'mountain',
+      tint: '#a8b86a',
+      value: volume,
+      target: 50_000,
+      unit: 't',
+      scale: 1000,
+      decimals: 1,
+    }),
+
+    // ── consistency, not just volume ─────────────────────────────────────
+    ratchet({
+      id: 'weeks-4',
+      name: 'Four Weeks Running',
+      description: 'Train in four weeks in a row.',
+      icon: 'repeat',
+      tint: '#7fc2c0',
+      value: weekRun,
+      target: 4,
+      unit: 'weeks',
+    }),
+    ratchet({
+      id: 'comeback',
+      name: 'Back In The Ring',
+      description: 'Return to training after a two-week break.',
+      icon: 'rotate-ccw',
+      tint: '#d99a9a',
+      value: longestGapDays,
+      target: 14,
+      unit: 'days',
+      lockedLabel: 'The longest break so far',
+    }),
+    {
+      id: 'weekend-warrior',
+      name: 'Weekend Warrior',
+      description: 'Train on both Saturday and Sunday of the same week.',
+      icon: 'zap',
+      tint: '#b6bd6a',
+      unlocked: weekendWeek > 0,
+      progress: weekendWeek > 0 ? 100 : 0,
+      progressLabel: weekendWeek > 0 ? 'Earned' : 'Train Saturday + Sunday',
+      threshold: 1,
+    },
+
+    // ── the rest of the app, not only the barbell ────────────────────────
+    ratchet({
+      id: 'body-10',
+      name: 'Steady Scale',
+      description: 'Log 10 body measurements.',
+      icon: 'scale',
+      tint: '#d8a3c4',
+      value: state.bodyLogs.length,
+      target: 10,
+      unit: 'measurements',
+    }),
+    ratchet({
+      id: 'meals-25',
+      name: 'Kitchen Logged',
+      description: 'Log 25 meals.',
+      icon: 'utensils',
+      tint: '#e0a17a',
+      value: state.meals.length,
+      target: 25,
+      unit: 'meals',
+    }),
+    ratchet({
+      id: 'variety-10',
+      name: 'Explorer',
+      description: 'Train 10 different exercises.',
+      icon: 'compass',
+      tint: '#8fd0c0',
+      value: distinctMoves,
+      target: 10,
+      unit: 'exercises',
+    }),
+    ratchet({
+      id: 'long-session',
+      name: 'Long Haul',
+      description: 'Finish a session of 90 minutes or more.',
+      icon: 'hourglass',
+      tint: '#9fd0e0',
+      value: longestMin,
+      target: 90,
+      unit: 'min',
+      lockedLabel: 'Longest session',
+    }),
+    ratchet({
+      id: 'distance-10k',
+      name: 'Ten Kay',
+      description: 'Cover 10 km in a single session.',
+      icon: 'route',
+      tint: '#8fb8e0',
+      value: longestKm,
+      target: 10,
+      unit: 'km',
+      decimals: 1,
+      lockedLabel: 'Farthest session',
+    }),
   ];
+}
+
+/**
+ * One tier of a count-toward-a-target badge.
+ *
+ * Unlocked at `target`, progress is linear (clamped), and the label reads
+ * "7 / 14 days" so the tile never has to guess the units. `scale` and
+ * `decimals` cover the tiers counted in hours or tonnes, where the raw value is
+ * minutes or kilograms and "3000 / 3000 minutes" would be unreadable.
+ */
+function ratchet(spec: {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  tint: string;
+  value: number;
+  target: number;
+  unit: string;
+  /** Raw units per display unit (60 for minutes → hours, 1000 for kg → t). */
+  scale?: number;
+  decimals?: number;
+  /** Prefix for the label while locked; defaults to "Progress". */
+  lockedLabel?: string;
+}): Achievement {
+  const { value, target, scale = 1, decimals = 0 } = spec;
+  const unlocked = value >= target;
+  const fmt = (n: number) => n.toFixed(decimals);
+  // Floor, never round: 90 minutes is "1 / 50 hours", not 2. A tile that
+  // over-reports progress is worse than one that lags by a minute.
+  const floorTo = (n: number) => Math.floor(n * 10 ** decimals) / 10 ** decimals;
+  const shown = floorTo(value / scale);
+  return {
+    id: spec.id,
+    name: spec.name,
+    description: spec.description,
+    icon: spec.icon,
+    tint: spec.tint,
+    unlocked,
+    progress: Math.min(100, Math.round((value / target) * 100)),
+    progressLabel: unlocked
+      ? `Earned · ${fmt(floorTo(target / scale))} ${spec.unit}`
+      : `${spec.lockedLabel ? `${spec.lockedLabel}: ` : ''}${fmt(shown)} / ${fmt(floorTo(target / scale))} ${spec.unit}`,
+    threshold: target,
+  };
+}
+
+/** Weeks (Monday-based) that contain a Saturday *and* a Sunday session. */
+function weekendPairs(dates: string[]): number {
+  const days = new Map<string, { sat: boolean; sun: boolean }>();
+  for (const iso of dates) {
+    const d = new Date(`${iso}T12:00:00`);
+    const dow = d.getDay(); // 0 = Sunday, 6 = Saturday
+    if (dow !== 0 && dow !== 6) continue;
+    d.setDate(d.getDate() - ((dow + 6) % 7)); // back to that week's Monday
+    const week = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    const entry = days.get(week) ?? { sat: false, sun: false };
+    if (dow === 6) entry.sat = true;
+    else entry.sun = true;
+    days.set(week, entry);
+  }
+  let complete = 0;
+  for (const { sat, sun } of days.values()) if (sat && sun) complete += 1;
+  return complete;
+}
+
+/**
+ * Consecutive calendar weeks (Monday-based) with at least one session.
+ *
+ * The current week counts as in progress: a week in which nothing has happened
+ * *yet* falls back to the week before it, exactly like `currentStreakDays`
+ * forgives today. Without that, this badge would flicker off every Monday
+ * morning for everybody.
+ */
+function consecutiveWeeks(dates: string[], now: Date): number {
+  if (dates.length === 0) return 0;
+  const mondayKey = (d: Date) => {
+    const copy = new Date(d);
+    copy.setHours(12, 0, 0, 0);
+    copy.setDate(copy.getDate() - ((copy.getDay() + 6) % 7));
+    return toISODate(copy);
+  };
+  const trained = new Set(dates.map((iso) => mondayKey(new Date(`${iso}T12:00:00`))));
+
+  const cursor = new Date(now);
+  cursor.setHours(12, 0, 0, 0);
+  if (!trained.has(mondayKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 7);
+    if (!trained.has(mondayKey(cursor))) return 0;
+  }
+  let run = 0;
+  while (trained.has(mondayKey(cursor))) {
+    run += 1;
+    cursor.setDate(cursor.getDate() - 7);
+  }
+  return run;
 }
 
 /**

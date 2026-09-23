@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { selectOption } from './select';
 
 /**
  * The tenant journey in local mode, end to end.
@@ -18,8 +19,19 @@ import { test, expect, type Page } from '@playwright/test';
  */
 
 const GYM = '/g/zone-fight';
+/**
+ * The persona labels the switcher renders (see `demoPersonaLabel`). The
+ * switcher is the design-system Select, so it is driven by its option label.
+ */
+const PERSONA = {
+  'gym-owner': 'Youssef — gym owner',
+  'gym-staff': 'Salma — gym staff',
+  member: 'Amina — member',
+  prospect: 'A visitor — not a member',
+} as const;
 /** The demo persona switcher rendered on the storefront in local mode. */
-const personaSwitch = (page: Page) => page.getByLabel('Demo persona');
+const personaSwitch = (page: Page, persona: keyof typeof PERSONA) =>
+  selectOption(page, 'Demo persona', PERSONA[persona]);
 
 test('the public storefront is server-rendered with the gym’s own identity', async ({ page }) => {
   await page.goto(GYM);
@@ -51,7 +63,7 @@ test('a second gym is reachable at its own slug with its own identity', async ({
   await expect(page.getByText('Powerlifting Basics').first()).toBeVisible();
   await expect(page.getByText('Boxing Fundamentals')).toHaveCount(0);
   // The persona switcher is per-gym: the owner here is Nadia, not Youssef.
-  await expect(personaSwitch(page)).toContainText('Nadia — gym owner');
+  await expect(page.getByLabel('Demo persona', { exact: true })).toContainText('Nadia — gym owner');
 });
 
 test('the directory lists both demo gyms', async ({ page }) => {
@@ -81,7 +93,7 @@ test('a member books, waits, cancels and shares — the whole member loop', asyn
   await page.goto(GYM);
 
   // Arrive as the member persona.
-  await personaSwitch(page).selectOption('member');
+  await personaSwitch(page, 'member');
 
   // The membership card: status, expiry, visits — all from the roster row.
   const member = page.locator('section#membership');
@@ -115,7 +127,7 @@ test('a member books, waits, cancels and shares — the whole member loop', asyn
 
 test('a visitor joins the gym in one tap', async ({ page }) => {
   await page.goto(GYM);
-  await personaSwitch(page).selectOption('prospect');
+  await personaSwitch(page, 'prospect');
 
   await expect(page.getByText('Train at Zone Fight', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Join Zone Fight' }).click();
@@ -130,7 +142,7 @@ test('staff check in, take attendance, promote the waitlist — and see no Reven
   page,
 }) => {
   await page.goto(`${GYM}/console`);
-  await page.getByLabel('Demo role').selectOption('gym-staff');
+  await selectOption(page, 'Demo role', 'Gym staff');
 
   // Staff land on Today, and the capability filter leaves Revenue absent —
   // not disabled: a receptionist must not learn the tab exists.
@@ -219,7 +231,7 @@ test('plans config edits a tier', async ({ page }) => {
 test('a member requests a plan online and the desk collects it', async ({ page }) => {
   // As Amina (member): pick the Quarterly plan on the storefront.
   await page.goto(GYM);
-  await personaSwitch(page).selectOption('member');
+  await personaSwitch(page, 'member');
   const quarterly = page.locator('section#pricing article', { hasText: 'Quarterly' });
   await quarterly.getByRole('button', { name: 'Choose this plan' }).click();
   await expect(page.getByText('Request sent — pay at the desk to activate')).toBeVisible();
@@ -227,7 +239,7 @@ test('a member requests a plan online and the desk collects it', async ({ page }
   await expect(quarterly.getByText('Waiting for the desk')).toBeVisible();
 
   // Change persona and navigate within the tenant layout to keep demo state.
-  await personaSwitch(page).selectOption('gym-owner');
+  await personaSwitch(page, 'gym-owner');
   await page.getByRole('link', { name: 'Manage gym', exact: true }).click();
   await page.getByRole('tab', { name: 'Revenue' }).click();
   const queue = page.getByText('To collect — online plan requests');

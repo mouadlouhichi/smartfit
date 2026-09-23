@@ -209,7 +209,7 @@ export function CheckInCard({
                 maxLength={400}
                 rows={2}
                 placeholder={t('checkin.notesPlaceholder')}
-                className="border-input bg-background focus-visible:ring-ring w-full resize-none rounded-xl border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                className="border-input bg-field focus-visible:ring-ring w-full resize-none rounded-xl border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
               />
             </div>
 

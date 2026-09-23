@@ -55,6 +55,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import { ProBadge } from '../pro-badge';
 import { AchievementWall } from '../achievement-wall';
 
@@ -757,6 +758,11 @@ export function ProfileScreen() {
                 ))}
               </Select>
             </Field>
+            {/* Language sits with the other preferences rather than buried in
+                the diet section: it changes every label on this screen. */}
+            <div className="bg-secondary/40 rounded-2xl p-4 sm:col-span-2">
+              <LocaleSwitcher header />
+            </div>
           </CardContent>
         </Card>
       )}

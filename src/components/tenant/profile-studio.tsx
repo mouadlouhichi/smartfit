@@ -11,6 +11,7 @@ import { StorefrontHero } from './storefront-hero';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/toast';
@@ -144,7 +145,7 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                       id="studio-description"
                       rows={5}
                       maxLength={2000}
-                      className="border-input bg-background w-full rounded-xl border p-3 text-sm"
+                      className="border-input bg-field w-full rounded-xl border p-3 text-sm"
                       value={draft.branding?.description ?? ''}
                       onChange={(e) => field('branding', 'description', e.target.value)}
                     />
@@ -297,8 +298,7 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                         className="flex flex-wrap items-center justify-between gap-2 border-b pb-3"
                       >
                         <label className="flex w-28 items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             checked={!!h}
                             onChange={(e) =>
                               setDraft((d) => ({

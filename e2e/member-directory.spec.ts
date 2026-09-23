@@ -1,12 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
+import { selectOption } from './select';
 
 test('View as gym preserves the three-member roster and is read-only even for an admin without membership', async ({
   page,
 }) => {
   await page.goto('/admin/gyms/iron-house');
   await page.getByRole('link', { name: 'View as gym' }).click();
-  await page.getByLabel('Demo role').selectOption('platform-admin');
+  await selectOption(page, 'Demo role', 'Platform admin');
   await page.getByRole('tab', { name: 'Members', exact: true }).click();
   await expect(page.getByTestId('member-metric-total')).toHaveText('3');
   await expect(

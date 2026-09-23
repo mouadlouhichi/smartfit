@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
@@ -812,14 +813,12 @@ function PlanCard({ plan }: { plan: TenantPlan }) {
           </Field>
         </div>
         <label
-          className="flex items-center justify-between gap-3 text-sm"
+          className="flex min-h-11 items-center justify-between gap-3 text-sm"
           htmlFor={`${plan.id}-branding`}
         >
           <span>Custom branding</span>
-          <input
+          <Checkbox
             id={`${plan.id}-branding`}
-            type="checkbox"
-            className="size-4"
             checked={customBranding}
             onChange={(e) => setCustomBranding(e.target.checked)}
           />

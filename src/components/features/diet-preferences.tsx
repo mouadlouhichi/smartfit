@@ -1,21 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Check, Languages, Utensils } from 'lucide-react';
+import { Check, Utensils } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store-context';
 import { useI18n } from '@/lib/i18n-context';
-import {
-  FOOD_DB,
-  LOCALES,
-  RESTRICTIONS,
-  fitsDiet,
-  foodLabel,
-  suggestMealsForSlot,
-  type Locale,
-} from '@smartfit/core';
+import { LocaleSwitcher } from '@/components/locale-switcher';
+import { FOOD_DB, RESTRICTIONS, fitsDiet, foodLabel, suggestMealsForSlot } from '@smartfit/core';
 
 /**
  * Diet and language — the two preferences that change what the app *says*.
@@ -159,36 +152,7 @@ export function DietPreferences() {
 
       {/* ── language ─────────────────────────────────────────────────────── */}
       <div className="border-t pt-5">
-        <div className="flex items-start gap-3">
-          <span
-            aria-hidden
-            className="bg-secondary flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-          >
-            <Languages className="h-5 w-5" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-bold">{t('language.title')}</p>
-            <p className="text-muted-foreground text-xs">{t('language.subtitle')}</p>
-          </div>
-        </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {LOCALES.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              aria-pressed={locale === option.id}
-              onClick={() => setLocale(option.id as Locale)}
-              className={cn(
-                'focus-visible:ring-ring rounded-full px-3.5 py-2 text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:outline-none',
-                locale === option.id
-                  ? 'bg-volt text-ink shadow-sm'
-                  : 'bg-secondary text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {option.native}
-            </button>
-          ))}
-        </div>
+        <LocaleSwitcher header />
       </div>
     </section>
   );

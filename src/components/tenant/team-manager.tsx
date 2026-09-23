@@ -9,6 +9,9 @@ import {
 } from '@smartfit/core';
 import { useTenant } from '@/lib/tenant-context';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 
@@ -83,15 +86,14 @@ export function TeamManager() {
             , then activate their membership in the directory. Owner access cannot be transferred
             here.
           </p>
-          <label className="block space-y-2">
-            <span className="text-sm font-medium">Find a member to add, or search your team</span>
-            <input
-              className="bg-background w-full rounded-lg border px-3 py-2"
+          <Field id="access-search" label="Find a member to add, or search your team">
+            <Input
+              type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Name, email or member ID"
             />
-          </label>
+          </Field>
           <div className="divide-y rounded-xl border">
             {rows.length === 0 ? (
               <p className="text-muted-foreground p-4 text-sm">
@@ -151,10 +153,8 @@ export function TeamManager() {
               <p className="text-muted-foreground text-sm break-all">
                 {selected.email ?? selected.uid} · Current role: {selected.role}
               </p>
-              <label className="block space-y-2">
-                <span className="text-sm font-medium">New role</span>
-                <select
-                  className="bg-background w-full rounded-lg border p-2"
+              <Field id="access-new-role" label="New role">
+                <Select
                   value={nextRole}
                   onChange={(e) => setNextRole(e.target.value as AssignableGymRole)}
                   disabled={saving}
@@ -164,8 +164,8 @@ export function TeamManager() {
                       {role}
                     </option>
                   ))}
-                </select>
-              </label>
+                </Select>
+              </Field>
               <p className="text-muted-foreground text-sm">{TEAM_ROLE_DESCRIPTIONS[nextRole]}</p>
               {nextRole === 'member' && (
                 <p className="text-sm">
@@ -181,7 +181,7 @@ export function TeamManager() {
               <label className="block space-y-2">
                 <span className="text-sm font-medium">Reason for this change</span>
                 <textarea
-                  className="bg-background min-h-24 w-full rounded-lg border p-3"
+                  className="border-input bg-field min-h-24 w-full rounded-lg border p-3"
                   required
                   minLength={8}
                   maxLength={500}

@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Artwork } from '@/components/ui/artwork';
+import { Select } from '@/components/ui/select';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { GymGallery, brandColors } from './brand-media';
 import { StorefrontHero } from './storefront-hero';
@@ -378,12 +379,14 @@ export function Storefront() {
           {mode === 'demo' && (
             <div className="text-muted-foreground mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2 text-[10px]">
               <span>Demo gym · sample data · session-only changes</span>
-              <label className="flex items-center gap-2">
+              <span className="flex items-center gap-2">
                 <span>Viewing as</span>
-                <select
+                {/* Compact chrome: the same Select, sized down for the banner. */}
+                <Select
                   aria-label="Demo persona"
                   disabled={!interactive}
-                  className="bg-background max-w-full rounded-lg border px-2 py-1 text-[11px]"
+                  size="compact"
+                  className="max-w-full min-w-40"
                   value={demoRole ?? 'gym-owner'}
                   onChange={(e) => setDemoRole(e.target.value as NonNullable<typeof demoRole>)}
                 >
@@ -394,8 +397,8 @@ export function Storefront() {
                       {demoPersonaLabel(slug, role)}
                     </option>
                   ))}
-                </select>
-              </label>
+                </Select>
+              </span>
             </div>
           )}
           {error && (
@@ -547,11 +550,13 @@ export function Storefront() {
                 </button>
               ))}
             </div>
-            <label className="flex items-center gap-2">
-              <CalendarDays className="text-muted-foreground size-4" />
-              <select
+            <div className="flex items-center gap-2">
+              <CalendarDays className="text-muted-foreground size-4" aria-hidden />
+              <Select
+                id="timetable-date"
                 aria-label="Timetable date"
-                className="bg-card max-w-full rounded-xl border p-2.5 text-xs"
+                size="sm"
+                className="max-w-full min-w-40"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               >
@@ -565,8 +570,8 @@ export function Storefront() {
                     })}
                   </option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </div>
           </div>
           {!interactive ? (
             <p role="status" className="text-muted-foreground rounded-3xl border p-8 text-sm">

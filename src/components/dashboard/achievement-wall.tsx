@@ -2,16 +2,28 @@
 
 import {
   CalendarCheck,
+  Clock,
+  Compass,
+  Crown,
   Dumbbell,
   Flag,
   Flame,
+  Hourglass,
   Lock,
   Medal,
+  Mountain,
+  Repeat,
+  RotateCcw,
+  Route,
+  Scale,
+  Shield,
   Sunrise,
   Timer,
   TrendingUp,
   Trophy,
+  Utensils,
   Weight,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 import type { Achievement } from '@smartfit/core';
@@ -29,6 +41,18 @@ const ICONS: Record<string, LucideIcon> = {
   weight: Weight,
   sunrise: Sunrise,
   medal: Medal,
+  shield: Shield,
+  crown: Crown,
+  clock: Clock,
+  mountain: Mountain,
+  repeat: Repeat,
+  'rotate-ccw': RotateCcw,
+  zap: Zap,
+  scale: Scale,
+  utensils: Utensils,
+  compass: Compass,
+  hourglass: Hourglass,
+  route: Route,
 };
 
 /**

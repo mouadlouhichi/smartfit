@@ -40,6 +40,11 @@
   --secondary: #ebeadf;
   --secondary-foreground: #161616;
 
+  /* Field fill. White on a white card is deliberate: with a 3:1 boundary the
+     fill no longer has to carry the shape, so it can stay clean instead of
+     adding a second, muddy low-contrast edge. */
+  --field: #ffffff;
+
   --muted: #edede4;
   /* 5.0:1+ on every light surface — AA for small text. */
   --muted-foreground: #63635c;
@@ -51,17 +56,27 @@
   --destructive: #c0392b;
   --destructive-foreground: #fdf6f2;
 
-  --border: #e2e2d6;
-  --input: #e2e2d6;
+  /* Hairlines are decorative (cards also carry a shadow), but the old 1.18:1
+     against the page was invisible on low-quality panels. 1.42:1 gives a card
+     edge without a drawn line. */
+  --border: #d9d9c9;
+  /* A field must be identifiable as a field — WCAG 1.4.11 wants 3:1 for the
+     boundary, and this is what the boundary is for. 3.48:1 on a white card,
+     3.13:1 on the page. Previously transparent, which left the 1.15:1 fill
+     difference doing all the work. */
+  --input: #8a8a82;
   --ring: #6e9a00;
 
-  /* Light chart ramp: olive-green series that clear the 3:1 graphics bar
-     on white cards, plus neutral grays for secondary series. */
+  /* Light chart ramp: olive-green series that clear the 3:1 graphics bar on
+     white cards, plus neutral grays for secondary series. chart-2 and chart-5
+     were 2.85:1 and 2.01:1 despite this comment claiming otherwise — both were
+     darkened to the first passing step. `tests/theme-contrast.test.ts` now
+     checks all five. */
   --chart-1: #5c8500;
-  --chart-2: #7fa614;
+  --chart-2: #72960f;
   --chart-3: #8a8a82;
   --chart-4: #4a4a44;
-  --chart-5: #a9c23a;
+  --chart-5: #829519;
 
   /* Dark rail / dark cards (also used in light mode for hero surfaces). */
   --charcoal: #0a0a09;
@@ -88,6 +103,11 @@
   --secondary: #1a1b13;
   --secondary-foreground: #edebe6;
 
+  /* The card surface: with a 3:1 border the fill does not have to carry the
+     shape, and matching the card keeps the boundary honest on both edges
+     (against a darker fill the inner edge measured 2.87:1). */
+  --field: #101210;
+
   --muted: #171810;
   --muted-foreground: #c4c1bb;
 
@@ -98,8 +118,10 @@
   --destructive: #ff6b5e;
   --destructive-foreground: #2a0d0a;
 
-  --border: #23241a;
-  --input: #23241a;
+  --border: #2c2d21;
+  /* 3.11:1 on a card, 3.38:1 on the canvas — the same 3:1 boundary rule as
+     light mode, tinted to stay in the olive family. */
+  --input: #63635c;
   --ring: #8ad200;
 
   /* Green ramp for series data — every step ≥3:1 on the #101210 card. */
@@ -132,6 +154,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
   --color-input: var(--input);
+  --color-field: var(--field);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);

@@ -190,6 +190,50 @@ export function ProgressScreen() {
         ? 'Solid work — one more session moves the needle.'
         : 'Every session counts. Let’s build momentum.';
 
+  // ── hero extras ────────────────────────────────────────────────────────
+  // 1. The comparison the grade alone cannot give: is this window better than
+  //    the one before it? Only shown when there *is* a previous window to
+  //    compare against — "up 100%" from nothing is noise (same rule as the
+  //    stat tiles below).
+  const minutesDelta = prevAgg.minutes > 0 ? rangeAgg.minutes - prevAgg.minutes : null;
+  // 2. One concrete next step, taken from the ring furthest behind *as a
+  //    share of its own target* — "20 min to go" beats "300 kcal to go" for
+  //    a 30-minute goal, which raw numbers alone would get backwards.
+  const ringGaps = [
+    {
+      gap: Math.max(0, targets.minutes - rangeAgg.minutes),
+      share: targets.minutes > 0 ? 1 - Math.min(1, rangeAgg.minutes / targets.minutes) : 0,
+      copy: (n: number) => `${n} min to close the exercise ring`,
+    },
+    ...(targets.calories > 0
+      ? [
+          {
+            gap: Math.max(0, targets.calories - rangeAgg.calories),
+            share: 1 - Math.min(1, rangeAgg.calories / targets.calories),
+            copy: (n: number) => `${formatCalories(n)} to close the burn ring`,
+          },
+        ]
+      : []),
+    ...(targets.distanceKm > 0
+      ? [
+          {
+            gap: Math.max(0, targets.distanceKm - (rangeAgg.distance ?? 0)),
+            share: 1 - Math.min(1, (rangeAgg.distance ?? 0) / targets.distanceKm),
+            copy: (n: number) => `${formatDistance(n, distanceUnit)} to close the distance ring`,
+          },
+        ]
+      : []),
+  ];
+  const nextStep = ringGaps.some((ring) => ring.gap > 0)
+    ? ringGaps
+        .filter((ring) => ring.gap > 0)
+        .sort((a, b) => b.share - a.share)
+        .slice(0, 2)
+        .map((ring) => ring.copy(ring.gap))
+        .map((copy) => copy.charAt(0).toUpperCase() + copy.slice(1))
+        .join(' · ')
+    : 'All three rings closed for this window — hold this pace.';
+
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -259,12 +303,37 @@ export function ProgressScreen() {
           <p className="eyebrow hero-muted">
             Last {days} day{days === 1 ? '' : 's'}
           </p>
-          {streak > 0 && (
-            <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-              <Flame className="text-volt-ink h-3.5" aria-hidden />
-              {streak}-day streak
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {minutesDelta !== null && minutesDelta !== 0 && (
+              <span
+                className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold"
+                // Spoken as a sentence: the arrow is decoration, and the label
+                // is what a screen reader gets.
+                aria-label={`${formatMinutes(Math.abs(minutesDelta))} ${
+                  minutesDelta > 0 ? 'more' : 'less'
+                } than the previous ${days} days`}
+              >
+                {minutesDelta > 0 ? (
+                  <ArrowUpRight className="text-volt-ink h-3.5" aria-hidden />
+                ) : (
+                  <ArrowDownRight className="hero-muted h-3.5" aria-hidden />
+                )}
+                <span aria-hidden>
+                  {formatMinutes(Math.abs(minutesDelta))} vs previous {days}d
+                </span>
+              </span>
+            )}
+            {streak > 0 && (
+              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+                <Flame className="text-volt-ink h-3.5" aria-hidden />
+                {streak}-day streak
+                {/* The best run is what makes the current one legible. */}
+                {ringStats.best > streak && (
+                  <span className="hero-muted font-medium">· best {ringStats.best}</span>
+                )}
+              </span>
+            )}
+          </div>
         </div>
         {/* Three rings plus their value captions must share ~240px on a
             320px phone — compact dials and one-line captions keep them in. */}
@@ -292,8 +361,11 @@ export function ProgressScreen() {
             color="#8a8a8a"
           />
         </div>
+        {/* What to do next, from the ring furthest behind — and, when the
+            athlete has no burn/distance goals yet, why those rings are flat. */}
+        <p className="hero-muted mt-5 text-center text-xs">{nextStep}</p>
         {targets.calories === 0 && targets.distanceKm === 0 && (
-          <p className="hero-muted mt-5 text-center text-xs">
+          <p className="hero-muted mt-1 text-center text-xs">
             Burn and distance rings fill once you set a calories or distance goal.
           </p>
         )}

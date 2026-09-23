@@ -56,6 +56,17 @@ function session(
   };
 }
 
+/** `count` consecutive ISO dates starting at `start` (inclusive). */
+function dayRange(start: string, count: number): string[] {
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(`${start}T12:00:00`);
+    d.setDate(d.getDate() + i);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+      d.getDate(),
+    ).padStart(2, '0')}`;
+  });
+}
+
 function withSessions(...sessions: WorkoutSession[]): FitnessState {
   return {
     ...emptyState(),
@@ -267,7 +278,12 @@ test('currentStreakDays counts back from today, tolerating an untrained today', 
 
 test('computeAchievements unlocks from the log and reports honest progress', () => {
   const fresh = computeAchievements(emptyState());
-  assert.equal(fresh.length, 9, 'the whole wall is defined');
+  assert.equal(fresh.length, 22, 'the whole wall is defined');
+  assert.equal(
+    new Set(fresh.map((a) => a.id)).size,
+    22,
+    'every badge id is unique — the wall keys off it',
+  );
   assert.equal(fresh.filter((a) => a.unlocked).length, 0, 'nothing is handed out for free');
   assert.ok(fresh.every((a) => a.progress >= 0 && a.progress <= 100));
 
@@ -286,6 +302,76 @@ test('computeAchievements unlocks from the log and reports honest progress', () 
   assert.equal(byId['streak-7'].unlocked, false, 'only three days in');
   assert.equal(byId['streak-7'].progressLabel, '3 / 7 days');
   assert.equal(byId['sessions-50'].unlocked, false);
+});
+
+test('the long-game badges unlock from the log, and only from it', () => {
+  const at = (iso: string) => new Date(`${iso}T20:00:00`);
+
+  // Two full weeks in a row unlock the 14-day tier and nothing beyond it.
+  const fortnight = computeAchievements(
+    withSessions(...dayRange('2026-03-02', 14).map((d) => session(d, []))),
+    at('2026-03-15'),
+  );
+  const ids = (list: typeof fortnight) => new Set(list.filter((a) => a.unlocked).map((a) => a.id));
+  assert.ok(ids(fortnight).has('streak-14'));
+  assert.equal(ids(fortnight).has('streak-30'), false);
+  assert.equal(ids(fortnight).has('weeks-4'), false, 'two weeks is not four');
+
+  // Four consecutive weeks, one session each — consistency, not volume.
+  const monthly = computeAchievements(
+    withSessions(
+      ...['2026-03-02', '2026-03-09', '2026-03-16', '2026-03-23'].map((d) => session(d, [])),
+    ),
+    at('2026-03-24'),
+  );
+  assert.ok(ids(monthly).has('weeks-4'));
+  assert.equal(ids(monthly).has('streak-14'), false, 'four sessions is not a streak');
+
+  // Saturday + Sunday in one week, and a 14-day break that was survived.
+  const weekend = computeAchievements(
+    withSessions(session('2026-03-07', []), session('2026-03-08', [])),
+    at('2026-03-08'),
+  );
+  assert.ok(ids(weekend).has('weekend-warrior'));
+  const back = computeAchievements(
+    withSessions(session('2026-03-01', []), session('2026-03-20', [])),
+    at('2026-03-20'),
+  );
+  assert.ok(ids(back).has('comeback'));
+
+  // Variety counts distinct movements; distances and durations come straight
+  // from the session, with the units the tile will print.
+  const varied = computeAchievements(
+    withSessions(
+      session(
+        '2026-03-05',
+        Array.from({ length: 10 }, (_, i) => ({ name: `Move ${i}`, sets: [] })),
+        { durationMin: 95, distanceKm: 10.4 },
+      ),
+    ),
+    at('2026-03-05'),
+  );
+  assert.ok(ids(varied).has('variety-10'));
+  assert.ok(ids(varied).has('long-session'));
+  assert.ok(ids(varied).has('distance-10k'));
+  const longHaul = varied.find((a) => a.id === 'long-session');
+  assert.equal(longHaul?.progressLabel, 'Earned · 90 min');
+  const tenKay = varied.find((a) => a.id === 'distance-10k');
+  assert.equal(tenKay?.progressLabel, 'Earned · 10.0 km');
+});
+
+test('a locked tier reports progress in its own units', () => {
+  const wall = computeAchievements(
+    withSessions(session('2026-03-02', []), session('2026-03-03', [])),
+    new Date('2026-03-03T20:00:00'),
+  );
+  const byId = Object.fromEntries(wall.map((a) => [a.id, a]));
+  assert.equal(byId['streak-14'].unlocked, false);
+  assert.equal(byId['streak-14'].progressLabel, '2 / 14 days');
+  assert.equal(byId['streak-14'].progress, 14); // 2 of 14 days
+  assert.equal(byId['hours-50'].progressLabel, '1 / 50 hours'); // 90 min of 3000
+  assert.equal(byId['long-session'].progressLabel, 'Longest session: 45 / 90 min');
+  assert.equal(byId['weeks-4'].progressLabel, '1 / 4 weeks');
 });
 
 test('achievements are derived — re-parsing the same log gives the same wall', () => {

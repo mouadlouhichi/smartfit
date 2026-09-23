@@ -143,7 +143,7 @@ export function ApplyCard() {
               onChange={(e) => setMessage(e.target.value)}
               rows={3}
               placeholder="Number of coaches, classes per week, what you want online booking for…"
-              className="bg-secondary text-foreground placeholder:text-muted-foreground focus-visible:ring-ring focus-visible:border-ring focus-visible:bg-background flex min-h-11 w-full min-w-0 rounded-xl border border-transparent px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+              className="bg-field text-foreground placeholder:text-muted-foreground border-input hover:border-foreground/40 focus-visible:ring-ring focus-visible:border-ring flex min-h-11 w-full min-w-0 rounded-xl border px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
             />
           </Field>
           <div className="flex flex-wrap items-center gap-3">

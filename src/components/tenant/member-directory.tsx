@@ -726,7 +726,7 @@ function MemberDetail({ member: m }: { member: GymMembership }) {
           <textarea
             id="member-notes"
             rows={4}
-            className="bg-background w-full rounded-xl border p-3 text-sm"
+            className="border-input bg-field w-full rounded-xl border p-3 text-sm"
             maxLength={2000}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
