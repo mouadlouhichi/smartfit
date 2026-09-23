@@ -262,7 +262,7 @@ export function ProfileScreen() {
       a.download = `smartfit-sessions-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast('CSV downloaded');
+      toast(t('profile.data.csvDone'));
     } catch {
       setDataError(t('profile.error.exportCsv'));
     } finally {

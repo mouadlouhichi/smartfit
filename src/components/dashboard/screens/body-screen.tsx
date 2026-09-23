@@ -43,8 +43,8 @@ import {
   bodyDisplayUnit,
   bodyUnitLabel,
   bodyValueToDisplay,
-  EXERCISE_EQUIPMENT_LABELS,
-  EXERCISE_MUSCLE_LABELS,
+  exerciseEquipmentLabel,
+  exerciseMuscleLabel,
   formatDateLabel,
   fromKg,
   kgToTarget,
@@ -84,7 +84,7 @@ export function BodyScreen() {
     try {
       await loadEarlierBodyLogs();
     } catch (e) {
-      setPageError(e instanceof Error ? e.message : 'Could not load older measurements.');
+      setPageError(e instanceof Error ? e.message : t('body.error.loadOlder'));
     }
   }
 
@@ -417,7 +417,9 @@ function MuscleLab() {
     return acc;
   }, [state]);
 
-  const label = EXERCISE_MUSCLE_LABELS[muscle];
+  // Two names for the same muscle: `muscleName` is what the athlete reads
+  // (translated), `muscleId` is the reference id the exercise data uses.
+  const muscleName = exerciseMuscleLabel(muscle, t);
   const sets = setsByMuscle[muscle] ?? 0;
   /** Strength-only routine candidates — no runs/swims in a set-based focus. */
   const entries = useMemo(() => strengthEntriesForMuscle(muscle), [muscle]);
@@ -427,7 +429,7 @@ function MuscleLab() {
     if (picks.length === 0) return;
     openWith({
       kind: 'runner',
-      title: `${label} focus`,
+      title: t('body.muscle.focusTitle', { muscle: muscleName }),
       categoryId: 'cat-strength',
       intensity: 'moderate',
       exercises: picks.map((e, i) => ({
@@ -477,15 +479,15 @@ function MuscleLab() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
-                    {label}
+                    {muscleName}
                   </p>
                   <p className="truncate text-sm font-bold">{t('body.focusZone')}</p>
                 </div>
               </div>
               <p className="shrink-0 text-sm font-bold tabular-nums">
-                {sets} sets{' '}
+                {t('body.muscle.setCount', { count: sets })}{' '}
                 <span className="text-muted-foreground font-medium">
-                  of {MUSCLE_WEEKLY_SET_TARGET}
+                  {t('body.muscle.setTarget', { target: MUSCLE_WEEKLY_SET_TARGET })}
                 </span>
               </p>
             </div>
@@ -496,7 +498,7 @@ function MuscleLab() {
               aria-valuenow={sets}
               aria-valuemin={0}
               aria-valuemax={MUSCLE_WEEKLY_SET_TARGET}
-              aria-label={`Sets this week for ${label}`}
+              aria-label={t('body.muscle.setsAria', { muscle: muscleName })}
             >
               {Array.from({ length: MUSCLE_WEEKLY_SET_TARGET }, (_, i) => (
                 <span
@@ -507,10 +509,10 @@ function MuscleLab() {
             </div>
             <p className="text-muted-foreground mt-2 text-xs">
               {sets === 0
-                ? `No ${label.toLowerCase()} sets logged this week yet.`
+                ? t('body.muscle.setsNone', { muscle: muscleName.toLowerCase() })
                 : sets >= MUSCLE_WEEKLY_SET_TARGET
-                  ? `Weekly target hit — ${label.toLowerCase()} is fully fuelled.`
-                  : 'Keep going — every set this week fills the bar.'}
+                  ? t('body.muscle.setsDone', { muscle: muscleName.toLowerCase() })
+                  : t('body.muscle.setsProgress')}
             </p>
           </div>
 
@@ -518,7 +520,7 @@ function MuscleLab() {
           <div>
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-base font-extrabold tracking-tight sm:text-lg">
-                {label} exercises
+                {t('body.muscle.exercises', { muscle: muscleName })}
               </h2>
               <span className="text-muted-foreground text-sm font-semibold">
                 {entries.length} exercise{entries.length === 1 ? '' : 's'}
@@ -528,8 +530,7 @@ function MuscleLab() {
             {entries.length === 0 ? (
               <Card className="mt-3">
                 <CardContent className="text-muted-foreground p-5 text-sm">
-                  No catalog exercises target {label.toLowerCase()} yet — log it as a custom
-                  exercise from the workout logger.
+                  {t('body.muscle.noCatalog', { muscle: muscleName.toLowerCase() })}
                 </CardContent>
               </Card>
             ) : (
@@ -551,12 +552,12 @@ function MuscleLab() {
                         <span className="text-muted-foreground block truncate text-xs">
                           {e.muscles
                             .slice(0, 3)
-                            .map((m) => EXERCISE_MUSCLE_LABELS[m])
+                            .map((m) => exerciseMuscleLabel(m, t))
                             .join(' · ')}
                         </span>
                       </span>
                       <span className="bg-secondary text-muted-foreground shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold">
-                        {EXERCISE_EQUIPMENT_LABELS[e.equipment]}
+                        {exerciseEquipmentLabel(e.equipment, t)}
                       </span>
                       <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
                     </button>

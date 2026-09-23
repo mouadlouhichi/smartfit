@@ -29,6 +29,7 @@ const ROOT = new URL('..', import.meta.url).pathname;
 const DYNAMIC_PREFIXES: Record<string, string> = {
   'checkin.feeling.': 'One key per emoji face (1–5), chosen from the saved rating.',
   'fuel.slot.': 'One key per meal slot id (breakfast/lunch/dinner/snack).',
+  'fuel.macro.': 'One key per macro row (protein/carbs/fat) in the target meters.',
 };
 
 /** Dotted lower-case literals only — that is what a catalogue key looks like. */

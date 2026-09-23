@@ -90,16 +90,16 @@ export function PlanScreen() {
 
   async function importSuggestion() {
     const ok = await confirm({
-      title: 'Import suggested week?',
-      body: `Your current scheduled sessions are replaced with the ${
-        gymProgram?.name ?? 'gym'
-      } classes shown here.`,
-      confirmLabel: 'Replace my week',
+      title: t('plan.import.title'),
+      body: gymProgram
+        ? t('plan.import.body', { program: gymProgram.name })
+        : t('plan.import.bodyGeneric'),
+      confirmLabel: t('plan.import.confirm'),
       destructive: true,
     });
     if (ok) {
       replaceSchedule(suggestedToSchedule(suggested));
-      toast(`Week imported — ${suggested.length} sessions scheduled`);
+      toast(t('plan.import.done', { count: suggested.length }));
     }
   }
 
@@ -108,7 +108,7 @@ export function PlanScreen() {
     try {
       await loadEarlierSessions();
     } catch (e) {
-      setPageError(e instanceof Error ? e.message : 'Could not load older workouts.');
+      setPageError(e instanceof Error ? e.message : t('plan.error.loadOlder'));
     }
   }
 

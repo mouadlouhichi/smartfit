@@ -78,7 +78,7 @@ const SLOT_ICONS: Record<MealSlot, LucideIcon> = {
 export function FuelScreen() {
   const { state, updateProfile, updateMeal } = useStore();
   const { openWith } = useModals();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const pro = hasProAccess(state);
   const today = toISODate(new Date());
   const [date, setDate] = useState(today);
@@ -144,7 +144,7 @@ export function FuelScreen() {
         <Button
           variant="outline"
           size="icon"
-          aria-label="Previous day"
+          aria-label={t('fuel.prevDay')}
           onClick={() => setDate((d) => shiftISODate(d, -1))}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -153,12 +153,12 @@ export function FuelScreen() {
           value={date}
           onValueChange={setDate}
           weekStartsOn={profile.weekStartsOn ?? 1}
-          aria-label="Choose day"
+          aria-label={t('fuel.chooseDay')}
         />
         <Button
           variant="outline"
           size="icon"
-          aria-label="Next day"
+          aria-label={t('fuel.nextDay')}
           disabled={date >= today}
           onClick={() => setDate((d) => shiftISODate(d, 1))}
         >
@@ -166,11 +166,11 @@ export function FuelScreen() {
         </Button>
         {!isToday && (
           <Button variant="ghost" size="sm" onClick={() => setDate(today)}>
-            Back to today
+            {t('fuel.backToToday')}
           </Button>
         )}
         <p className="text-muted-foreground ml-auto text-sm font-semibold">
-          {isToday ? t('fuel.today') : formatDateLabel(date)}
+          {isToday ? t('fuel.today') : formatDateLabel(date, locale)}
         </p>
       </div>
 
@@ -223,21 +223,23 @@ export function FuelScreen() {
 
             <Progress
               value={Math.min(100, (totals.calories / targets.calories) * 100)}
-              aria-label="Calories eaten versus target"
+              aria-label={t('fuel.caloriesVersusTarget')}
               indicatorClassName={over ? 'bg-destructive' : 'bg-volt'}
             />
 
             <div className="grid grid-cols-3 gap-4">
               {(
                 [
-                  { label: 'Protein', got: totals.protein, want: targets.protein, unit: 'g' },
-                  { label: 'Carbs', got: totals.carbs, want: targets.carbs, unit: 'g' },
-                  { label: 'Fat', got: totals.fat, want: targets.fat, unit: 'g' },
+                  { key: 'protein', got: totals.protein, want: targets.protein, unit: 'g' },
+                  { key: 'carbs', got: totals.carbs, want: targets.carbs, unit: 'g' },
+                  { key: 'fat', got: totals.fat, want: targets.fat, unit: 'g' },
                 ] as const
               ).map((m) => (
-                <div key={m.label}>
+                <div key={m.key}>
                   <div className="mb-1 flex items-baseline justify-between gap-1">
-                    <span className="text-muted-foreground text-xs font-bold">{m.label}</span>
+                    <span className="text-muted-foreground text-xs font-bold">
+                      {t(`fuel.macro.${m.key}`)}
+                    </span>
                     <span className="text-xs font-bold tabular-nums">
                       {Math.round(m.got)}
                       <span className="text-muted-foreground">
@@ -249,7 +251,7 @@ export function FuelScreen() {
                   <Progress
                     className="h-1.5"
                     value={m.want > 0 ? Math.min(100, (m.got / m.want) * 100) : 0}
-                    aria-label={`${m.label} versus target`}
+                    aria-label={t('fuel.macroVersusTarget', { macro: t(`fuel.macro.${m.key}`) })}
                   />
                 </div>
               ))}
@@ -262,13 +264,10 @@ export function FuelScreen() {
             <span className="bg-accent text-accent-foreground flex h-14 w-14 items-center justify-center rounded-2xl">
               <Scale className="h-7 w-7" />
             </span>
-            <p className="font-semibold">One weigh-in unlocks your targets</p>
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Your daily calorie and protein targets are computed from your weight, activity and
-              goal — log your weight once and the math is yours. You can still log meals below.
-            </p>
+            <p className="font-semibold">{t('fuel.unlock.title')}</p>
+            <p className="text-muted-foreground max-w-sm text-sm">{t('fuel.unlock.body')}</p>
             <Button onClick={() => openWith({ kind: 'body' })}>
-              <Plus className="h-4 w-4" /> Log your weight
+              <Plus className="h-4 w-4" /> {t('fuel.logWeight')}
             </Button>
           </CardContent>
         </Card>
@@ -437,8 +436,8 @@ export function FuelScreen() {
                   ))}
                 </div>
                 <div className="text-muted-foreground mt-2 flex justify-between text-[11px] tabular-nums">
-                  <span>{formatDateLabel(week[0].date)}</span>
-                  <span>Dashed line = {targets.calories} kcal target · red bars went over</span>
+                  <span>{formatDateLabel(week[0].date, locale)}</span>
+                  <span>{t('fuel.chartLegend', { kcal: targets.calories })}</span>
                 </div>
               </>
             ) : (
@@ -454,11 +453,9 @@ export function FuelScreen() {
                 </div>
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                   <Button size="sm" onClick={() => openWith({ kind: 'pro' })}>
-                    <Crown className="h-3.5 w-3.5" /> Unlock adherence trends
+                    <Crown className="h-3.5 w-3.5" /> {t('fuel.adherence.unlock')}
                   </Button>
-                  <p className="text-muted-foreground text-xs">
-                    See whether your week matches your goal
-                  </p>
+                  <p className="text-muted-foreground text-xs">{t('fuel.adherence.hint')}</p>
                 </div>
               </div>
             )}
