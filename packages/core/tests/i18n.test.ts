@@ -176,6 +176,26 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'modal.workout.kcal': 'The unit symbol.',
   'library.sort.az': '“A–Z” is the sorting convention in both languages.',
   'modal.schedule.routine': '“Routine” is the French word too.',
+  // The gym floor is the same word in both languages.
+  'runner.pause': 'Pause.',
+  'runner.stat.calories': 'The unit name.',
+  'runner.stat.distance': 'Distance.',
+  'runner.stat.volume': 'Volume.',
+  'runner.distanceColumn': '“Distance (m)” — the unit symbol carries it.',
+  // Run recorder: units, symbols and words French shares with English.
+  'run.pause': 'Pause.',
+  'run.stat.calories': 'The unit name.',
+  'run.stat.distance': 'Distance.',
+  'run.field.notes': 'Notes.',
+  'run.split.index': '“KM 3” — the unit is the label.',
+  'run.split.partial': 'A bare metre figure.',
+  'run.eyebrow': '“Cardio” — the loanword is the French word here.',
+  'run.tab.records': '“Records” — the loanword is the French word here.',
+  'run.total.distance': 'Distance.',
+  'share.style': '“Style” is the French word too.',
+  'share.format.story': '“Story” is what Instagram calls it in both languages.',
+  'share.style.transparent': '“Transparent” is the French word too.',
+  'share.style.volt': 'Brand name for the dark card style.',
   // Latin-derived statistical nouns French borrowed unchanged; "Calories"
   // would need a locale explanation, the others are simply the same word.
   'progress.stat.calories': 'Calories — the word is the same in French.',

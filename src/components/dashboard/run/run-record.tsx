@@ -40,6 +40,7 @@ const RunMap = dynamic(() => import('./run-map').then((m) => m.RunMap), {
 import { ShareSheet } from '../share-sheet';
 import { StatCard } from '../stat-card';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useAuth } from '@/lib/firebase/auth-context';
 import {
   computeRunStats,
@@ -117,6 +118,7 @@ const BLANK_LIVE: LiveState = {
  *  - crash recovery: an interrupted run is offered back after a reload
  */
 export function RunRecord({ onSaved }: { onSaved?: () => void }) {
+  const { t, locale } = useI18n();
   const { state, addSession, estimateSessionCalories } = useStore();
   const { user } = useAuth();
   const draftOwner = user?.uid ?? null;
@@ -379,9 +381,9 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
 
   const discard = useCallback(async () => {
     const ok = await confirmDialog({
-      title: 'Discard this run?',
-      body: 'The route and every stat from this session will be lost. This cannot be undone.',
-      confirmLabel: 'Discard run',
+      title: t('run.discard.title'),
+      body: t('run.discard.body'),
+      confirmLabel: t('run.discard.confirm'),
       destructive: true,
     });
     if (!ok) return;
@@ -395,7 +397,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     setElapsedSec(0);
     setLaps([]);
     setPhase('idle');
-  }, [confirmDialog, draftOwner, stopWatch]);
+  }, [confirmDialog, draftOwner, stopWatch, t]);
 
   const save = useCallback(async () => {
     if (!summary) return;
@@ -405,7 +407,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
       addSession({
         date: toISODate(new Date(startedAtRef.current ?? Date.now())),
         categoryId: 'cat-cardio',
-        title: title.trim() || 'Run',
+        title: title.trim() || t('run.titleFallback'),
         durationMin,
         intensity,
         calories: estimateSessionCalories(durationMin, intensity),
@@ -417,7 +419,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
         exercises: [],
         notes: notes.trim() || undefined,
       });
-      toast('Run saved to your log');
+      toast(t('run.saved'));
       // Reset the recorder for the next outing.
       setPhase('idle');
       setPoints([]);
@@ -439,6 +441,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     onSaved,
     points,
     summary,
+    t,
     title,
     toast,
   ]);
@@ -521,14 +524,16 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
       {draft && (
         <div className="border-primary/30 bg-primary/5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4">
           <div className="min-w-0">
-            <p className="text-sm font-bold">Unfinished run found</p>
+            <p className="text-sm font-bold">{t('run.draft.found')}</p>
             <p className="text-muted-foreground text-xs">
-              {new Date(draft.startedAt).toLocaleString(undefined, {
+              {new Date(draft.startedAt).toLocaleString(locale === 'fr' ? 'fr-FR' : undefined, {
                 hour: 'numeric',
                 minute: '2-digit',
                 weekday: 'short',
               })}{' '}
-              · {fmtKm(computeRunStats(draft.points).distanceKm)} recorded — nothing was lost.
+              {t('run.draft.recorded', {
+                distance: fmtKm(computeRunStats(draft.points).distanceKm),
+              })}
             </p>
           </div>
           <div className="flex gap-2">
@@ -540,7 +545,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
                 setDraft(null);
               }}
             >
-              Discard
+              {t('run.draft.discard')}
             </Button>
             <Button
               size="sm"
@@ -549,7 +554,7 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
                 beginRecording(draft);
               }}
             >
-              <RotateCcw className="h-4 w-4" aria-hidden /> Resume
+              <RotateCcw className="h-4 w-4" aria-hidden /> {t('run.draft.resume')}
             </Button>
           </div>
         </div>
@@ -630,6 +635,7 @@ function LiveStage({
   onFinish: () => void;
   onDiscard: () => void;
 }) {
+  const { t } = useI18n();
   const [mapDown, setMapDown] = useState(false);
   const km = distanceM / 1000;
   const hasGeo = points.length >= 2 || head !== null;
@@ -695,9 +701,7 @@ function LiveStage({
           <div className="absolute inset-0 grid place-items-center">
             <p className="flex items-center gap-2 text-xs font-bold text-white/60">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--volt)]" aria-hidden />
-              {gps === 'error'
-                ? 'No GPS yet — the map appears with your first fix.'
-                : 'Finding your position — the map appears with your first fix.'}
+              {gps === 'error' ? t('run.gps.error') : t('run.gps.searching')}
             </p>
           </div>
         )}
@@ -769,7 +773,9 @@ function LiveStage({
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
-            <span className="text-xs font-bold">Kilometre {splits.length + 1}</span>
+            <span className="text-xs font-bold">
+              {t('run.kilometre', { number: splits.length + 1 })}
+            </span>
             <span className="text-muted-foreground font-mono text-[11px] tabular-nums">
               {Math.round(currentSplitM)} m · {fmtDuration(Math.round(currentSplitSec))}
             </span>
@@ -780,7 +786,7 @@ function LiveStage({
             aria-valuenow={Math.round(pctToNextKm)}
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-label="Progress to next kilometre"
+            aria-label={t('run.kmProgressAria')}
           >
             <span
               className="block h-full rounded-full bg-[linear-gradient(90deg,var(--primary),var(--chart-1))] transition-all duration-500"
@@ -793,7 +799,7 @@ function LiveStage({
             {fmtPace(currentPace)}
           </span>
           <span className="text-muted-foreground block text-[10px] font-bold uppercase">
-            now /km
+            {t('run.nowPerKm')}
           </span>
         </span>
       </div>
@@ -801,12 +807,20 @@ function LiveStage({
       {/* Six numbers, hairline grid */}
       <div className="bg-card border-border grid grid-cols-3 overflow-hidden rounded-2xl border">
         {[
-          { label: 'Avg pace', value: fmtPace(avgPace), unit: '/km' },
-          { label: 'Distance', value: km.toFixed(2), unit: 'km' },
-          { label: 'Calories', value: `${calories}`, unit: 'kcal' },
-          { label: 'Time', value: fmtDuration(elapsedSec), unit: 'moving+stop' },
-          { label: 'Elevation', value: `${Math.round(elevationGainM)}`, unit: 'm' },
-          { label: 'Stopped', value: fmtDuration(Math.round(stoppedSec)), unit: 'auto+held' },
+          { label: t('run.stat.avgPace'), value: fmtPace(avgPace), unit: '/km' },
+          { label: t('run.stat.distance'), value: km.toFixed(2), unit: 'km' },
+          { label: t('run.stat.calories'), value: `${calories}`, unit: 'kcal' },
+          {
+            label: t('run.stat.time'),
+            value: fmtDuration(elapsedSec),
+            unit: t('run.unit.movingAndStop'),
+          },
+          { label: t('run.stat.elevation'), value: `${Math.round(elevationGainM)}`, unit: 'm' },
+          {
+            label: t('run.stat.stopped'),
+            value: fmtDuration(Math.round(stoppedSec)),
+            unit: t('run.unit.autoAndHeld'),
+          },
         ].map((cell, i) => (
           <div
             key={cell.label}
@@ -829,22 +843,22 @@ function LiveStage({
 
       {/* Three round buttons */}
       <div className="flex items-start justify-center gap-6 py-1 sm:gap-10">
-        <RoundControl label="Lap" onClick={onLap}>
+        <RoundControl label={t('run.lap')} onClick={onLap}>
           <Flag className="h-5 w-5" aria-hidden />
         </RoundControl>
-        <RoundControl label={held ? 'Resume' : 'Pause'} onClick={onHold} big>
+        <RoundControl label={held ? t('run.resume') : t('run.pause')} onClick={onHold} big>
           {held ? (
             <Play className="h-8 w-8 fill-current" aria-hidden />
           ) : (
             <Pause className="h-8 w-8 fill-current" aria-hidden />
           )}
         </RoundControl>
-        <RoundControl label="Finish" onClick={onFinish}>
+        <RoundControl label={t('run.finish')} onClick={onFinish}>
           <Square className="h-5 w-5 fill-current" aria-hidden />
         </RoundControl>
       </div>
       <p className="text-muted-foreground -mt-2 text-center text-[11px] font-medium">
-        Auto-pause stops the clock whenever you stop moving. Pause stops it whenever you want.
+        {t('run.autopauseHint')}
       </p>
 
       {/* Splits, as a strip */}
@@ -856,7 +870,7 @@ function LiveStage({
               className="bg-card border-border flex shrink-0 items-baseline gap-2 rounded-xl border px-3 py-2"
             >
               <span className="text-[10px] font-bold tracking-wide uppercase">
-                KM {split.index}
+                {t('run.split.index', { index: split.index })}
               </span>
               <span className="font-mono text-sm font-extrabold tabular-nums">
                 {fmtDuration(split.durationSec)}
@@ -876,7 +890,7 @@ function LiveStage({
           onClick={onDiscard}
           className="text-destructive hover:text-destructive"
         >
-          <Trash2 className="h-4 w-4" aria-hidden /> Discard run
+          <Trash2 className="h-4 w-4" aria-hidden /> {t('run.discard.confirm')}
         </Button>
       </div>
     </div>
@@ -955,6 +969,7 @@ function RunSummary({
   onCloseShare: () => void;
   watermark: boolean;
 }) {
+  const { t, locale } = useI18n();
   const achievements = useMemo(
     () =>
       runAchievements(
@@ -974,7 +989,7 @@ function RunSummary({
         />
         <div className="relative flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="hero-muted eyebrow">Run complete</p>
+            <p className="hero-muted eyebrow">{t('run.complete')}</p>
             <div className="mt-2 flex items-end gap-3">
               <span className="font-mono text-5xl leading-none font-extrabold tabular-nums sm:text-6xl">
                 {stats.distanceKm.toFixed(2)}
@@ -984,7 +999,7 @@ function RunSummary({
             <div className="mt-3 flex flex-wrap gap-4 text-sm text-white/80">
               <span className="flex items-center gap-1.5">
                 <Timer className="h-4 w-4" aria-hidden />
-                <b className="text-white">{fmtDuration(stats.movingSec)}</b> moving
+                <b className="text-white">{fmtDuration(stats.movingSec)}</b> {t('run.moving')}
               </span>
               <span className="flex items-center gap-1.5">
                 <Gauge className="h-4 w-4" aria-hidden />
@@ -992,13 +1007,13 @@ function RunSummary({
               </span>
               <span className="flex items-center gap-1.5">
                 <Mountain className="h-4 w-4" aria-hidden />
-                <b className="text-white">{stats.elevationGainM}</b> m climb
+                <b className="text-white">{stats.elevationGainM}</b> {t('run.climb')}
               </span>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={onShare} className="gap-2">
-              <Share2 className="h-4 w-4" aria-hidden /> Share
+              <Share2 className="h-4 w-4" aria-hidden /> {t('run.share')}
             </Button>
           </div>
         </div>
@@ -1018,20 +1033,33 @@ function RunSummary({
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard icon={Timer} label="Elapsed" value={fmtDuration(stats.elapsedSec)} />
+        <StatCard
+          icon={Timer}
+          label={t('run.stat.elapsed')}
+          value={fmtDuration(stats.elapsedSec)}
+        />
         <StatCard
           icon={Pause}
-          label="Stopped"
+          label={t('run.stat.stopped')}
           value={fmtDuration(Math.max(0, stats.elapsedSec - stats.movingSec))}
-          sub="Auto-paused"
+          sub={t('run.stat.autoPaused')}
         />
-        <StatCard icon={Gauge} label="Best pace" value={`${fmtPace(stats.bestPaceMinPerKm)}`} />
-        <StatCard icon={Activity} label="Laps" value={laps.length} sub="Tapped manually" />
+        <StatCard
+          icon={Gauge}
+          label={t('run.stat.bestPace')}
+          value={`${fmtPace(stats.bestPaceMinPerKm)}`}
+        />
+        <StatCard
+          icon={Activity}
+          label={t('run.stat.laps')}
+          value={laps.length}
+          sub={t('run.stat.tappedManually')}
+        />
       </div>
 
       {points.length >= 2 && (
         <div className="border-border bg-card rounded-3xl border p-4 shadow-sm sm:p-5">
-          <p className="eyebrow text-muted-foreground mb-3">Route</p>
+          <p className="eyebrow text-muted-foreground mb-3">{t('run.route')}</p>
           <div className="relative h-64 w-full overflow-hidden rounded-2xl">
             <RouteMap
               route={points}
@@ -1047,9 +1075,9 @@ function RunSummary({
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="border-border bg-card rounded-3xl border p-4 shadow-sm sm:p-5">
           <div className="flex items-center justify-between">
-            <p className="eyebrow text-muted-foreground">Splits</p>
+            <p className="eyebrow text-muted-foreground">{t('run.splits')}</p>
             <span className="text-muted-foreground text-xs tabular-nums">
-              {stats.splits.length} km total
+              {t('run.splits.total', { count: stats.splits.length })}
             </span>
           </div>
           <ul className="mt-3 grid gap-2">
@@ -1058,8 +1086,8 @@ function RunSummary({
                 <div className="flex items-center justify-between text-xs font-semibold">
                   <span className="tabular-nums">
                     {split.partial
-                      ? `${(split.distanceKm * 1000).toFixed(0)} m`
-                      : `KM ${split.index}`}
+                      ? t('run.split.partial', { metres: (split.distanceKm * 1000).toFixed(0) })
+                      : t('run.split.index', { index: split.index })}
                   </span>
                   <span className="text-muted-foreground tabular-nums">
                     {fmtDuration(split.durationSec)} · {fmtPace(split.paceMinPerKm)} /km
@@ -1082,7 +1110,7 @@ function RunSummary({
         <div className="grid content-start gap-4">
           {stats.bestEfforts.length > 0 && (
             <div className="border-border bg-card rounded-3xl border p-4 shadow-sm sm:p-5">
-              <p className="eyebrow text-muted-foreground">Best efforts</p>
+              <p className="eyebrow text-muted-foreground">{t('run.bestEfforts')}</p>
               <ul className="mt-3 grid gap-2">
                 {stats.bestEfforts.map((effort) => (
                   <li key={effort.label} className="flex items-center justify-between text-sm">
@@ -1098,27 +1126,27 @@ function RunSummary({
           )}
 
           <div className="border-border bg-card grid gap-4 rounded-3xl border p-4 shadow-sm sm:p-5">
-            <Field id="run-title" label="Title">
+            <Field id="run-title" label={t('run.field.title')}>
               <Input
                 value={title}
                 maxLength={120}
                 onChange={(e) => onTitle(e.target.value)}
-                placeholder="Morning run"
+                placeholder={t('run.field.titlePlaceholder')}
               />
             </Field>
-            <Field id="run-intensity" label="Effort">
+            <Field id="run-intensity" label={t('run.field.effort')}>
               <Select value={intensity} onChange={(e) => onIntensity(e.target.value as Intensity)}>
-                <option value="low">Easy</option>
-                <option value="moderate">Steady</option>
-                <option value="high">Hard</option>
+                <option value="low">{t('runner.intensity.easy')}</option>
+                <option value="moderate">{t('runner.intensity.steady')}</option>
+                <option value="high">{t('runner.intensity.hard')}</option>
               </Select>
             </Field>
-            <Field id="run-notes" label="Notes" hint="How did it feel? (optional)">
+            <Field id="run-notes" label={t('run.field.notes')} hint={t('run.field.notesHint')}>
               <Input
                 value={notes}
                 maxLength={2000}
                 onChange={(e) => onNotes(e.target.value)}
-                placeholder="Legs felt strong…"
+                placeholder={t('run.field.notesPlaceholder')}
               />
             </Field>
           </div>
@@ -1132,17 +1160,17 @@ function RunSummary({
           ) : (
             <Check className="h-4 w-4" aria-hidden />
           )}
-          Save run
+          {t('run.save')}
         </Button>
         <Button variant="outline" onClick={onShare} className="h-12">
-          <Share2 className="h-4 w-4" aria-hidden /> Share card
+          <Share2 className="h-4 w-4" aria-hidden /> {t('run.shareCard')}
         </Button>
         <Button
           variant="ghost"
           onClick={onDiscard}
           className="text-destructive hover:text-destructive h-12"
         >
-          <Trash2 className="h-4 w-4" aria-hidden /> Discard
+          <Trash2 className="h-4 w-4" aria-hidden /> {t('run.discard')}
         </Button>
       </div>
 
@@ -1154,7 +1182,7 @@ function RunSummary({
         routeAvailable={points.length >= 2}
         data={{
           title: title.trim() || 'Run',
-          dateLabel: new Date().toLocaleDateString(undefined, {
+          dateLabel: new Date().toLocaleDateString(locale === 'fr' ? 'fr-FR' : undefined, {
             month: 'short',
             day: 'numeric',
             year: 'numeric',

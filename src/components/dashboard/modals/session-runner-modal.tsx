@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals } from '../modal-context';
 import { useToast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
@@ -139,6 +140,7 @@ interface LiveExercise {
  *  - a finish summary with tonnage, heaviest set and PRs before you save
  */
 export function SessionRunnerModal() {
+  const { t } = useI18n();
   const { state, addSession, estimateSessionCalories } = useStore();
   const { open, payload, closeModal } = useModals();
   const toast = useToast();
@@ -227,9 +229,9 @@ export function SessionRunnerModal() {
         blob,
         `smartfit-workout-${toISODate(new Date())}.png`,
       );
-      toast(result === 'shared' ? 'Workout shared' : 'Workout card saved to downloads');
+      toast(result === 'shared' ? t('runner.cardShared') : t('runner.cardSaved'));
     } catch {
-      toast('Could not render the workout card', 'info');
+      toast(t('runner.cardFailed'), 'info');
     }
   }
 
@@ -326,7 +328,7 @@ export function SessionRunnerModal() {
     setRestTotal(suggestedRestSeconds(run.intensity));
     setRestLeft(suggestedRestSeconds(run.intensity));
     if (pr) {
-      toast(`New PR on ${ex.name}!`, 'success');
+      toast(t('runner.newPR', { name: ex.name }), 'success');
       buzz([80, 40, 80, 40, 200]);
     } else {
       buzz(60);
@@ -389,7 +391,7 @@ export function SessionRunnerModal() {
       className="session-shell fixed inset-0 z-50 flex flex-col overflow-hidden"
       role="dialog"
       aria-modal="true"
-      aria-label={`Live session: ${run.title}`}
+      aria-label={t('runner.liveSession', { title: run.title })}
     >
       {celebrate && (
         <ProgressAchievementModal
@@ -400,8 +402,8 @@ export function SessionRunnerModal() {
             closeModal();
             toast(
               celebrate.prCount > 0
-                ? `Session logged — ${celebrate.prCount} PR${celebrate.prCount === 1 ? '' : 's'}!`
-                : `Session logged — keep the streak alive!`,
+                ? t('runner.loggedPR', { count: celebrate.prCount })
+                : t('runner.logged'),
               'success',
             );
           }}
@@ -411,7 +413,7 @@ export function SessionRunnerModal() {
       <header className="relative flex items-center gap-2 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3 min-[380px]:gap-3">
         <button
           onClick={closeModal}
-          aria-label="Close session"
+          aria-label={t('runner.close')}
           className="glass press flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
         >
           <X className="h-5 w-5" aria-hidden />
@@ -419,7 +421,7 @@ export function SessionRunnerModal() {
         <div className="min-w-0 flex-1">
           <p className="truncate text-base leading-tight font-extrabold">{run.title}</p>
           <p className="session-muted text-xs">
-            {category?.name ?? 'Session'} ·{' '}
+            {category?.name ?? t('runner.sessionFallback')} ·{' '}
             {exercises.filter((x) => x.sets.some((s) => s.done)).length} of {exercises.length}{' '}
             exercises
           </p>
@@ -428,7 +430,7 @@ export function SessionRunnerModal() {
         <div className="shrink-0 text-right">
           <p
             className="font-display text-xl leading-none font-extrabold tabular-nums"
-            aria-label="Elapsed time"
+            aria-label={t('runner.elapsed')}
           >
             {clock(seconds)}
           </p>
@@ -442,7 +444,7 @@ export function SessionRunnerModal() {
             ) : (
               <Play className="h-3 w-3" aria-hidden />
             )}
-            {running ? 'Pause' : seconds > 0 ? 'Resume' : 'Start'}
+            {running ? t('runner.pause') : seconds > 0 ? t('runner.resume') : t('runner.start')}
           </button>
         </div>
       </header>
@@ -542,6 +544,7 @@ interface LiveProps {
 }
 
 function LiveScreen(p: LiveProps) {
+  const { t } = useI18n();
   const unit = p.state.profile.weightUnit;
   const last = useMemo(
     () => (p.active ? lastPerformance(p.state, p.active.name) : null),
@@ -611,7 +614,10 @@ function LiveScreen(p: LiveProps) {
                   aria-valuemin={1}
                   aria-valuemax={p.exercises.length}
                   aria-valuenow={p.activeIndex + 1}
-                  aria-label={`Exercise ${p.activeIndex + 1} of ${p.exercises.length}`}
+                  aria-label={t('runner.progress', {
+                    index: p.activeIndex + 1,
+                    total: p.exercises.length,
+                  })}
                 >
                   {p.exercises.map((x, i) => {
                     const complete = x.sets.length > 0 && x.sets.every((st) => st.done);
@@ -644,11 +650,13 @@ function LiveScreen(p: LiveProps) {
                     <span className="inline-flex items-center gap-1.5">
                       <History className="h-3.5 w-3.5" aria-hidden />
                       {isDistance
-                        ? `Last: ${formatSet(last.sets[0])}`
-                        : `Last: ${last.bestReps} × ${formatWeight(last.bestWeight, unit)}`}
+                        ? t('runner.last', { detail: formatSet(last.sets[0]) })
+                        : t('runner.last', {
+                            detail: `${last.bestReps} × ${formatWeight(last.bestWeight, unit)}`,
+                          })}
                     </span>
                   ) : (
-                    <span>First time logging this one.</span>
+                    <span>{t('runner.firstTime')}</span>
                   )}
                   {target && target.kind !== 'repeat' && (
                     <span
@@ -656,7 +664,9 @@ function LiveScreen(p: LiveProps) {
                       style={{ color: 'var(--volt-soft)' }}
                     >
                       <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                      <span className="truncate">Pro target · {target.rationale}</span>
+                      <span className="truncate">
+                        {t('runner.proTarget', { rationale: target.rationale })}
+                      </span>
                     </span>
                   )}
                 </p>
@@ -668,7 +678,7 @@ function LiveScreen(p: LiveProps) {
                 the hero rather than floating mid-screen. */}
             <div className="-mt-1 flex items-center justify-between gap-2 min-[380px]:gap-3">
               <SetStepper
-                label={isDistance ? ' reps ' : 'Reps'}
+                label={t('runner.reps')}
                 value={currentSet?.reps || ''}
                 step={1}
                 onMinus={() => bump('reps', -1)}
@@ -688,7 +698,7 @@ function LiveScreen(p: LiveProps) {
               />
               {isDistance ? (
                 <SetStepper
-                  label="Metres"
+                  label={t('runner.metres')}
                   value={currentSet?.distanceM || ''}
                   step={50}
                   onMinus={() => bump('distanceM', -50)}
@@ -696,7 +706,7 @@ function LiveScreen(p: LiveProps) {
                 />
               ) : (
                 <SetStepper
-                  label={`Weight (${unit})`}
+                  label={t('runner.weightOf', { unit })}
                   value={currentSet?.weight || ''}
                   step={2.5}
                   onMinus={() => bump('weight', -2.5)}
@@ -709,10 +719,11 @@ function LiveScreen(p: LiveProps) {
             {currentSet && !currentSet.done ? (
               <button
                 onClick={() => p.completeSet(p.active!, currentSet)}
-                aria-label={`Complete set ${currentNo}`}
+                aria-label={t('runner.completeSetAria', { number: currentNo })}
                 className="press btn-volt mt-5 flex h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-extrabold"
               >
-                <Check className="h-5 w-5" strokeWidth={3} aria-hidden /> Complete set {currentNo}
+                <Check className="h-5 w-5" strokeWidth={3} aria-hidden />{' '}
+                {t('runner.completeSet', { number: currentNo })}
               </button>
             ) : (
               <div className={cn('mt-5 grid gap-2', !nextExercise && 'grid-cols-2')}>
@@ -721,7 +732,7 @@ function LiveScreen(p: LiveProps) {
                   className="press session-tile flex h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-2 text-sm font-bold"
                 >
                   <Plus className="h-4 w-4 shrink-0" aria-hidden />
-                  <span className="truncate">Add set</span>
+                  <span className="truncate">{t('runner.addSet')}</span>
                 </button>
                 {!nextExercise && (
                   <button
@@ -729,7 +740,7 @@ function LiveScreen(p: LiveProps) {
                     className="press flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
                     style={{ background: 'rgba(138,210,0,0.14)', color: 'var(--volt-soft)' }}
                   >
-                    <Flag className="h-4 w-4" aria-hidden /> Wrap up
+                    <Flag className="h-4 w-4" aria-hidden /> {t('runner.wrapUp')}
                   </button>
                 )}
               </div>
@@ -741,22 +752,22 @@ function LiveScreen(p: LiveProps) {
                   navigator is a next-up preview rather than a pill queue. */}
               <div className="mb-2 flex items-center justify-between gap-2">
                 <p className="text-[11px] font-bold tracking-[0.16em] text-[rgba(237,235,230,0.55)] uppercase">
-                  Sets
+                  {t('runner.sets')}
                 </p>
                 <button
                   onClick={() => p.removeExercise(p.active!.id)}
-                  aria-label={`Remove ${p.active.name} from this session`}
+                  aria-label={t('runner.removeExercise', { name: p.active.name })}
                   className="press session-muted flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold transition-colors hover:bg-white/10"
                 >
                   <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                  Remove
+                  {t('runner.remove')}
                 </button>
               </div>
               <div className="mb-2 grid grid-cols-[1.5rem_1fr_1fr_2.75rem] gap-2 text-[10px] font-bold tracking-wide text-[rgba(237,235,230,0.55)] uppercase min-[380px]:grid-cols-[2rem_1fr_1fr_3rem]">
-                <span>Set</span>
-                <span className="text-center">Reps</span>
+                <span>{t('runner.setColumn')}</span>
+                <span className="text-center">{t('runner.reps')}</span>
                 <span className="text-center">
-                  {isDistance ? 'Distance (m)' : `Weight (${unit})`}
+                  {isDistance ? t('runner.distanceColumn') : t('runner.weightOf', { unit })}
                 </span>
                 <span className="text-center">✓</span>
               </div>
@@ -785,7 +796,7 @@ function LiveScreen(p: LiveProps) {
                           p.setRep(p.active!.id, s.id, 'reps', e.target.value.replace(/[^\d]/g, ''))
                         }
                         placeholder="8"
-                        aria-label={`Reps, set ${idx + 1}`}
+                        aria-label={t('runner.repsAria', { number: idx + 1 })}
                         className="session-input h-11 w-full text-base"
                       />
                       {isDistance ? (
@@ -801,7 +812,7 @@ function LiveScreen(p: LiveProps) {
                             )
                           }
                           placeholder="400"
-                          aria-label={`Distance in metres, set ${idx + 1}`}
+                          aria-label={t('runner.distanceAria', { number: idx + 1 })}
                           className="session-input h-11 w-full text-base"
                         />
                       ) : (
@@ -817,7 +828,7 @@ function LiveScreen(p: LiveProps) {
                             )
                           }
                           placeholder="60"
-                          aria-label={`Weight, set ${idx + 1}`}
+                          aria-label={t('runner.weightAria', { number: idx + 1 })}
                           className="session-input h-11 w-full text-base"
                         />
                       )}
@@ -827,14 +838,17 @@ function LiveScreen(p: LiveProps) {
                           style={{ color: s.isPR ? 'var(--chart-1)' : 'var(--volt)' }}
                         >
                           {s.isPR && (
-                            <Trophy className="h-3.5 w-3.5" aria-label="Personal record" />
+                            <Trophy
+                              className="h-3.5 w-3.5"
+                              aria-label={t('runner.personalRecord')}
+                            />
                           )}
                           <Check className="h-4 w-4" aria-hidden />
                         </span>
                       ) : (
                         <button
                           onClick={() => p.completeSet(p.active!, s)}
-                          aria-label={`Complete set ${idx + 1}`}
+                          aria-label={t('runner.completeSetAria', { number: idx + 1 })}
                           className="press mx-auto flex h-11 w-11 items-center justify-center rounded-full"
                           style={{ background: 'var(--chart-1)' }}
                         >
@@ -849,16 +863,16 @@ function LiveScreen(p: LiveProps) {
                       <div className="col-span-4 grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
                         <Select
                           value={s.kind}
-                          aria-label={`Set type, set ${idx + 1}`}
+                          aria-label={t('runner.setTypeAria', { number: idx + 1 })}
                           onChange={(e) =>
                             p.setKind(p.active!.id, s.id, e.target.value as WorkoutSetKind)
                           }
                           className="session-select h-10 w-full text-xs sm:h-10"
                         >
-                          <option value="working">Working set</option>
-                          <option value="warmup">Warm-up</option>
-                          <option value="drop">Drop set</option>
-                          <option value="failure">Failure set</option>
+                          <option value="working">{t('runner.kind.working')}</option>
+                          <option value="warmup">{t('runner.kind.warmup')}</option>
+                          <option value="drop">{t('runner.kind.drop')}</option>
+                          <option value="failure">{t('runner.kind.failure')}</option>
                         </Select>
                         <input
                           type="number"
@@ -874,8 +888,8 @@ function LiveScreen(p: LiveProps) {
                               e.target.value.replace(/[^\d]/g, '').slice(0, 2),
                             )
                           }
-                          placeholder="RPE (optional)"
-                          aria-label={`RPE 1 to 10, set ${idx + 1}`}
+                          placeholder={t('runner.rpePlaceholder')}
+                          aria-label={t('runner.rpeAria', { number: idx + 1 })}
                           className="session-input h-9 w-full text-xs"
                         />
                       </div>
@@ -898,8 +912,8 @@ function LiveScreen(p: LiveProps) {
                   <ExercisePicker
                     value={p.draft}
                     onChange={p.setDraft}
-                    placeholder="Add an exercise (e.g. Bench press)"
-                    ariaLabel="Add exercise"
+                    placeholder={t('runner.addExercisePlaceholder')}
+                    ariaLabel={t('runner.addExercise')}
                   />
                   <div className="mt-2 flex gap-2">
                     <button
@@ -942,7 +956,7 @@ function LiveScreen(p: LiveProps) {
             className="press btn-volt flex h-13 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-extrabold min-[380px]:h-14 min-[380px]:text-base"
           >
             <Flag className="h-5 w-5 shrink-0" aria-hidden />
-            <span className="truncate">Finish session</span>
+            <span className="truncate">{t('runner.finish')}</span>
           </button>
         </div>
       </div>
@@ -963,7 +977,7 @@ function LiveScreen(p: LiveProps) {
             />
             <div className="min-w-0 flex-1">
               <p className="session-muted text-[10px] font-bold tracking-[0.16em] uppercase">
-                {nextExercise ? 'Next up' : 'Last exercise'}
+                {nextExercise ? t('runner.nextUp') : t('runner.lastExercise')}
               </p>
               <p className="truncate text-sm leading-tight font-bold">
                 {(nextExercise ?? p.active).name}
@@ -973,7 +987,7 @@ function LiveScreen(p: LiveProps) {
               <button
                 onClick={() => p.setActiveIndex(p.activeIndex - 1)}
                 disabled={p.activeIndex === 0}
-                aria-label="Previous exercise"
+                aria-label={t('runner.previousExercise')}
                 className="press grid h-9 w-9 place-items-center rounded-full bg-white/8 text-[rgba(237,235,230,0.75)] transition-colors hover:bg-white/15 disabled:opacity-35"
               >
                 <ChevronsLeft className="h-4 w-4" aria-hidden />
@@ -981,10 +995,10 @@ function LiveScreen(p: LiveProps) {
               <button
                 onClick={() => p.setActiveIndex(p.activeIndex + 1)}
                 disabled={!nextExercise}
-                aria-label="Next exercise"
+                aria-label={t('runner.nextExercise')}
                 className="press btn-volt flex h-9 items-center gap-1 rounded-full pr-2.5 pl-3.5 text-sm font-extrabold transition-transform hover:-translate-y-0.5 disabled:opacity-35 disabled:hover:translate-y-0"
               >
-                Next
+                {t('runner.next')}
                 <ChevronsRight className="h-4 w-4" aria-hidden />
               </button>
             </div>
@@ -1010,6 +1024,7 @@ function SetStepper({
   onMinus: () => void;
   onPlus: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex min-w-0 shrink flex-col items-center gap-2">
       {/* The reference's stepper: one large flat circle with a thin plus,
@@ -1018,7 +1033,7 @@ function SetStepper({
       <button
         type="button"
         onClick={onPlus}
-        aria-label={`Increase ${label.trim()} by ${step}`}
+        aria-label={t('runner.increase', { label: label.trim(), step })}
         className="press grid h-16 w-16 place-items-center rounded-full bg-[var(--ink-button)] text-[var(--ink-paper)] transition-colors hover:bg-[var(--ink-button-hover)] min-[380px]:h-[4.5rem] min-[380px]:w-[4.5rem]"
       >
         <Plus className="h-6 w-6" strokeWidth={2} aria-hidden />
@@ -1032,7 +1047,7 @@ function SetStepper({
             <button
               type="button"
               onClick={onMinus}
-              aria-label={`Decrease ${label.trim()} by ${step}`}
+              aria-label={t('runner.decrease', { label: label.trim(), step })}
               className="press session-muted grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/8"
             >
               <Minus className="h-3 w-3" aria-hidden />
@@ -1066,6 +1081,7 @@ function RingTimer({
   onSkip: () => void;
   onAdd: () => void;
 }) {
+  const { t } = useI18n();
   // Gradient ids must be unique per instance or a second ring would reuse
   // the first one's defs.
   const gradId = useId();
@@ -1087,7 +1103,7 @@ function RingTimer({
       <button
         type="button"
         onClick={onToggle}
-        aria-label={running ? 'Pause session clock' : 'Resume session clock'}
+        aria-label={running ? t('runner.pauseClock') : t('runner.resumeClock')}
         className="press relative grid h-[clamp(7.5rem,34vw,168px)] w-[clamp(7.5rem,34vw,168px)] place-items-center rounded-full"
       >
         <svg
@@ -1140,7 +1156,11 @@ function RingTimer({
         </svg>
         <span className="relative grid place-items-center gap-0.5">
           <span className="session-muted text-[9px] font-bold tracking-[0.2em] uppercase">
-            {resting ? 'Rest' : running ? 'Session' : 'Paused'}
+            {resting
+              ? t('runner.clock.rest')
+              : running
+                ? t('runner.clock.session')
+                : t('runner.clock.paused')}
           </span>
           <span
             className={cn(
@@ -1192,6 +1212,7 @@ function RingTimer({
  * below still takes anything.
  */
 function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: string) => void }) {
+  const { t } = useI18n();
   const suggestions = useMemo(() => suggestedExercisesForCategory(categoryId, 6), [categoryId]);
   return (
     <div className="flex h-full flex-col gap-4">
@@ -1199,11 +1220,8 @@ function EmptyRunner({ categoryId, onAdd }: { categoryId: string; onAdd: (name: 
         <span className="session-tile flex h-14 w-14 items-center justify-center rounded-2xl">
           <Dumbbell className="h-6 w-6 text-[rgba(237,235,230,0.7)]" aria-hidden />
         </span>
-        <p className="text-sm font-bold">No exercises yet</p>
-        <p className="session-muted max-w-[18rem] text-xs">
-          Tap a suggestion to build your session, or add any lift below — SmartFit pre-fills your
-          last numbers.
-        </p>
+        <p className="text-sm font-bold">{t('runner.noExercises')}</p>
+        <p className="session-muted max-w-[18rem] text-xs">{t('runner.noExercisesBody')}</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5">
@@ -1247,11 +1265,12 @@ function SummaryScreen({
   onSave: () => void;
   onBack: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         <div className="pro-surface sheen relative rounded-3xl p-4 text-center min-[380px]:p-5">
-          <p className="eyebrow pro-muted">Session complete</p>
+          <p className="eyebrow pro-muted">{t('runner.complete')}</p>
           <p className="font-display mt-1 text-4xl font-extrabold tabular-nums">{durationMin}m</p>
           {summary.personalRecords.length > 0 && (
             <div
@@ -1259,25 +1278,36 @@ function SummaryScreen({
               style={{ background: 'rgba(138,210,0,0.15)', color: 'var(--volt-soft)' }}
             >
               <Sparkles className="h-4 w-4" aria-hidden />
-              {summary.personalRecords.length} personal record
-              {summary.personalRecords.length === 1 ? '' : 's'}!
+              {t('runner.prCount', { count: summary.personalRecords.length })}
             </div>
           )}
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2 min-[380px]:gap-3">
-          <StatTile icon={Dumbbell} label="Sets" value={`${summary.sets}`} />
+          <StatTile icon={Dumbbell} label={t('runner.stat.sets')} value={`${summary.sets}`} />
           {summary.distance > 0 && summary.volume === 0 ? (
-            <StatTile icon={Flame} label="Distance" value={formatSetDistance(summary.distance)} />
+            <StatTile
+              icon={Flame}
+              label={t('runner.stat.distance')}
+              value={formatSetDistance(summary.distance)}
+            />
           ) : (
             <StatTile
               icon={Flame}
-              label="Volume"
+              label={t('runner.stat.volume')}
               value={formatVolume(summary.volume, weightUnit)}
             />
           )}
-          <StatTile icon={Timer} label="Exercises" value={`${summary.exercises}`} />
-          <StatTile icon={Flame} label="Calories" value={`${summary.calories} kcal`} />
+          <StatTile
+            icon={Timer}
+            label={t('runner.stat.exercises')}
+            value={`${summary.exercises}`}
+          />
+          <StatTile
+            icon={Flame}
+            label={t('runner.stat.calories')}
+            value={`${summary.calories} kcal`}
+          />
         </div>
 
         {summary.personalRecords.length > 0 && (
@@ -1286,7 +1316,7 @@ function SummaryScreen({
               className="flex items-center gap-1.5 text-sm font-bold"
               style={{ color: 'var(--volt-soft)' }}
             >
-              <Trophy className="h-4 w-4" aria-hidden /> New records
+              <Trophy className="h-4 w-4" aria-hidden /> {t('runner.newRecords')}
             </p>
             <ul className="mt-2 grid gap-1.5">
               {summary.personalRecords.map((name) => (
