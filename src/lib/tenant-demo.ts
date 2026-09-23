@@ -23,12 +23,20 @@ import type {
 const DAY = 86_400_000;
 const now = Date.now();
 
-/** Next occurrence of a weekday at HH:MM — same helper the seed script uses. */
+/**
+ * Next occurrence of a weekday at HH:MM — same helper the seed script uses.
+ *
+ * "Next" has to mean the future. On the slot's own weekday, once the start
+ * time has passed, today's occurrence is in the past: the timetable (which
+ * lists what is still ahead) dropped it, so the demo gym lost its Wednesday
+ * class every Wednesday evening. Roll forward a week instead.
+ */
 function nextSlot(weekday: number, hhmm: string): number {
   const [h, m] = hhmm.split(':').map(Number);
   const d = new Date();
   d.setHours(h, m, 0, 0);
   d.setDate(d.getDate() + ((weekday - d.getDay() + 7) % 7));
+  if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 7);
   return d.getTime();
 }
 

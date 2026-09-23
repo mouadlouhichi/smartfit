@@ -855,7 +855,7 @@ export function ProfileScreen() {
               <span className="bg-chart-3/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
                 <Trophy className="h-4.5 w-4.5" aria-hidden />
               </span>
-              {t('profile.tab.badges')}
+              {t('profile.badges.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
