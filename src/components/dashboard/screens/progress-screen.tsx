@@ -25,6 +25,8 @@ import { Ring } from '../ring';
 import { EmptyState } from '../empty-state';
 import { ConsistencyHeatmap } from '../consistency-heatmap';
 import { AchievementWall } from '../achievement-wall';
+import { CheckInCard, CheckInHistory } from '../checkin-card';
+import { XpCard } from '../xp-card';
 import { cn } from '@/lib/utils';
 import { GradeRing } from '@/components/volt/volt-kit';
 import { INTENSITY_META } from '@smartfit/core';
@@ -46,6 +48,8 @@ import {
   personalRecords,
   computeAchievements,
   muscleVolume,
+  pendingCheckIn,
+  xpSummary,
 } from '@smartfit/core';
 import { useModals } from '../modal-context';
 import { MiniRings } from '../mini-rings';
@@ -147,6 +151,11 @@ export function ProgressScreen() {
   const records = useMemo(() => personalRecords(state), [state]);
   const achievements = useMemo(() => computeAchievements(state), [state]);
   const muscles = useMemo(() => muscleVolume(state, days), [state, days]);
+
+  // XP is derived from the log like achievements, so it costs a render and
+  // needs no migration — and a week rolling over can never demote anyone.
+  const xp = useMemo(() => xpSummary(state), [state]);
+  const checkIn = useMemo(() => pendingCheckIn(state), [state]);
 
   // Targets come from the user's goals (falling back to their plan) — the same
   // source the overview uses. Calories and distance rings only fill when the
@@ -289,6 +298,11 @@ export function ProgressScreen() {
           </p>
         )}
       </section>
+
+      {/* ── Level + XP ────────────────────────────────────────────────────
+          Either the weekly check-in owns the block (it embeds the XP card and
+          is the more useful thing to see first), or the card stands alone. */}
+      {checkIn ? <CheckInCard review={checkIn.review} xp={xp} /> : <XpCard summary={xp} />}
 
       {/* ── Stat tiles with deltas vs the previous window ────────────────── */}
       <div className="grid grid-cols-2 gap-3">
@@ -557,6 +571,9 @@ export function ProgressScreen() {
         </p>
         <AchievementWall achievements={achievements} />
       </Card>
+
+      {/* ── Past check-ins (the history behind the weekly streak) ────── */}
+      <CheckInHistory />
 
       {/* ── Muscle-group volume ──────────────────────────────────────── */}
       {muscles.length > 0 && (

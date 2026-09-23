@@ -6,6 +6,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import { ClipboardList, CalendarCheck, Footprints, Zap, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useModals } from './modal-context';
+import { useI18n } from '@/lib/i18n-context';
 
 /** Brand target mark — the ringed-dot icon used on the Dashboard tab. */
 function TargetMark({ className }: { className?: string }) {
@@ -23,19 +24,46 @@ type TabId = 'dashboard' | 'progress' | 'run' | 'training' | 'profile';
 interface Tab {
   id: TabId;
   href: string;
+  /** English label — the accessible-name fallback and the e2e anchor. */
   label: string;
+  /** Catalog key for the rendered label. */
+  labelKey: string;
   Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
 }
 
 // Left pair (before the bolt) and right pair (after it).
 const LEFT_TABS: Tab[] = [
-  { id: 'dashboard', href: '/dashboard', label: 'Dashboard', Icon: TargetMark },
-  { id: 'progress', href: '/dashboard/progress', label: 'Progress', Icon: ClipboardList },
+  {
+    id: 'dashboard',
+    href: '/dashboard',
+    label: 'Dashboard',
+    labelKey: 'nav.dashboard',
+    Icon: TargetMark,
+  },
+  {
+    id: 'progress',
+    href: '/dashboard/progress',
+    label: 'Progress',
+    labelKey: 'nav.short.progress',
+    Icon: ClipboardList,
+  },
 ];
 const RIGHT_TABS: Tab[] = [
-  { id: 'run', href: '/dashboard/run', label: 'Run', Icon: Footprints },
-  { id: 'training', href: '/dashboard/plan', label: 'Training', Icon: CalendarCheck },
-  { id: 'profile', href: '/dashboard/profile', label: 'Profile', Icon: UserRound },
+  { id: 'run', href: '/dashboard/run', label: 'Run', labelKey: 'nav.run', Icon: Footprints },
+  {
+    id: 'training',
+    href: '/dashboard/plan',
+    label: 'Training',
+    labelKey: 'nav.short.plan',
+    Icon: CalendarCheck,
+  },
+  {
+    id: 'profile',
+    href: '/dashboard/profile',
+    label: 'Profile',
+    labelKey: 'nav.short.profile',
+    Icon: UserRound,
+  },
 ];
 
 function activeIdFor(pathname: string): TabId | null {
@@ -68,6 +96,7 @@ interface PillRect {
 export function MobileNav() {
   const pathname = usePathname();
   const { openModal } = useModals();
+  const { t } = useI18n();
   const onCoach = pathname.startsWith('/dashboard/coach');
 
   const navRef = useRef<HTMLElement | null>(null);
@@ -133,7 +162,7 @@ export function MobileNav() {
         }}
         href={tab.href}
         data-nav-item={tab.id}
-        aria-label={tab.label}
+        aria-label={t(tab.labelKey) || tab.label}
         aria-current={isActive ? 'page' : undefined}
         className={cn(
           'relative z-10 flex items-center justify-center rounded-full py-2 transition-colors duration-300 active:scale-95',
@@ -159,7 +188,7 @@ export function MobileNav() {
               isActive ? 'max-w-[84px] opacity-100' : 'max-w-0 opacity-0',
             )}
           >
-            {tab.label}
+            {t(tab.labelKey) || tab.label}
           </span>
         </span>
       </Link>

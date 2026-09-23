@@ -10,9 +10,12 @@
 import { parseTrainingPreferences } from './personalization';
 import { CATEGORY_FALLBACK_COLOR } from './colors';
 import { DEFAULT_CATEGORIES, DEFAULT_WEEK_START } from './constants';
+import { FOOD_DB } from './nutrition';
+import { RESTRICTION_RULES } from './meals';
 import type {
   BodyLog,
   BodyUnit,
+  DietaryPreferences,
   Category,
   FitnessGoal,
   GeoPoint,
@@ -22,11 +25,13 @@ import type {
   Intensity,
   MealLog,
   MealSlot,
+  MealSource,
   PlanId,
   RunSplit,
   ScheduledWorkout,
   UserProfile,
   Weekday,
+  WeeklyCheckIn,
   WorkoutExercise,
   WorkoutSession,
   WorkoutSetKind,
@@ -53,6 +58,7 @@ export function emptyState(): FitnessState {
     goals: [],
     bodyLogs: [],
     meals: [],
+    checkIns: [],
     customGyms: [],
     enrolledPrograms: [],
     enrolledClasses: [],
@@ -82,6 +88,8 @@ const bool = (v: unknown, fallback: boolean): boolean => (typeof v === 'boolean'
 function oneOf<T extends string>(v: unknown, allowed: readonly T[], fallback: T): T {
   return allowed.includes(v as T) ? (v as T) : fallback;
 }
+
+const FOOD_IDS = new Set(FOOD_DB.map((f) => f.id));
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 function isoDate(v: unknown, fallback: string): string {
@@ -213,7 +221,34 @@ function parseProfile(v: unknown): UserProfile {
       /* discard malformed preferences */
     }
   }
+  // Interface language: any short tag survives (the i18n layer falls back to
+  // English for one it does not know), so adding a locale never invalidates a
+  // stored profile.
+  const locale = str(v.locale, '').trim().toLowerCase();
+  if (/^[a-z]{2}(-[a-z0-9]{2,8})?$/.test(locale)) profile.locale = locale;
+  if (v.dietary) profile.dietary = parseDietary(v.dietary);
   return profile;
+}
+
+/** Dietary exclusions + likes/dislikes, filtered against the known tables. */
+function parseDietary(v: unknown): DietaryPreferences {
+  if (!isObj(v)) return { restrictions: [] };
+  const ids = (x: unknown, allowed?: (id: string) => boolean): string[] =>
+    Array.isArray(x)
+      ? x
+          .filter((s): s is string => typeof s === 'string')
+          .map((s) => s.trim().slice(0, 40))
+          .filter((s) => s.length > 0 && (!allowed || allowed(s)))
+          .slice(0, 30)
+      : [];
+  const out: DietaryPreferences = {
+    restrictions: ids(v.restrictions, (id) => id in RESTRICTION_RULES),
+  };
+  const favorites = ids(v.favorites, (id) => FOOD_IDS.has(id));
+  const dislikes = ids(v.dislikes, (id) => FOOD_IDS.has(id));
+  if (favorites.length > 0) out.favorites = favorites;
+  if (dislikes.length > 0) out.dislikes = dislikes;
+  return out;
 }
 
 function parseCategory(v: unknown): Category | null {
@@ -337,13 +372,18 @@ function parseGoal(v: unknown): FitnessGoal | null {
   const id = str(v.id).trim();
   if (!id) return null;
   const metric = oneOf(v.metric, GOAL_METRICS, 'workouts');
+  // A deadline must be a real ISO date and must not sit before the goal's own
+  // start — otherwise the pace maths divides by a negative window.
+  const startDate = isoDate(v.startDate, new Date().toISOString().slice(0, 10));
+  const deadline = isoDate(v.deadline, '');
   return {
     id,
     name: str(v.name, 'Goal'),
     metric,
     cadence: oneOf(v.cadence, CADENCES, 'weekly'),
     target: Math.max(0, num(v.target, 1)),
-    startDate: isoDate(v.startDate, new Date().toISOString().slice(0, 10)),
+    startDate,
+    ...(deadline && deadline >= startDate ? { deadline } : {}),
     createdAt: num(v.createdAt, Date.now()),
   };
 }
@@ -365,6 +405,7 @@ function parseBodyLog(v: unknown): BodyLog | null {
 }
 
 const MEAL_SLOT_IDS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+const MEAL_SOURCES: MealSource[] = ['manual', 'scan', 'photo', 'voice', 'voice+scan'];
 
 function parseMeal(v: unknown): MealLog | null {
   if (!isObj(v)) return null;
@@ -374,6 +415,10 @@ function parseMeal(v: unknown): MealLog | null {
   if (!id || !date || calories === undefined) return null;
   const carbs = optNum(v.carbs);
   const fat = optNum(v.fat);
+  const source = MEAL_SOURCES.find((s) => s === v.source);
+  const items = Array.isArray(v.items)
+    ? v.items.filter((x): x is string => typeof x === 'string' && FOOD_IDS.has(x)).slice(0, 12)
+    : [];
   return {
     id,
     date,
@@ -384,6 +429,38 @@ function parseMeal(v: unknown): MealLog | null {
     carbs: carbs === undefined ? undefined : Math.max(0, carbs),
     fat: fat === undefined ? undefined : Math.max(0, fat),
     scanned: v.scanned === true ? true : undefined,
+    ...(source ? { source } : {}),
+    ...(items.length > 0 ? { items } : {}),
+    // Photos are kept only when they are plausibly a small local thumbnail —
+    // a full-resolution image would bloat localStorage and every sync write.
+    ...(typeof v.photo === 'string' &&
+    v.photo.startsWith('data:image/') &&
+    v.photo.length <= 120_000
+      ? { photo: v.photo }
+      : {}),
+    createdAt: num(v.createdAt, Date.now()),
+  };
+}
+
+/** One weekly check-in. Never re-derived; the athlete's own answer. */
+function parseCheckIn(v: unknown): WeeklyCheckIn | null {
+  if (!isObj(v)) return null;
+  const id = str(v.id).trim();
+  const weekOf = isoDate(v.weekOf, '');
+  const date = isoDate(v.date, weekOf);
+  if (!id || !weekOf) return null;
+  const rawFeeling = Math.round(num(v.feeling, 3));
+  const feeling = (rawFeeling >= 1 && rawFeeling <= 5 ? rawFeeling : 3) as WeeklyCheckIn['feeling'];
+  const weight = optNum(v.weightKg);
+  return {
+    id,
+    date,
+    weekOf,
+    feeling,
+    notes: str(v.notes).slice(0, 400) || undefined,
+    workouts: Math.max(0, Math.round(num(v.workouts, 0))),
+    minutes: Math.max(0, Math.round(num(v.minutes, 0))),
+    ...(weight !== undefined ? { weightKg: weight } : {}),
     createdAt: num(v.createdAt, Date.now()),
   };
 }
@@ -472,6 +549,7 @@ export function parseState(raw: unknown): FitnessState {
     goals: collect(raw.goals, parseGoal),
     bodyLogs: collect(raw.bodyLogs, parseBodyLog).sort((a, b) => (a.date < b.date ? 1 : -1)),
     meals: collect(raw.meals, parseMeal).sort((a, b) => (a.date < b.date ? 1 : -1)),
+    checkIns: collect(raw.checkIns, parseCheckIn).sort((a, b) => (a.weekOf < b.weekOf ? -1 : 1)),
     customGyms,
     enrolledPrograms,
     enrolledClasses,

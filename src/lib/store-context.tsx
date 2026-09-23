@@ -25,6 +25,7 @@ import {
   type FitnessState,
   type ScheduledWorkout,
   type UserProfile,
+  type WeeklyCheckIn,
   type WorkoutSession,
 } from '@smartfit/core';
 import { env } from './env';
@@ -207,6 +208,13 @@ interface StoreContextValue {
   addMeal: (m: Omit<MealLog, 'id' | 'createdAt'>) => void;
   updateMeal: (id: string, patch: Partial<MealLog>) => void;
   deleteMeal: (id: string) => void;
+
+  /**
+   * Record a weekly check-in. Idempotent per week: answering the same week
+   * twice replaces the answer rather than stacking a second entry, because the
+   * weekly prompt must never be able to pile up duplicates in the log.
+   */
+  addCheckIn: (c: Omit<WeeklyCheckIn, 'id' | 'createdAt'>) => WeeklyCheckIn | null;
   // categories
   addCategory: (c: Omit<Category, 'id'>) => void;
   deleteCategory: (id: string) => void;
@@ -782,6 +790,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           (prev) => ({ ...prev, meals: prev.meals.filter((m) => m.id !== id) }),
           remove('meals', id),
         );
+      },
+
+      addCheckIn: (c) => {
+        // A re-answer for the same week edits the existing record in place
+        // (same id, so the sync queue coalesces it) instead of appending.
+        const existing = state.checkIns?.find((x) => x.weekOf === c.weekOf);
+        if (existing) {
+          const replacement: WeeklyCheckIn = { ...existing, ...c };
+          mutate(
+            (prev) => ({
+              ...prev,
+              checkIns: (prev.checkIns ?? []).map((x) => (x.id === existing.id ? replacement : x)),
+            }),
+            upsert('checkIns', replacement),
+          );
+          return replacement;
+        }
+        const item: WeeklyCheckIn = { ...c, id: uid('checkin'), createdAt: Date.now() };
+        mutate(
+          (prev) => ({
+            ...prev,
+            checkIns: [...(prev.checkIns ?? []), item].sort((a, b) =>
+              a.weekOf < b.weekOf ? -1 : 1,
+            ),
+          }),
+          upsert('checkIns', item),
+        );
+        return item;
       },
 
       addCategory: (c) => {

@@ -12,6 +12,7 @@ import {
 import { useStore } from '@/lib/store-context';
 import { useConfirm } from '@/components/dashboard/confirm-context';
 import { Button } from '@/components/ui/button';
+import { DietPreferences } from './diet-preferences';
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const control = 'bg-background mt-1 min-h-11 w-full rounded-xl border px-3';
 export function Personalization() {
@@ -263,6 +264,7 @@ export function Personalization() {
         </label>
         <Button disabled={busy}>Save preferences</Button>
       </form>
+      <DietPreferences />
       <section className="bg-card space-y-4 rounded-2xl border p-5">
         <h2 className="text-xl font-bold">Your starter week preview</h2>
         <ul className="text-muted-foreground list-inside list-disc space-y-2 text-sm">

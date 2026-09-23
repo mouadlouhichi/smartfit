@@ -14,6 +14,7 @@ import { ModalProvider, useModals } from './modal-context';
 import { ConfirmProvider } from './confirm-context';
 import { MigrationPrompt, StorageWarningBanner, SyncBanner } from './sync-banner';
 import { InstallPrompt } from '@/components/pwa-install';
+import { useI18n } from '@/lib/i18n-context';
 
 function isActive(pathname: string, href: string) {
   if (href === '/dashboard') return pathname === '/dashboard';
@@ -22,6 +23,7 @@ function isActive(pathname: string, href: string) {
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <ConfirmProvider>
@@ -67,7 +69,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                           active ? 'text-white' : 'text-white/60 group-hover:text-white/90',
                         )}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </span>
                     </Link>
                   );
