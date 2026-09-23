@@ -83,7 +83,7 @@ export default async function ClassPage({
     .filter((s) => s.classId === cls.id && !s.cancelled && s.startsAt >= now)
     .sort((a, b) => a.startsAt - b.startsAt)
     .slice(0, 12);
-  const accent = gym.branding?.accentColor || '#8ad200';
+  const accent = gym.branding?.accentColor || 'var(--volt)';
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4 pb-24 sm:p-6">

@@ -116,7 +116,7 @@ function RegionShapes({
           d={d}
           fill={color}
           fillOpacity={active ? 1 : dimmed ? 0.42 : 0.92}
-          stroke={active ? '#ffffff' : 'rgba(0,0,0,0.4)'}
+          stroke={active ? 'var(--field)' : 'rgba(0,0,0,0.4)'}
           strokeWidth={active ? 2.2 : 1.2}
           className={cn('transition-all duration-150', !active && 'hover:brightness-125')}
         />

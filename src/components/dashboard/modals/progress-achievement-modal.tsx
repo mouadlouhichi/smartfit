@@ -34,10 +34,10 @@ export function ProgressAchievementModal({
       role="alertdialog"
       aria-modal="true"
       aria-label="Today's progress"
-      className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-[#0a0a09]"
+      className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-[var(--ink-2)]"
       style={{
         backgroundImage:
-          'radial-gradient(120% 80% at 50% 110%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%), linear-gradient(180deg, #0d0e0a 0%, #050404 100%)',
+          'radial-gradient(120% 80% at 50% 110%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%), linear-gradient(180deg, var(--ink-2) 0%, var(--ink) 100%)',
       }}
     >
       {/* grabber */}
@@ -60,7 +60,7 @@ export function ProgressAchievementModal({
         {prCount > 0 && (
           <p
             className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold"
-            style={{ background: 'rgba(138,210,0,0.14)', color: '#8AD200' }}
+            style={{ background: 'rgba(138,210,0,0.14)', color: 'var(--volt)' }}
           >
             ⭐ {prCount} personal record{prCount === 1 ? '' : 's'}
           </p>
@@ -98,11 +98,11 @@ export function ProgressAchievementModal({
             {/* seam + hinge dots — the flip-clock split */}
             <div className="absolute inset-x-0 top-1/2 h-px bg-black/50" aria-hidden />
             <div
-              className="absolute top-1/2 left-0 h-2 w-2 -translate-y-1/2 rounded-r-full bg-[#050404]"
+              className="absolute top-1/2 left-0 h-2 w-2 -translate-y-1/2 rounded-r-full bg-[var(--ink)]"
               aria-hidden
             />
             <div
-              className="absolute top-1/2 right-0 h-2 w-2 -translate-y-1/2 rounded-l-full bg-[#050404]"
+              className="absolute top-1/2 right-0 h-2 w-2 -translate-y-1/2 rounded-l-full bg-[var(--ink)]"
               aria-hidden
             />
 
@@ -142,7 +142,7 @@ export function ProgressAchievementModal({
         <button
           type="button"
           onClick={onDone}
-          className="press h-14 w-full rounded-full bg-white text-base font-extrabold text-[#0d1102] shadow-xl transition-transform hover:-translate-y-0.5"
+          className="press h-14 w-full rounded-full bg-white text-base font-extrabold text-[var(--primary-foreground)] shadow-xl transition-transform hover:-translate-y-0.5"
         >
           Keep it going
         </button>

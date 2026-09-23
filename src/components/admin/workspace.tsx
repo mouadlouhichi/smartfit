@@ -385,7 +385,7 @@ export function RegistryWorkspace() {
     <Link href={`/admin/gyms/${g.slug}`} className="group flex items-center gap-3">
       <span
         style={{
-          backgroundColor: `${/^#[0-9a-f]{6}$/i.test(g.accentColor ?? '') ? g.accentColor : '#8ad200'}22`,
+          backgroundColor: `${/^#[0-9a-f]{6}$/i.test(g.accentColor ?? '') ? g.accentColor : 'var(--volt)'}22`,
         }}
         className="flex size-10 shrink-0 items-center justify-center rounded-xl font-black"
       >

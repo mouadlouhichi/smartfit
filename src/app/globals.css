@@ -43,7 +43,11 @@
   /* Field fill. White on a white card is deliberate: with a 3:1 boundary the
      fill no longer has to carry the shape, so it can stay clean instead of
      adding a second, muddy low-contrast edge. */
-  --field: #ffffff;
+  /* The field surface: a warm well *inside* the white card, not the same
+     white — a control that matches its card is only findable by its border.
+     1.05:1 against both the card and the canvas; the boundary still carries
+     the 3:1, this is the secondary cue. */
+  --field: #faf9f4;
 
   --muted: #edede4;
   /* 5.0:1+ on every light surface — AA for small text. */
@@ -106,7 +110,9 @@
   /* The card surface: with a 3:1 border the fill does not have to carry the
      shape, and matching the card keeps the boundary honest on both edges
      (against a darker fill the inner edge measured 2.87:1). */
-  --field: #101210;
+  /* Raised, not inset: 1.08:1 above the card so a field reads as a well you
+     can type into rather than a hole in the panel. */
+  --field: #191b15;
 
   --muted: #171810;
   --muted-foreground: #c4c1bb;
@@ -121,7 +127,9 @@
   --border: #2c2d21;
   /* 3.11:1 on a card, 3.38:1 on the canvas — the same 3:1 boundary rule as
      light mode, tinted to stay in the olive family. */
-  --input: #63635c;
+  /* Raised with the field above, so the boundary keeps its 3:1 against the
+     field it outlines as well as the card behind it. */
+  --input: #727269;
   --ring: #8ad200;
 
   /* Green ramp for series data — every step ≥3:1 on the #101210 card. */
@@ -172,10 +180,39 @@
   --color-charcoal-2: var(--charcoal-2);
 
   /* Axel brand constants — the always-dark marketing landing + product accent. */
-  --color-volt: #8ad200;
-  --color-volt-soft: #b4e761;
-  --color-volt-dim: #699e00;
+  --color-volt: var(--volt);
+  --color-volt-soft: var(--volt-soft);
+  --color-volt-dim: var(--volt-dim);
   --color-volt-ink: var(--volt-ink);
+  --color-volt-on: var(--volt-ink-on);
+  --color-ink-paper: var(--ink-paper);
+  /* Brand ink/paper + the volt channel, so the always-dark surfaces (Pro sheet,
+     session runner, progress celebration, the landing) read a token instead of
+     a hex. `--volt` is the same green in both themes by design. */
+  --volt: #8ad200;
+  --volt-soft: #b4e761;
+  --volt-dim: #699e00;
+  --volt-ink-on: #1d2800;
+  --ink: #050404;
+  --ink-2: #0a0a09;
+  --ink-paper: #edebe6;
+
+  /* Session-runner surfaces (always dark, deliberately deeper than the card)
+     and the timer-arc gradient ramps — the arc has to read as a gradient, so
+     these are their own tokens rather than stops borrowed from the volt ramp. */
+  --ink-well: #0d0f08;
+  --ink-foot: #0a0b06;
+  --ink-raise: #15170f;
+  --ink-button: #1a1c15;
+  --ink-button-hover: #23261c;
+  --arc-run-from: #4e7a00;
+  --arc-run-to: #c6f94d;
+  --arc-rest-from: #5c5330;
+  --arc-rest-mid: #a8913f;
+  --arc-rest-to: #e4d48a;
+  --arc-urgent-from: #6e9e00;
+  --arc-urgent-to: #d8ff6b;
+
   --color-ink: #050404;
   --color-ink-2: #0a0a09;
   --color-ink-card: #101210;

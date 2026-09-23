@@ -349,7 +349,7 @@ export function PlanScreen() {
                             <span
                               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
                               style={{
-                                backgroundColor: `${cat?.color ?? '#a8b80f'}1f`,
+                                backgroundColor: `color-mix(in srgb, ${cat?.color ?? 'var(--chart-2)'} 12%, transparent)`,
                                 color: cat?.color ?? 'var(--primary)',
                               }}
                             >

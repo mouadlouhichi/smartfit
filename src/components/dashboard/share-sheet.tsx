@@ -260,8 +260,8 @@ export function ShareSheet({
                         'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
                         option.id === 'transparent' &&
                           'bg-[repeating-conic-gradient(var(--border)_0%_25%,var(--card)_0%_50%)] bg-[length:12px_12px]',
-                        option.id === 'dark' && 'bg-[#050404]',
-                        option.id === 'light' && 'bg-[#edebe6]',
+                        option.id === 'dark' && 'bg-[var(--ink)]',
+                        option.id === 'light' && 'bg-[var(--ink-paper)]',
                       )}
                     >
                       {style === option.id && (

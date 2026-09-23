@@ -636,7 +636,7 @@ function LiveStage({
   return (
     <div className="grid gap-4">
       {/* Map hero */}
-      <div className="border-border relative min-h-[17rem] overflow-hidden rounded-[2rem] border bg-[#050404] sm:min-h-[21rem]">
+      <div className="border-border relative min-h-[17rem] overflow-hidden rounded-[2rem] border bg-[var(--ink)] sm:min-h-[21rem]">
         <span
           aria-hidden
           className="absolute inset-0 opacity-70"
@@ -673,7 +673,7 @@ function LiveStage({
               /* Vector underlay: the route is visible before tiles or WebGL are. */
               <RouteMap
                 route={points}
-                stroke="#8AD200"
+                stroke="var(--volt)"
                 className="absolute inset-0 z-0 h-full w-full p-6 opacity-70"
               />
             )}
@@ -694,7 +694,7 @@ function LiveStage({
         ) : (
           <div className="absolute inset-0 grid place-items-center">
             <p className="flex items-center gap-2 text-xs font-bold text-white/60">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[#8AD200]" aria-hidden />
+              <span className="h-2 w-2 animate-pulse rounded-full bg-[var(--volt)]" aria-hidden />
               {gps === 'error'
                 ? 'No GPS yet — the map appears with your first fix.'
                 : 'Finding your position — the map appears with your first fix.'}
@@ -708,7 +708,7 @@ function LiveStage({
             className={cn(
               'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold backdrop-blur-sm',
               held
-                ? 'bg-white/85 text-[#0d1102]'
+                ? 'bg-white/85 text-[var(--primary-foreground)]'
                 : autoPaused
                   ? 'bg-amber-400/25 text-amber-100'
                   : 'bg-black/45 text-white/90',
@@ -1008,7 +1008,7 @@ function RunSummary({
             {records.map((record) => (
               <span
                 key={record.label}
-                className="inline-flex items-center gap-1.5 rounded-full bg-[#8AD200] px-3 py-1.5 text-xs font-extrabold text-[#0d1102]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-[var(--volt)] px-3 py-1.5 text-xs font-extrabold text-[var(--primary-foreground)]"
               >
                 <Zap className="h-3.5 w-3.5" aria-hidden /> {record.label}
               </span>
@@ -1035,7 +1035,7 @@ function RunSummary({
           <div className="relative h-64 w-full overflow-hidden rounded-2xl">
             <RouteMap
               route={points}
-              stroke="#8AD200"
+              stroke="var(--volt)"
               className="absolute inset-0 z-0 h-full w-full p-4 opacity-70"
             />
             <RunMap points={points} follow={false} className="absolute inset-0 z-[1]" />

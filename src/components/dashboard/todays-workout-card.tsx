@@ -216,7 +216,7 @@ export function TodaysWorkoutCard() {
         {/* ── Date · duration · intensity ─────────────────────────────── */}
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white/90">
-            <span className="bg-volt h-1.5 w-1.5 rounded-full shadow-[0_0_8px_#8ad200]" />
+            <span className="bg-volt h-1.5 w-1.5 rounded-full shadow-[0_0_8px_var(--volt)]" />
             {dateLabel}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60">
@@ -238,7 +238,7 @@ export function TodaysWorkoutCard() {
               Keep the streak alive — {day.title.toLowerCase()} is next up
             </p>
           </div>
-          <div className="bg-volt h-2 w-2 animate-pulse rounded-full shadow-[0_0_8px_#8ad200]" />
+          <div className="bg-volt h-2 w-2 animate-pulse rounded-full shadow-[0_0_8px_var(--volt)]" />
         </div>
 
         {day.split ? (

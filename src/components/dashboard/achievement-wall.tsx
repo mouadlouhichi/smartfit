@@ -184,7 +184,7 @@ function Medallion({
     <span
       className={cn(
         'flex h-11 w-11 shrink-0 items-center justify-center rounded-full',
-        unlocked ? 'medal-pop text-[#0d1102]' : 'text-muted-foreground',
+        unlocked ? 'medal-pop text-[var(--primary-foreground)]' : 'text-muted-foreground',
       )}
       style={{
         background: unlocked
@@ -194,7 +194,7 @@ function Medallion({
           ? `inset 0 0 0 1px rgba(255,255,255,0.25), 0 6px 14px -6px ${tint}`
           : undefined,
         border: unlocked ? undefined : '1px solid var(--border)',
-        color: unlocked ? '#0d1102' : undefined,
+        color: unlocked ? 'var(--primary-foreground)' : undefined,
       }}
     >
       {children}

@@ -150,7 +150,7 @@ export function ProModal() {
             className="absolute inset-0 h-full w-full object-cover"
             aria-hidden
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#050404] via-[#050404]/45 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)] via-[var(--ink)]/45 to-transparent" />
           <button
             onClick={closeModal}
             aria-label="Close"
@@ -162,12 +162,12 @@ export function ProModal() {
             <div className="flex items-center gap-2.5">
               <span
                 className="gold-edge flex h-10 w-10 items-center justify-center rounded-full"
-                style={{ background: 'linear-gradient(135deg,#8AD200,#699E00)' }}
+                style={{ background: 'linear-gradient(135deg,var(--volt),var(--volt-dim))' }}
               >
-                <Crown className="h-5 w-5 text-[#1d2800]" aria-hidden />
+                <Crown className="h-5 w-5 text-[var(--volt-ink-on)]" aria-hidden />
               </span>
               <div>
-                <DialogTitle className="text-xl leading-tight font-extrabold text-[#edebe6]">
+                <DialogTitle className="text-xl leading-tight font-extrabold text-[var(--ink-paper)]">
                   SmartFit Pro
                 </DialogTitle>
                 <DialogDescription className="text-xs text-[rgba(237,235,230,0.75)]">
@@ -209,7 +209,7 @@ function ComparisonTable() {
       <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-[rgba(237,235,230,0.12)] px-3 py-2.5 text-[11px] font-bold tracking-wide uppercase min-[430px]:px-4">
         <span className="pro-muted">Feature</span>
         <span className="pro-muted text-center">Free</span>
-        <span className="text-center" style={{ color: '#8AD200' }}>
+        <span className="text-center" style={{ color: 'var(--volt)' }}>
           Pro
         </span>
       </div>
@@ -238,8 +238,12 @@ function ComparisonTable() {
               <span className="pro-muted min-w-0 text-center text-[11px] font-medium [overflow-wrap:anywhere] min-[430px]:text-xs">
                 {g.free}
               </span>
-              <span className="flex min-w-0 items-center justify-center gap-1 text-center text-[11px] font-bold [overflow-wrap:anywhere] text-[#edebe6] min-[430px]:text-xs">
-                <Check className="h-3.5 w-3.5 shrink-0" style={{ color: '#8AD200' }} aria-hidden />
+              <span className="flex min-w-0 items-center justify-center gap-1 text-center text-[11px] font-bold [overflow-wrap:anywhere] text-[var(--ink-paper)] min-[430px]:text-xs">
+                <Check
+                  className="h-3.5 w-3.5 shrink-0"
+                  style={{ color: 'var(--volt)' }}
+                  aria-hidden
+                />
                 {g.pro}
               </span>
             </li>
@@ -268,11 +272,11 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
       >
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-          style={{ background: 'linear-gradient(135deg,#8AD200,#699E00)' }}
+          style={{ background: 'linear-gradient(135deg,var(--volt),var(--volt-dim))' }}
         >
-          <Sparkles className="h-4 w-4 text-[#1d2800]" aria-hidden />
+          <Sparkles className="h-4 w-4 text-[var(--volt-ink-on)]" aria-hidden />
         </span>
-        <p className="min-w-0 text-[13px] leading-snug font-semibold text-[#edebe6]">
+        <p className="min-w-0 text-[13px] leading-snug font-semibold text-[var(--ink-paper)]">
           Upgrade today and your first {PRO_TRIAL_MONTHS} months of Pro are free — no card, cancel
           anytime.
         </p>
@@ -298,7 +302,10 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
             {p.featured && (
               <span
                 className="absolute -top-2.5 right-3 rounded-full px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase"
-                style={{ background: 'linear-gradient(135deg,#8AD200,#699E00)', color: '#1d2800' }}
+                style={{
+                  background: 'linear-gradient(135deg,var(--volt),var(--volt-dim))',
+                  color: 'var(--volt-ink-on)',
+                }}
               >
                 {p.note}
               </span>
@@ -314,7 +321,7 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
             {p.savePct && (
               <span
                 className="mt-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                style={{ background: 'rgba(138,210,0,0.15)', color: '#B4E761' }}
+                style={{ background: 'rgba(138,210,0,0.15)', color: 'var(--volt-soft)' }}
               >
                 Save {p.savePct}%
               </span>
@@ -372,8 +379,8 @@ function UpgradeFooter({
         disabled={paidDisabled}
         className="w-full rounded-2xl text-base font-extrabold"
         style={{
-          background: 'linear-gradient(120deg,#8AD200,#699E00)',
-          color: '#0d1102',
+          background: 'linear-gradient(120deg,var(--volt),var(--volt-dim))',
+          color: 'var(--primary-foreground)',
           height: '3.25rem',
         }}
       >
@@ -383,7 +390,7 @@ function UpgradeFooter({
         onClick={onTrial}
         disabled={trialDisabled}
         variant="outline"
-        className="w-full rounded-2xl border-[rgba(237,235,230,0.25)] bg-transparent text-[rgba(237,235,230,0.9)] hover:bg-[rgba(237,235,230,0.08)] hover:text-[#edebe6]"
+        className="w-full rounded-2xl border-[rgba(237,235,230,0.25)] bg-transparent text-[rgba(237,235,230,0.9)] hover:bg-[rgba(237,235,230,0.08)] hover:text-[var(--ink-paper)]"
       >
         Get {PRO_TRIAL_MONTHS} months of Pro — free
       </Button>
@@ -439,7 +446,7 @@ function ManageContent({
         </div>
         <span
           className="rounded-full px-2.5 py-1 text-[11px] font-bold"
-          style={{ background: 'rgba(138,210,0,0.15)', color: '#B4E761' }}
+          style={{ background: 'rgba(138,210,0,0.15)', color: 'var(--volt-soft)' }}
         >
           Active
         </span>
@@ -459,7 +466,7 @@ function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () =
       <Button
         onClick={onDone}
         className="flex-1 rounded-2xl"
-        style={{ background: 'var(--chart-1)', color: '#0d1102' }}
+        style={{ background: 'var(--chart-1)', color: 'var(--primary-foreground)' }}
       >
         Done
       </Button>
@@ -472,7 +479,7 @@ function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () =
           Manage subscription
         </Button>
       )}
-      <Button onClick={onCancel} variant="ghost" className="rounded-2xl text-[#ff6b5e]">
+      <Button onClick={onCancel} variant="ghost" className="text-destructive rounded-2xl">
         Cancel Pro
       </Button>
     </DialogFooter>

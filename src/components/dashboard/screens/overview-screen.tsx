@@ -278,7 +278,7 @@ export function OverviewScreen() {
                 id: null as string | null,
                 name: 'All type',
                 icon: 'layout-grid',
-                color: '#8ad200',
+                color: 'var(--volt)',
                 count: state.sessions.length,
               },
               ...state.categories.map((c) => ({
@@ -303,7 +303,7 @@ export function OverviewScreen() {
                     'group relative flex min-w-[6.5rem] shrink-0 snap-start flex-col items-center gap-2 rounded-[20px] border px-3 py-4 text-center transition-all duration-300 sm:min-w-0',
                     'hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]',
                     selected
-                      ? 'border-volt/80 bg-ink-card ring-volt/30 shadow-[0_0_0_1px_#8ad200,0_0_20px_-8px_#8ad200] ring-1'
+                      ? 'border-volt/80 bg-ink-card ring-volt/30 shadow-[0_0_0_1px_var(--volt),0_0_20px_-8px_var(--volt)] ring-1'
                       : 'bg-charcoal-2 hover:border-volt/30 border-white/[0.08] hover:bg-white/[0.06] hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]',
                   )}
                 >
@@ -680,7 +680,7 @@ function SummaryArc({ activePct, sessPct }: { activePct: number; sessPct: number
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="#2b2b2b"
+        stroke="var(--border)"
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={`${activeLen} ${c}`}

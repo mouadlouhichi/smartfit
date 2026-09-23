@@ -343,14 +343,14 @@ export function ProgressScreen() {
             label="Exercise"
             value={`${rangeAgg.minutes}/${targets.minutes}min`}
             icon={Timer}
-            color="#a8b80f"
+            color="var(--chart-2)"
           />
           <RingStat
             pct={calPct}
             label="Burned"
             value={formatCalories(rangeAgg.calories)}
             icon={Flame}
-            color="#699E00"
+            color="var(--volt-dim)"
             big
           />
           <RingStat
@@ -358,7 +358,7 @@ export function ProgressScreen() {
             label="Distance"
             value={formatDistance(rangeAgg.distance ?? 0, distanceUnit)}
             icon={Footprints}
-            color="#8a8a8a"
+            color="var(--border)"
           />
         </div>
         {/* What to do next, from the ring furthest behind — and, when the

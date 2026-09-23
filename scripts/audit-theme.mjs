@@ -77,7 +77,13 @@ const PAIRS = [
   // Control boundaries: 3:1 so a field is identifiable as a field (WCAG 1.4.11).
   ['input', 'card', 3, 'input border on a card'],
   ['input', 'background', 3, 'input border on canvas'],
+  ['input', 'field', 3, 'input border against its own field'],
   ['border', 'background', 1.2, 'hairline borders (decorative)'],
+  // The field fill is a *secondary* cue, so 1.04 is the floor — the number
+  // that matters is that it is not identical to the card. It was, once, which
+  // is how a whole design-system pass ended up with invisible fields.
+  ['field', 'card', 1.04, 'field fill vs the card behind it'],
+  ['field', 'background', 1.04, 'field fill vs the canvas'],
 ];
 
 let failures = 0;

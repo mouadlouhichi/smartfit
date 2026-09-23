@@ -35,12 +35,12 @@ export function OrbitHero({
       <svg viewBox="0 0 200 200" className="absolute inset-0 h-full w-full" fill="none" aria-hidden>
         <defs>
           <linearGradient id="orbit-a" x1="0" y1="0" x2="200" y2="200">
-            <stop offset="0%" stopColor="#8AD200" />
-            <stop offset="100%" stopColor="#B4E761" stopOpacity="0.25" />
+            <stop offset="0%" stopColor="var(--volt)" />
+            <stop offset="100%" stopColor="var(--volt-soft)" stopOpacity="0.25" />
           </linearGradient>
           <linearGradient id="orbit-b" x1="200" y1="0" x2="0" y2="200">
-            <stop offset="0%" stopColor="#699E00" />
-            <stop offset="100%" stopColor="#8AD200" stopOpacity="0.2" />
+            <stop offset="0%" stopColor="var(--volt-dim)" />
+            <stop offset="100%" stopColor="var(--volt)" stopOpacity="0.2" />
           </linearGradient>
         </defs>
         <ellipse
@@ -61,9 +61,9 @@ export function OrbitHero({
           stroke="url(#orbit-b)"
           strokeWidth="2.5"
         />
-        <circle cx="100" cy="100" r="3.5" fill="#8AD200" opacity="0.9" />
-        <circle cx="31" cy="150" r="3" fill="#B4E761" opacity="0.7" />
-        <circle cx="172" cy="56" r="3" fill="#699E00" opacity="0.7" />
+        <circle cx="100" cy="100" r="3.5" fill="var(--volt)" opacity="0.9" />
+        <circle cx="31" cy="150" r="3" fill="var(--volt-soft)" opacity="0.7" />
+        <circle cx="172" cy="56" r="3" fill="var(--volt-dim)" opacity="0.7" />
       </svg>
       {children ?? (
         <span className="animate-float relative">

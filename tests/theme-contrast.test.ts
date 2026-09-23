@@ -96,8 +96,21 @@ const HAIRLINES: [string, string, number, string][] = [
   ['border', 'card', 1.2, 'hairline on a card'],
 ];
 
+/**
+ * Surface separation, not contrast: how far apart two *fills* are.
+ *
+ * A control whose fill equals the card behind it is only findable by its
+ * border — which is exactly the state this suite found the field surface in.
+ * The floor is deliberately low (1.04) because the fill is a secondary cue;
+ * the point is that it can never silently become identical again.
+ */
+const FILL_SEPARATION: [string, string, number, string][] = [
+  ['field', 'card', 1.04, 'field fill vs the card behind it'],
+  ['field', 'background', 1.04, 'field fill vs the canvas'],
+];
+
 for (const theme of THEMES) {
-  for (const group of [TEXT_PAIRS, CONTROL_PAIRS, HAIRLINES]) {
+  for (const group of [TEXT_PAIRS, CONTROL_PAIRS, HAIRLINES, FILL_SEPARATION]) {
     for (const [fgName, bgName, min, label] of group) {
       test(`${theme.name}: ${label} clears ${min}:1`, () => {
         const fg = theme.tokens[fgName];

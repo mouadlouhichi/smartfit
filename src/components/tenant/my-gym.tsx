@@ -199,7 +199,7 @@ function MembershipCard() {
     const d = new Date(c.at);
     return d.getMonth() === month && d.getFullYear() === new Date(now).getFullYear();
   }).length;
-  const accent = t.gym?.branding?.accentColor || '#8ad200';
+  const accent = t.gym?.branding?.accentColor || 'var(--volt)';
 
   const rows: Array<[string, string]> = [
     ['Plan', plan?.name ?? 'Trial'],

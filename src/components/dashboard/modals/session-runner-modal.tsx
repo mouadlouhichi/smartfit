@@ -580,7 +580,7 @@ function LiveScreen(p: LiveProps) {
         {p.active ? (
           <div key={p.active.id} className="slide-in-right">
             {/* ── Cinematic exercise hero — the Axel live-workout stage ── */}
-            <div className="relative overflow-hidden rounded-3xl bg-[#0d0f08]">
+            <div className="relative overflow-hidden rounded-3xl bg-[var(--ink-well)]">
               <div className="flex h-52 w-full items-center justify-center overflow-hidden p-3 min-[380px]:h-56">
                 <ExerciseImage
                   name={p.active.name}
@@ -630,7 +630,7 @@ function LiveScreen(p: LiveProps) {
               </div>
               {/* Name + history — a solid band under the art so the copy is
                   always legible regardless of the demo's brightness. */}
-              <div className="relative border-t border-white/8 bg-[#0a0b06] px-4 pt-4 pb-4">
+              <div className="relative border-t border-white/8 bg-[var(--ink-foot)] px-4 pt-4 pb-4">
                 <p className="text-volt text-[11px] font-extrabold tracking-[0.18em] uppercase">
                   {currentSet
                     ? `Set ${currentNo} / ${p.active.sets.length}`
@@ -653,7 +653,7 @@ function LiveScreen(p: LiveProps) {
                   {target && target.kind !== 'repeat' && (
                     <span
                       className="inline-flex items-center gap-1.5 font-bold"
-                      style={{ color: '#B4E761' }}
+                      style={{ color: 'var(--volt-soft)' }}
                     >
                       <Sparkles className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       <span className="truncate">Pro target · {target.rationale}</span>
@@ -727,7 +727,7 @@ function LiveScreen(p: LiveProps) {
                   <button
                     onClick={p.finish}
                     className="press flex h-12 items-center justify-center gap-1.5 rounded-2xl text-sm font-bold"
-                    style={{ background: 'rgba(138,210,0,0.14)', color: '#B4E761' }}
+                    style={{ background: 'rgba(138,210,0,0.14)', color: 'var(--volt-soft)' }}
                   >
                     <Flag className="h-4 w-4" aria-hidden /> Wrap up
                   </button>
@@ -824,7 +824,7 @@ function LiveScreen(p: LiveProps) {
                       {s.done ? (
                         <span
                           className="flex items-center justify-center gap-0.5 text-[11px] font-bold"
-                          style={{ color: s.isPR ? 'var(--chart-1)' : '#8AD200' }}
+                          style={{ color: s.isPR ? 'var(--chart-1)' : 'var(--volt)' }}
                         >
                           {s.isPR && (
                             <Trophy className="h-3.5 w-3.5" aria-label="Personal record" />
@@ -838,7 +838,7 @@ function LiveScreen(p: LiveProps) {
                           className="press mx-auto flex h-11 w-11 items-center justify-center rounded-full"
                           style={{ background: 'var(--chart-1)' }}
                         >
-                          <Check className="h-4 w-4 text-[#0d1102]" aria-hidden />
+                          <Check className="h-4 w-4 text-[var(--primary-foreground)]" aria-hidden />
                         </button>
                       )}
                       {e1rm > 0 && (
@@ -906,7 +906,7 @@ function LiveScreen(p: LiveProps) {
                       onClick={() => p.addExercise(p.draft)}
                       disabled={!p.draft.trim()}
                       className="press flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl text-sm font-bold disabled:opacity-40"
-                      style={{ background: 'var(--chart-1)', color: '#0d1102' }}
+                      style={{ background: 'var(--chart-1)', color: 'var(--primary-foreground)' }}
                     >
                       <Plus className="h-4 w-4" aria-hidden /> Add exercise
                     </button>
@@ -955,7 +955,7 @@ function LiveScreen(p: LiveProps) {
           single-exercise session, where there is nothing to navigate to. */}
       {p.exercises.length > 1 && p.active && (
         <div className="border-t border-white/8 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-          <div className="flex items-center gap-3 rounded-[1.25rem] bg-[#15170f] p-2.5">
+          <div className="flex items-center gap-3 rounded-[1.25rem] bg-[var(--ink-raise)] p-2.5">
             <ExerciseImage
               name={(nextExercise ?? p.exercises[0]).name}
               animated={false}
@@ -1019,12 +1019,12 @@ function SetStepper({
         type="button"
         onClick={onPlus}
         aria-label={`Increase ${label.trim()} by ${step}`}
-        className="press grid h-16 w-16 place-items-center rounded-full bg-[#1a1c15] text-[#edebe6] transition-colors hover:bg-[#23261c] min-[380px]:h-[4.5rem] min-[380px]:w-[4.5rem]"
+        className="press grid h-16 w-16 place-items-center rounded-full bg-[var(--ink-button)] text-[var(--ink-paper)] transition-colors hover:bg-[var(--ink-button-hover)] min-[380px]:h-[4.5rem] min-[380px]:w-[4.5rem]"
       >
         <Plus className="h-6 w-6" strokeWidth={2} aria-hidden />
       </button>
       <div className="flex flex-col items-center gap-1">
-        <p className="text-[13px] leading-none font-bold text-[#edebe6]">{label}</p>
+        <p className="text-[13px] leading-none font-bold text-[var(--ink-paper)]">{label}</p>
         {/* Value + decrement only once there is something to adjust, so the
             resting state matches the comp's clean plus-and-label pair. */}
         {value ? (
@@ -1099,18 +1099,18 @@ function RingTimer({
             {/* The reference arc is not a flat stroke: it ramps from a deep
                 green at the tail to a bright volt at the leading edge. */}
             <linearGradient id={`${gradId}-run`} x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="#4E7A00" />
-              <stop offset="55%" stopColor="#8AD200" />
-              <stop offset="100%" stopColor="#C6F94D" />
+              <stop offset="0%" stopColor="var(--arc-run-from)" />
+              <stop offset="55%" stopColor="var(--volt)" />
+              <stop offset="100%" stopColor="var(--arc-run-to)" />
             </linearGradient>
             <linearGradient id={`${gradId}-rest`} x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="#5C5330" />
-              <stop offset="60%" stopColor="#A8913F" />
-              <stop offset="100%" stopColor="#E4D48A" />
+              <stop offset="0%" stopColor="var(--arc-rest-from)" />
+              <stop offset="60%" stopColor="var(--arc-rest-mid)" />
+              <stop offset="100%" stopColor="var(--arc-rest-to)" />
             </linearGradient>
             <linearGradient id={`${gradId}-urgent`} x1="0" y1="1" x2="1" y2="0">
-              <stop offset="0%" stopColor="#6E9E00" />
-              <stop offset="100%" stopColor="#D8FF6B" />
+              <stop offset="0%" stopColor="var(--arc-urgent-from)" />
+              <stop offset="100%" stopColor="var(--arc-urgent-to)" />
             </linearGradient>
           </defs>
           <circle
@@ -1256,7 +1256,7 @@ function SummaryScreen({
           {summary.personalRecords.length > 0 && (
             <div
               className="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-bold"
-              style={{ background: 'rgba(138,210,0,0.15)', color: '#B4E761' }}
+              style={{ background: 'rgba(138,210,0,0.15)', color: 'var(--volt-soft)' }}
             >
               <Sparkles className="h-4 w-4" aria-hidden />
               {summary.personalRecords.length} personal record
@@ -1282,7 +1282,10 @@ function SummaryScreen({
 
         {summary.personalRecords.length > 0 && (
           <div className="session-tile mt-4 rounded-2xl p-4">
-            <p className="flex items-center gap-1.5 text-sm font-bold" style={{ color: '#B4E761' }}>
+            <p
+              className="flex items-center gap-1.5 text-sm font-bold"
+              style={{ color: 'var(--volt-soft)' }}
+            >
               <Trophy className="h-4 w-4" aria-hidden /> New records
             </p>
             <ul className="mt-2 grid gap-1.5">

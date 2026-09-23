@@ -346,7 +346,7 @@ export function GymDetailSection({ slug }: { slug: string }) {
             <span
               aria-hidden
               className="size-4 rounded-full"
-              style={{ backgroundColor: gym.accentColor || '#8ad200' }}
+              style={{ backgroundColor: gym.accentColor || 'var(--volt)' }}
             />
             <h2 className="text-2xl font-black tracking-tight">{gym.name}</h2>
             <StatusBadge status={gym.status} />
