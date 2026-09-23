@@ -159,6 +159,14 @@ test('goals: a deadline reports whether the current pace arrives in time', async
   await expect(dialog.getByText(/Log a full week/)).toBeVisible();
   await dialog.getByRole('button', { name: 'Create goal' }).click();
   await expect(page.getByText('Marathon block').first()).toBeVisible();
+
+  /*
+   * The countdown lives on the card, not only inside the modal: a deadline
+   * you can only see while editing is a number nobody reads twice. The pace
+   * verdict rides along as the badge's tooltip.
+   */
+  await expect(page.getByText(/\d+ (days?|weeks?|months?) left/)).toBeVisible();
+  await expect(page.getByTitle(/Log a full week/)).toHaveCount(1);
 });
 
 test('language: switching to French localises the shell and persists', async ({ page }) => {

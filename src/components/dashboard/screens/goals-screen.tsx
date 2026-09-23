@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CheckCircle2, Pencil, Plus, Target } from 'lucide-react';
+import { CalendarClock, CheckCircle2, Pencil, Plus, Target } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
 import { useModals } from '../modal-context';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Ring } from '../ring';
 import { ScreenHeader } from '../screen-header';
 import { CategoryIcon } from '@/components/category-icon';
 import { GOAL_METRIC_META } from '@smartfit/core';
-import { formatNumber, fromKm, goalProgress } from '@smartfit/core';
+import { deadlineLabel, formatNumber, fromKm, goalDeadline, goalProgress } from '@smartfit/core';
 import type { GoalMetric, UserProfile } from '@smartfit/core';
 
 /**
@@ -103,6 +103,12 @@ export function GoalsScreen() {
         {goals.map(({ g, p }) => {
           const meta = GOAL_METRIC_META[g.metric];
           const style = METRIC_STYLE[g.metric] ?? METRIC_STYLE.workouts;
+          // A deadline exists to answer "does my pace arrive in time?" — so the
+          // card shows the countdown, and repeats the verdict when the pace is
+          // short. A deadline you can only see inside the edit modal is a
+          // number nobody ever reads again.
+          const deadline = g.deadline ? goalDeadline(state, g) : null;
+          const offPace = deadline?.verdict === 'behind' || deadline?.verdict === 'overdue';
           return (
             <Card
               key={g.id}
@@ -157,12 +163,28 @@ export function GoalsScreen() {
                         {goalUnit(g.metric, state.profile)}
                       </span>
                     </p>
-                    {p.done && (
-                      <Badge className="gap-1">
-                        <CheckCircle2 className="h-3 w-3" /> Done
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {deadline && (
+                        <Badge
+                          variant={offPace ? 'destructive' : 'secondary'}
+                          className="gap-1"
+                          title={deadline.message}
+                        >
+                          <CalendarClock className="h-3 w-3" aria-hidden />
+                          {deadlineLabel(g.deadline!)}
+                        </Badge>
+                      )}
+                      {p.done && (
+                        <Badge className="gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Done
+                        </Badge>
+                      )}
+                    </div>
                   </div>
+
+                  {offPace && deadline && (
+                    <p className="text-destructive mt-2 text-xs font-medium">{deadline.message}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
