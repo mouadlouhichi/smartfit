@@ -41,6 +41,7 @@ import {
 import {
   PLANS,
   computeAchievements,
+  translateAchievements,
   currentStreak,
   formatDateLabel,
   formatWeight,
@@ -53,6 +54,7 @@ import {
 import type { WeekStart } from '@smartfit/core';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/firebase/auth-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
 import { LocaleSwitcher } from '@/components/locale-switcher';
@@ -76,6 +78,7 @@ const PROFILE_TABS: { key: ProfileTab; label: string; icon: LucideIcon }[] = [
 ];
 
 export function ProfileScreen() {
+  const { t } = useI18n();
   const {
     state,
     updateProfile,
@@ -103,7 +106,11 @@ export function ProfileScreen() {
   const [verifySent, setVerifySent] = useState(false);
   const [tab, setTab] = useState<ProfileTab>('overview');
   const profileTabs = useTablist(PROFILE_TABS.length);
-  const achievements = useMemo(() => computeAchievements(state), [state]);
+  // Core emits keys; the active translator turns them into the wall's copy.
+  const achievements = useMemo(
+    () => translateAchievements(computeAchievements(state), t),
+    [state, t],
+  );
   const [targetInput, setTargetInput] = useState(() =>
     state.profile.targetWeightKg != null
       ? String(Number(fromKg(state.profile.targetWeightKg, state.profile.weightUnit).toFixed(1)))

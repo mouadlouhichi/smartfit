@@ -340,6 +340,15 @@ export const REST_STEP_SECONDS = 15;
 
 export interface Achievement {
   id: string;
+  /** Stable name key (`ach.<id>.name`) — the UI translates this. */
+  nameKey: string;
+  /** Stable description key (`ach.<id>.description`). */
+  descriptionKey: string;
+  /**
+   * English copy, kept as the fallback and as the source of truth for the
+   * catalogue. New UI reads the *Key fields and translates; anything showing
+   * `name` directly is the untranslated fallback, not a translation.
+   */
   name: string;
   /** One line of copy shown on the tile and in the celebration toast. */
   description: string;
@@ -352,8 +361,25 @@ export interface Achievement {
   unlockedAt?: string;
   /** 0–100 progress toward the next tier (100 when unlocked). */
   progress: number;
-  /** Human-readable progress, e.g. "7 / 10 sessions". */
+  /**
+   * English, ready to render — the fallback for surfaces with no translator.
+   * New UI should build the same line from `progress` so the copy is localised.
+   */
   progressLabel: string;
+  /**
+   * The progress line as data: a kind, the numbers, and the keys for the unit
+   * and any prefix. Core never formats a sentence the UI will have to translate
+   * — `progress` above is the 0–100 percentage, this is its wording.
+   */
+  progressDetail: {
+    kind: 'earned' | 'of' | 'hint';
+    value?: number;
+    target?: number;
+    /** Catalogue key for the unit, pluralised on `target`. */
+    unitKey?: string;
+    /** Catalogue key for a lead-in such as "Longest session". */
+    prefixKey?: string;
+  };
   /** How many of these the athlete has collected, for stacking. */
   threshold: number;
 }
@@ -405,6 +431,9 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
   return [
     {
       id: 'first-session',
+
+      nameKey: 'ach.first-session.name',
+      descriptionKey: 'ach.first-session.description',
       name: 'First Blood',
       description: 'Log your very first session.',
       icon: 'flag',
@@ -413,10 +442,19 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlockedAt: first?.date,
       progress: count >= TIERS.first ? 100 : 0,
       progressLabel: `${Math.min(count, TIERS.first)} / ${TIERS.first} session`,
+      progressDetail: {
+        kind: count >= TIERS.first ? 'earned' : 'of',
+        value: Math.min(count, TIERS.first),
+        target: TIERS.first,
+        unitKey: 'unit.sessions',
+      },
       threshold: TIERS.first,
     },
     {
       id: 'streak-3',
+
+      nameKey: 'ach.streak-3.name',
+      descriptionKey: 'ach.streak-3.description',
       name: 'Warming Up',
       description: 'Train 3 days in a row.',
       icon: 'flame',
@@ -424,10 +462,19 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlocked: streak >= TIERS.streak3,
       progress: Math.min(100, Math.round((streak / TIERS.streak3) * 100)),
       progressLabel: `${Math.min(streak, TIERS.streak3)} / ${TIERS.streak3} days`,
+      progressDetail: {
+        kind: streak >= TIERS.streak3 ? 'earned' : 'of',
+        value: Math.min(streak, TIERS.streak3),
+        target: TIERS.streak3,
+        unitKey: 'unit.days',
+      },
       threshold: TIERS.streak3,
     },
     {
       id: 'streak-7',
+
+      nameKey: 'ach.streak-7.name',
+      descriptionKey: 'ach.streak-7.description',
       name: 'Unbreakable Week',
       description: 'A full 7-day training streak.',
       icon: 'calendar-check',
@@ -435,10 +482,19 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlocked: streak >= TIERS.streak7,
       progress: Math.min(100, Math.round((streak / TIERS.streak7) * 100)),
       progressLabel: `${Math.min(streak, TIERS.streak7)} / ${TIERS.streak7} days`,
+      progressDetail: {
+        kind: streak >= TIERS.streak7 ? 'earned' : 'of',
+        value: Math.min(streak, TIERS.streak7),
+        target: TIERS.streak7,
+        unitKey: 'unit.days',
+      },
       threshold: TIERS.streak7,
     },
     {
       id: 'sessions-10',
+
+      nameKey: 'ach.sessions-10.name',
+      descriptionKey: 'ach.sessions-10.description',
       name: 'Double Digits',
       description: 'Complete 10 sessions.',
       icon: 'dumbbell',
@@ -446,10 +502,19 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlocked: count >= TIERS.sessions10,
       progress: Math.min(100, Math.round((count / TIERS.sessions10) * 100)),
       progressLabel: `${Math.min(count, TIERS.sessions10)} / ${TIERS.sessions10} sessions`,
+      progressDetail: {
+        kind: count >= TIERS.sessions10 ? 'earned' : 'of',
+        value: Math.min(count, TIERS.sessions10),
+        target: TIERS.sessions10,
+        unitKey: 'unit.sessions',
+      },
       threshold: TIERS.sessions10,
     },
     {
       id: 'sessions-50',
+
+      nameKey: 'ach.sessions-50.name',
+      descriptionKey: 'ach.sessions-50.description',
       name: 'Half Century',
       description: 'Complete 50 sessions.',
       icon: 'trophy',
@@ -457,10 +522,19 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlocked: count >= TIERS.sessions50,
       progress: Math.min(100, Math.round((count / TIERS.sessions50) * 100)),
       progressLabel: `${Math.min(count, TIERS.sessions50)} / ${TIERS.sessions50} sessions`,
+      progressDetail: {
+        kind: count >= TIERS.sessions50 ? 'earned' : 'of',
+        value: Math.min(count, TIERS.sessions50),
+        target: TIERS.sessions50,
+        unitKey: 'unit.sessions',
+      },
       threshold: TIERS.sessions50,
     },
     {
       id: 'records-5',
+
+      nameKey: 'ach.records-5.name',
+      descriptionKey: 'ach.records-5.description',
       name: 'Record Breaker',
       description: 'Set personal records on 5 lifts.',
       icon: 'trending-up',
@@ -468,10 +542,19 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlocked: records.length >= TIERS.prs5,
       progress: Math.min(100, Math.round((records.length / TIERS.prs5) * 100)),
       progressLabel: `${Math.min(records.length, TIERS.prs5)} / ${TIERS.prs5} lifts`,
+      progressDetail: {
+        kind: records.length >= TIERS.prs5 ? 'earned' : 'of',
+        value: Math.min(records.length, TIERS.prs5),
+        target: TIERS.prs5,
+        unitKey: 'unit.lifts',
+      },
       threshold: TIERS.prs5,
     },
     {
       id: 'hours-10',
+
+      nameKey: 'ach.hours-10.name',
+      descriptionKey: 'ach.hours-10.description',
       name: 'Ten Hours In',
       description: 'Accumulate 10 hours of training.',
       icon: 'timer',
@@ -479,10 +562,19 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlocked: minutes >= 600,
       progress: Math.min(100, Math.round((minutes / 600) * 100)),
       progressLabel: `${Math.floor(minutes / 60)} / 10 hours`,
+      progressDetail: {
+        kind: minutes >= 600 ? 'earned' : 'of',
+        value: Math.floor(minutes / 60),
+        target: 10,
+        unitKey: 'unit.hours',
+      },
       threshold: 600,
     },
     {
       id: 'tonnage-10t',
+
+      nameKey: 'ach.tonnage-10t.name',
+      descriptionKey: 'ach.tonnage-10t.description',
       name: 'Iron Mover',
       description: 'Move 10 tonnes of iron.',
       icon: 'weight',
@@ -490,10 +582,18 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlocked: volume >= 10_000,
       progress: Math.min(100, Math.round((volume / 10_000) * 100)),
       progressLabel: `${(volume / 1000).toFixed(1)} / 10 t`,
+      progressDetail: {
+        kind: volume >= 10_000 ? 'earned' : 'of',
+        value: Number((volume / 1000).toFixed(1)),
+        target: 10,
+        unitKey: 'unit.tonnes',
+      },
       threshold: 10_000,
     },
     {
       id: 'early-bird',
+      nameKey: 'ach.early-bird.name',
+      descriptionKey: 'ach.early-bird.description',
       name: 'Early Bird',
       description: 'Finish a session before 9am.',
       icon: 'sunrise',
@@ -501,6 +601,10 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlocked: earlyBird.length > 0,
       progress: earlyBird.length > 0 ? 100 : 0,
       progressLabel: earlyBird.length > 0 ? 'Earned' : 'Train before 9am',
+      progressDetail:
+        earlyBird.length > 0
+          ? { kind: 'earned' }
+          : { kind: 'hint', unitKey: 'unit.ach.hint.earlyBird' },
       threshold: 1,
     },
 
@@ -516,6 +620,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: streak,
       target: 14,
       unit: 'days',
+      unitKey: 'unit.days',
     }),
     ratchet({
       id: 'streak-30',
@@ -526,6 +631,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: streak,
       target: 30,
       unit: 'days',
+      unitKey: 'unit.days',
     }),
     ratchet({
       id: 'sessions-100',
@@ -536,6 +642,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: count,
       target: 100,
       unit: 'sessions',
+      unitKey: 'unit.sessions',
     }),
     ratchet({
       id: 'hours-50',
@@ -546,6 +653,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: minutes,
       target: 3000,
       unit: 'hours',
+      unitKey: 'unit.hours',
       scale: 60,
     }),
     ratchet({
@@ -557,6 +665,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: volume,
       target: 50_000,
       unit: 't',
+      unitKey: 'unit.tonnes',
       scale: 1000,
       decimals: 1,
     }),
@@ -571,6 +680,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: weekRun,
       target: 4,
       unit: 'weeks',
+      unitKey: 'unit.weeks',
     }),
     ratchet({
       id: 'comeback',
@@ -581,10 +691,15 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: longestGapDays,
       target: 14,
       unit: 'days',
+      unitKey: 'unit.days',
       lockedLabel: 'The longest break so far',
+      lockedLabelKey: 'ach.prefix.longestBreak',
     }),
     {
       id: 'weekend-warrior',
+
+      nameKey: 'ach.weekend-warrior.name',
+      descriptionKey: 'ach.weekend-warrior.description',
       name: 'Weekend Warrior',
       description: 'Train on both Saturday and Sunday of the same week.',
       icon: 'zap',
@@ -592,6 +707,8 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       unlocked: weekendWeek > 0,
       progress: weekendWeek > 0 ? 100 : 0,
       progressLabel: weekendWeek > 0 ? 'Earned' : 'Train Saturday + Sunday',
+      progressDetail:
+        weekendWeek > 0 ? { kind: 'earned' } : { kind: 'hint', unitKey: 'unit.ach.hint.weekend' },
       threshold: 1,
     },
 
@@ -605,6 +722,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: state.bodyLogs.length,
       target: 10,
       unit: 'measurements',
+      unitKey: 'unit.measurements',
     }),
     ratchet({
       id: 'meals-25',
@@ -615,6 +733,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: state.meals.length,
       target: 25,
       unit: 'meals',
+      unitKey: 'unit.meals',
     }),
     ratchet({
       id: 'variety-10',
@@ -625,6 +744,7 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: distinctMoves,
       target: 10,
       unit: 'exercises',
+      unitKey: 'unit.exercises',
     }),
     ratchet({
       id: 'long-session',
@@ -635,7 +755,9 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: longestMin,
       target: 90,
       unit: 'min',
+      unitKey: 'unit.minutes',
       lockedLabel: 'Longest session',
+      lockedLabelKey: 'ach.prefix.longestSession',
     }),
     ratchet({
       id: 'distance-10k',
@@ -646,8 +768,10 @@ export function computeAchievements(state: FitnessState, now = new Date()): Achi
       value: longestKm,
       target: 10,
       unit: 'km',
+      unitKey: 'unit.km',
       decimals: 1,
       lockedLabel: 'Farthest session',
+      lockedLabelKey: 'ach.prefix.farthestSession',
     }),
   ];
 }
@@ -668,12 +792,17 @@ function ratchet(spec: {
   tint: string;
   value: number;
   target: number;
+  /** English unit for the fallback label ("days", "km", "t"). */
   unit: string;
+  /** Catalogue key for the same unit, so the UI can pluralise it. */
+  unitKey: string;
   /** Raw units per display unit (60 for minutes → hours, 1000 for kg → t). */
   scale?: number;
   decimals?: number;
   /** Prefix for the label while locked; defaults to "Progress". */
   lockedLabel?: string;
+  /** Catalogue key for that prefix. */
+  lockedLabelKey?: string;
 }): Achievement {
   const { value, target, scale = 1, decimals = 0 } = spec;
   const unlocked = value >= target;
@@ -684,6 +813,8 @@ function ratchet(spec: {
   const shown = floorTo(value / scale);
   return {
     id: spec.id,
+    nameKey: `ach.${spec.id}.name`,
+    descriptionKey: `ach.${spec.id}.description`,
     name: spec.name,
     description: spec.description,
     icon: spec.icon,
@@ -693,6 +824,13 @@ function ratchet(spec: {
     progressLabel: unlocked
       ? `Earned · ${fmt(floorTo(target / scale))} ${spec.unit}`
       : `${spec.lockedLabel ? `${spec.lockedLabel}: ` : ''}${fmt(shown)} / ${fmt(floorTo(target / scale))} ${spec.unit}`,
+    progressDetail: {
+      kind: unlocked ? 'earned' : 'of',
+      value: shown,
+      target: floorTo(target / scale),
+      unitKey: spec.unitKey,
+      prefixKey: spec.lockedLabelKey,
+    },
     threshold: target,
   };
 }
@@ -746,6 +884,42 @@ function consecutiveWeeks(dates: string[], now: Date): number {
     cursor.setDate(cursor.getDate() - 7);
   }
   return run;
+}
+
+/**
+ * Render the wall in one locale.
+ *
+ * Core computes badges and emits *keys*; this is the one place that turns them
+ * back into sentences, so every surface (the wall, the celebration toast, the
+ * profile card) shares the same wording and nobody re-implements the progress
+ * line. Call it with the active translator; without one, the English fields on
+ * the achievement stand as they are.
+ */
+export function translateAchievements(
+  achievements: Achievement[],
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): Achievement[] {
+  return achievements.map((a) => {
+    const d = a.progressDetail;
+    const unit = d.unitKey ? t(d.unitKey, { count: d.target ?? 1 }) : '';
+    const line =
+      d.kind === 'earned'
+        ? t('ach.progress.earned')
+        : d.kind === 'hint'
+          ? unit
+          : t('ach.progress.of', {
+              // Locale-aware numbers: French groups with a narrow space.
+              value: d.value ?? 0,
+              target: d.target ?? 0,
+              unit,
+            });
+    return {
+      ...a,
+      name: t(a.nameKey),
+      description: t(a.descriptionKey),
+      progressLabel: d.prefixKey ? `${t(d.prefixKey)}: ${line}` : line,
+    };
+  });
 }
 
 /**

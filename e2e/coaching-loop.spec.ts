@@ -199,6 +199,41 @@ test('language: switching to French localises the shell and persists', async ({ 
   await expect(page.getByText(/aliments sur \d+ restent disponibles/)).toBeVisible();
 });
 
+test('language: the progress hero and the badge wall are French too', async ({ page }) => {
+  await page.goto('/dashboard');
+  await completeOnboarding(page);
+  await page.goto('/dashboard/personalize');
+  await page.getByRole('button', { name: 'Français' }).click();
+  await expect(page.getByRole('link', { name: 'Tableau de bord' }).first()).toBeVisible();
+
+  // ── the first card ───────────────────────────────────────────────────────
+  await page.goto('/dashboard/progress');
+  const hero = page.getByRole('region', { name: 'Note de santé et anneaux d’objectifs' });
+  await expect(hero).toBeVisible();
+  await expect(hero.getByRole('heading', { name: 'Note de santé' })).toBeVisible();
+  await expect(hero.getByText('Note de santé : 0 sur 100')).toBeVisible();
+  // The ring labels and the "what to do next" line are copy, not key strings.
+  await expect(hero.getByText('Exercice')).toBeVisible();
+  await expect(hero.getByText('Brûlées')).toBeVisible();
+  await expect(hero.getByText(/pour fermer l’anneau d’exercice/)).toBeVisible();
+  // A fresh account is on the last-day window, which has its own singular form.
+  await expect(hero.getByText('Dernier jour')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Vos statistiques' })).toBeVisible();
+
+  // ── the wall ─────────────────────────────────────────────────────────────
+  const wall = page.getByText(/sur 22 obtenus/);
+  await wall.scrollIntoViewIfNeeded();
+  await expect(wall).toBeVisible();
+  // Locked badges name themselves and their progress in French.
+  await expect(page.getByText('Premier sang')).toBeVisible();
+  await expect(page.getByText('Enregistrez votre toute première séance.')).toBeVisible();
+  await expect(page.getByText('0 / 1 séance')).toBeVisible();
+  await expect(page.getByText('0 / 30 jours')).toBeVisible();
+  await expect(page.getByText('La plus longue pause à ce jour')).toBeVisible();
+  // No catalogue key may reach the screen.
+  await expect(page.getByText(/ach\.|unit\./)).toHaveCount(0);
+});
+
 test('diet: a restriction removes foods from the suggestions and the swaps', async ({ page }) => {
   await page.goto('/dashboard');
   await completeOnboarding(page);

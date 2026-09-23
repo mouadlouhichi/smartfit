@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  computeAchievements,
+  emptyState,
+  translateAchievements,
   DEFAULT_LOCALE,
   LOCALES,
   MESSAGES,
@@ -54,7 +57,8 @@ test('the locale resolves from choice, then device, then English', () => {
 test('English is the reference catalog and every key is a real string', () => {
   assert.ok(MESSAGE_KEYS.length > 100, `only ${MESSAGE_KEYS.length} keys defined`);
   for (const key of MESSAGE_KEYS) {
-    assert.match(key, /^[a-z][a-zA-Z0-9]*(\.[a-z0-9]+)+$/i, `odd key: ${key}`);
+    // Segments may carry a hyphen: badge keys embed their id (`ach.streak-14.name`).
+    assert.match(key, /^[a-z][a-zA-Z0-9]*\.[a-z0-9-]+(\.[a-z0-9-]+)*$/i, `odd key: ${key}`);
     const message = MESSAGES.en[key];
     if (typeof message === 'string') assert.ok(message.length > 0, `${key} is empty`);
     else {
@@ -145,6 +149,10 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'diet.rule.halal': 'Halal.',
   'fuel.badge.photo': 'Photo.',
   'fuel.badge.scan': 'Scan — the same word in French.',
+  'ach.progress.of':
+    'A pure placeholder template ("{value} / {target} {unit}") — the words it renders come from the unit keys.',
+  'progress.ring.distance': 'Distance.',
+  'ach.sessions-100.name': '"Centurion" is the same word in both languages.',
 };
 
 test('the translations are actually translated, not copied', () => {
@@ -156,4 +164,86 @@ test('the translations are actually translated, not copied', () => {
     Object.keys(INTENTIONAL_COGNATES).sort(),
     'an EN/FR string matches but is not a declared cognate — translate it, or add it to INTENTIONAL_COGNATES with a reason',
   );
+});
+/** Two weeks of sessions ending 2026-03-15, for the streak tiers. */
+function withFortnight() {
+  const base = emptyState();
+  return {
+    ...base,
+    sessions: Array.from({ length: 14 }, (_, i) => {
+      const d = new Date('2026-03-02T12:00:00');
+      d.setDate(d.getDate() + i);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return {
+        id: `s-${i}`,
+        date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+        categoryId: 'cat-strength',
+        title: 'Session',
+        durationMin: 45,
+        intensity: 'moderate' as const,
+        calories: 300,
+        exercises: [],
+        createdAt: d.getTime(),
+      };
+    }),
+  };
+}
+
+test('the achievement wall has copy in both locales, and core emits the keys', () => {
+  const wall = computeAchievements(emptyState());
+  const en = createTranslator('en');
+  const fr = createTranslator('fr');
+
+  for (const a of wall) {
+    // Core carries the keys…
+    assert.match(a.nameKey, /^ach\.[a-z0-9-]+\.name$/);
+    assert.match(a.descriptionKey, /^ach\.[a-z0-9-]+\.description$/);
+    // …and both catalogues carry the copy, or `t` would hand back the key.
+    assert.notEqual(en(a.nameKey), a.nameKey, `en is missing ${a.nameKey}`);
+    assert.notEqual(fr(a.nameKey), a.nameKey, `fr is missing ${a.nameKey}`);
+    assert.notEqual(en(a.descriptionKey), a.descriptionKey, `en is missing ${a.descriptionKey}`);
+    assert.notEqual(fr(a.descriptionKey), a.descriptionKey, `fr is missing ${a.descriptionKey}`);
+    // The progress line's unit and prefix keys resolve too.
+    if (a.progressDetail.unitKey) {
+      assert.notEqual(fr(a.progressDetail.unitKey), a.progressDetail.unitKey);
+    }
+    if (a.progressDetail.prefixKey) {
+      assert.notEqual(fr(a.progressDetail.prefixKey), a.progressDetail.prefixKey);
+    }
+  }
+});
+
+test('translateAchievements renders the wall in the active locale', () => {
+  const earned = translateAchievements(
+    computeAchievements(withFortnight(), new Date('2026-03-15T20:00:00')),
+    createTranslator('fr'),
+  );
+  const streak = earned.find((a) => a.id === 'streak-14')!;
+  // French copy, French plural agreement, and no leftover catalogue key.
+  assert.equal(streak.name, 'Quinzaine forgée');
+  assert.equal(streak.progressLabel, 'Obtenu');
+  const locked = earned.find((a) => a.id === 'streak-30')!;
+  assert.equal(locked.progressLabel, '14 / 30 jours');
+  const long = earned.find((a) => a.id === 'long-session')!;
+  // The fixture's sessions are 45 minutes, so this tier is half-reached.
+  assert.equal(long.progressLabel, 'Séance la plus longue: 45 / 90 min');
+  // The *rendered* fields must be copy; `progressDetail` keeps its keys on
+  // purpose, since that is what the next surface translates from.
+  for (const a of earned) {
+    for (const field of [a.name, a.description, a.progressLabel]) {
+      assert.ok(!field.includes('ach.'), `a catalogue key leaked into "${field}"`);
+      assert.ok(!field.includes('unit.'), `a unit key leaked into "${field}"`);
+    }
+  }
+});
+
+test('a unit pluralises on its target, not on the value', () => {
+  const en = createTranslator('en');
+  const fr = createTranslator('fr');
+  // The unit is the noun; the numbers come from the template around it.
+  assert.equal(en('unit.days', { count: 1 }), 'day');
+  assert.equal(en('unit.days', { count: 14 }), 'days');
+  assert.equal(fr('unit.days', { count: 1 }), 'jour');
+  assert.equal(fr('unit.days', { count: 30 }), 'jours');
+  assert.equal(fr('ach.progress.of', { value: 14, target: 30, unit: 'jours' }), '14 / 30 jours');
 });

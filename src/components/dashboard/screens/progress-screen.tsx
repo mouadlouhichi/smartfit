@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useTablist } from '@/components/ui/use-tablist';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +48,7 @@ import {
   heatmapActiveDays,
   personalRecords,
   computeAchievements,
+  translateAchievements,
   muscleVolume,
   pendingCheckIn,
   xpSummary,
@@ -89,6 +91,7 @@ function rangeDaysSessions(state: ReturnType<typeof useStore>['state'], days: nu
 }
 
 export function ProgressScreen() {
+  const { t } = useI18n();
   const { state } = useStore();
   const { openWith } = useModals();
   const pro = hasProAccess(state);
@@ -149,7 +152,11 @@ export function ProgressScreen() {
   const heatmap = useMemo(() => consistencyHeatmap(state, 18), [state]);
   const heatDays = useMemo(() => heatmapActiveDays(heatmap), [heatmap]);
   const records = useMemo(() => personalRecords(state), [state]);
-  const achievements = useMemo(() => computeAchievements(state), [state]);
+  // Core emits keys; the active translator turns them into the wall's copy.
+  const achievements = useMemo(
+    () => translateAchievements(computeAchievements(state), t),
+    [state, t],
+  );
   const muscles = useMemo(() => muscleVolume(state, days), [state, days]);
 
   // XP is derived from the log like achievements, so it costs a render and
@@ -185,10 +192,10 @@ export function ProgressScreen() {
   );
   const gradeCopy =
     healthScore >= 80
-      ? 'Perfect progress — keep going like this.'
+      ? t('progress.grade.perfect')
       : healthScore >= 60
-        ? 'Solid work — one more session moves the needle.'
-        : 'Every session counts. Let’s build momentum.';
+        ? t('progress.grade.solid')
+        : t('progress.grade.building');
 
   // ── hero extras ────────────────────────────────────────────────────────
   // 1. The comparison the grade alone cannot give: is this window better than
@@ -203,14 +210,14 @@ export function ProgressScreen() {
     {
       gap: Math.max(0, targets.minutes - rangeAgg.minutes),
       share: targets.minutes > 0 ? 1 - Math.min(1, rangeAgg.minutes / targets.minutes) : 0,
-      copy: (n: number) => `${n} min to close the exercise ring`,
+      copy: (n: number) => t('progress.next.minutes', { value: n }),
     },
     ...(targets.calories > 0
       ? [
           {
             gap: Math.max(0, targets.calories - rangeAgg.calories),
             share: 1 - Math.min(1, rangeAgg.calories / targets.calories),
-            copy: (n: number) => `${formatCalories(n)} to close the burn ring`,
+            copy: (n: number) => t('progress.next.calories', { value: formatCalories(n) }),
           },
         ]
       : []),
@@ -232,7 +239,7 @@ export function ProgressScreen() {
         .map((ring) => ring.copy(ring.gap))
         .map((copy) => copy.charAt(0).toUpperCase() + copy.slice(1))
         .join(' · ')
-    : 'All three rings closed for this window — hold this pace.';
+    : t('progress.next.none');
 
   return (
     <div className="grid gap-5">
@@ -242,11 +249,11 @@ export function ProgressScreen() {
             Progress
           </p>
           <h1 className="font-display-tight text-xl font-extrabold tracking-tight sm:text-2xl">
-            Your Stats
+            {t('progress.title')}
           </h1>
           <p className="text-muted-foreground text-sm">
             {state.sessions.length} session{state.sessions.length === 1 ? '' : 's'} logged all-time
-            {streak > 0 ? ` · ${streak}-day streak` : ''}
+            {streak > 0 ? ` · ${t('progress.streak', { count: streak })}` : ''}
           </p>
         </div>
 
@@ -288,20 +295,20 @@ export function ProgressScreen() {
       {/* ── Health Grade — the reference report hero ───────────────────── */}
       <section
         className="card-hero p-4 min-[420px]:p-6 sm:p-8"
-        aria-label="Health grade and goal rings"
+        aria-label={t('progress.hero.aria')}
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <h2 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-              Health Grade
+              {t('progress.grade')}
             </h2>
             <p className="hero-muted mt-1 max-w-[17rem] text-sm">{gradeCopy}</p>
           </div>
-          <GradeRing value={healthScore} size={88} label="Health grade" />
+          <GradeRing value={healthScore} size={88} label={t('progress.grade')} />
         </div>
         <div className="mt-5 mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
           <p className="eyebrow hero-muted">
-            Last {days} day{days === 1 ? '' : 's'}
+            {days === 1 ? t('progress.window.one') : t('progress.window', { count: days })}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {minutesDelta !== null && minutesDelta !== 0 && (
@@ -309,9 +316,12 @@ export function ProgressScreen() {
                 className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold"
                 // Spoken as a sentence: the arrow is decoration, and the label
                 // is what a screen reader gets.
-                aria-label={`${formatMinutes(Math.abs(minutesDelta))} ${
-                  minutesDelta > 0 ? 'more' : 'less'
-                } than the previous ${days} days`}
+                aria-label={(minutesDelta > 0
+                  ? t('progress.vs.aria.more')
+                  : t('progress.vs.aria.less')
+                )
+                  .replace('{value}', formatMinutes(Math.abs(minutesDelta)))
+                  .replace('{count}', String(days))}
               >
                 {minutesDelta > 0 ? (
                   <ArrowUpRight className="text-volt-ink h-3.5" aria-hidden />
@@ -319,17 +329,19 @@ export function ProgressScreen() {
                   <ArrowDownRight className="hero-muted h-3.5" aria-hidden />
                 )}
                 <span aria-hidden>
-                  {formatMinutes(Math.abs(minutesDelta))} vs previous {days}d
+                  {t('progress.vs', { value: formatMinutes(Math.abs(minutesDelta)), count: days })}
                 </span>
               </span>
             )}
             {streak > 0 && (
               <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
                 <Flame className="text-volt-ink h-3.5" aria-hidden />
-                {streak}-day streak
+                {t('progress.streak', { count: streak })}
                 {/* The best run is what makes the current one legible. */}
                 {ringStats.best > streak && (
-                  <span className="hero-muted font-medium">· best {ringStats.best}</span>
+                  <span className="hero-muted font-medium">
+                    · {t('progress.streak.best', { count: ringStats.best })}
+                  </span>
                 )}
               </span>
             )}
@@ -340,14 +352,14 @@ export function ProgressScreen() {
         <div className="flex items-start justify-between gap-1 sm:gap-2">
           <RingStat
             pct={minPct}
-            label="Exercise"
+            label={t('progress.ring.exercise')}
             value={`${rangeAgg.minutes}/${targets.minutes}min`}
             icon={Timer}
             color="var(--chart-2)"
           />
           <RingStat
             pct={calPct}
-            label="Burned"
+            label={t('progress.ring.burned')}
             value={formatCalories(rangeAgg.calories)}
             icon={Flame}
             color="var(--volt-dim)"
@@ -355,7 +367,7 @@ export function ProgressScreen() {
           />
           <RingStat
             pct={distPct}
-            label="Distance"
+            label={t('progress.ring.distance')}
             value={formatDistance(rangeAgg.distance ?? 0, distanceUnit)}
             icon={Footprints}
             color="var(--border)"
@@ -365,9 +377,7 @@ export function ProgressScreen() {
             athlete has no burn/distance goals yet, why those rings are flat. */}
         <p className="hero-muted mt-5 text-center text-xs">{nextStep}</p>
         {targets.calories === 0 && targets.distanceKm === 0 && (
-          <p className="hero-muted mt-1 text-center text-xs">
-            Burn and distance rings fill once you set a calories or distance goal.
-          </p>
+          <p className="hero-muted mt-1 text-center text-xs">{t('progress.next.rings')}</p>
         )}
       </section>
 
