@@ -44,7 +44,7 @@ const EMPTY_ROUTE: GeoPoint[] = [];
  */
 export function SessionDetailModal() {
   const { state } = useStore();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { closeModal, openWith } = useModals();
   const payload = usePayload('session-detail');
   const open = payload !== null;
@@ -70,7 +70,7 @@ export function SessionDetailModal() {
   // screen recorded it, otherwise the logged duration.
   const movingSec = Math.round((session.movingTimeMin ?? session.durationMin) * 60);
   const distanceKm = session.distanceKm ?? 0;
-  const dateLabel = formatDateLabel(session.date);
+  const dateLabel = formatDateLabel(session.date, locale);
 
   return (
     <>
@@ -87,7 +87,7 @@ export function SessionDetailModal() {
               <div className="min-w-0">
                 <DialogTitle className="truncate">{session.title}</DialogTitle>
                 <p className="text-muted-foreground text-sm">
-                  {formatDateLabel(session.date)} · {category.name}
+                  {formatDateLabel(session.date, locale)} · {category.name}
                 </p>
               </div>
             </div>

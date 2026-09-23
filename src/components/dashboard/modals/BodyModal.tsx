@@ -22,9 +22,10 @@ import { useConfirm } from '../confirm-context';
 import {
   BODY_UNIT_META,
   bodyDisplayUnit,
-  bodyLabel,
+  bodyUnitLabel,
   bodyValueToCanonical,
   bodyValueToDisplay,
+  formatDateLabel,
   toISODate,
 } from '@smartfit/core';
 import type { BodyUnit } from '@smartfit/core';
@@ -36,7 +37,7 @@ import { Trash2 } from 'lucide-react';
  */
 export function BodyModal() {
   const { state, addBodyLog, deleteBodyLog } = useStore();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { closeModal } = useModals();
   const confirmDialog = useConfirm();
   const payload = usePayload('body');
@@ -92,7 +93,10 @@ export function BodyModal() {
     if (!editing) return;
     const ok = await confirmDialog({
       title: t('modal.body.deleteTitle'),
-      body: `The ${bodyLabel(editing.unit, editing.label).toLowerCase()} entry from ${editing.date} will be removed. This cannot be undone.`,
+      body: t('modal.body.deleteBody', {
+        metric: bodyUnitLabel(editing.unit, editing.label, t).toLowerCase(),
+        date: formatDateLabel(editing.date, locale),
+      }),
       confirmLabel: t('modal.body.deleteConfirm'),
       destructive: true,
     });
@@ -138,7 +142,7 @@ export function BodyModal() {
                     <option key={k} value={k}>
                       <span className="inline-flex items-center gap-2">
                         <CategoryIcon name={m.icon} size={12} className="text-muted-foreground" />
-                        {m.label}
+                        {bodyUnitLabel(k, undefined, t)}
                       </span>
                     </option>
                   ))}

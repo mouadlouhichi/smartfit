@@ -25,7 +25,7 @@ import {
 export function StreakRingsCard() {
   const { state } = useStore();
   const { openWith } = useModals();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const dayLetters = t('time.weekdays.initials').split(',');
 
   const rings = useMemo(() => activityRings(state, targetsForDays(state, 1)), [state]);
@@ -125,7 +125,7 @@ export function StreakRingsCard() {
               list: week
                 .map(
                   (d) =>
-                    `${formatDateLabel(d.date)} ${
+                    `${formatDateLabel(d.date, locale)} ${
                       d.rings.closed ? t('overview.streak.closed') : t('overview.streak.open')
                     }`,
                 )

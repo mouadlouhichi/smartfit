@@ -21,8 +21,8 @@ import { useConfirm } from '../confirm-context';
 import {
   FREE_ROUTINE_TEMPLATES,
   INTENSITY_META,
-  WEEKDAYS_LONG,
   hasProAccess,
+  weekdayLabels,
 } from '@smartfit/core';
 import type { Intensity, Weekday, WorkoutExercise } from '@smartfit/core';
 import { Crown, Plus, Trash2, X } from 'lucide-react';
@@ -37,7 +37,7 @@ interface RoutineRow {
 
 export function ScheduleModal() {
   const { state, addSchedule, updateSchedule, deleteSchedule } = useStore();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { closeModal, openWith } = useModals();
   const confirmDialog = useConfirm();
   const payload = usePayload('schedule');
@@ -130,7 +130,7 @@ export function ScheduleModal() {
     if (!editing) return;
     const ok = await confirmDialog({
       title: t('modal.schedule.removeTitle'),
-      body: `"${editing.title}" will no longer be scheduled. Logged workouts are kept.`,
+      body: t('modal.schedule.removeBody', { name: editing.title }),
       confirmLabel: t('modal.schedule.removeConfirm'),
       destructive: true,
     });
@@ -175,7 +175,7 @@ export function ScheduleModal() {
                   value={weekday}
                   onChange={(e) => setWeekday(Number(e.target.value) as Weekday)}
                 >
-                  {WEEKDAYS_LONG.map((d, i) => (
+                  {weekdayLabels(locale, 'long').map((d, i) => (
                     <option key={d} value={i}>
                       {d}
                     </option>

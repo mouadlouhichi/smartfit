@@ -255,6 +255,56 @@ test('language: the progress hero and the badge wall are French too', async ({ p
   await expect(page.getByText(/ach\.|unit\./)).toHaveCount(0);
 });
 
+test('language: plan, goals, body and profile read in French', async ({ page }) => {
+  await page.goto('/dashboard');
+  await completeOnboarding(page);
+  await page.goto('/dashboard/personalize');
+  await page.getByRole('button', { name: 'Français' }).click();
+  await expect(page.getByRole('link', { name: 'Tableau de bord' }).first()).toBeVisible();
+
+  // ── plan ─────────────────────────────────────────────────────────────────
+  await page.goto('/dashboard/plan');
+  await expect(page.getByRole('heading', { name: 'Plan d’entraînement', level: 1 })).toBeVisible();
+  await expect(page.getByText('Stratégie', { exact: true })).toBeVisible();
+  await expect(page.getByText('Votre semaine', { exact: true })).toBeVisible();
+  await expect(page.getByText('Journal des séances', { exact: true })).toBeVisible();
+  // The library's vocabulary comes from core, not from a component copy.
+  await expect(page.getByText('Bibliothèque d’exercices', { exact: true })).toBeVisible();
+  await expect(page.getByPlaceholder('Rechercher un exercice…')).toBeVisible();
+  // Its muscle/equipment words translate too — the ids are built at runtime.
+  await expect(page.getByText('Pectoraux').first()).toBeVisible();
+
+  // ── goals ────────────────────────────────────────────────────────────────
+  await page.goto('/dashboard/goals');
+  await expect(page.getByRole('heading', { name: 'Vos objectifs', level: 1 })).toBeVisible();
+  await expect(page.getByText('Aucun objectif pour l’instant')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Créer votre premier objectif' })).toBeVisible();
+
+  // ── body ─────────────────────────────────────────────────────────────────
+  await page.goto('/dashboard/body');
+  await expect(page.getByRole('heading', { name: 'Mesures', level: 1 })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Par muscle' })).toBeVisible();
+  await expect(page.getByText('Aucune mesure pour l’instant')).toBeVisible();
+
+  // ── profile, including a modal that is only reachable through it ─────────
+  await page.goto('/dashboard/profile');
+  await expect(page.getByRole('tab', { name: 'Aperçu' })).toBeVisible();
+  await page.getByRole('tab', { name: 'Données' }).click();
+  await expect(page.getByText('Vos données', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Tout effacer' })).toBeVisible();
+  // The two destructive dialogs are the copy a half-translated app gets wrong.
+  await page.getByRole('button', { name: 'Tout effacer' }).click();
+  await expect(page.getByText('Effacer toutes vos données SmartFit ?')).toBeVisible();
+  await page.getByRole('button', { name: 'Annuler' }).click();
+
+  await page.getByRole('tab', { name: 'Réglages' }).click();
+  await expect(page.getByLabel('La semaine commence le')).toBeVisible();
+  await expect(page.getByText('Préférences d’entraînement')).toBeVisible();
+
+  // Nothing on these screens may show a raw catalogue key.
+  await expect(page.getByText(/profile\.|modal\.|library\.|plan\./)).toHaveCount(0);
+});
+
 test('diet: a restriction removes foods from the suggestions and the swaps', async ({ page }) => {
   await page.goto('/dashboard');
   await completeOnboarding(page);

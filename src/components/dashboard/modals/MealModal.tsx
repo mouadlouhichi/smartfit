@@ -23,6 +23,7 @@ import { useConfirm } from '../confirm-context';
 import {
   MEAL_SLOTS,
   foodById,
+  formatDateLabel,
   foodLabel,
   hasProAccess,
   parseMealDescription,
@@ -343,9 +344,12 @@ export function MealModal() {
   async function remove() {
     if (!editing) return;
     const ok = await confirmDialog({
-      title: 'Delete this meal?',
-      body: `“${editing.name}” from ${editing.date} will be removed from your fuel log. This cannot be undone.`,
-      confirmLabel: 'Delete meal',
+      title: t('meal.deleteTitle'),
+      body: t('meal.deleteBody', {
+        name: editing.name,
+        date: formatDateLabel(editing.date, locale),
+      }),
+      confirmLabel: t('meal.deleteConfirm'),
       destructive: true,
     });
     if (!ok) return;

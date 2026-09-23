@@ -41,7 +41,7 @@ import {
 } from '@smartfit/core';
 import {
   bodyDisplayUnit,
-  bodyLabel,
+  bodyUnitLabel,
   bodyValueToDisplay,
   EXERCISE_EQUIPMENT_LABELS,
   EXERCISE_MUSCLE_LABELS,
@@ -73,7 +73,7 @@ const UNIT_STYLE: Record<string, string> = {
 
 export function BodyScreen() {
   const { state, hasMoreBodyLogs, loadingMore, loadEarlierBodyLogs } = useStore();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { openModal, openWith } = useModals();
   const [pageError, setPageError] = useState<string | null>(null);
   const [mode, setMode] = useState<'measure' | 'muscles'>('muscles');
@@ -106,10 +106,10 @@ export function BodyScreen() {
         .sort((a, b) => (a.date < b.date ? -1 : 1))
         .map((l) => ({
           date: l.date,
-          label: formatDateLabel(l.date),
+          label: formatDateLabel(l.date, locale),
           value: round(bodyValueToDisplay(l.value, l.unit, state.profile), 1),
         })),
-    [state.bodyLogs, activeUnit, state.profile],
+    [state.bodyLogs, activeUnit, state.profile, locale],
   );
 
   const latest = points[points.length - 1]?.value;
@@ -202,7 +202,7 @@ export function BodyScreen() {
               >
                 {unitsWithData.map((u) => (
                   <option key={u} value={u}>
-                    {BODY_UNIT_META[u]?.label ?? u}
+                    {bodyUnitLabel(u, undefined, t)}
                   </option>
                 ))}
               </Select>
@@ -347,8 +347,10 @@ export function BodyScreen() {
                         <CategoryIcon name={lMeta?.icon ?? 'ruler'} size={16} />
                       </span>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{bodyLabel(l.unit, l.label)}</p>
-                        <p className="text-muted-foreground text-xs">{formatDateLabel(l.date)}</p>
+                        <p className="text-sm font-medium">{bodyUnitLabel(l.unit, l.label, t)}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {formatDateLabel(l.date, locale)}
+                        </p>
                       </div>
                       <span className="text-sm font-bold tabular-nums">
                         {round(bodyValueToDisplay(l.value, l.unit, state.profile), 1)}{' '}
@@ -394,7 +396,7 @@ export function BodyScreen() {
 
 function MuscleLab() {
   const { state } = useStore();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { openWith } = useModals();
   const [muscle, setMuscle] = useState<ExerciseMuscle>('chest');
   const [detailName, setDetailName] = useState<string | null>(null);

@@ -134,7 +134,7 @@ export function GoalModal() {
     if (!editing) return;
     const ok = await confirmDialog({
       title: t('modal.goal.deleteTitle'),
-      body: `"${editing.name}" and its progress will be removed. This cannot be undone.`,
+      body: t('modal.goal.deleteBody', { name: editing.name }),
       confirmLabel: t('modal.goal.deleteConfirm'),
       destructive: true,
     });

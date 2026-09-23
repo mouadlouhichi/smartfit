@@ -29,7 +29,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
 import { Field } from '@/components/ui/field';
 import { CategoryIcon } from '@/components/category-icon';
-import { INTENSITY_META, PLANS, WEEKDAYS, WEEKDAYS_LONG } from '@smartfit/core';
+import { INTENSITY_META, PLANS, weekdayLabel, weekdayLabels } from '@smartfit/core';
 import {
   categoryById,
   findGymProgram,
@@ -66,7 +66,7 @@ export function PlanScreen() {
     loadEarlierSessions,
   } = useStore();
   const { openModal, openWith } = useModals();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
   const [filter, setFilter] = useState('all');
@@ -178,7 +178,7 @@ export function PlanScreen() {
               {t('plan.weeklySplit')}
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {WEEKDAYS.map((d, i) => {
+              {weekdayLabels(locale, 'short').map((d, i) => {
                 const slot = plan.split.find((s) => s.weekday === i);
                 const cat = state.categories.find((c) => c.id === slot?.categoryId);
                 return (
@@ -229,7 +229,7 @@ export function PlanScreen() {
                   >
                     <span className="w-[4.25rem] shrink-0">
                       <span className="block truncate text-xs font-bold tabular-nums">
-                        {WEEKDAYS_LONG[s.weekday]}
+                        {weekdayLabel(s.weekday, locale)}
                       </span>
                       <span className="text-muted-foreground block text-[11px] font-semibold tabular-nums">
                         {s.time}
@@ -286,7 +286,7 @@ export function PlanScreen() {
           </span>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
-          {WEEKDAYS_LONG.map((day, i) => {
+          {weekdayLabels(locale, 'long').map((day, i) => {
             const items = scheduledByDay.get(i) ?? [];
             const isToday = i === today;
             return (

@@ -74,7 +74,7 @@ export function AchievementWall({
   /** Shown under a locked tile when it is behind the Pro paywall. */
   lockedNote?: string;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
   return (
@@ -113,6 +113,7 @@ function AchievementTile({
   achievement: Achievement;
   lockedNote?: string;
 }) {
+  const { t, locale } = useI18n();
   const a = achievement;
   const Icon = ICONS[a.icon] ?? Medal;
 
@@ -122,7 +123,7 @@ function AchievementTile({
         'relative flex flex-col items-start gap-2.5 rounded-2xl border p-3.5 text-left transition-colors',
         a.unlocked ? 'bg-card border-transparent shadow-sm' : 'bg-secondary/50 border-border/60',
       )}
-      aria-label={`${a.name}${a.unlocked ? ', earned' : ', locked'}`}
+      aria-label={`${a.name}, ${a.unlocked ? t('ach.state.earned') : t('ach.state.locked')}`}
     >
       <Medallion tint={a.tint} unlocked={a.unlocked}>
         {a.unlocked ? (
@@ -141,7 +142,7 @@ function AchievementTile({
 
       {a.unlocked && a.unlockedAt ? (
         <p className="text-muted-foreground text-[11px] font-semibold">
-          Earned {formatDateLabel(a.unlockedAt)}
+          {t('ach.wall.earnedOn', { date: formatDateLabel(a.unlockedAt, locale) })}
         </p>
       ) : (
         <p className="text-muted-foreground text-[11px] font-semibold tabular-nums">

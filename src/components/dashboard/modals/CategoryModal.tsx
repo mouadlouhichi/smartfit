@@ -55,11 +55,10 @@ export function CategoryModal() {
   async function remove(id: string, label: string) {
     const used = categoryUsage(state, id);
     const ok = await confirmDialog({
-      title: `Delete "${label}"?`,
+      title: t('modal.category.deleteTitle', { name: label }),
       body: used
-        ? `${label} is used by ${used} logged ${used === 1 ? 'workout' : 'workouts'}. ` +
-          t('modal.category.deleteBody')
-        : 'This activity type will be removed. This cannot be undone.',
+        ? `${t('modal.category.usedBy', { name: label, count: used })} ${t('modal.category.deleteBody')}`
+        : t('modal.category.deleteBodyBare'),
       confirmLabel: t('modal.category.deleteConfirm'),
       destructive: true,
     });

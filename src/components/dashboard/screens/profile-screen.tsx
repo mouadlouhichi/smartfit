@@ -295,7 +295,7 @@ export function ProfileScreen() {
         parsed.bodyLogs.length;
       const ok = await confirmDialog({
         title: t('profile.import.title'),
-        body: `The backup holds ${total} record${total === 1 ? '' : 's'}. Your current data will be overwritten — this cannot be undone.`,
+        body: t('profile.import.body', { count: total }),
         confirmLabel: t('profile.import.confirm'),
         destructive: true,
       });

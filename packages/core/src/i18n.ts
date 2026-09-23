@@ -164,6 +164,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     // ── common actions ────────────────────────────────────────────────────
     'action.save': 'Save',
     'action.cancel': 'Cancel',
+    'action.confirm': 'Confirm',
     'action.delete': 'Delete',
     'action.add': 'Add',
     'action.swap': 'Swap',
@@ -246,6 +247,10 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'meal.field.protein': 'Protein (g)',
     'meal.field.carbs': 'Carbs (g) — optional',
     'meal.field.fat': 'Fat (g) — optional',
+    'meal.deleteTitle': 'Delete this meal?',
+    'meal.deleteBody':
+      '“{name}” from {date} will be removed from your fuel log. This cannot be undone.',
+    'meal.deleteConfirm': 'Delete meal',
     'meal.save': 'Save meal',
     'meal.error.name': 'Give the meal a name.',
     'meal.error.calories': 'Enter the calories (or use the scan).',
@@ -430,6 +435,12 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'body.emptyTitle': 'No measurements yet',
     'body.emptyBody':
       'Log your body weight today. Over a few weeks the trend line tells the story a daily number never could.',
+    'body.unit.weight': 'Body weight',
+    'body.unit.bodyfat': 'Body fat',
+    'body.unit.waist': 'Waist',
+    'body.unit.chest': 'Chest',
+    'body.unit.arms': 'Arms',
+    'body.unit.custom': 'Custom measurement',
     'body.emptyCta': 'Add first measurement',
     'body.chartAria': 'Choose which measurement to chart',
     'body.trend': '{label} trend',
@@ -550,6 +561,11 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'profile.error.unreadable': 'We couldn’t read that file.',
     'profile.import.title': 'Replace everything with this backup?',
     'profile.import.confirm': 'Replace data',
+    'profile.import.body': {
+      one: 'The backup holds {count} record. Your current data will be overwritten — this cannot be undone.',
+      other:
+        'The backup holds {count} records. Your current data will be overwritten — this cannot be undone.',
+    },
     'profile.error.delete': 'We could not finish deleting your account. Retry to continue.',
     'profile.error.deleteServer':
       'We could not finish deleting your account. Retry to continue the server deletion job.',
@@ -602,15 +618,24 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'modal.body.valueError': 'Enter the measured value.',
     'modal.body.deleteTitle': 'Delete this measurement?',
     'modal.body.deleteConfirm': 'Delete entry',
+    'modal.body.deleteBody':
+      'The {metric} entry from {date} will be removed. This cannot be undone.',
     'modal.body.save': 'Save',
     'modal.body.saveNew': 'Save measurement',
     'modal.category.nameError': 'Give the activity type a name.',
-    'modal.category.deleteTitle': 'Delete this activity type?',
+    'modal.category.deleteTitle': 'Delete “{name}”?',
+    'modal.category.usedBy': {
+      one: '“{name}” is used by {count} logged workout.',
+      other: '“{name}” is used by {count} logged workouts.',
+    },
     'modal.category.deleteBody': 'Those workouts are kept and will show as “Other”.',
+    'modal.category.deleteBodyBare':
+      'This activity type is deleted. Logged workouts keep their own name.',
     'modal.category.deleteConfirm': 'Delete type',
     'modal.goal.targetError': 'Enter a target bigger than zero.',
     'modal.goal.deleteTitle': 'Delete this goal?',
     'modal.goal.deleteConfirm': 'Delete goal',
+    'modal.goal.deleteBody': '“{name}” and its progress will be removed. This cannot be undone.',
     'modal.goal.title.edit': 'Edit goal',
     'modal.goal.title.new': 'Set a goal',
     'modal.goal.save': 'Save goal',
@@ -619,6 +644,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'modal.workout.fallbackTitle': 'Workout',
     'modal.workout.deleteTitle': 'Delete this workout?',
     'modal.workout.deleteConfirm': 'Delete workout',
+    'modal.workout.deleteBody': '“{name}” will be removed from your log. This cannot be undone.',
     'modal.workout.title.edit': 'Edit workout',
     'modal.workout.title.new': 'Log workout',
     'modal.workout.blurb.edit':
@@ -708,6 +734,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'modal.schedule.fallbackTitle': 'Scheduled session',
     'modal.schedule.removeTitle': 'Remove from your weekly plan?',
     'modal.schedule.removeConfirm': 'Remove session',
+    'modal.schedule.removeBody': '“{name}” will no longer be scheduled. Logged workouts are kept.',
     'modal.schedule.save': 'Save session',
     'modal.schedule.saveNew': 'Add to plan',
     'modal.schedule.routineExerciseAria': 'Routine exercise',
@@ -882,6 +909,19 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'ach.distance-10k.name': 'Ten Kay',
     'ach.distance-10k.description': 'Cover 10 km in a single session.',
     'ach.wall.earned': '{earned} of {total} earned',
+    'ach.wall.earnedOn': 'Earned {date}',
+    'ach.state.earned': 'earned',
+    'ach.state.locked': 'locked',
+    // ── consistency grid ─────────────────────────────────────────────────
+    'heat.daysTrained': { one: '{count} day trained', other: '{count} days trained' },
+    'heat.lastWeeks': ' · last {count} weeks',
+    'heat.less': 'Less',
+    'heat.more': 'More',
+    'heat.gridAria': 'Training consistency by day',
+    'heat.sessions': { one: '{count} session, {minutes}', other: '{count} sessions, {minutes}' },
+    'heat.restDay': 'rest day',
+    'heat.hoverHint': 'Hover a day to see what happened on it.',
+
     'ach.wall.lockedPro': 'Pro unlocks the rest of the wall.',
     'ach.progress.earned': 'Earned',
     'ach.progress.of': '{value} / {target} {unit}',
@@ -1025,6 +1065,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     // ── common actions ────────────────────────────────────────────────────
     'action.save': 'Enregistrer',
     'action.cancel': 'Annuler',
+    'action.confirm': 'Confirmer',
     'action.delete': 'Supprimer',
     'action.add': 'Ajouter',
     'action.swap': 'Remplacer',
@@ -1108,6 +1149,10 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'meal.field.protein': 'Protéines (g)',
     'meal.field.carbs': 'Glucides (g) — facultatif',
     'meal.field.fat': 'Lipides (g) — facultatif',
+    'meal.deleteTitle': 'Supprimer ce repas ?',
+    'meal.deleteBody':
+      '« {name} » du {date} sera retiré de votre journal alimentaire. Cette action est irréversible.',
+    'meal.deleteConfirm': 'Supprimer le repas',
     'meal.save': 'Enregistrer le repas',
     'meal.error.name': 'Donnez un nom au repas.',
     'meal.error.calories': 'Saisissez les calories (ou utilisez l’analyse).',
@@ -1302,6 +1347,12 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'body.emptyTitle': 'Aucune mesure pour l’instant',
     'body.emptyBody':
       'Enregistrez votre poids aujourd’hui. Sur quelques semaines, la courbe raconte ce qu’un chiffre quotidien ne montre jamais.',
+    'body.unit.weight': 'Poids corporel',
+    'body.unit.bodyfat': 'Masse grasse',
+    'body.unit.waist': 'Tour de taille',
+    'body.unit.chest': 'Tour de poitrine',
+    'body.unit.arms': 'Tour de bras',
+    'body.unit.custom': 'Mesure personnalisée',
     'body.emptyCta': 'Ajouter une première mesure',
     'body.chartAria': 'Choisir la mesure à afficher',
     'body.trend': 'Évolution — {label}',
@@ -1425,6 +1476,11 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'profile.error.unreadable': 'Nous n’avons pas pu lire ce fichier.',
     'profile.import.title': 'Remplacer toutes les données par cette sauvegarde ?',
     'profile.import.confirm': 'Remplacer les données',
+    'profile.import.body': {
+      one: 'La sauvegarde contient {count} enregistrement. Vos données actuelles seront remplacées — cette action est irréversible.',
+      other:
+        'La sauvegarde contient {count} enregistrements. Vos données actuelles seront remplacées — cette action est irréversible.',
+    },
     'profile.error.delete':
       'Nous n’avons pas pu terminer la suppression de votre compte. Réessayez pour continuer.',
     'profile.error.deleteServer':
@@ -1476,15 +1532,25 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'modal.body.valueError': 'Saisissez la valeur mesurée.',
     'modal.body.deleteTitle': 'Supprimer cette mesure ?',
     'modal.body.deleteConfirm': 'Supprimer le relevé',
+    'modal.body.deleteBody':
+      'Le relevé « {metric} » du {date} sera supprimé. Cette action est irréversible.',
     'modal.body.save': 'Enregistrer',
     'modal.body.saveNew': 'Enregistrer la mesure',
     'modal.category.nameError': 'Donnez un nom au type d’activité.',
-    'modal.category.deleteTitle': 'Supprimer ce type d’activité ?',
+    'modal.category.deleteTitle': 'Supprimer « {name} » ?',
+    'modal.category.usedBy': {
+      one: '« {name} » est utilisée par {count} séance enregistrée.',
+      other: '« {name} » est utilisée par {count} séances enregistrées.',
+    },
     'modal.category.deleteBody': 'Ces séances sont conservées et apparaîtront comme « Autre ».',
+    'modal.category.deleteBodyBare':
+      'Ce type d’activité est supprimé. Les séances enregistrées gardent leur propre nom.',
     'modal.category.deleteConfirm': 'Supprimer le type',
     'modal.goal.targetError': 'Saisissez une cible supérieure à zéro.',
     'modal.goal.deleteTitle': 'Supprimer cet objectif ?',
     'modal.goal.deleteConfirm': 'Supprimer l’objectif',
+    'modal.goal.deleteBody':
+      '« {name} » et sa progression seront supprimés. Cette action est irréversible.',
     'modal.goal.title.edit': 'Modifier l’objectif',
     'modal.goal.title.new': 'Fixer un objectif',
     'modal.goal.save': 'Enregistrer l’objectif',
@@ -1493,6 +1559,8 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'modal.workout.fallbackTitle': 'Séance',
     'modal.workout.deleteTitle': 'Supprimer cette séance ?',
     'modal.workout.deleteConfirm': 'Supprimer la séance',
+    'modal.workout.deleteBody':
+      '« {name} » sera retirée de votre journal. Cette action est irréversible.',
     'modal.workout.title.edit': 'Modifier la séance',
     'modal.workout.title.new': 'Enregistrer une séance',
     'modal.workout.blurb.edit':
@@ -1583,6 +1651,8 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'modal.schedule.fallbackTitle': 'Séance planifiée',
     'modal.schedule.removeTitle': 'Retirer de votre semaine ?',
     'modal.schedule.removeConfirm': 'Retirer la séance',
+    'modal.schedule.removeBody':
+      '« {name} » ne sera plus planifiée. Les séances enregistrées sont conservées.',
     'modal.schedule.save': 'Enregistrer la séance',
     'modal.schedule.saveNew': 'Ajouter au plan',
     'modal.schedule.routineExerciseAria': 'Exercice de la routine',
@@ -1757,6 +1827,22 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'ach.distance-10k.name': 'Dix bornes',
     'ach.distance-10k.description': 'Parcourez 10 km en une seule séance.',
     'ach.wall.earned': '{earned} sur {total} obtenus',
+    'ach.wall.earnedOn': 'Obtenu le {date}',
+    'ach.state.earned': 'obtenu',
+    'ach.state.locked': 'verrouillé',
+    // ── grille de régularité ─────────────────────────────────────────────
+    'heat.daysTrained': {
+      one: '{count} jour d’entraînement',
+      other: '{count} jours d’entraînement',
+    },
+    'heat.lastWeeks': ' · {count} dernières semaines',
+    'heat.less': 'Moins',
+    'heat.more': 'Plus',
+    'heat.gridAria': 'Régularité d’entraînement par jour',
+    'heat.sessions': { one: '{count} séance, {minutes}', other: '{count} séances, {minutes}' },
+    'heat.restDay': 'jour de repos',
+    'heat.hoverHint': 'Survolez un jour pour voir ce qui s’y est passé.',
+
     'ach.wall.lockedPro': 'Pro débloque le reste du mur.',
     'ach.progress.earned': 'Obtenu',
     'ach.progress.of': '{value} / {target} {unit}',

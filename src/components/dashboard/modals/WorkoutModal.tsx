@@ -122,7 +122,7 @@ export function WorkoutModal() {
     if (!editing) return;
     const ok = await confirmDialog({
       title: t('modal.workout.deleteTitle'),
-      body: `"${editing.title}" will be removed from your log. This cannot be undone.`,
+      body: t('modal.workout.deleteBody', { name: editing.title }),
       confirmLabel: t('modal.workout.deleteConfirm'),
       destructive: true,
     });

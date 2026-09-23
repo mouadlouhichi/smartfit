@@ -111,8 +111,83 @@ export function bodyLabel(bodyUnit: BodyUnit, custom?: string): string {
   return BODY_UNIT_META[bodyUnit]?.label ?? bodyUnit;
 }
 
+/**
+ * Catalogue keys for the measurement types, one per `BODY_UNIT_META` entry.
+ *
+ * A static map, not `body.unit.${unit}`: the key guard needs to see each key
+ * in the source it scans, and a test asserts this covers the whole meta table
+ * so a new measurement type cannot ship with an English-only name.
+ */
+export const BODY_UNIT_KEYS: Record<BodyUnit, string> = {
+  weight: 'body.unit.weight',
+  bodyfat: 'body.unit.bodyfat',
+  waist: 'body.unit.waist',
+  chest: 'body.unit.chest',
+  arms: 'body.unit.arms',
+  custom: 'body.unit.custom',
+};
+
+/**
+ * Weekday names in the interface language, **Sunday first** — the order of
+ * `WEEKDAYS` / `WEEKDAYS_LONG` in `constants.ts`, so a call site keeps whatever
+ * rotation it already applies.
+ *
+ * These are not catalogue entries: day names are exactly the copy `Intl` knows,
+ * which is the same reason `formatDateLabel` uses it. The reference week is
+ * fixed (31 December 2023 was a Sunday) and read in UTC, so the output cannot
+ * depend on the machine's timezone or on the day the test runs.
+ */
+export function weekdayLabels(locale?: string, width: 'short' | 'long' = 'short'): string[] {
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale), { weekday: width, timeZone: 'UTC' });
+  const days = [
+    new Date(Date.UTC(2023, 11, 31)), // Sunday
+    ...[1, 2, 3, 4, 5, 6].map((d) => new Date(Date.UTC(2024, 0, d))), // Mon…Sat
+  ];
+  return days.map((d) => fmt.format(d));
+}
+
+/** One weekday by `Date.getDay()` index, wrapping out-of-range values. */
+export function weekdayLabel(
+  weekday: number,
+  locale?: string,
+  width: 'short' | 'long' = 'long',
+): string {
+  const names = weekdayLabels(locale, width);
+  return names[((Math.trunc(weekday) % 7) + 7) % 7];
+}
+
+/**
+ * Display name for a measurement type.
+ *
+ * `bodyLabel` above is the English name the mobile client and the stored data
+ * use; this resolves the translated copy when a translator is passed and falls
+ * back to `bodyLabel` when there is none (core callers, tests, mobile).
+ * A custom measurement always shows the athlete's own label.
+ */
+export function bodyUnitLabel(
+  bodyUnit: BodyUnit | string,
+  custom?: string,
+  t?: Translator,
+): string {
+  if (bodyUnit === 'custom')
+    return custom?.trim() || (t ? t(BODY_UNIT_KEYS.custom) : 'Measurement');
+  const key = BODY_UNIT_KEYS[bodyUnit as BodyUnit];
+  if (key && t) return t(key);
+  return bodyLabel(bodyUnit as BodyUnit, custom);
+}
+
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
+}
+
+/**
+ * BCP-47 tag for `Intl`: 'fr' → 'fr-FR', anything else → the device default.
+ *
+ * Month, weekday and number formatting is the one part of localisation `Intl`
+ * already does, so handing the app locale over is all it takes.
+ */
+function intlLocale(locale?: string): string | undefined {
+  return locale === 'fr' ? 'fr-FR' : undefined;
 }
 
 /**
@@ -123,7 +198,7 @@ function round1(n: number): number {
 export function formatDateLabel(iso: string, locale?: string): string {
   const [y, m, d] = iso.split('-').map(Number);
   const date = new Date(y, (m ?? 1) - 1, d ?? 1);
-  return date.toLocaleDateString(locale === 'fr' ? 'fr-FR' : undefined, {
+  return date.toLocaleDateString(intlLocale(locale), {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
