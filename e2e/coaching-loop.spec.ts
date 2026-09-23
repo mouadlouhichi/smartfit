@@ -54,25 +54,54 @@ test('fuel: targets unlock meal suggestions, and a logged meal can be swapped', 
   await suggestions.first().click();
   const dialog = page.getByRole('dialog').filter({ hasText: 'Log a meal' });
   await expect(dialog).toBeVisible();
-  await expect(dialog.getByLabel('Name')).not.toHaveValue('');
-  await expect(dialog.getByLabel('Calories (kcal)')).not.toHaveValue('');
   const loggedName = await dialog.getByLabel('Name').inputValue();
+  expect(loggedName).not.toBe('');
+  await expect(dialog.getByLabel('Calories (kcal)')).not.toHaveValue('');
   await dialog.getByRole('button', { name: 'Save meal' }).click();
 
-  // The meal is on the day, and carries its source food so it can be swapped.
-  await expect(page.getByText(loggedName).first()).toBeVisible();
+  /*
+   * The meal row is addressed through its Edit button, whose accessible name
+   * carries the meal's current name ("Edit Chicken breast"). That makes the
+   * locator survive the swap — which is precisely the thing being asserted —
+   * without knowing in advance which food the planner will suggest.
+   */
+  const rowFor = (name: string) =>
+    page
+      .locator('li')
+      // `exact` so "Edit Egg" never matches "Edit Egg white".
+      .filter({ has: page.getByRole('button', { name: `Edit ${name}`, exact: true }) })
+      .first();
+  const row = rowFor(loggedName);
+  await expect(row).toBeVisible();
+  const kcalBefore = (await row.innerText()).match(/(\d+)\s*kcal/)?.[1];
+  expect(kcalBefore, 'the logged meal shows its energy').toBeTruthy();
 
-  // ── Swap it for a macro-matched alternative ─────────────────────────────
+  // ── Swapping is a Pro feature: free accounts get the upsell ─────────────
   const swap = page.getByRole('button', { name: 'Swap' }).first();
   await expect(swap).toBeVisible();
+  await swap.click();
+  const pro = page.getByRole('dialog').filter({ hasText: 'SmartFit Pro' });
+  await expect(pro).toBeVisible();
+  await expect(page.getByRole('menu')).toHaveCount(0); // no free swaps
+
+  // ── Start the free Pro period, then swap for a macro-matched food ───────
+  await pro.getByRole('button', { name: /months of Pro — free/ }).click();
+  await page.getByRole('button', { name: 'Start 3 months free' }).click();
+
   await swap.click();
   const menu = page.getByRole('menu');
   await expect(menu).toBeVisible();
   await expect(menu.getByText('Swap for something equivalent')).toBeVisible();
   const alternative = menu.getByRole('menuitem').first();
-  const alternativeText = (await alternative.innerText()).split('\n')[0].trim();
+  const alternativeName = (await alternative.locator('span').first().innerText()).trim();
   await alternative.click();
-  await expect(page.getByText(alternativeText).first()).toBeVisible();
+
+  // The meal is the alternative now — and the energy did not move, which is
+  // the whole reason to swap rather than delete and re-log.
+  const swapped = rowFor(alternativeName);
+  await expect(swapped).toBeVisible();
+  await expect(rowFor(loggedName)).toHaveCount(0);
+  expect((await swapped.innerText()).match(/(\d+)\s*kcal/)?.[1]).toBe(kcalBefore);
 });
 
 test('progress: XP reflects the log, and the weekly check-in closes the week', async ({ page }) => {
@@ -111,24 +140,23 @@ test('goals: a deadline reports whether the current pace arrives in time', async
   await completeOnboarding(page);
 
   await page.goto('/dashboard/goals');
-  await page
-    .getByRole('button', { name: /New goal|Add goal|Set a goal/ })
-    .first()
-    .click();
+  await page.getByRole('button', { name: 'New goal' }).click();
   const dialog = page.getByRole('dialog').filter({ hasText: 'Set a goal' });
   await expect(dialog).toBeVisible();
 
+  // Track is the design-system Select (a listbox), not a native <select>.
   // The deadline field explains itself, and "Suggest" fills a future date.
   await expect(
     dialog.getByText('Add a date and the goal reports whether your current pace arrives in time.'),
   ).toBeVisible();
   await dialog.getByLabel('Name').fill('Marathon block');
-  await dialog.getByLabel('Track').selectOption('distance');
-  await dialog.getByLabel(/Target \(/).fill('40');
+  await dialog.getByLabel('Track').click();
+  await page.getByRole('option', { name: 'Distance' }).click();
+  await dialog.getByLabel(/Target/).fill('40');
   await dialog.getByRole('button', { name: 'Suggest' }).click();
 
   // With a date set, the dialog states the required pace against the actual one.
-  await expect(dialog.getByText(/Log a full week|a week/).first()).toBeVisible();
+  await expect(dialog.getByText(/Log a full week/)).toBeVisible();
   await dialog.getByRole('button', { name: 'Create goal' }).click();
   await expect(page.getByText('Marathon block').first()).toBeVisible();
 });
