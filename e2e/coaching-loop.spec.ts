@@ -267,9 +267,11 @@ test('language: plan, goals, body and profile read in French', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'Plan d’entraînement', level: 1 })).toBeVisible();
   await expect(page.getByText('Stratégie', { exact: true })).toBeVisible();
   await expect(page.getByText('Votre semaine', { exact: true })).toBeVisible();
-  await expect(page.getByText('Journal des séances', { exact: true })).toBeVisible();
+  // Both card titles carry a trailing count badge, so they are matched by
+  // substring: an `exact` match compares the whole element text, badge included.
+  await expect(page.getByText('Journal des séances')).toBeVisible();
   // The library's vocabulary comes from core, not from a component copy.
-  await expect(page.getByText('Bibliothèque d’exercices', { exact: true })).toBeVisible();
+  await expect(page.getByText('Bibliothèque d’exercices')).toBeVisible();
   await expect(page.getByPlaceholder('Rechercher un exercice…')).toBeVisible();
   // Its muscle/equipment words translate too — the ids are built at runtime.
   await expect(page.getByText('Pectoraux').first()).toBeVisible();
