@@ -1457,7 +1457,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'Picking it unlocks a suggested week built from the gym’s real class timetable.',
     'onboarding.gym.none': 'No gym — build my week manually',
     'onboarding.gym.live': 'Gyms running on SmartFit, live today.',
-    'onboarding.gym.browse': 'Browse classes and book on their pages',
+    'onboarding.gym.browse': 'Browse classes & book on their pages',
     'onboarding.goal.title': 'Your first weekly goal',
     'onboarding.goal.perWeek': 'per week',
     'onboarding.goal.targetError': 'Enter a target of at least 1.',
