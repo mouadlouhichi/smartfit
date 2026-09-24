@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { weekdayLabels } from '@smartfit/core';
+import { useI18n } from '@/lib/i18n-context';
 import { ExternalLink, Monitor, Smartphone, Save, RotateCcw, Palette } from 'lucide-react';
 import type { GymTenant } from '@smartfit/core';
 import { useTenant } from '@/lib/tenant-context';
-import { profileFromGym, validateGymProfile, WEEKDAYS, type GymProfile } from '@/lib/gym-profile';
+import { profileFromGym, validateGymProfile, type GymProfile } from '@/lib/gym-profile';
 import { BrandControls } from './brand-controls';
 import { GymGallery } from './brand-media';
 import { StorefrontHero } from './storefront-hero';
@@ -18,12 +20,12 @@ import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
 
 const PALETTES = [
-  ['Volt', '#8ad200'],
-  ['Ocean', '#0284c7'],
-  ['Ember', '#ea580c'],
-  ['Orchid', '#9333ea'],
-  ['Rose', '#be123c'],
-  ['Midnight', '#172554'],
+  ['gym.studio.palette.volt', '#8ad200'],
+  ['gym.studio.palette.ocean', '#0284c7'],
+  ['gym.studio.palette.ember', '#ea580c'],
+  ['gym.studio.palette.orchid', '#9333ea'],
+  ['gym.studio.palette.rose', '#be123c'],
+  ['gym.studio.palette.midnight', '#172554'],
 ];
 
 export function ProfileStudio() {
@@ -33,7 +35,10 @@ export function ProfileStudio() {
 }
 
 function ProfileEditor({ gym }: { gym: GymTenant }) {
+  // The tenant context owns `t` in this file, so the translator is `tr`.
   const t = useTenant();
+  const { t: tr, locale } = useI18n();
+  const weekdays = weekdayLabels(locale, 'long');
   const toast = useToast();
   const [baseline, setBaseline] = useState(() => profileFromGym(gym));
   const [draft, setDraft] = useState<GymProfile>(baseline);
@@ -66,18 +71,15 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
   }
   async function save() {
     const next = { ...draft, name: draft.name.trim() };
-    const invalid = validateGymProfile(next);
+    const invalid = validateGymProfile(next, tr, locale);
     setErrors(invalid);
     if (invalid.length || readonly || processingLogo) return;
     const ok = await t.updateGym(next);
     if (ok) {
       setBaseline(next);
       setDraft(next);
-      toast(
-        t.mode === 'demo' ? 'Preview updated for this demo session' : 'Storefront published',
-        'success',
-      );
-    } else setErrors(['Could not publish. Your draft is kept; check the error above and retry.']);
+      toast(t.mode === 'demo' ? tr('gym.studio.savedDemo') : tr('gym.studio.saved'), 'success');
+    } else setErrors([tr('gym.studio.publishError')]);
   }
   const textField = (
     group: 'branding' | 'contact' | 'location',
@@ -103,16 +105,14 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-            Your brand, your space
+            {tr('gym.studio.eyebrow')}
           </p>
-          <h2 className="mt-1 text-3xl font-black tracking-tight">Storefront studio</h2>
-          <p className="text-muted-foreground mt-2 text-sm">
-            Design your gym’s public profile. Preview first, publish when ready.
-          </p>
+          <h2 className="mt-1 text-3xl font-black tracking-tight">{tr('gym.studio.title')}</h2>
+          <p className="text-muted-foreground mt-2 text-sm">{tr('gym.studio.body')}</p>
         </div>
         <Button asChild variant="outline">
           <a href={`/g/${t.slug}`} target="_blank" rel="noreferrer">
-            Open storefront <ExternalLink />
+            {tr('gym.studio.open')} <ExternalLink />
           </a>
         </Button>
       </header>
@@ -121,13 +121,13 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
           <CardContent className="p-5">
             <Tabs defaultValue="brand">
               <TabsList className="h-auto flex-wrap">
-                <TabsTrigger value="brand">Brand</TabsTrigger>
-                <TabsTrigger value="contact">Contact & location</TabsTrigger>
-                <TabsTrigger value="hours">Hours</TabsTrigger>
+                <TabsTrigger value="brand">{tr('gym.studio.tab.brand')}</TabsTrigger>
+                <TabsTrigger value="contact">{tr('gym.studio.tab.contact')}</TabsTrigger>
+                <TabsTrigger value="hours">{tr('gym.studio.tab.hours')}</TabsTrigger>
               </TabsList>
               <fieldset disabled={readonly || busy || processingLogo}>
                 <TabsContent value="brand" className="mt-5 space-y-4">
-                  <Field id="studio-name" label="Gym name">
+                  <Field id="studio-name" label={tr('gym.studio.name')}>
                     <Input
                       id="studio-name"
                       maxLength={100}
@@ -135,11 +135,19 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                       onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
                     />
                   </Field>
-                  {textField('branding', 'tagline', 'Tagline', draft.branding?.tagline, 160)}
+                  {textField(
+                    'branding',
+                    'tagline',
+                    tr('gym.studio.tagline'),
+                    draft.branding?.tagline,
+                    160,
+                  )}
                   <Field
                     id="studio-description"
-                    label="About your gym"
-                    hint={`${draft.branding?.description?.length ?? 0} / 2000 characters`}
+                    label={tr('gym.studio.about')}
+                    hint={tr('gym.studio.characters', {
+                      count: draft.branding?.description?.length ?? 0,
+                    })}
                   >
                     <textarea
                       id="studio-description"
@@ -152,14 +160,14 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                   </Field>
                   <div>
                     <p className="mb-3 flex items-center gap-2 text-sm font-semibold">
-                      <Palette className="size-4" /> Brand palette
+                      <Palette className="size-4" /> {tr('gym.studio.palette')}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {PALETTES.map(([label, color]) => (
                         <button
                           key={color}
                           type="button"
-                          aria-label={`${label} palette`}
+                          aria-label={tr('gym.studio.paletteAria', { name: tr(label) })}
                           aria-pressed={draft.branding?.accentColor === color}
                           onClick={() => field('branding', 'accentColor', color)}
                           className={cn(
@@ -171,14 +179,14 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                             className="mb-1 block h-7 w-12 rounded-lg"
                             style={{ backgroundColor: color }}
                           />
-                          {label}
+                          {tr(label)}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div className="flex items-end gap-2">
                     <Input
-                      aria-label="Pick brand color"
+                      aria-label={tr('gym.studio.pickColor')}
                       type="color"
                       className="w-16 p-1"
                       value={
@@ -188,7 +196,11 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                       }
                       onChange={(e) => field('branding', 'accentColor', e.target.value)}
                     />
-                    <Field id="studio-accent" label="Custom accent" className="flex-1">
+                    <Field
+                      id="studio-accent"
+                      label={tr('gym.studio.customAccent')}
+                      className="flex-1"
+                    >
                       <Input
                         id="studio-accent"
                         maxLength={7}
@@ -200,7 +212,7 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                   {textField(
                     'branding',
                     'logoUrl',
-                    'Logo image URL (HTTPS)',
+                    tr('gym.studio.logoUrl'),
                     draft.branding?.logoUrl,
                     2048,
                     'url',
@@ -208,16 +220,12 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                   {textField(
                     'branding',
                     'coverUrl',
-                    'Cover image URL (HTTPS)',
+                    tr('gym.studio.coverUrl'),
                     draft.branding?.coverUrl,
                     2048,
                     'url',
                   )}
-                  <p className="text-muted-foreground text-xs">
-                    Use publicly accessible images you own or have permission to use. Square logos
-                    and wide cover photos work best. Clear a URL to remove it. Text contrast adjusts
-                    automatically.
-                  </p>
+                  <p className="text-muted-foreground text-xs">{tr('gym.studio.imageHint')}</p>
                   <BrandControls
                     name={draft.name}
                     value={draft.branding ?? {}}
@@ -226,15 +234,20 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                   />
                 </TabsContent>
                 <TabsContent value="contact" className="mt-5 space-y-4">
-                  <p className="text-muted-foreground text-xs">
-                    These details are public. Never add a private staff contact.
-                  </p>
+                  <p className="text-muted-foreground text-xs">{tr('gym.studio.publicHint')}</p>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {textField('contact', 'phone', 'Phone', draft.contact?.phone, 80, 'tel')}
+                    {textField(
+                      'contact',
+                      'phone',
+                      tr('gym.studio.phone'),
+                      draft.contact?.phone,
+                      80,
+                      'tel',
+                    )}
                     {textField(
                       'contact',
                       'email',
-                      'Public email',
+                      tr('gym.studio.publicEmail'),
                       draft.contact?.email,
                       254,
                       'email',
@@ -242,31 +255,40 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                     {textField(
                       'contact',
                       'instagram',
-                      'Instagram handle',
+                      tr('gym.studio.instagram'),
                       draft.contact?.instagram,
                       80,
                     )}
                     {textField(
                       'contact',
                       'whatsapp',
-                      'WhatsApp number',
+                      tr('gym.studio.whatsapp'),
                       draft.contact?.whatsapp,
                       80,
                       'tel',
                     )}
                   </div>
-                  {textField('location', 'address', 'Street address', draft.location?.address)}
+                  {textField(
+                    'location',
+                    'address',
+                    tr('gym.studio.street'),
+                    draft.location?.address,
+                  )}
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {textField('location', 'city', 'City', draft.location?.city)}
-                    {textField('location', 'country', 'Country', draft.location?.country)}
+                    {textField('location', 'city', tr('gym.studio.city'), draft.location?.city)}
+                    {textField(
+                      'location',
+                      'country',
+                      tr('gym.studio.country'),
+                      draft.location?.country,
+                    )}
                   </div>
                 </TabsContent>
                 <TabsContent value="hours" className="mt-5 space-y-4">
                   <div>
-                    <h3 className="font-semibold">Weekly opening hours</h3>
+                    <h3 className="font-semibold">{tr('gym.studio.weeklyHours')}</h3>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      Uncheck a day to mark it closed. Times are local to the gym; overnight hours
-                      are not supported yet.
+                      {tr('gym.studio.weeklyHoursHint')}
                     </p>
                   </div>
                   <Button
@@ -288,7 +310,7 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                       }))
                     }
                   >
-                    Copy Monday to weekdays
+                    {tr('gym.studio.copyMonday')}
                   </Button>
                   {[1, 2, 3, 4, 5, 6, 0].map((day) => {
                     const h = draft.hours?.[day];
@@ -312,14 +334,14 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                               }))
                             }
                           />
-                          {WEEKDAYS[day]}
+                          {weekdays[day]}
                         </label>
                         {h ? (
                           <div className="flex items-center gap-1">
                             <Input
                               className="w-28"
                               type="time"
-                              aria-label={`${WEEKDAYS[day]} opens`}
+                              aria-label={tr('gym.studio.dayOpens', { day: weekdays[day] })}
                               value={h.open}
                               onChange={(e) =>
                                 setDraft((d) => ({
@@ -332,7 +354,7 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                             <Input
                               className="w-28"
                               type="time"
-                              aria-label={`${WEEKDAYS[day]} closes`}
+                              aria-label={tr('gym.studio.dayCloses', { day: weekdays[day] })}
                               value={h.close}
                               onChange={(e) =>
                                 setDraft((d) => ({
@@ -343,7 +365,9 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                             />
                           </div>
                         ) : (
-                          <span className="text-muted-foreground text-sm">Closed</span>
+                          <span className="text-muted-foreground text-sm">
+                            {tr('gym.studio.closed')}
+                          </span>
                         )}
                       </div>
                     );
@@ -356,14 +380,14 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
         <div className="space-y-4 lg:sticky lg:top-6">
           <div className="flex items-center justify-between">
             <p className="text-muted-foreground text-xs font-semibold tracking-widest uppercase">
-              Live preview · unpublished
+              {tr('gym.studio.livePreview')}
             </p>
             <div className="flex gap-1">
               <Button
                 size="icon"
                 variant={device === 'desktop' ? 'secondary' : 'ghost'}
                 onClick={() => setDevice('desktop')}
-                aria-label="Wide preview"
+                aria-label={tr('gym.studio.widePreview')}
                 aria-pressed={device === 'desktop'}
               >
                 <Monitor />
@@ -372,7 +396,7 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                 size="icon"
                 variant={device === 'mobile' ? 'secondary' : 'ghost'}
                 onClick={() => setDevice('mobile')}
-                aria-label="Mobile preview"
+                aria-label={tr('gym.studio.mobilePreview')}
                 aria-pressed={device === 'mobile'}
               >
                 <Smartphone />
@@ -399,7 +423,9 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                 draft.contact?.phone,
                 draft.contact?.email,
                 draft.contact?.instagram,
-                draft.contact?.whatsapp ? `WhatsApp: ${draft.contact.whatsapp}` : '',
+                draft.contact?.whatsapp
+                  ? tr('gym.studio.whatsappLine', { number: draft.contact.whatsapp })
+                  : '',
               ]
                 .filter(Boolean)
                 .map((line, i) => (
@@ -409,14 +435,14 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
                 ))}
             </div>
             <div className="px-3 pb-3 text-xs">
-              <p className="mb-2 font-semibold">Opening hours</p>
+              <p className="mb-2 font-semibold">{tr('gym.studio.hours')}</p>
               {[1, 2, 3, 4, 5, 6, 0].map((day) => (
                 <p key={day} className="text-muted-foreground flex justify-between py-1">
-                  <span>{WEEKDAYS[day]}</span>
+                  <span>{weekdays[day]}</span>
                   <span>
                     {draft.hours?.[day]
                       ? `${draft.hours[day]!.open} – ${draft.hours[day]!.close}`
-                      : 'Closed'}
+                      : tr('gym.studio.closed')}
                   </span>
                 </p>
               ))}
@@ -424,14 +450,13 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
           </div>
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm">Tenant identity</CardTitle>
+              <CardTitle className="text-sm">{tr('gym.studio.identity')}</CardTitle>
               <CardDescription>
                 /{gym.slug} · {gym.status} · {gym.tenantPlanId}
               </CardDescription>
             </CardHeader>
             <CardContent className="text-muted-foreground text-xs">
-              Slug, owner, lifecycle and platform subscription remain platform-managed. This editor
-              only updates your public profile.
+              {tr('gym.studio.identityNote')}
             </CardContent>
           </Card>
         </div>
@@ -440,15 +465,13 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
         <div>
           <p className="text-sm font-semibold">
             {readonly
-              ? 'Read-only preview'
+              ? tr('gym.studio.readonly')
               : dirty
-                ? 'You have unpublished changes'
-                : 'Your storefront is up to date'}
+                ? tr('gym.studio.dirty')
+                : tr('gym.studio.clean')}
           </p>
           <p className="text-muted-foreground text-xs">
-            {t.mode === 'demo'
-              ? 'Demo changes last for this session only.'
-              : 'Publishing updates your public gym page.'}
+            {t.mode === 'demo' ? tr('gym.studio.demoNote') : tr('gym.studio.publishNote')}
           </p>
         </div>
         <div className="flex gap-2">
@@ -460,11 +483,11 @@ function ProfileEditor({ gym }: { gym: GymTenant }) {
               setErrors([]);
             }}
           >
-            <RotateCcw /> Discard
+            <RotateCcw /> {tr('gym.studio.discard')}
           </Button>
           <Button disabled={!dirty || busy || readonly || processingLogo} onClick={save}>
             <Save />
-            {busy ? 'Publishing…' : 'Publish changes'}
+            {busy ? tr('gym.studio.publishing') : tr('gym.studio.publish')}
           </Button>
         </div>
         {errors.length > 0 && (

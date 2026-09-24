@@ -33,6 +33,7 @@ const DYNAMIC_PREFIXES: Record<string, string> = {
   'run.greeting.': 'One greeting per part of the day, chosen from the clock.',
   'run.title.': 'The seeded run title, one per part of the day.',
   'goal.seed.': 'The name of the goal onboarding seeds, one per metric.',
+  'gym.studio.field.': 'One key per validated profile field (address/city/country).',
 };
 
 /** Dotted lower-case literals only — that is what a catalogue key looks like. */
