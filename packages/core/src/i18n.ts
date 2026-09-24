@@ -1605,6 +1605,16 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.nav.guides': 'Guides',
     'landing.menu.open': 'Open menu',
     'landing.menu.close': 'Close menu',
+    'landing.gyms.eyebrow': 'Gyms on SmartFit',
+    'landing.gyms.title': 'Real gyms, their own pages.',
+    'landing.gyms.body':
+      'Every gym below runs on SmartFit: its own timetable, its own memberships, its own front desk. Browse the classes, book a spot, or hand your own gym the keys.',
+    'landing.gyms.browse': 'Browse all gyms',
+    'landing.gyms.view': 'Visit {gym}',
+    'landing.gyms.artworkNote': 'Photos from the gym',
+    'landing.gyms.altMain': '{gym} — main floor',
+    'landing.gyms.altSpace': '{gym} — training space {index}',
+    'landing.gyms.empty': 'No gyms are listed yet.',
 
     'role.platformAdmin': 'Platform admin',
     'role.gymOwner': 'Gym owner',
@@ -3361,6 +3371,16 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.nav.guides': 'Guides',
     'landing.menu.open': 'Ouvrir le menu',
     'landing.menu.close': 'Fermer le menu',
+    'landing.gyms.eyebrow': 'Les salles sur SmartFit',
+    'landing.gyms.title': 'De vraies salles, leurs propres pages.',
+    'landing.gyms.body':
+      'Chaque salle ci-dessous tourne sur SmartFit : son planning, ses abonnements, son accueil. Parcourez les cours, réservez une place, ou confiez-nous votre salle.',
+    'landing.gyms.browse': 'Voir toutes les salles',
+    'landing.gyms.view': 'Visiter {gym}',
+    'landing.gyms.artworkNote': 'Photos fournies par la salle',
+    'landing.gyms.altMain': '{gym} — la grande salle',
+    'landing.gyms.altSpace': '{gym} — espace d’entraînement {index}',
+    'landing.gyms.empty': 'Aucune salle n’est encore listée.',
 
     'role.platformAdmin': 'Admin plateforme',
     'role.gymOwner': 'Propriétaire de la salle',

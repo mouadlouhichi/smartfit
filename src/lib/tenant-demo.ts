@@ -79,6 +79,7 @@ export function demoGym(): GymTenant {
     createdAt: now - 180 * DAY,
     branding: {
       accentColor: '#8ad200',
+      coverPreset: 'combat',
       tagline: 'Combat, conditioning and community.',
       description:
         'Zone Fight is a combat-and-conditioning gym: boxing, MMA, HIIT and strength under one roof, with coaches who know your name.',
@@ -577,6 +578,7 @@ function ironHouse(): DemoTenantFixture {
       createdAt: now - 9 * DAY,
       branding: {
         accentColor: '#f97316',
+        coverPreset: 'strength',
         tagline: 'Strength first. Everything follows.',
         description:
           'Iron House Strength is a barbell gym in central Rabat: small-group strength classes, powerlifting coaching on the platforms, and conditioning that earns its name. No mirrors-first culture — coaches, chalk and progress.',

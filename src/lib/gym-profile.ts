@@ -137,3 +137,46 @@ export function gymCover(branding: GymTenant['branding']) {
 export function gymLogo(branding: GymTenant['branding']) {
   return safeLogoData(branding?.logoData) ?? safeImageUrl(branding?.logoUrl);
 }
+
+/**
+ * A short gallery for one gym: the cover, then up to three bundled interiors.
+ *
+ * A gym that has uploaded photos shows those; a gym that has not still shows
+ * more than one image instead of a single stock cover, because "what does this
+ * place look like" is the question a directory card exists to answer. The
+ * bundled set is keyed by the same cover preset the owner already chose, so a
+ * boxing gym gets a fight-floor set rather than a rack of mirrors.
+ *
+ * Deliberately *not* used by the storefront's `GymGallery`: that section is the
+ * gallery the owner published, and padding it with stock art would misrepresent
+ * it. These are decorative fills for list/directory surfaces.
+ */
+const PRESET_GALLERY: Record<string, string[]> = {
+  strength: [
+    '/images/branding/strength-cover.webp',
+    '/images/cat-strength.jpg',
+    '/images/cat-cardio.jpg',
+  ],
+  studio: [
+    '/images/branding/studio-cover.webp',
+    '/images/cat-mobility.jpg',
+    '/images/cat-rest.jpg',
+  ],
+  combat: ['/images/cat-sports.jpg', '/images/cat-hiit.jpg', '/images/cat-strength.jpg'],
+  recovery: [
+    '/images/cat-mobility.jpg',
+    '/images/cat-rest.jpg',
+    '/images/branding/studio-cover.webp',
+  ],
+};
+
+export function gymGalleryImages(branding: GymTenant['branding'], count = 3): string[] {
+  const uploaded = (branding?.galleryUrls ?? []).map(safeImageUrl).filter((s): s is string => !!s);
+  const preset = PRESET_GALLERY[branding?.coverPreset ?? 'strength'] ?? PRESET_GALLERY.strength;
+  const out: string[] = [];
+  for (const src of [gymCover(branding), ...uploaded, ...preset]) {
+    if (src && !out.includes(src)) out.push(src);
+    if (out.length === count) break;
+  }
+  return out;
+}
