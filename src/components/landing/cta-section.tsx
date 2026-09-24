@@ -6,8 +6,10 @@ import { useRef, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { AnimatedTetrahedron } from './animated-tetrahedron';
 import { useReveal } from './use-reveal';
+import { useI18n } from '@/lib/i18n-context';
 
 export function CtaSection() {
+  const { t } = useI18n();
   const { ref, visible } = useReveal<HTMLDivElement>(0.2);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
@@ -41,25 +43,24 @@ export function CtaSection() {
             <div className="flex flex-col items-center justify-between gap-12 lg:flex-row">
               <div className="flex-1">
                 <h2 className="font-display mb-8 text-4xl leading-[0.95] tracking-tight lg:text-7xl">
-                  Ready to know
+                  {t('landing.cta.title')}
                   <br />
-                  how you&apos;re training?
+                  {t('landing.cta.titleLine2')}
                 </h2>
                 <p className="mb-12 max-w-xl text-xl leading-relaxed text-[color:var(--muted-foreground)]">
-                  Start free — the full training core included, no card, no account. Your first
-                  logged session takes about thirty seconds.
+                  {t('landing.cta.body')}
                 </p>
                 <div className="flex flex-col items-start gap-4 sm:flex-row">
                   <AccountLink className="btn-primary group">
-                    Start training free
+                    {t('landing.cta.start')}
                     <ArrowRight className="ms-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </AccountLink>
                   <Link href="/#pricing" className="btn-outline">
-                    See features
+                    {t('landing.cta.features')}
                   </Link>
                 </div>
                 <p className="mt-8 font-mono text-sm text-[color:var(--muted-foreground)]">
-                  No credit card required
+                  {t('landing.cta.note')}
                 </p>
               </div>
 

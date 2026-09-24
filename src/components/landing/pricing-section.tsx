@@ -2,43 +2,45 @@
 
 import { AccountLink } from './account-link';
 import { ArrowRight, Check } from 'lucide-react';
+import { useI18n } from '@/lib/i18n-context';
 
 const PLANS = [
   {
-    name: 'Free',
-    description: 'The full training core, free forever. Log everything, keep everything.',
+    name: 'landing.pricing.free.name',
+    description: 'landing.pricing.free.body',
     price: '$0',
-    period: '/ forever',
-    cta: 'Start training free',
+    period: 'landing.pricing.free.period',
+    cta: 'landing.hero.start',
     popular: false,
     features: [
-      'Unlimited workout logging & history',
-      'Choose from 4 training styles',
-      'Schedule your recurring week',
-      'Goals, streaks, records & badges',
-      'Body trends & progress charts',
-      'JSON + CSV export, erase anytime',
+      'landing.pricing.free.feature1',
+      'landing.pricing.free.feature2',
+      'landing.pricing.free.feature3',
+      'landing.pricing.free.feature4',
+      'landing.pricing.free.feature5',
+      'landing.pricing.free.feature6',
     ],
   },
   {
-    name: 'Pro preview',
-    description: 'Planned training intelligence — not available for purchase in this release.',
+    name: 'landing.pricing.pro.name',
+    description: 'landing.pricing.pro.body',
     price: '—',
-    period: 'preview only · no billing',
-    cta: 'See the free app',
+    period: 'landing.pricing.pro.period',
+    cta: 'landing.pricing.pro.cta',
     popular: true,
     features: [
-      'Everything in Free',
-      'Adaptive progression targets (planned)',
-      'Daily readiness score & load chart (planned)',
-      'Longer analytics ranges (planned)',
-      'AI coach limits and entitlements (planned)',
-      'Unlimited routines and premium share styles (planned)',
+      'landing.pricing.pro.feature1',
+      'landing.pricing.pro.feature2',
+      'landing.pricing.pro.feature3',
+      'landing.pricing.pro.feature4',
+      'landing.pricing.pro.feature5',
+      'landing.pricing.pro.feature6',
     ],
   },
 ];
 
 export function PricingSection() {
+  const { t } = useI18n();
   return (
     <section
       id="pricing"
@@ -47,16 +49,15 @@ export function PricingSection() {
       <div className="mx-auto max-w-7xl px-6 lg:px-12">
         <div className="mb-20 max-w-3xl">
           <span className="mb-6 block font-mono text-xs tracking-widest text-[color:var(--muted-foreground)] uppercase">
-            Pricing
+            {t('landing.pricing.eyebrow')}
           </span>
           <h2 className="font-display mb-6 text-5xl tracking-tight md:text-6xl lg:text-7xl">
-            Free to start.
+            {t('landing.pricing.title')}
             <br />
-            <span className="text-stroke">Pro is being built.</span>
+            <span className="text-stroke">{t('landing.free.titleLine2')}</span>
           </h2>
           <p className="max-w-xl text-lg text-[color:var(--muted-foreground)]">
-            Free logs everything, forever, privately. A Pro surface is visible in the app as a local
-            product preview, but paid checkout and entitlement activation are not live yet.
+            {t('landing.pricing.body')}
           </p>
         </div>
 
@@ -72,7 +73,7 @@ export function PricingSection() {
             >
               {planData.popular && (
                 <span className="absolute start-8 -top-3 bg-[color:var(--primary)] px-3 py-1 font-mono text-xs tracking-widest text-[color:var(--primary-foreground)] uppercase">
-                  Most popular
+                  {t('landing.pricing.popular')}
                 </span>
               )}
 
@@ -83,16 +84,16 @@ export function PricingSection() {
                     useGrouping: false,
                   }).format(idx + 1)}
                 </span>
-                <h3 className="font-display mt-2 text-3xl">{planData.name}</h3>
+                <h3 className="font-display mt-2 text-3xl">{t(planData.name)}</h3>
                 <p className="mt-2 text-sm text-[color:var(--muted-foreground)]">
-                  {planData.description}
+                  {t(planData.description)}
                 </p>
               </div>
 
               <div className="mb-8 border-b border-[color:var(--foreground)]/10 pb-8">
                 <div className="flex items-baseline gap-2">
                   <span className="font-display text-5xl lg:text-6xl">{planData.price}</span>
-                  <span className="text-[color:var(--muted-foreground)]">{planData.period}</span>
+                  <span className="text-[color:var(--muted-foreground)]">{t(planData.period)}</span>
                 </div>
               </div>
 
@@ -100,7 +101,9 @@ export function PricingSection() {
                 {planData.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-3">
                     <Check className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--foreground)]" />
-                    <span className="text-sm text-[color:var(--muted-foreground)]">{feature}</span>
+                    <span className="text-sm text-[color:var(--muted-foreground)]">
+                      {t(feature)}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -112,7 +115,7 @@ export function PricingSection() {
                     : 'border border-[color:var(--foreground)]/20 text-[color:var(--foreground)] hover:border-[color:var(--foreground)] hover:bg-[color:var(--foreground)]/5'
                 }`}
               >
-                {planData.cta}
+                {t(planData.cta)}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </AccountLink>
             </div>
@@ -120,8 +123,7 @@ export function PricingSection() {
         </div>
 
         <p className="mt-12 text-center text-sm text-[color:var(--muted-foreground)]">
-          SmartFit is free in this release. Paid Pro pricing will be announced only when secure
-          server-side provisioning and account management are live.
+          {t('landing.pricing.note')}
         </p>
       </div>
     </section>

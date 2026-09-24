@@ -4,57 +4,66 @@ import Link from 'next/link';
 import { AccountLink } from './account-link';
 import { AnimatedWave } from './animated-wave';
 import { Logo } from '@/components/brand';
+import { useI18n } from '@/lib/i18n-context';
 
-const FOOTER_LINKS = [
+/**
+ * Keys, not copy — except the three links whose label is decided at runtime by
+ * the session (`AccountLink`): "Open dashboard", "Get started" and "Sign in"
+ * keep their English form because that is what the landing's own E2E asserts,
+ * and which one renders depends on who is looking.
+ */
+type FooterLink = { key: string | null; name: string; href: string };
+const FOOTER_LINKS: Array<{ title: string; links: FooterLink[] }> = [
   {
-    title: 'Product',
+    title: 'landing.footer.product',
     links: [
-      { name: 'Features hub', href: '/#features' },
-      { name: 'How it works', href: '/#how-it-works' },
-      { name: 'Training styles', href: '/#integrations' },
-      { name: 'Pricing', href: '/#pricing' },
+      { key: 'landing.footer.featuresHub', name: 'Features hub', href: '/#features' },
+      { key: 'landing.nav.howItWorks', name: 'How it works', href: '/#how-it-works' },
+      { key: 'landing.footer.trainingStyles', name: 'Training styles', href: '/#integrations' },
+      { key: 'landing.nav.pricing', name: 'Pricing', href: '/#pricing' },
     ],
   },
   {
-    title: 'Training',
+    title: 'landing.footer.training',
     links: [
-      { name: 'Training library', href: '/library' },
-      { name: 'All styles explained', href: '/#plans' },
-      { name: 'Push / Pull / Legs', href: '/#plans' },
-      { name: 'Upper / Lower', href: '/#plans' },
-      { name: 'Full Body 3×', href: '/#plans' },
+      { key: 'landing.footer.library', name: 'Training library', href: '/library' },
+      { key: 'landing.footer.allStyles', name: 'All styles explained', href: '/#plans' },
+      { key: 'landing.footer.ppl', name: 'Push / Pull / Legs', href: '/#plans' },
+      { key: 'landing.footer.upperLower', name: 'Upper / Lower', href: '/#plans' },
+      { key: 'landing.footer.fullBody', name: 'Full Body 3×', href: '/#plans' },
     ],
   },
   {
-    title: 'Guides',
+    title: 'landing.nav.guides',
     links: [
-      { name: 'Training guides', href: '/#guides' },
-      { name: 'Session vs plan', href: '/#features' },
-      { name: 'How it works', href: '/#how-it-works' },
-      { name: 'FAQ', href: '/#faq' },
+      { key: 'landing.footer.trainingGuides', name: 'Training guides', href: '/#guides' },
+      { key: 'landing.footer.sessionVsPlan', name: 'Session vs plan', href: '/#features' },
+      { key: 'landing.nav.howItWorks', name: 'How it works', href: '/#how-it-works' },
+      { key: 'landing.footer.faq', name: 'FAQ', href: '/#faq' },
     ],
   },
   {
-    title: 'App',
+    title: 'landing.footer.app',
     links: [
-      { name: 'Open dashboard', href: '/dashboard' },
-      { name: 'Get started', href: '/onboarding' },
-      { name: 'Sign in', href: '/login' },
-      { name: 'Help & support', href: '/support' },
-      { name: 'Your data', href: '/#security' },
+      { key: null, name: 'Open dashboard', href: '/dashboard' },
+      { key: null, name: 'Get started', href: '/onboarding' },
+      { key: null, name: 'Sign in', href: '/login' },
+      { key: 'landing.footer.help', name: 'Help & support', href: '/support' },
+      { key: 'landing.footer.yourData', name: 'Your data', href: '/#security' },
     ],
   },
   {
-    title: 'Legal',
+    title: 'landing.footer.legal',
     links: [
-      { name: 'Privacy policy', href: '/privacy' },
-      { name: 'Terms of use', href: '/terms' },
-      { name: 'Export & delete', href: '/dashboard/profile' },
+      { key: 'landing.footer.privacy', name: 'Privacy policy', href: '/privacy' },
+      { key: 'landing.footer.terms', name: 'Terms of use', href: '/terms' },
+      { key: 'landing.footer.exportDelete', name: 'Export & delete', href: '/dashboard/profile' },
     ],
   },
 ];
 
 export function FooterSection() {
+  const { t } = useI18n();
   return (
     <footer className="relative border-t border-[color:var(--foreground)]/10">
       <div className="pointer-events-none absolute inset-0 h-64 overflow-hidden opacity-20">
@@ -70,33 +79,32 @@ export function FooterSection() {
                 <span className="font-display text-2xl">SmartFit</span>
               </Link>
               <p className="max-w-xs leading-relaxed text-[color:var(--muted-foreground)]">
-                The free, private workout tracker. Plan, log and understand your training — no
-                wearables, no subscriptions, no trackers, no ads.
+                {t('landing.footer.blurb')}
               </p>
               <p className="mt-4 text-xs leading-relaxed text-[color:var(--muted-foreground)]">
-                SmartFit is a tracker, not a medical device — train within your limits.
+                {t('landing.footer.disclaimer')}
               </p>
             </div>
 
             {FOOTER_LINKS.map(({ title, links }) => (
               <div key={title}>
-                <h3 className="mb-6 text-sm font-medium">{title}</h3>
+                <h3 className="mb-6 text-sm font-medium">{t(title)}</h3>
                 <ul className="space-y-4">
                   {links.map((link) => (
-                    <li key={`${title}-${link.name}`} className="empty:hidden">
+                    <li key={`${title}-${link.key ?? link.name}`} className="empty:hidden">
                       {['/login', '/dashboard', '/onboarding'].includes(link.href) ? (
                         <AccountLink
                           signedOutOnly={link.href !== '/dashboard'}
                           className="inline-flex items-center gap-2 text-sm text-[color:var(--muted-foreground)] transition-colors hover:text-[color:var(--foreground)]"
                         >
-                          {link.name}
+                          {link.key ? t(link.key) : link.name}
                         </AccountLink>
                       ) : (
                         <Link
                           href={link.href}
                           className="inline-flex items-center gap-2 text-sm text-[color:var(--muted-foreground)] transition-colors hover:text-[color:var(--foreground)]"
                         >
-                          {link.name}
+                          {link.key ? t(link.key) : link.name}
                         </Link>
                       )}
                     </li>
@@ -109,23 +117,23 @@ export function FooterSection() {
 
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[color:var(--foreground)]/10 py-8">
           <p className="text-sm text-[color:var(--muted-foreground)]">
-            © {new Date().getFullYear()} SmartFit · Train hard. Train smart.
+            © {new Date().getFullYear()} {t('landing.footer.copyright')}
           </p>
           <div className="flex gap-4 text-xs text-[color:var(--muted-foreground)]">
             <Link href="/#features" className="hover:text-[color:var(--foreground)]">
-              Features
+              {t('landing.nav.features')}
             </Link>
             <Link href="/#integrations" className="hover:text-[color:var(--foreground)]">
-              Activity
+              {t('landing.footer.activity')}
             </Link>
             <Link href="/#guides" className="hover:text-[color:var(--foreground)]">
-              Guides
+              {t('landing.nav.guides')}
             </Link>
             <Link href="/privacy" className="hover:text-[color:var(--foreground)]">
-              Privacy
+              {t('landing.footer.privacy')}
             </Link>
             <Link href="/terms" className="hover:text-[color:var(--foreground)]">
-              Terms
+              {t('landing.footer.termsShort')}
             </Link>
           </div>
         </div>

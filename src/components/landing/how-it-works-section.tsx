@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { useReveal } from './use-reveal';
+import { useI18n } from '@/lib/i18n-context';
 
 const STEP_NUMBERS = ['I', 'II', 'III'];
 
@@ -11,52 +12,56 @@ type Step = {
   title: string;
   description: string;
   snapshotLabel: string;
-  lines: { text: string; value: string }[];
+  /** `valueKey` is set when the value is a word that needs translating. */
+  lines: { text: string; value: string; valueKey?: string }[];
   link?: { href: string; anchor: string };
 };
 
 const STEPS: Step[] = [
   {
     number: 'I',
-    title: 'Tell us about your training',
-    description:
-      'Pick a goal, your weekly availability and rest days. It takes about a minute, and you can change everything later.',
-    snapshotLabel: 'Your profile',
+    title: 'landing.how.profile.title',
+    description: 'landing.how.profile.body',
+    snapshotLabel: 'landing.how.profile.snapshot',
     lines: [
-      { text: 'Goal', value: 'Train 5× / week' },
-      { text: 'Rest days', value: '2' },
-      { text: 'Weight unit', value: 'kg' },
+      {
+        text: 'landing.how.profile.line1',
+        valueKey: 'landing.how.profile.value1',
+        value: 'Train 5× / week',
+      },
+      { text: 'landing.how.profile.line2', value: '2' },
+      { text: 'landing.how.profile.line3', value: 'kg' },
     ],
+    link: { href: '/#how-it-works', anchor: 'None' },
   },
   {
     number: 'II',
-    title: 'Pick a training style',
-    description:
-      'SmartFit lays out your weekly split — push/pull/legs, upper/lower, full body or cardio focus. Switch strategies anytime without losing history.',
-    snapshotLabel: 'Chosen split',
+    title: 'landing.how.style.title',
+    description: 'landing.how.style.body',
+    snapshotLabel: 'landing.how.style.snapshot',
     lines: [
-      { text: 'Strategy', value: 'Full Body 3×' },
-      { text: 'Sessions / week', value: '3' },
-      { text: 'Active rest', value: 'built in' },
+      { text: 'landing.how.style.line1', value: 'Full Body 3×' },
+      { text: 'landing.how.style.line2', value: '3' },
+      { text: 'landing.how.style.line3', valueKey: 'landing.how.style.value3', value: 'built in' },
     ],
-    link: { href: '/#plans', anchor: 'Compare the 4 training styles' },
+    link: { href: '/#plans', anchor: 'landing.guides.methods.anchor' },
   },
   {
     number: 'III',
-    title: 'Log sessions as they happen',
-    description:
-      'Add a workout in seconds and tag the activity type. Your plan, streaks, goals and trends update instantly — all on your device.',
-    snapshotLabel: 'Latest session',
+    title: 'landing.how.log.title',
+    description: 'landing.how.log.body',
+    snapshotLabel: 'landing.how.log.snapshot',
     lines: [
-      { text: 'Push — chest & shoulders', value: '55 min' },
-      { text: 'Intensity', value: 'High' },
-      { text: 'Calories', value: '~480 kcal' },
+      { text: 'landing.how.log.line1', value: '55 min' },
+      { text: 'landing.how.log.line2', valueKey: 'landing.how.log.value2', value: 'High' },
+      { text: 'landing.how.log.line3', value: '~480 kcal' },
     ],
-    link: { href: '/dashboard', anchor: 'See how fast logging works' },
+    link: { href: '/dashboard', anchor: 'landing.how.log.anchor' },
   },
 ];
 
 export function HowItWorksSection() {
+  const { t } = useI18n();
   const { ref, visible } = useReveal<HTMLElement>(0.1);
   const [activeStep, setActiveStep] = useState(0);
 
@@ -88,26 +93,25 @@ export function HowItWorksSection() {
             style={{ color: 'color-mix(in oklab, currentColor 50%, transparent)' }}
           >
             <span className="h-px w-8 bg-current/30" />
-            Three steps
+            {t('landing.how.eyebrow')}
           </span>
           <h2
             className="reveal text-4xl tracking-tight lg:text-6xl"
             data-state={visible ? 'visible' : 'hidden'}
           >
-            Three steps.
+            {t('landing.how.title')}
             <br />
             <span style={{ color: 'color-mix(in oklab, currentColor 50%, transparent)' }}>
-              A stronger week ahead.
+              {t('landing.how.titleLine2')}
             </span>
           </h2>
           <p
             className="mt-6 max-w-2xl"
             style={{ color: 'color-mix(in oklab, currentColor 60%, transparent)' }}
           >
-            Start with a{' '}
-            <span className="underline underline-offset-4">free private training tracker</span> that
-            needs no wearable. See why the session and the plan stay separate, and how your week
-            updates itself.
+            {t('landing.how.body.lead')}{' '}
+            <span className="underline underline-offset-4">{t('landing.how.body.link')}</span>{' '}
+            {t('landing.how.body.tail')}
           </p>
         </div>
 
@@ -134,13 +138,13 @@ export function HowItWorksSection() {
                   </span>
                   <div className="flex-1">
                     <h3 className="font-display mb-3 text-2xl transition-transform duration-300 group-hover:translate-x-2 lg:text-3xl">
-                      {step.title}
+                      {t(step.title)}
                     </h3>
                     <p
                       className="leading-relaxed"
                       style={{ color: 'color-mix(in oklab, currentColor 60%, transparent)' }}
                     >
-                      {step.description}
+                      {t(step.description)}
                     </p>
                     {step.link && (
                       <Link
@@ -149,7 +153,7 @@ export function HowItWorksSection() {
                         className="mt-3 inline-flex text-xs font-medium underline underline-offset-4 hover:no-underline"
                         style={{ color: 'color-mix(in oklab, currentColor 80%, transparent)' }}
                       >
-                        {step.link.anchor} →
+                        {t(step.link.anchor)} →
                       </Link>
                     )}
                     {activeStep === index && (
@@ -188,7 +192,7 @@ export function HowItWorksSection() {
                   className="font-mono text-xs"
                   style={{ color: 'color-mix(in oklab, currentColor 40%, transparent)' }}
                 >
-                  {STEPS[activeStep].snapshotLabel}
+                  {t(STEPS[activeStep].snapshotLabel)}
                 </span>
               </div>
               <div className="flex min-h-[280px] flex-col justify-center gap-6 p-5 min-[400px]:p-8">
@@ -202,10 +206,10 @@ export function HowItWorksSection() {
                       className="text-base min-[400px]:text-lg"
                       style={{ color: 'color-mix(in oklab, currentColor 60%, transparent)' }}
                     >
-                      {line.text}
+                      {t(line.text)}
                     </span>
                     <span className="font-display text-xl min-[400px]:text-2xl lg:text-3xl">
-                      {line.value}
+                      {line.valueKey ? t(line.valueKey) : line.value}
                     </span>
                   </div>
                 ))}
@@ -219,7 +223,7 @@ export function HowItWorksSection() {
                   className="font-mono text-xs"
                   style={{ color: 'color-mix(in oklab, currentColor 40%, transparent)' }}
                 >
-                  Saved privately
+                  {t('landing.how.savedPrivately')}
                 </span>
               </div>
             </div>

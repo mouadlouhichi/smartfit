@@ -217,6 +217,13 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'progress.stat.distance': 'Distance.',
   'progress.mix.total': '“total” is the French word too.',
   'landing.nav.guides': '“Guides” is the French word too.',
+  'landing.activity.cardio': 'French gyms say cardio.',
+  'landing.activity.hiit': 'HIIT is the French term as well.',
+  'landing.activity.sports': '“Sport” exists but the plural is the natural heading.',
+  'landing.how.log.line3': '“Calories” is the French word too.',
+  'landing.footer.faq': '“FAQ” is the French acronym too.',
+  'landing.footer.ppl': 'The split is named in English in every French gym.',
+  'landing.footer.fullBody': 'Same — the split keeps its English name.',
   // The gym's own taxonomy. Three of the six class types are the words French
   // gyms actually use, and the other two are a unit and a loanword — a
   // "translated" version of any of them would be wrong, not missing.
