@@ -133,8 +133,10 @@ test('a visitor joins the gym in one tap', async ({ page }) => {
   await page.getByRole('button', { name: 'Join Zone Fight' }).click();
   await expect(page.getByText('Welcome — your trial membership is active')).toBeVisible();
   // The membership card replaces the join CTA, on a trial status.
+  // The status badge, not the plan row (an unplanned member's plan reads
+  // "Trial" too, so the match has to be the first one in the card).
   await expect(
-    page.locator('section#membership').getByText('Trial', { exact: true }),
+    page.locator('section#membership').getByText('Trial', { exact: true }).first(),
   ).toBeVisible();
 });
 
