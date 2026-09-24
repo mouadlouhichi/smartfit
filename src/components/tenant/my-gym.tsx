@@ -17,7 +17,7 @@
  */
 import { useMemo } from 'react';
 import { CalendarCheck, CalendarX2, Clock3, CreditCard, DoorOpen, Share2 } from 'lucide-react';
-import { daysUntilExpiry, gymStatusLabel, isGymLive } from '@smartfit/core';
+import { daysUntilExpiry, gymStatusLabel, isGymLive, type Locale } from '@smartfit/core';
 import { formatMoney, useTenant } from '@/lib/tenant-context';
 import type { GymSlot } from '@/lib/firebase/tenant-repo';
 import { useAuth } from '@/lib/firebase/auth-context';
@@ -30,22 +30,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/toast';
 import { statusTone } from '@/components/tenant/console';
+import { intlTag } from '@/lib/intl';
 
-/** The interface language as a tag `Intl` understands — never the device's. */
-function intl(locale: string): string {
-  return locale === 'fr' ? 'fr-FR' : 'en-GB';
-}
-
-function fmtDate(ms: number, locale: string): string {
-  return new Date(ms).toLocaleDateString(intl(locale), {
+function fmtDate(ms: number, locale: Locale): string {
+  return new Date(ms).toLocaleDateString(intlTag(locale), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
   });
 }
 
-function fmtDateTime(ms: number, locale: string): string {
-  return new Date(ms).toLocaleString(intl(locale), {
+function fmtDateTime(ms: number, locale: Locale): string {
+  return new Date(ms).toLocaleString(intlTag(locale), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -54,8 +50,8 @@ function fmtDateTime(ms: number, locale: string): string {
   });
 }
 
-function fmtTime(ms: number, locale: string): string {
-  return new Date(ms).toLocaleTimeString(intl(locale), {
+function fmtTime(ms: number, locale: Locale): string {
+  return new Date(ms).toLocaleTimeString(intlTag(locale), {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -223,7 +219,7 @@ function MembershipCard() {
           ? t('gym.member.daysLeft', { count: days })
           : t('gym.member.lapsed', { count: -days }),
     ],
-    [t('gym.member.memberSince'), new Date(m.joinedAt).toLocaleDateString(intl(locale))],
+    [t('gym.member.memberSince'), new Date(m.joinedAt).toLocaleDateString(intlTag(locale))],
     [
       t('gym.member.checkins'),
       t('gym.member.checkinsValue', { all: m.checkins, month: visitsThisMonth }),

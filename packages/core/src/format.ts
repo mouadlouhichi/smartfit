@@ -261,6 +261,7 @@ export const GYM_STATUS_KEYS: Record<string, string> = {
   attended: 'gym.status.attended',
   no_show: 'gym.status.noShow', // the stored id keeps its snake case
   cancelled: 'gym.status.cancelled',
+  refunded: 'gym.status.refunded',
 };
 
 /** A status as words. Unknown ids fall back to the id itself, de-snake-cased. */
@@ -290,6 +291,24 @@ export const GYM_FOCUS_KEYS: Record<string, string> = {
 export function gymFocusLabel(focus: string, t?: Translator): string {
   const key = GYM_FOCUS_KEYS[focus];
   return key && t ? t(key) : focus;
+}
+
+/**
+ * The billing period of a membership plan.
+ *
+ * The stored ids (`month`, `quarter`, `year`, `pass`) are data; this is what the
+ * storefront, the console and the plan forms show next to a price.
+ */
+export const PLAN_PERIOD_KEYS: Record<string, string> = {
+  month: 'plan.period.month',
+  quarter: 'plan.period.quarter',
+  year: 'plan.period.year',
+  pass: 'plan.period.pass',
+};
+
+export function planPeriodLabel(period: string, t?: Translator): string {
+  const key = PLAN_PERIOD_KEYS[period];
+  return key && t ? t(key) : period;
 }
 
 /** The same idea for RBAC roles: `roleLabel` is the English name, this the copy. */

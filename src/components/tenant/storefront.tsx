@@ -18,6 +18,7 @@ import {
 import {
   gymFocusLabel,
   isGymLive,
+  planPeriodLabel,
   weekdayLabels,
   type GymTenant,
   type Intensity,
@@ -28,6 +29,7 @@ import { demoPersonaLabel } from '@/lib/tenant-demo';
 import type { MembershipPlanDoc } from '@/lib/firebase/tenant-repo';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useI18n } from '@/lib/i18n-context';
+import { intlTag } from '@/lib/intl';
 import { MyGym, SlotBookingActions } from './my-gym';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
@@ -46,13 +48,11 @@ import {
   gymContactHref,
 } from '@/lib/storefront-model';
 export { groupByDay } from '@/lib/storefront-model';
-/** `fr-FR`/`en-GB` — the app's two locales, with a stable fallback. */
-const intl = (locale: Locale) => (locale === 'fr' ? 'fr-FR' : 'en-GB');
 const timeOfDay = (ms: number, locale: Locale) =>
-  new Date(ms).toLocaleTimeString(intl(locale), { hour: '2-digit', minute: '2-digit' });
+  new Date(ms).toLocaleTimeString(intlTag(locale), { hour: '2-digit', minute: '2-digit' });
 /** A timetable day heading. `label` is a `Date.toString()`, not an ISO date. */
 const dayLabel = (label: string, locale: Locale) =>
-  new Date(label).toLocaleDateString(intl(locale), {
+  new Date(label).toLocaleDateString(intlTag(locale), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -67,12 +67,6 @@ const PLAN_BADGE_KEYS: Record<MembershipPlanDoc['period'], string> = {
   quarter: 'gym.store.plan.badge.quarter',
   year: 'gym.store.plan.badge.year',
   pass: 'gym.store.plan.badge.pass',
-};
-const PLAN_PERIOD_KEYS: Record<MembershipPlanDoc['period'], string> = {
-  month: 'gym.store.plan.period.month',
-  quarter: 'gym.store.plan.period.quarter',
-  year: 'gym.store.plan.period.year',
-  pass: 'gym.store.plan.period.pass',
 };
 const LINKS = [
   ['#classes', 'gym.store.nav.classes'],
@@ -173,10 +167,10 @@ function PlanCard({
       <h3 className="text-lg font-semibold">{plan.name}</h3>
       <div className="mt-4 flex flex-wrap items-baseline gap-2">
         <span className="text-4xl font-bold tracking-tight tabular-nums">
-          {(plan.priceMinor / 100).toLocaleString(intl(locale), { maximumFractionDigits: 2 })}
+          {(plan.priceMinor / 100).toLocaleString(intlTag(locale), { maximumFractionDigits: 2 })}
         </span>
         <span className={cn('text-xs', featured ? 'text-white/60' : 'text-muted-foreground')}>
-          {plan.currency} / {t(PLAN_PERIOD_KEYS[plan.period])}
+          {plan.currency} / {planPeriodLabel(plan.period, t)}
         </span>
       </div>
       <p className={cn('mt-2 text-xs', featured ? 'text-white/55' : 'text-muted-foreground')}>
@@ -634,7 +628,7 @@ export function Storefront() {
                       {weekdayLabels(locale, 'long')[new Date(day.label).getDay()]}
                     </h3>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      {new Date(day.label).toLocaleDateString(intl(locale), {
+                      {new Date(day.label).toLocaleDateString(intlTag(locale), {
                         day: 'numeric',
                         month: 'long',
                       })}

@@ -36,15 +36,19 @@ import {
 import {
   isGymCustomer,
   AT_RISK_DAYS,
+  gymFocusLabel,
   gymStatusLabel,
   isAtRisk,
+  planPeriodLabel,
   roleText,
+  weekdayLabels,
   type Capability,
   type GymMembership,
 } from '@smartfit/core';
 import { formatMoney, useTenant } from '@/lib/tenant-context';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { useI18n } from '@/lib/i18n-context';
+import { intlTag } from '@/lib/intl';
 import type { DemoPersonaKey } from '@/lib/tenant-demo';
 import type { GymBooking, GymClass, GymSlot } from '@/lib/firebase/tenant-repo';
 import { Badge } from '@/components/ui/badge';
@@ -105,6 +109,28 @@ const SECTIONS: Section[] = [
     capability: 'branding:edit',
   },
 ];
+
+const METHOD_KEYS: Record<string, string> = {
+  cash: 'gym.console.method.cash',
+  card: 'gym.console.method.card',
+  transfer: 'gym.console.method.transfer',
+  cmi: 'gym.console.method.cmi',
+  stripe: 'gym.console.method.stripe',
+  other: 'gym.console.method.other',
+};
+
+const PLAN_PERIOD_OPTION_KEYS: Record<string, string> = {
+  month: 'gym.console.plans.option.month',
+  quarter: 'gym.console.plans.option.quarter',
+  year: 'gym.console.plans.option.year',
+  pass: 'gym.console.plans.option.pass',
+};
+
+/** A payment method as words. Stored ids are data; this is the badge beside them. */
+function methodLabel(method: string, t: (key: string) => string): string {
+  const key = METHOD_KEYS[method];
+  return key ? t(key) : method;
+}
 
 /** The demo switcher lists three real roles and two audience labels. */
 const DEMO_ROLE_KEYS: Record<DemoPersonaKey, string> = {
@@ -476,6 +502,7 @@ function Today() {
 
 function Timetable() {
   const t = useTenant();
+  const { t: tr, locale } = useI18n();
   const toast = useToast();
   const classById = useMemo(() => new Map(t.classes.map((c) => [c.id, c])), [t.classes]);
   const slots = useMemo(() => [...t.slots].sort((a, b) => a.startsAt - b.startsAt), [t.slots]);
@@ -502,10 +529,10 @@ function Timetable() {
     };
     const ok = await t.upsertClass(cls);
     if (ok) {
-      toast(`Added ${cls.name}`, 'success');
+      toast(tr('gym.console.class.added', { name: cls.name }), 'success');
       setName('');
     } else {
-      toast(t.mutationError ?? 'Could not add the class', 'info');
+      toast(t.mutationError ?? tr('gym.console.class.addError'), 'info');
     }
   }
 
@@ -523,8 +550,8 @@ function Timetable() {
       cancelled: false,
     };
     const ok = await t.upsertSlot(slot);
-    if (ok) toast(`Scheduled ${cls.name}`, 'success');
-    else toast(t.mutationError ?? 'Could not schedule the class', 'info');
+    if (ok) toast(tr('gym.console.slot.scheduled', { name: cls.name }), 'success');
+    else toast(t.mutationError ?? tr('gym.console.slot.scheduleError'), 'info');
   }
 
   return (
@@ -532,19 +559,19 @@ function Timetable() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">New class</CardTitle>
+            <CardTitle className="text-base">{tr('gym.console.class.new')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Field id="cls-name" label="Name">
+            <Field id="cls-name" label={tr('modal.field.name')}>
               <Input
                 id="cls-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Boxing Fundamentals"
+                placeholder={tr('gym.console.class.namePlaceholder')}
               />
             </Field>
             <div className="grid grid-cols-3 gap-2">
-              <Field id="cls-focus" label="Focus">
+              <Field id="cls-focus" label={tr('gym.console.class.focus')}>
                 <Select
                   id="cls-focus"
                   value={focus}
@@ -552,12 +579,12 @@ function Timetable() {
                 >
                   {FOCUS_OPTIONS.map((f) => (
                     <option key={f} value={f}>
-                      {f}
+                      {gymFocusLabel(f, tr)}
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field id="cls-min" label="Minutes">
+              <Field id="cls-min" label={tr('modal.field.minutes')}>
                 <Input
                   id="cls-min"
                   type="number"
@@ -565,7 +592,7 @@ function Timetable() {
                   onChange={(e) => setMinutes(e.target.value)}
                 />
               </Field>
-              <Field id="cls-cap" label="Capacity">
+              <Field id="cls-cap" label={tr('gym.console.class.capacity')}>
                 <Input
                   id="cls-cap"
                   type="number"
@@ -575,23 +602,23 @@ function Timetable() {
               </Field>
             </div>
             <Button onClick={addClass} disabled={!name.trim() || t.mutating !== null}>
-              <Plus className="size-4" /> Add class
+              <Plus className="size-4" /> {tr('gym.console.class.add')}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Schedule an occurrence</CardTitle>
+            <CardTitle className="text-base">{tr('gym.console.slot.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Field id="slot-class" label="Class">
+            <Field id="slot-class" label={tr('gym.store.class.one')}>
               <Select
                 id="slot-class"
                 value={slotClassId}
                 onChange={(e) => setSlotClassId(e.target.value)}
               >
-                <option value="">Choose…</option>
+                <option value="">{tr('gym.console.choose')}</option>
                 {t.classes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -600,16 +627,16 @@ function Timetable() {
               </Select>
             </Field>
             <div className="grid grid-cols-2 gap-2">
-              <Field id="slot-day" label="Weekday">
+              <Field id="slot-day" label={tr('gym.console.slot.weekday')}>
                 <Select id="slot-day" value={weekday} onChange={(e) => setWeekday(e.target.value)}>
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+                  {weekdayLabels(locale, 'short').map((d, i) => (
                     <option key={d} value={String(i)}>
                       {d}
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field id="slot-time" label="Start">
+              <Field id="slot-time" label={tr('gym.console.slot.start')}>
                 <Input
                   id="slot-time"
                   type="time"
@@ -619,7 +646,7 @@ function Timetable() {
               </Field>
             </div>
             <Button onClick={addSlot} disabled={!slotClassId || t.mutating !== null}>
-              <Plus className="size-4" /> Schedule
+              <Plus className="size-4" /> {tr('gym.console.slot.schedule')}
             </Button>
           </CardContent>
         </Card>
@@ -627,11 +654,11 @@ function Timetable() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Scheduled</CardTitle>
+          <CardTitle className="text-base">{tr('gym.console.slot.list')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">
           {slots.length === 0 && (
-            <p className="text-muted-foreground text-sm">Nothing scheduled yet.</p>
+            <p className="text-muted-foreground text-sm">{tr('gym.console.slot.empty')}</p>
           )}
           {slots.map((s) => (
             <div
@@ -640,7 +667,7 @@ function Timetable() {
             >
               <span>{classById.get(s.classId)?.name ?? s.classId}</span>
               <span className="text-muted-foreground text-xs tabular-nums">
-                {new Date(s.startsAt).toLocaleString('en-GB', {
+                {new Date(s.startsAt).toLocaleString(intlTag(locale), {
                   weekday: 'short',
                   hour: '2-digit',
                   minute: '2-digit',
@@ -657,6 +684,7 @@ function Timetable() {
 
 function Revenue() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const toast = useToast();
   const invoices = useMemo(
     () => [...t.invoices].sort((a, b) => b.issuedAt - a.issuedAt),
@@ -680,31 +708,40 @@ function Revenue() {
     const ok = await t.takePlanPayment(memberUid, planId, method);
     if (ok) {
       toast(
-        `Recorded ${formatMoney(plan.priceMinor, plan.currency)} — membership applied`,
+        tr('gym.console.revenue.recorded', {
+          amount: formatMoney(plan.priceMinor, plan.currency),
+        }),
         'success',
       );
       setMemberUid('');
       setPlanId('');
     } else {
-      toast(t.mutationError ?? 'Could not record the payment', 'info');
+      toast(t.mutationError ?? tr('gym.console.revenue.recordError'), 'info');
     }
   }
 
   async function collect(invoiceId: string) {
     const ok = await t.collectInvoice(invoiceId, method);
-    if (ok) toast('Collected — membership applied', 'success');
-    else toast(t.mutationError ?? 'Could not collect', 'info');
+    if (ok) toast(tr('gym.console.revenue.collectedToast'), 'success');
+    else toast(t.mutationError ?? tr('gym.console.revenue.collectError'), 'info');
   }
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
-        <Metric label="MRR" value={formatMoney(t.metrics.mrrMinor)} tone="good" />
-        <Metric label="Collected (30d)" value={formatMoney(t.metrics.collectedMinor)} />
         <Metric
-          label="Invoiced (all time)"
+          label={tr('gym.console.metric.mrr')}
+          value={formatMoney(t.metrics.mrrMinor)}
+          tone="good"
+        />
+        <Metric
+          label={tr('gym.console.metric.collected')}
+          value={formatMoney(t.metrics.collectedMinor)}
+        />
+        <Metric
+          label={tr('gym.console.revenue.invoiced')}
           value={formatMoney(total)}
-          hint={`${paid.length} paid`}
+          hint={tr('gym.console.revenue.paidHint', { count: paid.length })}
         />
       </div>
 
@@ -712,15 +749,12 @@ function Revenue() {
         <Card className="border-amber-500/40">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-base">
-              <span>To collect — online plan requests</span>
+              <span>{tr('gym.console.revenue.toCollect')}</span>
               <Badge className="bg-amber-500/15 text-amber-600" variant="secondary">
                 {drafts.length}
               </Badge>
             </CardTitle>
-            <CardDescription>
-              Members who chose a plan on the site and pay at the desk. Collecting marks the invoice
-              paid and applies the plan to their membership in one write.
-            </CardDescription>
+            <CardDescription>{tr('gym.console.revenue.toCollectBody')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {drafts.map((i) => {
@@ -739,7 +773,7 @@ function Revenue() {
                     </span>
                   </span>
                   <Button size="sm" onClick={() => collect(i.id)} disabled={t.mutating !== null}>
-                    Collect ({method})
+                    {tr('gym.console.revenue.collect', { method: methodLabel(method, tr) })}
                   </Button>
                 </div>
               );
@@ -751,21 +785,18 @@ function Revenue() {
       {canIssue && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Sell a plan at the desk</CardTitle>
-            <CardDescription>
-              Walk-in sale: issues a paid invoice and applies the plan — status, tier and expiry —
-              to the member in one write.
-            </CardDescription>
+            <CardTitle className="text-base">{tr('gym.console.revenue.sell')}</CardTitle>
+            <CardDescription>{tr('gym.console.revenue.sellBody')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid gap-2 sm:grid-cols-3">
-              <Field id="pay-member" label="Member">
+              <Field id="pay-member" label={tr('role.member')}>
                 <Select
                   id="pay-member"
                   value={memberUid}
                   onChange={(e) => setMemberUid(e.target.value)}
                 >
-                  <option value="">Choose…</option>
+                  <option value="">{tr('gym.console.choose')}</option>
                   {t.roster
                     .filter((r) => r.role === 'member')
                     .map((r) => (
@@ -775,9 +806,9 @@ function Revenue() {
                     ))}
                 </Select>
               </Field>
-              <Field id="pay-plan" label="Plan">
+              <Field id="pay-plan" label={tr('gym.member.plan')}>
                 <Select id="pay-plan" value={planId} onChange={(e) => setPlanId(e.target.value)}>
-                  <option value="">Choose…</option>
+                  <option value="">{tr('gym.console.choose')}</option>
                   {t.plans.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} — {formatMoney(p.priceMinor, p.currency)}
@@ -785,21 +816,22 @@ function Revenue() {
                   ))}
                 </Select>
               </Field>
-              <Field id="pay-method" label="Method">
+              <Field id="pay-method" label={tr('gym.console.revenue.method')}>
                 <Select
                   id="pay-method"
                   value={method}
                   onChange={(e) => setMethod(e.target.value as typeof method)}
                 >
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="transfer">Bank transfer</option>
-                  <option value="cmi">CMI</option>
+                  {(['cash', 'card', 'transfer', 'cmi'] as const).map((m) => (
+                    <option key={m} value={m}>
+                      {methodLabel(m, tr)}
+                    </option>
+                  ))}
                 </Select>
               </Field>
             </div>
             <Button onClick={takePayment} disabled={!memberUid || !planId || t.mutating !== null}>
-              Record payment
+              {tr('gym.console.revenue.recordPayment')}
             </Button>
           </CardContent>
         </Card>
@@ -807,7 +839,7 @@ function Revenue() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Invoices</CardTitle>
+          <CardTitle className="text-base">{tr('gym.console.revenue.invoices')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">
           {invoices.map((i) => (
@@ -817,9 +849,11 @@ function Revenue() {
             >
               <span>{t.roster.find((r) => r.uid === i.memberUid)?.displayName ?? i.memberUid}</span>
               <span className="flex items-center gap-2">
-                <Badge variant="outline">{i.method ?? 'pending'}</Badge>
+                <Badge variant="outline">
+                  {i.method ? methodLabel(i.method, tr) : tr('gym.console.revenue.pending')}
+                </Badge>
                 <Badge className={statusTone(i.status)} variant="secondary">
-                  {i.status}
+                  {gymStatusLabel(i.status, tr)}
                 </Badge>
                 <span className="w-28 text-right tabular-nums">
                   {formatMoney(i.amountMinor, i.currency)}
@@ -835,6 +869,7 @@ function Revenue() {
 
 function Plans() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const toast = useToast();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('390');
@@ -851,10 +886,10 @@ function Plans() {
       published: true,
     });
     if (ok) {
-      toast(`Added ${name.trim()}`, 'success');
+      toast(tr('gym.console.plans.added', { name: name.trim() }), 'success');
       setName('');
     } else {
-      toast(t.mutationError ?? 'Could not add the plan', 'info');
+      toast(t.mutationError ?? tr('gym.console.plans.addError'), 'info');
     }
   }
 
@@ -865,7 +900,9 @@ function Plans() {
           <Card key={p.id}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{p.name}</CardTitle>
-              <CardDescription className="capitalize">per {p.period}</CardDescription>
+              <CardDescription className="capitalize">
+                {tr('gym.console.plans.perPeriod', { period: planPeriodLabel(p.period, tr) })}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="text-2xl font-black tabular-nums">
@@ -873,7 +910,9 @@ function Plans() {
               </p>
               {p.description && <p className="text-muted-foreground text-xs">{p.description}</p>}
               <Badge variant={p.published === false ? 'outline' : 'secondary'}>
-                {p.published === false ? 'unpublished' : 'published'}
+                {p.published === false
+                  ? tr('gym.console.plans.unpublished')
+                  : tr('gym.console.plans.published')}
               </Badge>
             </CardContent>
           </Card>
@@ -882,19 +921,19 @@ function Plans() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">New plan</CardTitle>
+          <CardTitle className="text-base">{tr('gym.console.plans.new')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-2 sm:grid-cols-3">
-            <Field id="plan-name" label="Name">
+            <Field id="plan-name" label={tr('modal.field.name')}>
               <Input
                 id="plan-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Monthly"
+                placeholder={tr('gym.console.plans.namePlaceholder')}
               />
             </Field>
-            <Field id="plan-price" label="Price (MAD)">
+            <Field id="plan-price" label={tr('gym.console.plans.price')}>
               <Input
                 id="plan-price"
                 type="number"
@@ -902,21 +941,22 @@ function Plans() {
                 onChange={(e) => setPrice(e.target.value)}
               />
             </Field>
-            <Field id="plan-period" label="Period">
+            <Field id="plan-period" label={tr('gym.console.plans.period')}>
               <Select
                 id="plan-period"
                 value={period}
                 onChange={(e) => setPeriod(e.target.value as typeof period)}
               >
-                <option value="month">Month</option>
-                <option value="quarter">Quarter</option>
-                <option value="year">Year</option>
-                <option value="pass">Day pass</option>
+                {(['month', 'quarter', 'year', 'pass'] as const).map((p) => (
+                  <option key={p} value={p}>
+                    {tr(PLAN_PERIOD_OPTION_KEYS[p])}
+                  </option>
+                ))}
               </Select>
             </Field>
           </div>
           <Button onClick={addPlan} disabled={!name.trim() || t.mutating !== null}>
-            <Plus className="size-4" /> Add plan
+            <Plus className="size-4" /> {tr('gym.console.plans.add')}
           </Button>
         </CardContent>
       </Card>

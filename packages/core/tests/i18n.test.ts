@@ -223,7 +223,9 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'gym.focus.hiit': 'HIIT — the acronym is used untranslated.',
   'gym.focus.cardio': 'Cardio — the loanword is the French word here.',
   'gym.store.class.minutes': 'A duration and its unit symbol.',
-  'gym.store.plan.period.pass': '“pass” is what a French gym calls a single-visit pass.',
+  'gym.console.method.cmi': 'CMI — the Moroccan card network keeps its name.',
+  'gym.console.method.stripe': 'Stripe — a brand name.',
+  'plan.period.pass': '“pass” is what a French gym calls a single-visit pass.',
 };
 
 test('the translations are actually translated, not copied', () => {
