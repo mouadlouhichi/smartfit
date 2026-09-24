@@ -753,6 +753,136 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'share.copy': 'Copy',
     'share.share': 'Share',
 
+    'gym.picker.title': 'Your gym',
+    'gym.picker.body':
+      'Gyms running on SmartFit — pick one to build your week from its real timetable.',
+    'gym.picker.browse': 'Browse gyms',
+    'gym.picker.loading': 'Loading your gym…',
+    'gym.picker.empty': 'No gyms are listed yet — nothing to pick for now.',
+    'progress.modal.aria': 'Today’s progress',
+    'progress.modal.challenge': 'Challenge',
+    'progress.modal.streak': 'Workout streak',
+    'progress.modal.streakAria': 'Workout streak: {count} days',
+    'progress.modal.days': 'Days',
+    'progress.modal.daysGoal': 'Days · next streak goal',
+    'progress.modal.milestone': 'Next milestone: {count}-day streak',
+    'progress.modal.dismiss': 'Dismiss',
+    'map.routeAria': 'GPS route map',
+    'run.markAria': 'Runner',
+    'ui.toggleTheme': 'Toggle theme',
+    'ui.logWorkout': 'Log workout',
+    'meal.removePhoto': 'Remove photo',
+    'meal.scanned': 'Scanned',
+
+    // ── Pro paywall ───────────────────────────────────────────────────────
+    'pro.tagline.locked': 'Unlock the full engine.',
+    'pro.tagline.member': 'Your membership, managed.',
+    'pro.close': 'Close',
+    'pro.trial.title': 'Start your free Pro period?',
+    'pro.trial.body':
+      '{months} months of every Pro feature, free — no card required. You drop back to the free tier automatically when it ends.',
+    'pro.trial.confirm': 'Start {months} months free',
+    'pro.trial.started': 'Trial started — enjoy Pro!',
+    'pro.checkout.disabled':
+      'Paid Pro checkout is disabled until secure server-side billing is live.',
+    'pro.sandbox.title': 'Sandbox checkout',
+    'pro.sandbox.body':
+      'Paid billing is not connected, so this activation is only a local preview. No payment link or cloud entitlement is created.',
+    'pro.sandbox.confirm': 'Activate {plan}',
+    'pro.welcome': 'Welcome to SmartFit Pro',
+    'pro.cancel.title': 'Cancel SmartFit Pro?',
+    'pro.cancel.body':
+      'You keep Pro features until the end of the paid period, then drop to the free tier.',
+    'pro.cancel.confirm': 'Cancel Pro',
+    'pro.cancel.done': 'Pro cancelled',
+    'pro.table.feature': 'Feature',
+    'pro.table.free': 'Free',
+    'pro.table.pro': 'Pro',
+    'pro.plan.lifetime': 'One-time payment',
+    'pro.plan.monthly': 'Billed monthly',
+    'pro.billing.sandbox': 'Local preview — no charges or paid entitlement.',
+    'pro.billing.disabled': 'Paid billing is disabled until server-side provisioning is live.',
+    'pro.restore': 'Restore',
+    'pro.status.trial': 'Pro Trial',
+    'pro.status.plan': 'Pro',
+    'pro.status.active': 'Active',
+    'pro.status.since': 'Mvolt since {date}',
+    'pro.trial.leftMonths': {
+      one: '{count} month left of your free Pro',
+      other: '{count} months left of your free Pro',
+    },
+    'pro.trial.leftWeeks': {
+      one: '{count} week left of your free Pro',
+      other: '{count} weeks left of your free Pro',
+    },
+    'pro.trial.leftDays': {
+      one: '{count} day left of your free Pro',
+      other: '{count} days left of your free Pro',
+    },
+    'pro.manage': 'Manage subscription',
+
+    // ── sync, storage and import banners ─────────────────────────────────
+    'sync.error.title': 'Changes aren’t syncing.',
+    'sync.error.body': 'We couldn’t reach the server.',
+    'sync.error.safe': 'Your data is safe on this device.',
+    'sync.retry': 'Retry',
+    'sync.import.title': 'Bring your existing training with you?',
+    'sync.import.body': 'We found {items} saved on this device. Your new account is empty.',
+    'sync.import.workouts': { one: '{count} workout', other: '{count} workouts' },
+    'sync.import.sessions': {
+      one: '{count} scheduled session',
+      other: '{count} scheduled sessions',
+    },
+    'sync.import.goals': { one: '{count} goal', other: '{count} goals' },
+    'sync.import.measurements': { one: '{count} measurement', other: '{count} measurements' },
+    'sync.import.startFresh': 'Start fresh',
+    'sync.import.import': 'Import',
+    'sync.import.importing': 'Importing…',
+    'sync.storage.title': 'This device is out of storage for SmartFit.',
+    'sync.storage.body':
+      'Everything still works, but new changes may not survive a reload. Export a backup from Profile, then free up browser storage.',
+    'sync.dismiss': 'Dismiss',
+    'sync.blocked.title': 'Some of your data is blocked.',
+    'sync.blocked.body':
+      'Your database rules block {collections}. Everything else loaded normally — deploy the current firestore.rules to see {them}.',
+    'sync.blocked.themOne': 'it',
+    'sync.blocked.themMany': 'them',
+
+    // ── sync, storage and import banners ─────────────────────────────────
+
+    // ── sync, storage and import banners ─────────────────────────────────
+
+    // ── run home / hub cards ──────────────────────────────────────────────
+    'run.greeting.morning': 'Good morning',
+    'run.greeting.afternoon': 'Good afternoon',
+    'run.greeting.evening': 'Good evening',
+    'run.greeting.night': 'Good night',
+    'run.home.streak': '{count}-day streak',
+    'run.home.title.new': 'Start your running journey.',
+    'run.home.title.returning': 'Run your way to better health.',
+    'run.home.body.new':
+      'Take the first step toward a healthier, more active life. Your route, pace, splits and records are worked out on this device and never leave it.',
+    'run.home.body.returning':
+      'GPS recording with auto-pause, kilometre splits, elevation and best efforts — recorded on this device, ready to share when you finish.',
+    'run.home.start': 'Start run',
+    'run.home.chip.splits': 'Splits + best efforts',
+    'run.home.chip.elevation': 'Elevation',
+    'run.home.chip.share': 'Transparent share',
+    'run.home.week.label': 'Your distance · this week',
+    'run.home.week.first': 'First kilometres of the week — build from here.',
+    'run.home.week.none': 'No runs yet this week.',
+    'run.home.week.deltaUp': 'Up {percent}% vs last week ({distance} km)',
+    'run.home.week.deltaDown': 'Down {percent}% vs last week ({distance} km)',
+    'run.home.week.days': 'This week, day by day',
+    'run.home.week.daysAria': 'Daily run distances',
+    'run.home.week.dayDetail': '{day}: {km} kilometres, {metres} metres elevation',
+    'run.home.week.empty':
+      'Every run you record lights up its day — today’s bar is the bright one.',
+    'run.title.morning': 'Morning run',
+    'run.title.afternoon': 'Afternoon run',
+    'run.title.evening': 'Evening run',
+    'run.title.night': 'Night run',
+
     // ── run recorder ──────────────────────────────────────────────────────
     'run.discard.title': 'Discard this run?',
     'run.discard.body':
@@ -1675,6 +1805,137 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'Les cartes gratuites portent une petite ligne « made with SmartFit » + logo. Pro retire la ligne — le logo reste toujours.',
     'share.copy': 'Copier',
     'share.share': 'Partager',
+
+    // ── paywall Pro ───────────────────────────────────────────────────────
+    'pro.tagline.locked': 'Débloquez le moteur complet.',
+    'pro.tagline.member': 'Votre abonnement, géré.',
+    'pro.close': 'Fermer',
+    'pro.trial.title': 'Commencer votre période Pro gratuite ?',
+    'pro.trial.body':
+      '{months} mois de toutes les fonctions Pro, gratuitement — sans carte. Vous revenez automatiquement à l’offre gratuite à la fin.',
+    'pro.trial.confirm': 'Commencer {months} mois gratuits',
+    'pro.trial.started': 'Essai démarré — profitez de Pro !',
+    'pro.checkout.disabled':
+      'Le paiement Pro est désactivé tant que la facturation côté serveur n’est pas en place.',
+    'pro.sandbox.title': 'Paiement en bac à sable',
+    'pro.sandbox.body':
+      'La facturation n’est pas connectée : cette activation n’est qu’un aperçu local. Aucun lien de paiement ni droit cloud n’est créé.',
+    'pro.sandbox.confirm': 'Activer {plan}',
+    'pro.welcome': 'Bienvenue dans SmartFit Pro',
+    'pro.cancel.title': 'Annuler SmartFit Pro ?',
+    'pro.cancel.body':
+      'Vous gardez les fonctions Pro jusqu’à la fin de la période payée, puis revenez à l’offre gratuite.',
+    'pro.cancel.confirm': 'Annuler Pro',
+    'pro.cancel.done': 'Pro annulé',
+    'pro.table.feature': 'Fonction',
+    'pro.table.free': 'Gratuit',
+    'pro.table.pro': 'Pro',
+    'pro.plan.lifetime': 'Paiement unique',
+    'pro.plan.monthly': 'Facturé mensuellement',
+    'pro.billing.sandbox': 'Aperçu local — aucun débit ni droit payant.',
+    'pro.billing.disabled':
+      'Le paiement est désactivé tant que l’approvisionnement côté serveur n’est pas en place.',
+    'pro.restore': 'Restaurer',
+    'pro.status.trial': 'Essai Pro',
+    'pro.status.plan': 'Pro',
+    'pro.status.active': 'Actif',
+    'pro.status.since': 'Mvolt depuis le {date}',
+    'pro.trial.leftMonths': {
+      one: '{count} mois restant de votre Pro gratuit',
+      other: '{count} mois restants de votre Pro gratuit',
+    },
+    'pro.trial.leftWeeks': {
+      one: '{count} semaine restante de votre Pro gratuit',
+      other: '{count} semaines restantes de votre Pro gratuit',
+    },
+    'pro.trial.leftDays': {
+      one: '{count} jour restant de votre Pro gratuit',
+      other: '{count} jours restants de votre Pro gratuit',
+    },
+    'pro.manage': 'Gérer l’abonnement',
+
+    // ── bandeaux de synchronisation, stockage et import ──────────────────
+    'sync.error.title': 'Les modifications ne se synchronisent pas.',
+    'sync.error.body': 'Nous n’avons pas pu joindre le serveur.',
+    'sync.error.safe': 'Vos données sont en sécurité sur cet appareil.',
+    'sync.retry': 'Réessayer',
+    'sync.import.title': 'Emportez votre entraînement existant ?',
+    'sync.import.body':
+      'Nous avons trouvé {items} enregistrés sur cet appareil. Votre nouveau compte est vide.',
+    'sync.import.workouts': { one: '{count} séance', other: '{count} séances' },
+    'sync.import.sessions': {
+      one: '{count} séance planifiée',
+      other: '{count} séances planifiées',
+    },
+    'sync.import.goals': { one: '{count} objectif', other: '{count} objectifs' },
+    'sync.import.measurements': { one: '{count} mesure', other: '{count} mesures' },
+    'sync.import.startFresh': 'Repartir de zéro',
+    'sync.import.import': 'Importer',
+    'sync.import.importing': 'Importation…',
+    'sync.storage.title': 'Cet appareil n’a plus de stockage pour SmartFit.',
+    'sync.storage.body':
+      'Tout fonctionne encore, mais les nouvelles modifications risquent de ne pas survivre à un rechargement. Exportez une sauvegarde depuis Profil, puis libérez de l’espace dans le navigateur.',
+    'sync.dismiss': 'Ignorer',
+    'sync.blocked.title': 'Une partie de vos données est bloquée.',
+    'sync.blocked.body':
+      'Vos règles de base de données bloquent {collections}. Tout le reste s’est chargé normalement — déployez le fichier firestore.rules actuel pour {them}.',
+    'sync.blocked.themOne': 'la voir',
+    'sync.blocked.themMany': 'les voir',
+    'meal.removePhoto': 'Retirer la photo',
+    'meal.scanned': 'Scanné',
+    'ui.logWorkout': 'Enregistrer une séance',
+    'ui.toggleTheme': 'Changer de thème',
+    'gym.picker.title': 'Votre salle',
+    'gym.picker.body':
+      'Des salles utilisent SmartFit — choisissez-en une pour construire votre semaine à partir de son planning réel.',
+    'gym.picker.browse': 'Parcourir les salles',
+    'gym.picker.loading': 'Chargement de votre salle…',
+    'gym.picker.empty': 'Aucune salle n’est listée pour l’instant — rien à choisir.',
+    'progress.modal.aria': 'Progression du jour',
+    'progress.modal.challenge': 'Défi',
+    'progress.modal.streak': 'Série d’entraînement',
+    'progress.modal.streakAria': 'Série d’entraînement : {count} jours',
+    'progress.modal.days': 'Jours',
+    'progress.modal.daysGoal': 'Jours · prochain palier',
+    'progress.modal.milestone': 'Prochain palier : {count} jours de série',
+    'progress.modal.dismiss': 'Fermer',
+    'map.routeAria': 'Carte du parcours GPS',
+    'run.markAria': 'Coureur',
+
+    // ── bandeaux de synchronisation, stockage et import ──────────────────
+
+    // ── bandeaux de synchronisation, stockage et import ──────────────────
+
+    // ── accueil course ────────────────────────────────────────────────────
+    'run.greeting.morning': 'Bonjour',
+    'run.greeting.afternoon': 'Bon après-midi',
+    'run.greeting.evening': 'Bonsoir',
+    'run.greeting.night': 'Bonne nuit',
+    'run.home.streak': 'Série de {count} jours',
+    'run.home.title.new': 'Commencez votre parcours de course.',
+    'run.home.title.returning': 'Courez vers une meilleure santé.',
+    'run.home.body.new':
+      'Faites le premier pas vers une vie plus saine et plus active. Parcours, allure, intervalles et records sont calculés sur cet appareil et ne le quittent jamais.',
+    'run.home.body.returning':
+      'Enregistrement GPS avec pause automatique, intervalles au kilomètre, dénivelé et meilleurs efforts — enregistrés sur cet appareil, prêts à partager.',
+    'run.home.start': 'Démarrer la course',
+    'run.home.chip.splits': 'Intervalles + meilleurs efforts',
+    'run.home.chip.elevation': 'Dénivelé',
+    'run.home.chip.share': 'Partage transparent',
+    'run.home.week.label': 'Votre distance · cette semaine',
+    'run.home.week.first': 'Premiers kilomètres de la semaine — à vous de construire.',
+    'run.home.week.none': 'Aucune course cette semaine.',
+    'run.home.week.deltaUp': 'En hausse de {percent}% vs la semaine dernière ({distance} km)',
+    'run.home.week.deltaDown': 'En baisse de {percent}% vs la semaine dernière ({distance} km)',
+    'run.home.week.days': 'Cette semaine, jour par jour',
+    'run.home.week.daysAria': 'Distances de course par jour',
+    'run.home.week.dayDetail': '{day} : {km} kilomètres, {metres} mètres de dénivelé',
+    'run.home.week.empty':
+      'Chaque course enregistrée illumine son jour — la barre du jour est la plus vive.',
+    'run.title.morning': 'Footing matinal',
+    'run.title.afternoon': 'Course de l’après-midi',
+    'run.title.evening': 'Course du soir',
+    'run.title.night': 'Course nocturne',
 
     // ── enregistreur de course ────────────────────────────────────────────
     'run.discard.title': 'Abandonner cette course ?',

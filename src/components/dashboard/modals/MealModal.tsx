@@ -413,7 +413,7 @@ export function MealModal() {
                     />
                     <button
                       type="button"
-                      aria-label="Remove photo"
+                      aria-label={t('meal.removePhoto')}
                       onClick={() => setPhoto(null)}
                       className="bg-background absolute -top-1.5 -right-1.5 rounded-full p-0.5 shadow ring-1 ring-black/10"
                     >
@@ -489,7 +489,7 @@ export function MealModal() {
                     </Badge>
                   )}
                 </p>
-                {scanned && <Badge variant="accent">Scanned</Badge>}
+                {scanned && <Badge variant="accent">{t('meal.scanned')}</Badge>}
               </div>
               <div className="flex gap-2">
                 <Input

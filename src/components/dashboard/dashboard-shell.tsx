@@ -145,11 +145,12 @@ function GlobalLogCta() {
 
 /** Theme toggle tuned for the dark rail (light icon on charcoal). */
 function ThemeToggleDark() {
+  const { t } = useI18n();
   const { resolvedTheme, setTheme } = useTheme();
   const dark = resolvedTheme === 'dark';
   return (
     <button
-      aria-label="Toggle theme"
+      aria-label={t('ui.toggleTheme')}
       onClick={() => setTheme(dark ? 'light' : 'dark')}
       className="flex h-11 w-11 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
     >

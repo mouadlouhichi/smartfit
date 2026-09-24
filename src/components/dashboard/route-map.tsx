@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useI18n } from '@/lib/i18n-context';
 import { projectRoute, type GeoPoint } from '@smartfit/core';
 
 /**
@@ -17,13 +18,14 @@ export function RouteMap({
   className?: string;
   stroke?: string;
 }) {
+  const { t } = useI18n();
   const { line, start, end } = useMemo(() => projectRoute(route, 100, 8), [route]);
   const d = line
     .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(2)} ${p.y.toFixed(2)}`)
     .join(' ');
 
   return (
-    <svg viewBox="0 0 100 100" className={className} role="img" aria-label="GPS route map">
+    <svg viewBox="0 0 100 100" className={className} role="img" aria-label={t('map.routeAria')}>
       <path
         d={d}
         fill="none"

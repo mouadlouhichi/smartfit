@@ -196,6 +196,8 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'share.format.story': '“Story” is what Instagram calls it in both languages.',
   'share.style.transparent': '“Transparent” is the French word too.',
   'share.style.volt': 'Brand name for the dark card style.',
+  'pro.table.pro': 'The product tier name.',
+  'pro.status.plan': 'The product tier name.',
   // Latin-derived statistical nouns French borrowed unchanged; "Calories"
   // would need a locale explanation, the others are simply the same word.
   'progress.stat.calories': 'Calories — the word is the same in French.',

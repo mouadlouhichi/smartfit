@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, X } from 'lucide-react';
 import { currentStreak, nextStreakMilestone } from '@smartfit/core';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 
 /**
  * "Today's progress" — the post-workout achievement celebration.
@@ -23,6 +24,7 @@ export function ProgressAchievementModal({
   prCount: number;
   onDone: () => void;
 }) {
+  const { t } = useI18n();
   const { state } = useStore();
   const streak = currentStreak(state);
   const milestone = nextStreakMilestone(streak);
@@ -33,7 +35,7 @@ export function ProgressAchievementModal({
     <div
       role="alertdialog"
       aria-modal="true"
-      aria-label="Today's progress"
+      aria-label={t('progress.modal.aria')}
       className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-[var(--ink-2)]"
       style={{
         backgroundImage:
@@ -72,7 +74,7 @@ export function ProgressAchievementModal({
           <button
             type="button"
             onClick={onDone}
-            aria-label={`Next milestone: ${milestone}-day streak`}
+            aria-label={t('progress.modal.milestone', { count: milestone })}
             className="absolute top-1/2 -right-16 hidden -translate-y-1/2 flex-col items-start gap-1 rounded-3xl border px-5 py-4 text-left sm:flex"
             style={{
               borderColor: 'rgba(138,210,0,0.55)',
@@ -80,9 +82,11 @@ export function ProgressAchievementModal({
               width: '9.5rem',
             }}
           >
-            <span className="text-[11px] font-semibold text-white/50">Challenge</span>
+            <span className="text-[11px] font-semibold text-white/50">
+              {t('progress.modal.challenge')}
+            </span>
             <span className="text-volt-soft text-2xl font-extrabold tabular-nums">{milestone}</span>
-            <span className="text-xs text-white/60">Days · next streak goal</span>
+            <span className="text-xs text-white/60">{t('progress.modal.daysGoal')}</span>
             <ChevronRight className="text-volt-soft mt-1 h-4 w-4" aria-hidden />
           </button>
 
@@ -106,7 +110,7 @@ export function ProgressAchievementModal({
               aria-hidden
             />
 
-            <p className="text-sm font-semibold text-white/85">Workout streak</p>
+            <p className="text-sm font-semibold text-white/85">{t('progress.modal.streak')}</p>
 
             {/* digit row: ghost neighbours + today */}
             <div className="relative mt-2 flex items-center justify-center" aria-hidden>
@@ -120,9 +124,7 @@ export function ProgressAchievementModal({
                 {streak + 1}
               </span>
             </div>
-            <span className="sr-only">
-              Workout streak: {streak} day{streak === 1 ? '' : 's'}
-            </span>
+            <span className="sr-only">{t('progress.modal.streakAria', { count: streak })}</span>
 
             <div
               className="pointer-events-none absolute inset-x-6 bottom-0 h-16"
@@ -132,7 +134,9 @@ export function ProgressAchievementModal({
               }}
               aria-hidden
             />
-            <p className="relative mt-8 text-base font-bold text-white/90">Days</p>
+            <p className="relative mt-8 text-base font-bold text-white/90">
+              {t('progress.modal.days')}
+            </p>
           </div>
         </div>
       </div>
@@ -149,7 +153,7 @@ export function ProgressAchievementModal({
         <button
           type="button"
           onClick={onDone}
-          aria-label="Dismiss"
+          aria-label={t('progress.modal.dismiss')}
           className="absolute -top-12 right-6 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 sm:hidden"
         >
           <X className="h-5 w-5" />

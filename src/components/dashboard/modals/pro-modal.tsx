@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/lib/i18n-context';
+import type { Translator } from '@smartfit/core';
 import {
   Activity,
   Check,
@@ -68,6 +70,7 @@ const GATE_ICONS: Record<string, LucideIcon> = {
  * server-side billing exists.
  */
 export function ProModal() {
+  const { t } = useI18n();
   const { state, updateProfile } = useStore();
   const { open, payload, closeModal } = useModals();
   const confirm = useConfirm();
@@ -84,44 +87,42 @@ export function ProModal() {
   async function checkout(useTrial = false) {
     if (useTrial) {
       const ok = await confirm({
-        title: 'Start your free Pro period?',
-        body: `${PRO_TRIAL_MONTHS} months of every Pro feature, free — no card required. You drop back to the free tier automatically when it ends.`,
-        confirmLabel: `Start ${PRO_TRIAL_MONTHS} months free`,
+        title: t('pro.trial.title'),
+        body: t('pro.trial.body', { months: PRO_TRIAL_MONTHS }),
+        confirmLabel: t('pro.trial.confirm', { months: PRO_TRIAL_MONTHS }),
       });
       if (!ok) return;
       updateProfile({ pro: { plan: 'trial', since: Date.now() } });
-      toast('Trial started — enjoy Pro!');
+      toast(t('pro.trial.started'));
       closeModal();
       return;
     }
     const link = paymentLinkFor(plan);
     if (link) {
-      toast('Paid Pro checkout is disabled until secure server-side billing is live.', 'info');
+      toast(t('pro.checkout.disabled'), 'info');
       return;
     }
     const ok = await confirm({
-      title: 'Sandbox checkout',
-      body:
-        'Paid billing is not connected, so this activation is only a local preview. ' +
-        'No payment link or cloud entitlement is created.',
-      confirmLabel: `Activate ${meta.name}`,
+      title: t('pro.sandbox.title'),
+      body: t('pro.sandbox.body'),
+      confirmLabel: t('pro.sandbox.confirm', { plan: meta.name }),
     });
     if (!ok) return;
     updateProfile({ pro: { plan, since: Date.now() } });
-    toast('Welcome to SmartFit Pro');
+    toast(t('pro.welcome'));
     closeModal();
   }
 
   async function cancelPro() {
     const ok = await confirm({
-      title: 'Cancel SmartFit Pro?',
-      body: 'You keep Pro features until the end of the paid period, then drop to the free tier.',
-      confirmLabel: 'Cancel Pro',
+      title: t('pro.cancel.title'),
+      body: t('pro.cancel.body'),
+      confirmLabel: t('pro.cancel.confirm'),
       destructive: true,
     });
     if (!ok) return;
     updateProfile({ pro: undefined });
-    toast('Pro cancelled', 'info');
+    toast(t('pro.cancel.done'), 'info');
   }
 
   return (
@@ -153,7 +154,7 @@ export function ProModal() {
           <div className="absolute inset-0 bg-gradient-to-t from-[var(--ink)] via-[var(--ink)]/45 to-transparent" />
           <button
             onClick={closeModal}
-            aria-label="Close"
+            aria-label={t('pro.close')}
             className="glass press absolute top-3 right-3 flex h-11 w-11 items-center justify-center rounded-full"
           >
             <X className="h-4 w-4" aria-hidden />
@@ -171,7 +172,7 @@ export function ProModal() {
                   SmartFit Pro
                 </DialogTitle>
                 <DialogDescription className="text-xs text-[rgba(237,235,230,0.75)]">
-                  {pro ? 'Your membership, managed.' : 'Unlock the full engine.'}
+                  {pro ? t('pro.tagline.member') : t('pro.tagline.locked')}
                 </DialogDescription>
               </div>
             </div>
@@ -204,11 +205,12 @@ export function ProModal() {
 /* ── comparison table ──────────────────────────────────────────────────── */
 
 function ComparisonTable() {
+  const { t } = useI18n();
   return (
     <div className="pro-tile overflow-hidden rounded-2xl">
       <div className="grid grid-cols-[1.4fr_1fr_1fr] border-b border-[rgba(237,235,230,0.12)] px-3 py-2.5 text-[11px] font-bold tracking-wide uppercase min-[430px]:px-4">
-        <span className="pro-muted">Feature</span>
-        <span className="pro-muted text-center">Free</span>
+        <span className="pro-muted">{t('pro.table.feature')}</span>
+        <span className="pro-muted text-center">{t('pro.table.free')}</span>
         <span className="text-center" style={{ color: 'var(--volt)' }}>
           Pro
         </span>
@@ -262,6 +264,7 @@ const PRO_FOOTER_BAR = 'static mx-0 mb-0 border-t-[rgba(237,235,230,0.12)] bg-bl
 /* ── upgrade content (scrolls) ─────────────────────────────────────────── */
 
 function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan) => void }) {
+  const { t } = useI18n();
   const toast = useToast();
   return (
     <div className="grid gap-4">
@@ -316,7 +319,7 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
               <span className="pro-muted text-xs font-medium">{p.per}</span>
             </span>
             <span className="pro-muted text-xs font-semibold">
-              {p.effective ?? (p.id === 'lifetime' ? 'One-time payment' : 'Billed monthly')}
+              {p.effective ?? t(p.id === 'lifetime' ? 'pro.plan.lifetime' : 'pro.plan.monthly')}
             </span>
             {p.savePct && (
               <span
@@ -335,9 +338,7 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
       <div className="flex items-center justify-between">
         <p className="pro-muted flex items-center gap-1.5 text-[11px]">
           <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
-          {BILLING_MODE === 'sandbox'
-            ? 'Local preview — no charges or paid entitlement.'
-            : 'Paid billing is disabled until server-side provisioning is live.'}
+          {t(BILLING_MODE === 'sandbox' ? 'pro.billing.sandbox' : 'pro.billing.disabled')}
         </p>
         <Button
           variant="ghost"
@@ -345,7 +346,7 @@ function UpgradeContent({ plan, setPlan }: { plan: ProPlan; setPlan: (p: ProPlan
           className="text-[rgba(237,235,230,0.8)]"
           onClick={onTrialRestoreNotice}
         >
-          <RefreshCw className="h-3.5 w-3.5" /> Restore
+          <RefreshCw className="h-3.5 w-3.5" /> {t('pro.restore')}
         </Button>
       </div>
     </div>
@@ -372,6 +373,7 @@ function UpgradeFooter({
   paidDisabled?: boolean;
   trialDisabled?: boolean;
 }) {
+  const { t, locale } = useI18n();
   return (
     <DialogFooter className={cn(PRO_FOOTER_BAR, 'flex-col sm:flex-col')}>
       <Button
@@ -406,16 +408,10 @@ function UpgradeFooter({
 /* ── manage content (scrolls) ────────────────────────────────────────────── */
 
 /** Human countdown for the free Pro period: months, then weeks, then days. */
-function trialLeftLabel(days: number): string {
-  if (days >= 30) {
-    const m = Math.round(days / 30);
-    return `${m} month${m === 1 ? '' : 's'} left of your free Pro`;
-  }
-  if (days >= 14) {
-    const w = Math.round(days / 7);
-    return `${w} weeks left of your free Pro`;
-  }
-  return `${days} day${days === 1 ? '' : 's'} left of your free Pro`;
+function trialLeftLabel(days: number, t: Translator): string {
+  if (days >= 30) return t('pro.trial.leftMonths', { count: Math.round(days / 30) });
+  if (days >= 14) return t('pro.trial.leftWeeks', { count: Math.round(days / 7) });
+  return t('pro.trial.leftDays', { count: days });
 }
 
 function ManageContent({
@@ -427,28 +423,33 @@ function ManageContent({
   trialing: boolean;
   state: ReturnType<typeof useStore>['state'];
 }) {
+  const { t, locale } = useI18n();
   const planName = PRO_PLANS.find((p) => p.id === state.profile.pro?.plan)?.name;
   return (
     <div className="grid gap-4">
       <div className="pro-tile flex items-center justify-between rounded-2xl px-4 py-3.5">
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-sm font-extrabold">{trialing ? 'Pro Trial' : (planName ?? 'Pro')}</p>
+            <p className="text-sm font-extrabold">
+              {trialing ? t('pro.status.trial') : (planName ?? t('pro.status.plan'))}
+            </p>
             <ProBadge />
           </div>
           <p className="pro-muted mt-0.5 text-xs">
             {trialing
-              ? trialLeftLabel(trialDaysLeft(state))
+              ? trialLeftLabel(trialDaysLeft(state), t)
               : state.profile.pro
-                ? `Mvolt since ${formatDateLabel(toISODate(new Date(state.profile.pro.since)))}`
-                : 'Active'}
+                ? t('pro.status.since', {
+                    date: formatDateLabel(toISODate(new Date(state.profile.pro.since)), locale),
+                  })
+                : t('pro.status.active')}
           </p>
         </div>
         <span
           className="rounded-full px-2.5 py-1 text-[11px] font-bold"
           style={{ background: 'rgba(138,210,0,0.15)', color: 'var(--volt-soft)' }}
         >
-          Active
+          {t('pro.status.active')}
         </span>
       </div>
 
@@ -460,6 +461,7 @@ function ManageContent({
 /* ── manage footer (pinned — always visible) ────────────────────────────── */
 
 function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () => void }) {
+  const { t } = useI18n();
   const manageUrl = manageSubscriptionUrl();
   return (
     <DialogFooter className={cn(PRO_FOOTER_BAR, 'flex-col')}>
@@ -468,7 +470,7 @@ function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () =
         className="flex-1 rounded-2xl"
         style={{ background: 'var(--chart-1)', color: 'var(--primary-foreground)' }}
       >
-        Done
+        {t('action.done')}
       </Button>
       {manageUrl && (
         <Button
@@ -476,11 +478,11 @@ function ManageFooter({ onCancel, onDone }: { onCancel: () => void; onDone: () =
           className="rounded-2xl"
           onClick={() => window.open(manageUrl, '_blank', 'noopener')}
         >
-          Manage subscription
+          {t('pro.manage')}
         </Button>
       )}
       <Button onClick={onCancel} variant="ghost" className="text-destructive rounded-2xl">
-        Cancel Pro
+        {t('pro.cancel.confirm')}
       </Button>
     </DialogFooter>
   );

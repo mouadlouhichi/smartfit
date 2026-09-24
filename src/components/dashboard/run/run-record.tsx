@@ -66,7 +66,7 @@ import {
   keepScreenAwake,
   readRunDraft,
   saveRunDraft,
-  timeOfDayLabel,
+  timeOfDayPeriod,
   watchGps,
   type RunDraft,
 } from '@/lib/run-sensors';
@@ -371,13 +371,13 @@ export function RunRecord({ onSaved }: { onSaved?: () => void }) {
     // Keep the laps the athlete tapped, in addition to the kilometre splits.
     setSummary(stats);
     setIntensity(intensityForPace(stats.avgPaceMinPerKm));
-    setTitle(`${timeOfDayLabel()} run`);
+    setTitle(t(`run.title.${timeOfDayPeriod()}`));
     setPhase('summary');
     clearRunDraft(draftOwner);
     setDraft(null);
     chime('finish');
     buzz([80, 60, 80]);
-  }, [draftOwner, points, stopWatch]);
+  }, [draftOwner, points, stopWatch, t]);
 
   const discard = useCallback(async () => {
     const ok = await confirmDialog({

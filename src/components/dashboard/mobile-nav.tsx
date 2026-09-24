@@ -227,7 +227,7 @@ export function MobileNav() {
         <button
           type="button"
           onClick={() => openModal('workout')}
-          aria-label="Log workout"
+          aria-label={t('ui.logWorkout')}
           className="bg-volt relative z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-[0_6px_20px_rgba(138,210,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] ring-1 ring-black/20 transition-transform active:scale-90"
         >
           <Zap
