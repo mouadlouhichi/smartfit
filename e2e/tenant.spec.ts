@@ -134,7 +134,7 @@ test('a visitor joins the gym in one tap', async ({ page }) => {
   await expect(page.getByText('Welcome — your trial membership is active')).toBeVisible();
   // The membership card replaces the join CTA, on a trial status.
   await expect(
-    page.locator('section#membership').getByText('trial', { exact: true }),
+    page.locator('section#membership').getByText('Trial', { exact: true }),
   ).toBeVisible();
 });
 

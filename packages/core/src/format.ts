@@ -241,6 +241,37 @@ export function goalDisplayName(name: string, t?: Translator): string {
 }
 
 /**
+ * Membership, invoice and booking statuses.
+ *
+ * Stored as ids (`active`, `no_show`) and shown as words, in the member's view
+ * and in the gym's console alike — one map, so the two never disagree about
+ * what a membership is called.
+ */
+export const GYM_STATUS_KEYS: Record<string, string> = {
+  active: 'gym.status.active',
+  trial: 'gym.status.trial',
+  frozen: 'gym.status.frozen',
+  expired: 'gym.status.expired',
+  paid: 'gym.status.paid',
+  overdue: 'gym.status.overdue',
+  void: 'gym.status.void',
+  draft: 'gym.status.draft',
+  booked: 'gym.status.booked',
+  waitlist: 'gym.status.waitlist',
+  attended: 'gym.status.attended',
+  no_show: 'gym.status.noShow', // the stored id keeps its snake case
+  cancelled: 'gym.status.cancelled',
+};
+
+/** A status as words. Unknown ids fall back to the id itself, de-snake-cased. */
+export function gymStatusLabel(status: string, t?: Translator): string {
+  const key = GYM_STATUS_KEYS[status];
+  if (key && t) return t(key);
+  return status.replace(/_/g, ' ');
+}
+
+/**
+ * Display name for a measurement type./**
  * Display name for a measurement type.
  *
  * `bodyLabel` above is the English name the mobile client and the stored data
