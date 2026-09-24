@@ -271,8 +271,9 @@ test('language: plan, goals, body and profile read in French', async ({ page }) 
   // substring: an `exact` match compares the whole element text, badge included.
   await expect(page.getByText('Journal des séances')).toBeVisible();
   // The library's vocabulary comes from core, not from a component copy. The
-  // plan header also *mentions* the library in a sentence, so anchor the match.
-  await expect(page.getByText(/^Bibliothèque d’exercices/)).toBeVisible();
+  // plan header also *mentions* the library in a sentence, and the card title
+  // carries its own count badge, so match the title by its count suffix.
+  await expect(page.getByText(/Bibliothèque d’exercices\d+$/)).toBeVisible();
   await expect(page.getByPlaceholder('Rechercher un exercice…')).toBeVisible();
   // Its muscle/equipment words translate too — the ids are built at runtime.
   await expect(page.getByText('Pectoraux').first()).toBeVisible();
