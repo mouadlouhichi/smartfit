@@ -74,7 +74,7 @@ export function FreeListSection() {
                     className={`flex items-center justify-between border-b px-6 py-5 transition-all duration-300 last:border-b-0 ${
                       activePerk === index ? 'bg-[color:var(--foreground)]/[0.02]' : ''
                     }`}
-                    style={{ borderColor: 'rgba(0,0,0,0.05)' }}
+                    style={{ borderColor: 'var(--border)' }}
                   >
                     <div className="flex items-center gap-4">
                       <span

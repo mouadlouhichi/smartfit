@@ -5,16 +5,22 @@ import { AccountLink } from './account-link';
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Logo } from '@/components/brand';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { LocaleSwitcher } from '@/components/locale-switcher';
+import { useI18n } from '@/lib/i18n-context';
 
+/** Keys, not copy: the same link renders in whichever language is active. */
 const navLinks = [
-  { name: 'Features', href: '/#features' },
-  { name: 'How it works', href: '/#how-it-works' },
-  { name: 'Library', href: '/library' },
-  { name: 'Pricing', href: '/#pricing' },
-  { name: 'Guides', href: '/#guides' },
+  { key: 'landing.nav.features', href: '/#features' },
+  { key: 'landing.nav.howItWorks', href: '/#how-it-works' },
+  { key: 'landing.nav.library', href: '/library' },
+  { key: 'landing.nav.gyms', href: '/gyms' },
+  { key: 'landing.nav.pricing', href: '/#pricing' },
+  { key: 'landing.nav.guides', href: '/#guides' },
 ];
 
 export function Navigation() {
+  const { t } = useI18n();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -65,20 +71,22 @@ export function Navigation() {
             </span>
           </Link>
 
-          <div className="hidden items-center gap-12 md:flex">
+          <div className="hidden items-center gap-7 md:flex lg:gap-9">
             {navLinks.map((link) => (
               <Link
-                key={link.name}
+                key={link.key}
                 href={link.href}
                 className="group relative text-sm font-semibold text-[color:var(--foreground)]/70 transition-colors duration-300 hover:text-[color:var(--foreground)] md:text-base"
               >
-                {link.name}
+                {t(link.key)}
                 <span className="absolute start-0 -bottom-1 h-px w-0 bg-[color:var(--foreground)] transition-all duration-300 group-hover:w-full" />
               </Link>
             ))}
           </div>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-2 md:flex lg:gap-3">
+            <LocaleSwitcher size="sm" className="me-1" />
+            <ThemeToggle />
             <AccountLink
               signedOutOnly
               onClick={() => setIsMobileMenuOpen(false)}
@@ -90,7 +98,7 @@ export function Navigation() {
             </AccountLink>
             <AccountLink
               onClick={() => setIsMobileMenuOpen(false)}
-              className={`inline-flex items-center rounded-full bg-[color:var(--primary)] text-white transition-all duration-500 hover:bg-[color:var(--primary)]/90 ${
+              className={`inline-flex items-center rounded-full bg-[color:var(--primary)] text-[color:var(--primary-foreground)] transition-all duration-500 hover:bg-[color:var(--primary)]/90 ${
                 isScrolled ? 'h-8 px-4 text-sm' : 'px-6 py-2.5'
               }`}
             >
@@ -101,7 +109,7 @@ export function Navigation() {
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="relative z-50 -me-2 flex h-10 w-10 items-center justify-center rounded-full text-[color:var(--foreground)] transition-colors hover:bg-[color:var(--foreground)]/10 md:hidden"
-            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
+            aria-label={t(isMobileMenuOpen ? 'landing.menu.close' : 'landing.menu.open')}
             aria-expanded={isMobileMenuOpen}
           >
             {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -121,7 +129,7 @@ export function Navigation() {
           <div className="flex flex-1 flex-col justify-center gap-8">
             {navLinks.map((link, i) => (
               <Link
-                key={link.name}
+                key={link.key}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`font-display text-4xl text-[color:var(--foreground)] transition-all duration-500 hover:text-[color:var(--muted-foreground)] min-[400px]:text-5xl ${
@@ -129,16 +137,20 @@ export function Navigation() {
                 }`}
                 style={{ transitionDelay: isMobileMenuOpen ? `${i * 75}ms` : '0ms' }}
               >
-                {link.name}
+                {t(link.key)}
               </Link>
             ))}
           </div>
           <div
-            className={`flex gap-4 border-t border-[color:var(--foreground)]/10 pt-8 transition-all duration-500 ${
+            className={`flex flex-wrap items-center gap-3 border-t border-[color:var(--foreground)]/10 pt-8 transition-all duration-500 ${
               isMobileMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
             }`}
             style={{ transitionDelay: isMobileMenuOpen ? '300ms' : '0ms' }}
           >
+            {/* Theme and language are reachable on a phone too — this menu is the
+                only chrome a small screen has. */}
+            <LocaleSwitcher size="sm" />
+            <ThemeToggle />
             <AccountLink
               signedOutOnly
               onClick={() => setIsMobileMenuOpen(false)}
@@ -148,7 +160,7 @@ export function Navigation() {
             </AccountLink>
             <AccountLink
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex h-14 flex-1 items-center justify-center rounded-full bg-[color:var(--primary)] text-base text-white"
+              className="flex h-14 flex-1 items-center justify-center rounded-full bg-[color:var(--primary)] text-base text-[color:var(--primary-foreground)]"
             >
               Start training
             </AccountLink>

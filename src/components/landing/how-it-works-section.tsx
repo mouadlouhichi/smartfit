@@ -85,9 +85,9 @@ export function HowItWorksSection() {
         <div className="mb-16 lg:mb-24">
           <span
             className="mb-6 inline-flex items-center gap-3 font-mono text-sm"
-            style={{ color: 'rgba(248,250,247,0.5)' }}
+            style={{ color: 'color-mix(in oklab, currentColor 50%, transparent)' }}
           >
-            <span className="h-px w-8 bg-white/30" />
+            <span className="h-px w-8 bg-current/30" />
             Three steps
           </span>
           <h2
@@ -96,9 +96,14 @@ export function HowItWorksSection() {
           >
             Three steps.
             <br />
-            <span style={{ color: 'rgba(248,250,247,0.5)' }}>A stronger week ahead.</span>
+            <span style={{ color: 'color-mix(in oklab, currentColor 50%, transparent)' }}>
+              A stronger week ahead.
+            </span>
           </h2>
-          <p className="mt-6 max-w-2xl" style={{ color: 'rgba(248,250,247,0.6)' }}>
+          <p
+            className="mt-6 max-w-2xl"
+            style={{ color: 'color-mix(in oklab, currentColor 60%, transparent)' }}
+          >
             Start with a{' '}
             <span className="underline underline-offset-4">free private training tracker</span> that
             needs no wearable. See why the session and the plan stay separate, and how your week
@@ -116,14 +121,14 @@ export function HowItWorksSection() {
                 className={`group w-full border-b py-8 text-start transition-all duration-500 ${
                   activeStep === index
                     ? 'opacity-100'
-                    : 'border-white/10 opacity-40 hover:opacity-70'
+                    : 'border-current/10 opacity-40 hover:opacity-70'
                 }`}
-                style={{ borderColor: 'rgba(248,250,247,0.1)' }}
+                style={{ borderColor: 'color-mix(in oklab, currentColor 10%, transparent)' }}
               >
                 <div className="flex items-start gap-6">
                   <span
                     className="font-display text-3xl"
-                    style={{ color: 'rgba(248,250,247,0.3)' }}
+                    style={{ color: 'color-mix(in oklab, currentColor 30%, transparent)' }}
                   >
                     {STEP_NUMBERS[index]}
                   </span>
@@ -131,7 +136,10 @@ export function HowItWorksSection() {
                     <h3 className="font-display mb-3 text-2xl transition-transform duration-300 group-hover:translate-x-2 lg:text-3xl">
                       {step.title}
                     </h3>
-                    <p className="leading-relaxed" style={{ color: 'rgba(248,250,247,0.6)' }}>
+                    <p
+                      className="leading-relaxed"
+                      style={{ color: 'color-mix(in oklab, currentColor 60%, transparent)' }}
+                    >
                       {step.description}
                     </p>
                     {step.link && (
@@ -139,7 +147,7 @@ export function HowItWorksSection() {
                         href={step.link.href}
                         onClick={(e) => e.stopPropagation()}
                         className="mt-3 inline-flex text-xs font-medium underline underline-offset-4 hover:no-underline"
-                        style={{ color: 'rgba(248,250,247,0.8)' }}
+                        style={{ color: 'color-mix(in oklab, currentColor 80%, transparent)' }}
                       >
                         {step.link.anchor} →
                       </Link>
@@ -147,7 +155,7 @@ export function HowItWorksSection() {
                     {activeStep === index && (
                       <div
                         className="mt-4 h-px overflow-hidden"
-                        style={{ background: 'rgba(248,250,247,0.2)' }}
+                        style={{ background: 'color-mix(in oklab, currentColor 20%, transparent)' }}
                       >
                         <div className="progress-bar-anim" />
                       </div>
@@ -161,22 +169,25 @@ export function HowItWorksSection() {
           <div className="self-start lg:sticky lg:top-32">
             <div
               className="overflow-hidden border"
-              style={{ borderColor: 'rgba(248,250,247,0.1)' }}
+              style={{ borderColor: 'color-mix(in oklab, currentColor 10%, transparent)' }}
             >
               <div
                 className="flex items-center justify-between border-b px-6 py-4"
-                style={{ borderColor: 'rgba(248,250,247,0.1)' }}
+                style={{ borderColor: 'color-mix(in oklab, currentColor 10%, transparent)' }}
               >
                 <div className="flex gap-2">
                   {[0, 1, 2].map((i) => (
                     <div
                       key={i}
                       className="h-3 w-3 rounded-full"
-                      style={{ background: 'rgba(248,250,247,0.2)' }}
+                      style={{ background: 'color-mix(in oklab, currentColor 20%, transparent)' }}
                     />
                   ))}
                 </div>
-                <span className="font-mono text-xs" style={{ color: 'rgba(248,250,247,0.4)' }}>
+                <span
+                  className="font-mono text-xs"
+                  style={{ color: 'color-mix(in oklab, currentColor 40%, transparent)' }}
+                >
                   {STEPS[activeStep].snapshotLabel}
                 </span>
               </div>
@@ -189,7 +200,7 @@ export function HowItWorksSection() {
                   >
                     <span
                       className="text-base min-[400px]:text-lg"
-                      style={{ color: 'rgba(248,250,247,0.6)' }}
+                      style={{ color: 'color-mix(in oklab, currentColor 60%, transparent)' }}
                     >
                       {line.text}
                     </span>
@@ -201,10 +212,13 @@ export function HowItWorksSection() {
               </div>
               <div
                 className="flex items-center gap-3 border-t px-6 py-4"
-                style={{ borderColor: 'rgba(248,250,247,0.1)' }}
+                style={{ borderColor: 'color-mix(in oklab, currentColor 10%, transparent)' }}
               >
                 <span className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--primary)]" />
-                <span className="font-mono text-xs" style={{ color: 'rgba(248,250,247,0.4)' }}>
+                <span
+                  className="font-mono text-xs"
+                  style={{ color: 'color-mix(in oklab, currentColor 40%, transparent)' }}
+                >
                   Saved privately
                 </span>
               </div>

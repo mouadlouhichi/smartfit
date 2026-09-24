@@ -216,6 +216,7 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'progress.stat.calories': 'Calories — the word is the same in French.',
   'progress.stat.distance': 'Distance.',
   'progress.mix.total': '“total” is the French word too.',
+  'landing.nav.guides': '“Guides” is the French word too.',
   // The gym's own taxonomy. Three of the six class types are the words French
   // gyms actually use, and the other two are a unit and a loanword — a
   // "translated" version of any of them would be wrong, not missing.

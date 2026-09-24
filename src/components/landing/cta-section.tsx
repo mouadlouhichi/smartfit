@@ -33,7 +33,7 @@ export function CtaSection() {
           <div
             className="pointer-events-none absolute inset-0 opacity-10 transition-opacity duration-300"
             style={{
-              background: `radial-gradient(600px circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(0,0,0,0.15), transparent 40%)`,
+              background: `radial-gradient(600px circle at ${mousePosition.x}% ${mousePosition.y}%, color-mix(in oklab, var(--foreground) 15%, transparent), transparent 40%)`,
             }}
           />
 

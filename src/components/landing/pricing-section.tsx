@@ -71,7 +71,7 @@ export function PricingSection() {
               }`}
             >
               {planData.popular && (
-                <span className="absolute start-8 -top-3 bg-[color:var(--primary)] px-3 py-1 font-mono text-xs tracking-widest text-white uppercase">
+                <span className="absolute start-8 -top-3 bg-[color:var(--primary)] px-3 py-1 font-mono text-xs tracking-widest text-[color:var(--primary-foreground)] uppercase">
                   Most popular
                 </span>
               )}
@@ -108,7 +108,7 @@ export function PricingSection() {
               <AccountLink
                 className={`group flex w-full items-center justify-center gap-2 py-4 text-sm font-medium transition-all ${
                   planData.popular
-                    ? 'bg-[color:var(--primary)] text-white hover:bg-[color:var(--primary)]/90'
+                    ? 'bg-[color:var(--primary)] text-[color:var(--primary-foreground)] hover:bg-[color:var(--primary)]/90'
                     : 'border border-[color:var(--foreground)]/20 text-[color:var(--foreground)] hover:border-[color:var(--foreground)] hover:bg-[color:var(--foreground)]/5'
                 }`}
               >

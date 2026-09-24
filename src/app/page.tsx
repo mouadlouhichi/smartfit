@@ -41,13 +41,13 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    // The marketing page is brand-dark regardless of the OS theme: the `dark`
-    // class scopes the dark token overrides to this subtree (the product app
-    // keeps following the user's theme choice).
-    <main
-      id="main-content"
-      className="landing dark noise-overlay relative min-h-screen overflow-x-hidden"
-    >
+    // The marketing page follows the visitor's theme, like the product does.
+    // Every section is drawn with the `--foreground`/`--muted-foreground`/
+    // `--primary` tokens, so both palettes are the same components. It used to
+    // force `.dark`, which made the light palette unreachable on the one page a
+    // visitor sees first — and left the hard-coded near-white ink in the
+    // inverted band invisible against it.
+    <main id="main-content" className="landing relative min-h-screen overflow-x-hidden">
       <LandingSessionProvider>
         <Navigation />
         <HeroSection />

@@ -1595,6 +1595,17 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'gym.store.hero.baseline': 'Start where you are. Go further.',
     'gym.store.hero.artworkNote': 'Illustrative artwork · SmartFit',
 
+    // -- landing chrome --------------------------------------------------
+    'theme.toggle': 'Toggle theme',
+    'landing.nav.features': 'Features',
+    'landing.nav.howItWorks': 'How it works',
+    'landing.nav.library': 'Library',
+    'landing.nav.gyms': 'Gyms',
+    'landing.nav.pricing': 'Pricing',
+    'landing.nav.guides': 'Guides',
+    'landing.menu.open': 'Open menu',
+    'landing.menu.close': 'Close menu',
+
     'role.platformAdmin': 'Platform admin',
     'role.gymOwner': 'Gym owner',
     'role.gymStaff': 'Gym staff',
@@ -3339,6 +3350,17 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'gym.store.hero.viewTimetable': 'Voir le planning',
     'gym.store.hero.baseline': 'Partez de là où vous êtes. Allez plus loin.',
     'gym.store.hero.artworkNote': 'Illustration · SmartFit',
+
+    // -- landing chrome --------------------------------------------------
+    'theme.toggle': 'Changer de thème',
+    'landing.nav.features': 'Fonctions',
+    'landing.nav.howItWorks': 'Comment ça marche',
+    'landing.nav.library': 'Bibliothèque',
+    'landing.nav.gyms': 'Salles',
+    'landing.nav.pricing': 'Tarifs',
+    'landing.nav.guides': 'Guides',
+    'landing.menu.open': 'Ouvrir le menu',
+    'landing.menu.close': 'Fermer le menu',
 
     'role.platformAdmin': 'Admin plateforme',
     'role.gymOwner': 'Propriétaire de la salle',
