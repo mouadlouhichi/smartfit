@@ -262,6 +262,9 @@ export const GYM_STATUS_KEYS: Record<string, string> = {
   no_show: 'gym.status.noShow', // the stored id keeps its snake case
   cancelled: 'gym.status.cancelled',
   refunded: 'gym.status.refunded',
+  // Not a stored status: `directoryStatus` derives it when a record carries an
+  // id the taxonomy does not know. Listed so the member directory can name it.
+  review: 'gym.status.review',
 };
 
 /** A status as words. Unknown ids fall back to the id itself, de-snake-cased. */
