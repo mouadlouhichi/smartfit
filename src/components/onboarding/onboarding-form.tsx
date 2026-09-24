@@ -11,12 +11,17 @@ import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n-context';
 import { useStore } from '@/lib/store-context';
 import { useAuth } from '@/lib/firebase/auth-context';
 import {
-  GOAL_METRIC_META,
   PLANS,
   findGymProgram,
+  goalMetricLabel,
+  goalMetricUnit,
+  planDescription,
+  planName,
+  seededGoalName,
   formatWeight,
   fromKg,
   suggestProgram,
@@ -29,7 +34,8 @@ import Link from 'next/link';
 import { toISODate } from '@smartfit/core';
 import { env } from '@/lib/env';
 
-const STEPS = ['Welcome', 'About you', 'Strategy', 'First goal', 'Ready'] as const;
+/** Welcome → about you → strategy → first goal → ready. */
+const STEP_COUNT = 5;
 
 /**
  * The client half of onboarding. The gym list is *not* fetched here — the
@@ -39,6 +45,7 @@ const STEPS = ['Welcome', 'About you', 'Strategy', 'First goal', 'Ready'] as con
  */
 export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
   const router = useRouter();
+  const { t } = useI18n();
   const { state, completeOnboarding, flushWrites, cloud } = useStore();
   const { user } = useAuth();
   const [step, setStep] = useState(0);
@@ -73,7 +80,7 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
     if (saving || !nameOk || !targetWeightOk || !goalOk) return;
     setSaving(true);
     setSaveError(null);
-    const goalName = goalMetric === 'workouts' ? 'Train this week' : 'Active minutes this week';
+    const goalName = seededGoalName(goalMetric);
     const goalDate = toISODate(new Date());
     const existingGoal = state.goals.find(
       (goal) =>
@@ -125,7 +132,7 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
       await flushWrites();
       router.replace('/dashboard');
     } catch {
-      setSaveError("We couldn't save your setup. Check your connection and try again.");
+      setSaveError(t('onboarding.saveError'));
       setSaving(false);
     }
   }
@@ -164,13 +171,13 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
       <header className="flex items-center justify-between px-5 py-4">
         <Wordmark />
         <span aria-live="polite" aria-atomic="true" className="text-muted-foreground text-sm">
-          Step {step + 1} of {STEPS.length}
+          {t('onboarding.step', { current: step + 1, total: STEP_COUNT })}
         </span>
       </header>
 
       {/* Progress */}
       <div aria-hidden="true" className="mx-auto flex w-full max-w-md gap-1.5 px-5">
-        {STEPS.map((_, i) => (
+        {Array.from({ length: STEP_COUNT }, (_, i) => (
           <div
             key={i}
             className={cn(
@@ -190,25 +197,23 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
             <OrbitHero size={230} className="mx-auto" />
             <VoltHeadline className="mx-auto mt-6 max-w-md text-[1.7rem] sm:text-3xl" />
             <p className="text-muted-foreground mx-auto mt-4 max-w-sm">
-              In the next minute we&apos;ll set up your training strategy and your first goal.{' '}
-              {cloud
-                ? 'Everything syncs privately to your account — no wearable required.'
-                : 'Your data stays on this device — no account, no wearable required.'}
+              {t('onboarding.welcome.body')}{' '}
+              {cloud ? t('onboarding.welcome.sync') : t('onboarding.welcome.local')}
             </p>
             <div className="mx-auto mt-6 grid max-w-sm gap-2 text-left text-sm">
               {[
-                'Pick a proven training split',
-                'Schedule your week in one tap',
-                'Log workouts and watch trends build',
-              ].map((t) => (
+                t('onboarding.welcome.point.split'),
+                t('onboarding.welcome.point.week'),
+                t('onboarding.welcome.point.log'),
+              ].map((point) => (
                 <div
-                  key={t}
+                  key={point}
                   className="border-border bg-card flex items-center gap-2.5 rounded-2xl border p-3.5 font-semibold"
                 >
                   <span className="bg-primary/10 text-primary grid h-6 w-6 shrink-0 place-items-center rounded-full">
                     <Check className="h-3.5 w-3.5" strokeWidth={3} />
                   </span>
-                  {t}
+                  {point}
                 </div>
               ))}
             </div>
@@ -220,41 +225,41 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
             <div className="text-primary flex items-center gap-2">
               <UserRound className="h-5 w-5" />
               <h2 tabIndex={-1} className="text-xl font-bold">
-                About you
+                {t('onboarding.about.title')}
               </h2>
             </div>
-            <Field id="ob-name" label="What should we call you?">
+            <Field id="ob-name" label={t('onboarding.name.label')}>
               <Input
                 className="border-border bg-card"
                 autoComplete="given-name"
                 required
-                placeholder="Your name"
+                placeholder={t('onboarding.name.placeholder')}
                 value={name}
                 maxLength={80}
                 onChange={(e) => setName(e.target.value)}
               />
             </Field>
-            <Field id="ob-unit" label="Preferred weight unit">
+            <Field id="ob-unit" label={t('onboarding.weightUnit.label')}>
               <Select
                 className="border-border bg-card"
                 value={weightUnit}
                 onChange={(e) => changeWeightUnit(e.target.value as 'kg' | 'lb')}
               >
-                <option value="kg">Kilograms (kg)</option>
-                <option value="lb">Pounds (lb)</option>
+                <option value="kg">{t('profile.unit.kilograms')}</option>
+                <option value="lb">{t('profile.unit.pounds')}</option>
               </Select>
             </Field>
-            <Field id="ob-dist" label="Preferred distance unit">
+            <Field id="ob-dist" label={t('onboarding.distanceUnit.label')}>
               <Select
                 className="border-border bg-card"
                 value={distanceUnit}
                 onChange={(e) => setDistanceUnit(e.target.value as 'km' | 'mi')}
               >
-                <option value="km">Kilometres (km)</option>
-                <option value="mi">Miles (mi)</option>
+                <option value="km">{t('profile.unit.kilometres')}</option>
+                <option value="mi">{t('profile.unit.miles')}</option>
               </Select>
             </Field>
-            <Field id="ob-rest" label="Rest days per week">
+            <Field id="ob-rest" label={t('onboarding.rest.label')}>
               <Select
                 className="border-border bg-card"
                 value={restDays}
@@ -262,22 +267,22 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
               >
                 {[1, 2, 3].map((n) => (
                   <option key={n} value={n}>
-                    {n} day{n > 1 ? 's' : ''}
+                    {t('onboarding.rest.days', { count: n })}
                   </option>
                 ))}
               </Select>
             </Field>
             <Field
               id="ob-target-weight"
-              label={`Target weight (${weightUnit}) — optional`}
-              hint="Powers the suggested gym program: the weekly mix adapts to how far you are from it."
+              label={t('onboarding.target.label', { unit: weightUnit })}
+              hint={t('onboarding.target.hint')}
               error={
                 targetWeightOk
                   ? null
-                  : `Enter a weight between ${formatWeight(20, weightUnit)} and ${formatWeight(
-                      400,
-                      weightUnit,
-                    )}.`
+                  : t('onboarding.target.error', {
+                      min: formatWeight(20, weightUnit),
+                      max: formatWeight(400, weightUnit),
+                    })
               }
             >
               <Input
@@ -287,7 +292,7 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
                 max={fromKg(400, weightUnit)}
                 step="any"
                 inputMode="decimal"
-                placeholder="e.g. 78"
+                placeholder={t('onboarding.target.placeholder')}
                 value={targetWeight}
                 onChange={(e) => setTargetWeight(e.target.value)}
               />
@@ -300,7 +305,7 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
             <div className="text-primary flex items-center gap-2">
               <Target className="h-5 w-5" />
               <h2 tabIndex={-1} className="text-xl font-bold">
-                Choose your strategy
+                {t('onboarding.strategy.title')}
               </h2>
             </div>
             <div className="grid gap-2">
@@ -327,27 +332,23 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
                           <Check className="h-3 w-3" strokeWidth={3.5} />
                         </span>
                       )}
-                      {p.name}
+                      {planName(p.id, t)}
                     </span>
                     <span className="text-muted-foreground text-xs font-medium">
-                      {p.sessionsPerWeek}× / week
+                      {t('onboarding.strategy.perWeek', { count: p.sessionsPerWeek })}
                     </span>
                   </div>
-                  <p className="text-muted-foreground mt-1 text-sm">{p.description}</p>
+                  <p className="text-muted-foreground mt-1 text-sm">{planDescription(p.id, t)}</p>
                 </button>
               ))}
             </div>
-            <Field
-              id="ob-gym"
-              label="Your gym — optional"
-              hint="Picking it unlocks a suggested week built from the gym's real class timetable."
-            >
+            <Field id="ob-gym" label={t('onboarding.gym.label')} hint={t('onboarding.gym.hint')}>
               <Select
                 className="border-border bg-card"
                 value={gymId}
                 onChange={(e) => setGymId(e.target.value)}
               >
-                <option value="">No gym — build my week manually</option>
+                <option value="">{t('onboarding.gym.none')}</option>
                 {gyms.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
@@ -357,9 +358,9 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
             </Field>
             {gyms.length > 0 && (
               <p className="text-muted-foreground -mt-2 text-xs">
-                Gyms running on SmartFit, live today.{' '}
+                {t('onboarding.gym.live')}{' '}
                 <Link href="/gyms" className="text-primary font-semibold hover:underline">
-                  Browse classes &amp; book on their pages
+                  {t('onboarding.gym.browse')}
                 </Link>
                 .
               </p>
@@ -372,7 +373,7 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
             <div className="text-primary flex items-center gap-2">
               <Ruler className="h-5 w-5" />
               <h2 tabIndex={-1} className="text-xl font-bold">
-                Your first weekly goal
+                {t('onboarding.goal.title')}
               </h2>
             </div>
             <div className="grid gap-2">
@@ -401,16 +402,18 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
                         <Check className="h-3 w-3" strokeWidth={3.5} />
                       </span>
                     )}
-                    {GOAL_METRIC_META[m].label}
+                    {goalMetricLabel(m, t)}
                   </span>
-                  <span className="text-muted-foreground text-sm">per week</span>
+                  <span className="text-muted-foreground text-sm">
+                    {t('onboarding.goal.perWeek')}
+                  </span>
                 </button>
               ))}
             </div>
             <Field
               id="ob-target"
-              label={`Target (${GOAL_METRIC_META[goalMetric].unit})`}
-              error={goalOk ? null : 'Enter a target of at least 1.'}
+              label={t('goal.targetLabel', { unit: goalMetricUnit(goalMetric, t) })}
+              error={goalOk ? null : t('onboarding.goal.targetError')}
             >
               <Input
                 className="border-border bg-card"
@@ -429,7 +432,7 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
         {step === 4 && (
           <div className="animate-fade-in text-center">
             <div className="relative mx-auto grid w-fit place-items-center">
-              <GradeRing value={100} size={96} label="Setup" />
+              <GradeRing value={100} size={96} label={t('onboarding.done.ring')} />
               <Check
                 tabIndex={-1}
                 aria-hidden="true"
@@ -438,37 +441,39 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
               />
             </div>
             <h2 tabIndex={-1} className="mt-6 text-2xl font-bold">
-              You&apos;re all set, {name.trim()}!
+              {t('onboarding.done.title', { name: name.trim() })}
             </h2>
             <Card className="mt-6 text-left">
               <CardContent className="grid gap-2 p-5 text-sm">
-                <Row label="Strategy" value={PLANS.find((p) => p.id === planId)?.name ?? ''} />
-                <Row label="Rest days / week" value={String(restDays)} />
-                <Row label="Weight unit" value={weightUnit} />
-                <Row label="Distance unit" value={distanceUnit} />
+                <Row label={t('plan.strategy')} value={planName(planId, t)} />
+                <Row label={t('onboarding.done.restDays')} value={String(restDays)} />
+                <Row label={t('onboarding.done.weightUnit')} value={weightUnit} />
+                <Row label={t('onboarding.done.distanceUnit')} value={distanceUnit} />
                 <Row
-                  label="First goal"
-                  value={`${goalTarget} ${GOAL_METRIC_META[goalMetric].unit} / week`}
+                  label={t('onboarding.done.firstGoal')}
+                  value={t('onboarding.done.goalValue', {
+                    target: goalTarget,
+                    unit: goalMetricUnit(goalMetric, t),
+                  })}
                 />
                 {findGymProgram(gyms, gymId) && (
-                  <Row label="Gym" value={findGymProgram(gyms, gymId)?.name ?? ''} />
+                  <Row
+                    label={t('onboarding.done.gym')}
+                    value={findGymProgram(gyms, gymId)?.name ?? ''}
+                  />
                 )}
                 {parsedTargetWeight() != null && (
                   <Row
-                    label="Target weight"
+                    label={t('onboarding.done.targetWeight')}
                     value={formatWeight(parsedTargetWeight() ?? 0, weightUnit)}
                   />
                 )}
               </CardContent>
             </Card>
             <p className="text-muted-foreground mt-4 text-sm">
-              That&apos;s everything — your plan and first goal are ready.{' '}
-              {gymId
-                ? 'Your suggested gym week will be scheduled automatically.'
-                : 'Schedule your first session from the Plan tab, then log it as you go.'}{' '}
-              {cloud
-                ? 'Everything syncs privately to your account.'
-                : 'Everything stays on this device.'}
+              {t('onboarding.done.body')}{' '}
+              {gymId ? t('onboarding.done.bodyGym') : t('onboarding.done.bodyManual')}{' '}
+              {cloud ? t('onboarding.done.sync') : t('onboarding.done.local')}
             </p>
           </div>
         )}
@@ -485,18 +490,18 @@ export function OnboardingForm({ gyms }: { gyms: GymProgram[] }) {
           disabled={step === 0 || saving}
           onClick={() => setStep((s) => Math.max(0, s - 1))}
         >
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="h-4 w-4" /> {t('onboarding.back')}
         </Button>
-        {step < STEPS.length - 1 ? (
+        {step < STEP_COUNT - 1 ? (
           <PillCta
-            label="Continue"
+            label={t('onboarding.continue')}
             cap="arrow"
             disabled={!canNext}
             onClick={() => canNext && setStep((s) => s + 1)}
           />
         ) : (
           <PillCta
-            label={saving ? 'Saving…' : 'Enter dashboard'}
+            label={saving ? t('onboarding.saving') : t('onboarding.finish')}
             loading={saving}
             disabled={!nameOk || !targetWeightOk || !goalOk}
             onClick={() => void finish()}

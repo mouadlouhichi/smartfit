@@ -11,18 +11,18 @@ import { Badge } from '@/components/ui/badge';
 import { Ring } from '../ring';
 import { ScreenHeader } from '../screen-header';
 import { CategoryIcon } from '@/components/category-icon';
-import { GOAL_METRIC_META } from '@smartfit/core';
+import { GOAL_METRIC_META, goalDisplayName, goalMetricLabel, goalMetricUnit } from '@smartfit/core';
 import { deadlineLabel, formatNumber, fromKm, goalDeadline, goalProgress } from '@smartfit/core';
-import type { GoalMetric, UserProfile } from '@smartfit/core';
+import type { GoalMetric, Translator, UserProfile } from '@smartfit/core';
 
 /**
  * Goal targets are stored canonically (distance in km). Everything is
  * converted here, at the render boundary, so switching units never rewrites
  * the underlying numbers.
  */
-function goalUnit(metric: GoalMetric, profile: UserProfile): string {
+function goalUnit(metric: GoalMetric, profile: UserProfile, t: Translator): string {
   if (metric === 'distance') return profile.distanceUnit;
-  return GOAL_METRIC_META[metric].unit;
+  return goalMetricUnit(metric, t);
 }
 
 function goalDisplay(value: number, metric: GoalMetric, profile: UserProfile): number {
@@ -136,16 +136,22 @@ export function GoalsScreen() {
                         <CategoryIcon name={meta.icon} size={17} />
                       </span>
                       <div className="min-w-0">
-                        <p className="truncate font-semibold">{g.name}</p>
+                        <p className="truncate font-semibold">{goalDisplayName(g.name, t)}</p>
                         <p className="text-muted-foreground text-xs">
-                          {meta.label} · resets {g.cadence}
+                          {t('goal.card.meta', {
+                            label: goalMetricLabel(g.metric, t),
+                            cadence:
+                              g.cadence === 'weekly'
+                                ? t('modal.goal.weekly')
+                                : t('modal.goal.monthly'),
+                          })}
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={() => openWith({ kind: 'goal', goal: g })}
                       className="text-muted-foreground hover:text-primary -m-2 shrink-0 p-2 transition-colors"
-                      aria-label={`Edit ${g.name}`}
+                      aria-label={t('goal.card.editAria', { name: goalDisplayName(g.name, t) })}
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
@@ -157,7 +163,7 @@ export function GoalsScreen() {
                       <span className="text-muted-foreground font-medium">
                         {' '}
                         / {formatNumber(goalDisplay(p.target, g.metric, state.profile))}{' '}
-                        {goalUnit(g.metric, state.profile)}
+                        {goalUnit(g.metric, state.profile, t)}
                       </span>
                     </p>
                     <div className="flex items-center gap-2">

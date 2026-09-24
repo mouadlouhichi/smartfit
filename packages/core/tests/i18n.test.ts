@@ -198,6 +198,13 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'share.style.volt': 'Brand name for the dark card style.',
   'pro.table.pro': 'The product tier name.',
   'pro.status.plan': 'The product tier name.',
+  // Measurement units are symbols: French writes them exactly as English does,
+  // and "Distance" is the same word in both languages — a translated unit
+  // would be wrong, not missing.
+  'goal.metric.minutes.unit': 'min — a unit symbol.',
+  'goal.metric.calories.unit': 'kcal — a unit symbol.',
+  'goal.metric.distance': 'Distance — the same word in French.',
+  'goal.metric.distance.unit': 'km — a unit symbol.',
   // Latin-derived statistical nouns French borrowed unchanged; "Calories"
   // would need a locale explanation, the others are simply the same word.
   'progress.stat.calories': 'Calories — the word is the same in French.',

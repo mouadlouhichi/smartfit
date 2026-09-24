@@ -26,6 +26,9 @@ import {
   suggestDeadline,
   toKm,
   toISODate,
+  goalMetricLabel,
+  goalMetricUnit,
+  goalDisplayName,
 } from '@smartfit/core';
 import type { GoalCadence, GoalDeadline, GoalMetric } from '@smartfit/core';
 import { CalendarClock, Trash2 } from 'lucide-react';
@@ -50,7 +53,7 @@ export function GoalModal() {
 
   useEffect(() => {
     if (!open) return;
-    setName(editing?.name ?? '');
+    setName(editing ? goalDisplayName(editing.name, t) : '');
     setMetric(editing?.metric ?? 'workouts');
     setCadence(editing?.cadence ?? 'weekly');
     // Distance is stored in km; show it in the user's unit.
@@ -64,11 +67,11 @@ export function GoalModal() {
         : '5',
     );
     setDeadline(editing?.deadline ?? '');
-  }, [open, editing, distanceUnit]);
+  }, [open, editing, distanceUnit, t]);
 
   const meta = GOAL_METRIC_META[metric];
   // The unit label the user types in — km/mi for distance, canonical otherwise.
-  const targetUnit = metric === 'distance' ? distanceUnit : meta.unit;
+  const targetUnit = metric === 'distance' ? distanceUnit : goalMetricUnit(metric, t);
 
   /**
    * What the deadline would mean, computed live from the fields above.
@@ -116,8 +119,14 @@ export function GoalModal() {
     }
     setTargetError(null);
     const isoTarget = metric === 'distance' ? toKm(typed, distanceUnit) : typed;
+    // The name in the field may be the localised form of a name *we* generated
+    // ("Objectif séances"); an untouched field keeps the canonical English the
+    // store already holds, so switching language never rewrites stored data.
+    const untouched = editing
+      ? name.trim() === goalDisplayName(editing.name, t)
+      : name.trim() === '';
     const record = {
-      name: name.trim() || `${meta.label} goal`,
+      name: untouched && editing ? editing.name : name.trim() || `${meta.label} goal`,
       metric,
       cadence,
       target: isoTarget,
@@ -152,8 +161,9 @@ export function GoalModal() {
               {editing ? t('modal.goal.title.edit') : t('modal.goal.title.new')}
             </DialogTitle>
             <DialogDescription>
-              Goals persist across weeks and reset their progress each{' '}
-              {cadence === 'weekly' ? 'week' : 'month'}.
+              {t('modal.goal.resetsEach', {
+                period: cadence === 'weekly' ? t('time.week') : t('time.month'),
+              })}
             </DialogDescription>
           </DialogHeader>
 
@@ -169,9 +179,9 @@ export function GoalModal() {
             <div className="grid grid-cols-2 gap-3">
               <Field id="g-metric" label={t('modal.goal.track')}>
                 <Select value={metric} onChange={(e) => setMetric(e.target.value as GoalMetric)}>
-                  {Object.entries(GOAL_METRIC_META).map(([k, m]) => (
+                  {Object.keys(GOAL_METRIC_META).map((k) => (
                     <option key={k} value={k}>
-                      {m.label}
+                      {goalMetricLabel(k, t)}
                     </option>
                   ))}
                 </Select>
@@ -183,7 +193,11 @@ export function GoalModal() {
                 </Select>
               </Field>
             </div>
-            <Field id="g-target" label={`Target (${targetUnit})`} error={targetError}>
+            <Field
+              id="g-target"
+              label={t('goal.targetLabel', { unit: targetUnit })}
+              error={targetError}
+            >
               <Input
                 type="number"
                 min={1}

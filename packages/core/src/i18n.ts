@@ -135,6 +135,11 @@ export function createTranslator(locale: Locale): Translator {
  */
 export const MESSAGES: Record<Locale, Record<string, Message>> = {
   en: {
+    // ── brand ─────────────────────────────────────────────────────────────
+    'brand.headline.before': 'Fitness made simple: your path to',
+    'brand.headline.health': 'Health',
+    'brand.headline.and': 'and',
+    'brand.headline.happiness': 'Happiness',
     // ── shell / navigation ────────────────────────────────────────────────
     'nav.overview': 'Overview',
     'nav.library': 'Library',
@@ -447,7 +452,37 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'goals.emptyBody':
       'Set a target for workouts, active minutes, calories or distance and watch the ring fill up.',
     'goals.emptyCta': 'Create your first goal',
+    // ── training vocabulary: plans and goal metrics ───────────────────────
+    // The English copy below is also the data `PLANS` and `GOAL_METRIC_META`
+    // carry for the mobile client; `planName()` / `goalMetricLabel()` resolve
+    // the localised copy, and a core test keeps the two in step.
+    'plan.ppl.name': 'Push / Pull / Legs',
+    'plan.ppl.description':
+      'A classic 6-day hypertrophy split that rotates push, pull and leg focus.',
+    'plan.upperLower.name': 'Upper / Lower',
+    'plan.upperLower.description':
+      'A balanced 4-day split hitting upper and lower body twice a week.',
+    'plan.fullBody.name': 'Full Body 3×',
+    'plan.fullBody.description':
+      'Three efficient full-body sessions — ideal for beginners and busy schedules.',
+    'plan.cardioFocus.name': 'Cardio & Conditioning',
+    'plan.cardioFocus.description':
+      'Endurance-first plan blending steady-state cardio, HIIT and mobility.',
+    'goal.metric.workouts': 'Workouts',
+    'goal.metric.workouts.unit': 'sessions',
+    'goal.metric.minutes': 'Active minutes',
+    'goal.metric.minutes.unit': 'min',
+    'goal.metric.calories': 'Calories burned',
+    'goal.metric.calories.unit': 'kcal',
+    'goal.metric.distance': 'Distance',
+    'goal.metric.distance.unit': 'km',
+    'goal.seed.workouts': 'Train this week',
+    'goal.seed.minutes': 'Active minutes this week',
+    'goal.targetLabel': 'Target ({unit})',
+    'goal.defaultName': '{metric} goal',
     'goals.done': 'Done',
+    'goal.card.meta': '{label} · resets {cadence}',
+    'goal.card.editAria': 'Edit {name}',
     // ── body screen ───────────────────────────────────────────────────────
     'body.eyebrow': 'Body',
     'body.title.measure': 'Measurements',
@@ -671,6 +706,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'This activity type is deleted. Logged workouts keep their own name.',
     'modal.category.deleteConfirm': 'Delete type',
     'modal.goal.targetError': 'Enter a target bigger than zero.',
+    'modal.goal.resetsEach': 'Goals persist across weeks and reset their progress each {period}.',
     'modal.goal.deleteTitle': 'Delete this goal?',
     'modal.goal.deleteConfirm': 'Delete goal',
     'modal.goal.deleteBody': '“{name}” and its progress will be removed. This cannot be undone.',
@@ -847,10 +883,6 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'Your database rules block {collections}. Everything else loaded normally — deploy the current firestore.rules to see {them}.',
     'sync.blocked.themOne': 'it',
     'sync.blocked.themMany': 'them',
-
-    // ── sync, storage and import banners ─────────────────────────────────
-
-    // ── sync, storage and import banners ─────────────────────────────────
 
     // ── run home / hub cards ──────────────────────────────────────────────
     'run.greeting.morning': 'Good morning',
@@ -1216,6 +1248,8 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'overview.range.daily': 'Daily',
     'overview.range.weekly': 'Weekly',
     'overview.range.monthly': 'Monthly',
+    'time.week': 'week',
+    'time.month': 'month',
     'time.today': 'Today',
     'time.yesterday': 'Yesterday',
     'time.tomorrow': 'Tomorrow',
@@ -1393,9 +1427,68 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'progress.next.rings': 'Burn and distance rings fill once you set a calories or distance goal.',
     'progress.hero.aria': 'Health grade and goal rings',
     'progress.grade.aria': 'Health grade: {value} of 100',
+
+    // ── onboarding ────────────────────────────────────────────────────────
+    'onboarding.step': 'Step {current} of {total}',
+    'onboarding.welcome.body':
+      'In the next minute we’ll set up your training strategy and your first goal.',
+    'onboarding.welcome.sync': 'Everything syncs privately to your account — no wearable required.',
+    'onboarding.welcome.local':
+      'Your data stays on this device — no account, no wearable required.',
+    'onboarding.welcome.point.split': 'Pick a proven training split',
+    'onboarding.welcome.point.week': 'Schedule your week in one tap',
+    'onboarding.welcome.point.log': 'Log workouts and watch trends build',
+    'onboarding.about.title': 'About you',
+    'onboarding.name.label': 'What should we call you?',
+    'onboarding.name.placeholder': 'Your name',
+    'onboarding.weightUnit.label': 'Preferred weight unit',
+    'onboarding.distanceUnit.label': 'Preferred distance unit',
+    'onboarding.rest.label': 'Rest days per week',
+    'onboarding.rest.days': { one: '{count} day', other: '{count} days' },
+    'onboarding.target.label': 'Target weight ({unit}) — optional',
+    'onboarding.target.hint':
+      'Powers the suggested gym program: the weekly mix adapts to how far you are from it.',
+    'onboarding.target.placeholder': 'e.g. 78',
+    'onboarding.target.error': 'Enter a weight between {min} and {max}.',
+    'onboarding.strategy.title': 'Choose your strategy',
+    'onboarding.strategy.perWeek': '{count}× / week',
+    'onboarding.gym.label': 'Your gym — optional',
+    'onboarding.gym.hint':
+      'Picking it unlocks a suggested week built from the gym’s real class timetable.',
+    'onboarding.gym.none': 'No gym — build my week manually',
+    'onboarding.gym.live': 'Gyms running on SmartFit, live today.',
+    'onboarding.gym.browse': 'Browse classes and book on their pages',
+    'onboarding.goal.title': 'Your first weekly goal',
+    'onboarding.goal.perWeek': 'per week',
+    'onboarding.goal.targetError': 'Enter a target of at least 1.',
+    'onboarding.done.ring': 'Setup',
+    'onboarding.done.title': 'You’re all set, {name}!',
+    'onboarding.done.restDays': 'Rest days / week',
+    'onboarding.done.weightUnit': 'Weight unit',
+    'onboarding.done.distanceUnit': 'Distance unit',
+    'onboarding.done.firstGoal': 'First goal',
+    'onboarding.done.gym': 'Gym',
+    'onboarding.done.targetWeight': 'Target weight',
+    'onboarding.done.goalValue': '{target} {unit} / week',
+    'onboarding.done.body': 'That’s everything — your plan and first goal are ready.',
+    'onboarding.done.bodyGym': 'Your suggested gym week will be scheduled automatically.',
+    'onboarding.done.bodyManual':
+      'Schedule your first session from the Plan tab, then log it as you go.',
+    'onboarding.done.sync': 'Everything syncs privately to your account.',
+    'onboarding.done.local': 'Everything stays on this device.',
+    'onboarding.back': 'Back',
+    'onboarding.continue': 'Continue',
+    'onboarding.saving': 'Saving…',
+    'onboarding.finish': 'Enter dashboard',
+    'onboarding.saveError': 'We couldn’t save your setup. Check your connection and try again.',
   },
 
   fr: {
+    // ── marque ────────────────────────────────────────────────────────────
+    'brand.headline.before': 'Le fitness en toute simplicité : vers la',
+    'brand.headline.health': 'santé',
+    'brand.headline.and': 'et',
+    'brand.headline.happiness': 'le bonheur',
     // ── shell / navigation ────────────────────────────────────────────────
     'nav.overview': 'Aperçu',
     'nav.library': 'Bibliothèque',
@@ -1719,7 +1812,33 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'goals.emptyBody':
       'Fixez une cible de séances, de minutes actives, de calories ou de distance et regardez l’anneau se remplir.',
     'goals.emptyCta': 'Créer votre premier objectif',
+    // ── vocabulaire d’entraînement : plans et métriques d’objectif ────────
+    'plan.ppl.name': 'Poussé / Tiré / Jambes',
+    'plan.ppl.description':
+      'Un split hypertrophie classique sur 6 jours, qui alterne poussé, tiré et jambes.',
+    'plan.upperLower.name': 'Haut / Bas du corps',
+    'plan.upperLower.description':
+      'Un split équilibré de 4 jours qui travaille le haut et le bas du corps deux fois par semaine.',
+    'plan.fullBody.name': 'Corps entier 3×',
+    'plan.fullBody.description':
+      'Trois séances corps entier efficaces — idéales pour débuter ou quand le temps manque.',
+    'plan.cardioFocus.name': 'Cardio et conditionnement',
+    'plan.cardioFocus.description': 'Plan d’endurance mêlant cardio continu, HIIT et mobilité.',
+    'goal.seed.workouts': 'S’entraîner cette semaine',
+    'goal.seed.minutes': 'Minutes actives cette semaine',
+    'goal.targetLabel': 'Cible ({unit})',
+    'goal.defaultName': 'Objectif {metric}',
+    'goal.metric.workouts': 'Séances',
+    'goal.metric.workouts.unit': 'séances',
+    'goal.metric.minutes': 'Minutes actives',
+    'goal.metric.minutes.unit': 'min',
+    'goal.metric.calories': 'Calories brûlées',
+    'goal.metric.calories.unit': 'kcal',
+    'goal.metric.distance': 'Distance',
+    'goal.metric.distance.unit': 'km',
     'goals.done': 'Atteint',
+    'goal.card.meta': '{label} · remise à zéro : {cadence}',
+    'goal.card.editAria': 'Modifier {name}',
     // ── écran corporel ────────────────────────────────────────────────────
     'body.eyebrow': 'Corps',
     'body.title.measure': 'Mesures',
@@ -1901,10 +2020,6 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'progress.modal.dismiss': 'Fermer',
     'map.routeAria': 'Carte du parcours GPS',
     'run.markAria': 'Coureur',
-
-    // ── bandeaux de synchronisation, stockage et import ──────────────────
-
-    // ── bandeaux de synchronisation, stockage et import ──────────────────
 
     // ── accueil course ────────────────────────────────────────────────────
     'run.greeting.morning': 'Bonjour',
@@ -2271,6 +2386,8 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'Ce type d’activité est supprimé. Les séances enregistrées gardent leur propre nom.',
     'modal.category.deleteConfirm': 'Supprimer le type',
     'modal.goal.targetError': 'Saisissez une cible supérieure à zéro.',
+    'modal.goal.resetsEach':
+      'Les objectifs durent d’une période à l’autre et remettent leur progression à zéro chaque {period}.',
     'modal.goal.deleteTitle': 'Supprimer cet objectif ?',
     'modal.goal.deleteConfirm': 'Supprimer l’objectif',
     'modal.goal.deleteBody':
@@ -2500,6 +2617,8 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'overview.range.daily': 'Jour',
     'overview.range.weekly': 'Semaine',
     'overview.range.monthly': 'Mois',
+    'time.week': 'semaine',
+    'time.month': 'mois',
     'time.today': 'Aujourd’hui',
     'time.yesterday': 'Hier',
     'time.tomorrow': 'Demain',
@@ -2677,6 +2796,62 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'Les anneaux de dépense et de distance se remplissent dès que vous fixez un objectif de calories ou de distance.',
     'progress.hero.aria': 'Note de santé et anneaux d’objectifs',
     'progress.grade.aria': 'Note de santé : {value} sur 100',
+
+    // ── inscription ───────────────────────────────────────────────────────
+    'onboarding.step': 'Étape {current} sur {total}',
+    'onboarding.welcome.body':
+      'Dans la minute qui vient, nous définissons votre stratégie d’entraînement et votre premier objectif.',
+    'onboarding.welcome.sync':
+      'Tout se synchronise en privé sur votre compte — aucun capteur requis.',
+    'onboarding.welcome.local':
+      'Vos données restent sur cet appareil — aucun compte ni capteur requis.',
+    'onboarding.welcome.point.split': 'Un split d’entraînement éprouvé',
+    'onboarding.welcome.point.week': 'Votre semaine planifiée en un geste',
+    'onboarding.welcome.point.log': 'Vos séances consignées, vos tendances visibles',
+    'onboarding.about.title': 'À propos de vous',
+    'onboarding.name.label': 'Comment devons-nous vous appeler ?',
+    'onboarding.name.placeholder': 'Votre nom',
+    'onboarding.weightUnit.label': 'Unité de poids préférée',
+    'onboarding.distanceUnit.label': 'Unité de distance préférée',
+    'onboarding.rest.label': 'Jours de repos par semaine',
+    'onboarding.rest.days': { one: '{count} jour', other: '{count} jours' },
+    'onboarding.target.label': 'Poids cible ({unit}) — facultatif',
+    'onboarding.target.hint':
+      'Alimente le programme de salle suggéré : la répartition de la semaine s’adapte à l’écart qui vous en sépare.',
+    'onboarding.target.placeholder': 'ex. 78',
+    'onboarding.target.error': 'Saisissez un poids entre {min} et {max}.',
+    'onboarding.strategy.title': 'Choisissez votre stratégie',
+    'onboarding.strategy.perWeek': '{count}× / semaine',
+    'onboarding.gym.label': 'Votre salle — facultatif',
+    'onboarding.gym.hint':
+      'La choisir débloque une semaine suggérée à partir du vrai planning des cours.',
+    'onboarding.gym.none': 'Aucune salle — construire ma semaine moi-même',
+    'onboarding.gym.live': 'Des salles tournent sur SmartFit, dès aujourd’hui.',
+    'onboarding.gym.browse': 'Voir les cours et réserver sur leurs pages',
+    'onboarding.goal.title': 'Votre premier objectif hebdomadaire',
+    'onboarding.goal.perWeek': 'par semaine',
+    'onboarding.goal.targetError': 'Saisissez une cible d’au moins 1.',
+    'onboarding.done.ring': 'Installation',
+    'onboarding.done.title': 'Tout est prêt, {name} !',
+    'onboarding.done.restDays': 'Repos / semaine',
+    'onboarding.done.weightUnit': 'Unité de poids',
+    'onboarding.done.distanceUnit': 'Unité de distance',
+    'onboarding.done.firstGoal': 'Premier objectif',
+    'onboarding.done.gym': 'Salle',
+    'onboarding.done.targetWeight': 'Poids cible',
+    'onboarding.done.goalValue': '{target} {unit} / semaine',
+    'onboarding.done.body': 'Voilà, tout y est — votre plan et votre premier objectif sont prêts.',
+    'onboarding.done.bodyGym': 'Votre semaine suggérée en salle sera planifiée automatiquement.',
+    'onboarding.done.bodyManual':
+      'Planifiez votre première séance depuis l’onglet Plan, puis consignez-la au fil de l’eau.',
+    'onboarding.done.sync': 'Tout se synchronise en privé sur votre compte.',
+    'onboarding.done.local': 'Tout reste sur cet appareil.',
+    'onboarding.back': 'Retour',
+    'onboarding.continue': 'Continuer',
+    'onboarding.saving': 'Enregistrement…',
+    'onboarding.finish': 'Accéder au tableau de bord',
+    'onboarding.saveError':
+      'Impossible d’enregistrer votre configuration. Vérifiez votre connexion et réessayez.',
   },
 };
 

@@ -29,7 +29,14 @@ import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
 import { Field } from '@/components/ui/field';
 import { CategoryIcon } from '@/components/category-icon';
-import { INTENSITY_META, PLANS, weekdayLabel, weekdayLabels } from '@smartfit/core';
+import {
+  INTENSITY_META,
+  PLANS,
+  planDescription,
+  planName,
+  weekdayLabel,
+  weekdayLabels,
+} from '@smartfit/core';
 import {
   categoryById,
   findGymProgram,
@@ -157,17 +164,23 @@ export function PlanScreen() {
         <CardContent className="grid gap-5 sm:grid-cols-2">
           <div className="grid gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="font-display text-lg font-extrabold tracking-tight">{plan.name}</p>
+              <p className="font-display text-lg font-extrabold tracking-tight">
+                {planName(plan.id, t)}
+              </p>
               <Badge variant="accent">{t('plan.perWeek', { count: plan.sessionsPerWeek })}</Badge>
             </div>
-            <Field id="plan-strategy" label={t('plan.strategyLabel')} hint={plan.description}>
+            <Field
+              id="plan-strategy"
+              label={t('plan.strategyLabel')}
+              hint={planDescription(plan.id, t)}
+            >
               <Select
                 value={state.profile.planId}
                 onChange={(e) => updateProfile({ planId: e.target.value as typeof plan.id })}
               >
                 {PLANS.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} · {t('plan.perWeek', { count: p.sessionsPerWeek })}
+                    {planName(p.id, t)} · {t('plan.perWeek', { count: p.sessionsPerWeek })}
                   </option>
                 ))}
               </Select>

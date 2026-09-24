@@ -79,6 +79,7 @@ export function OrbitHero({
    "Fitness made simple: your path to Health and Happiness" — the accent
    words wear volt, magazine-style. */
 export function VoltHeadline({ className }: { className?: string }) {
+  const { t } = useI18n();
   return (
     <h1
       className={cn(
@@ -86,8 +87,9 @@ export function VoltHeadline({ className }: { className?: string }) {
         className,
       )}
     >
-      Fitness made simple: your path to <span className="text-volt-ink">Health</span> and{' '}
-      <span className="text-volt-ink">Happiness</span>
+      {t('brand.headline.before')}{' '}
+      <span className="text-volt-ink">{t('brand.headline.health')}</span> {t('brand.headline.and')}{' '}
+      <span className="text-volt-ink">{t('brand.headline.happiness')}</span>
     </h1>
   );
 }

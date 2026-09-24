@@ -41,6 +41,7 @@ import {
 import {
   PLANS,
   computeAchievements,
+  planName,
   translateAchievements,
   currentStreak,
   formatDateLabel,
@@ -662,7 +663,7 @@ export function ProfileScreen() {
               >
                 {PLANS.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {planName(p.id, t)}
                   </option>
                 ))}
               </Select>

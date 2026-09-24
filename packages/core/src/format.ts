@@ -1,4 +1,4 @@
-import { BODY_UNIT_META } from './constants';
+import { BODY_UNIT_META, GOAL_METRIC_META, PLANS, SEEDED_GOAL_NAMES } from './constants';
 import type { BodyUnit, DistanceUnit, UserProfile, WeightUnit } from './types';
 import { bodyDisplayUnit, bodyValueToDisplay, fromKg, fromKm } from './units';
 import type { Translator } from './i18n';
@@ -154,6 +154,90 @@ export function weekdayLabel(
 ): string {
   const names = weekdayLabels(locale, width);
   return names[((Math.trunc(weekday) % 7) + 7) % 7];
+}
+
+/**
+ * Catalogue keys for the training plans and the goal metrics, by id.
+ *
+ * Same arrangement as `BODY_UNIT_KEYS`: the English copy lives in the data
+ * (`PLANS`, `GOAL_METRIC_META`) because the mobile client reads it directly,
+ * and these keys resolve the localised copy for the web UI.
+ */
+export const PLAN_KEYS: Record<string, { name: string; description: string }> = {
+  ppl: { name: 'plan.ppl.name', description: 'plan.ppl.description' },
+  'upper-lower': { name: 'plan.upperLower.name', description: 'plan.upperLower.description' },
+  'full-body': { name: 'plan.fullBody.name', description: 'plan.fullBody.description' },
+  'cardio-focus': { name: 'plan.cardioFocus.name', description: 'plan.cardioFocus.description' },
+};
+
+export const GOAL_METRIC_KEYS: Record<string, { label: string; unit: string }> = {
+  workouts: { label: 'goal.metric.workouts', unit: 'goal.metric.workouts.unit' },
+  minutes: { label: 'goal.metric.minutes', unit: 'goal.metric.minutes.unit' },
+  calories: { label: 'goal.metric.calories', unit: 'goal.metric.calories.unit' },
+  distance: { label: 'goal.metric.distance', unit: 'goal.metric.distance.unit' },
+};
+
+/**
+ * Display name and one-line description of a training plan. Without a
+ * translator both fall back to the English data, so core callers, the mobile
+ * app and the tests keep reading the same words.
+ */
+export function planName(planId: string, t?: Translator): string {
+  const key = PLAN_KEYS[planId]?.name;
+  if (key && t) return t(key);
+  return PLANS.find((p) => p.id === planId)?.name ?? PLANS[0].name;
+}
+
+export function planDescription(planId: string, t?: Translator): string {
+  const key = PLAN_KEYS[planId]?.description;
+  if (key && t) return t(key);
+  return PLANS.find((p) => p.id === planId)?.description ?? '';
+}
+
+/**
+ * The human name of a goal metric ("Active minutes") and the unit it is
+ * counted in ("min"). The unit is a symbol — `km`, `kcal`, `min` — which is
+ * why the French catalogue repeats it rather than inventing a word.
+ */
+export function goalMetricLabel(metric: string, t?: Translator): string {
+  const key = GOAL_METRIC_KEYS[metric]?.label;
+  if (key && t) return t(key);
+  return GOAL_METRIC_META[metric]?.label ?? metric;
+}
+
+export function goalMetricUnit(metric: string, t?: Translator): string {
+  const key = GOAL_METRIC_KEYS[metric]?.unit;
+  if (key && t) return t(key);
+  return GOAL_METRIC_META[metric]?.unit ?? '';
+}
+
+/**
+ * The stored name for a goal created during onboarding, in canonical English.
+ * The onboarding flow writes this rather than a translated string, so a goal
+ * created in French reads correctly after the athlete switches to English.
+ */
+export function seededGoalName(metric: string): string {
+  return SEEDED_GOAL_NAMES[metric] ?? SEEDED_GOAL_NAMES.workouts;
+}
+
+/**
+ * The name to show for a goal.
+ *
+ * The two names onboarding seeds were written by us, so they translate; every
+ * other name is the athlete's own words and passes through untouched — which
+ * is also why the seeded ones cannot be detected by anything but their stored
+ * value.
+ */
+export function goalDisplayName(name: string, t?: Translator): string {
+  if (!t) return name;
+  const seeded = Object.keys(SEEDED_GOAL_NAMES).find((m) => SEEDED_GOAL_NAMES[m] === name);
+  if (seeded) return t(`goal.seed.${seeded}`);
+  // A goal the athlete created without naming it is stored as "<metric> goal".
+  const unnamed = Object.keys(GOAL_METRIC_META).find(
+    (m) => `${GOAL_METRIC_META[m].label} goal` === name,
+  );
+  if (unnamed) return t('goal.defaultName', { metric: goalMetricLabel(unnamed, t) });
+  return name;
 }
 
 /**

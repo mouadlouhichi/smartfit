@@ -32,6 +32,7 @@ const DYNAMIC_PREFIXES: Record<string, string> = {
   'fuel.macro.': 'One key per macro row (protein/carbs/fat) in the target meters.',
   'run.greeting.': 'One greeting per part of the day, chosen from the clock.',
   'run.title.': 'The seeded run title, one per part of the day.',
+  'goal.seed.': 'The name of the goal onboarding seeds, one per metric.',
 };
 
 /** Dotted lower-case literals only — that is what a catalogue key looks like. */
