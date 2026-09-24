@@ -281,13 +281,20 @@ test('language: plan, goals, body and profile read in French', async ({ page }) 
   // ── goals ────────────────────────────────────────────────────────────────
   await page.goto('/dashboard/goals');
   await expect(page.getByRole('heading', { name: 'Vos objectifs', level: 1 })).toBeVisible();
-  await expect(page.getByText('Aucun objectif pour l’instant')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Créer votre premier objectif' })).toBeVisible();
+  // Onboarding already planted a weekly goal, so the screen shows the period
+  // summary rather than the empty state.
+  await expect(page.getByRole('button', { name: 'Nouvel objectif' })).toBeVisible();
+  await expect(page.getByText('0 objectifs sur 1 atteints sur la période')).toBeVisible();
 
   // ── body ─────────────────────────────────────────────────────────────────
   await page.goto('/dashboard/body');
+  // Training by muscle is the default view; switching tabs retitles the page.
+  await expect(page.getByRole('tab', { name: 'Par muscle' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.getByRole('tab', { name: 'Mesures' }).click();
   await expect(page.getByRole('heading', { name: 'Mesures', level: 1 })).toBeVisible();
-  await expect(page.getByRole('tab', { name: 'Par muscle' })).toBeVisible();
   await expect(page.getByText('Aucune mesure pour l’instant')).toBeVisible();
 
   // ── profile, including a modal that is only reachable through it ─────────
