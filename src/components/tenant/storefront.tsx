@@ -15,11 +15,19 @@ import {
   X,
   Check,
 } from 'lucide-react';
-import { isGymLive, type GymTenant } from '@smartfit/core';
+import {
+  gymFocusLabel,
+  isGymLive,
+  weekdayLabels,
+  type GymTenant,
+  type Intensity,
+  type Locale,
+} from '@smartfit/core';
 import { useTenant, formatMoney } from '@/lib/tenant-context';
 import { demoPersonaLabel } from '@/lib/tenant-demo';
 import type { MembershipPlanDoc } from '@/lib/firebase/tenant-repo';
 import { useAuth } from '@/lib/firebase/auth-context';
+import { useI18n } from '@/lib/i18n-context';
 import { MyGym, SlotBookingActions } from './my-gym';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/toast';
@@ -32,30 +40,57 @@ import { StorefrontHero } from './storefront-hero';
 import { StorefrontMotion, MotionToggle, TrainingStatement } from './storefront-motion';
 import { cn } from '@/lib/utils';
 import {
-  GYM_FOCUS_LABELS,
   classArtwork,
   upcomingStorefrontSlots,
   groupByDay,
   gymContactHref,
 } from '@/lib/storefront-model';
 export { groupByDay } from '@/lib/storefront-model';
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const timeOfDay = (ms: number) =>
-  new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+/** `fr-FR`/`en-GB` — the app's two locales, with a stable fallback. */
+const intl = (locale: Locale) => (locale === 'fr' ? 'fr-FR' : 'en-GB');
+const timeOfDay = (ms: number, locale: Locale) =>
+  new Date(ms).toLocaleTimeString(intl(locale), { hour: '2-digit', minute: '2-digit' });
+/** A timetable day heading. `label` is a `Date.toString()`, not an ISO date. */
+const dayLabel = (label: string, locale: Locale) =>
+  new Date(label).toLocaleDateString(intl(locale), {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+const INTENSITY_KEYS: Record<Intensity, string> = {
+  low: 'gym.store.intensity.low',
+  moderate: 'gym.store.intensity.moderate',
+  high: 'gym.store.intensity.high',
+};
+const PLAN_BADGE_KEYS: Record<MembershipPlanDoc['period'], string> = {
+  month: 'gym.store.plan.badge.month',
+  quarter: 'gym.store.plan.badge.quarter',
+  year: 'gym.store.plan.badge.year',
+  pass: 'gym.store.plan.badge.pass',
+};
+const PLAN_PERIOD_KEYS: Record<MembershipPlanDoc['period'], string> = {
+  month: 'gym.store.plan.period.month',
+  quarter: 'gym.store.plan.period.quarter',
+  year: 'gym.store.plan.period.year',
+  pass: 'gym.store.plan.period.pass',
+};
 const LINKS = [
-  ['#classes', 'Classes'],
-  ['#timetable', 'Timetable'],
-  ['#pricing', 'Memberships'],
-  ['#visit', 'Visit us'],
+  ['#classes', 'gym.store.nav.classes'],
+  ['#timetable', 'gym.store.nav.timetable'],
+  ['#pricing', 'gym.store.nav.memberships'],
+  ['#visit', 'gym.store.nav.visit'],
 ];
 function NotLive({ gym }: { gym: GymTenant | null }) {
+  const { t } = useI18n();
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-3 p-6 text-center">
-      <p className="text-xl font-bold">{gym?.name ?? 'This gym'} is not open yet</p>
+      <p className="text-xl font-bold">
+        {t('gym.store.notLive.title', { name: gym?.name ?? t('gym.store.notLive.thisGym') })}
+      </p>
       <p className="text-muted-foreground text-sm">
         {gym?.status === 'suspended'
-          ? 'This gym is temporarily unavailable. Contact the gym directly for help with an existing membership.'
-          : 'The page is being set up. Check back shortly.'}
+          ? t('gym.store.notLive.suspended')
+          : t('gym.store.notLive.settingUp')}
       </p>
     </div>
   );
@@ -96,15 +131,16 @@ function PlanCard({
   joinHref: string;
   featured: boolean;
 }) {
-  const t = useTenant(),
+  const tenant = useTenant(),
     toast = useToast();
-  const pending = t.myInvoices.some((i) => i.planId === plan.id && i.status === 'draft');
+  const { t, locale } = useI18n();
+  const pending = tenant.myInvoices.some((i) => i.planId === plan.id && i.status === 'draft');
   async function request() {
-    const ok = await t.requestPlanPurchase(plan.id);
+    const ok = await tenant.requestPlanPurchase(plan.id);
     toast(
       ok
-        ? 'Request sent — pay at the desk to activate'
-        : (t.mutationError ?? 'Could not request that plan'),
+        ? t('gym.store.plan.requestSent')
+        : (tenant.mutationError ?? t('gym.store.plan.requestError')),
       ok ? 'success' : 'info',
     );
   }
@@ -131,22 +167,24 @@ function PlanCard({
             featured ? 'border-white/20 text-white/70' : 'text-muted-foreground',
           )}
         >
-          {plan.period === 'pass' ? 'Gym pass' : `${plan.period} membership`}
+          {t(PLAN_BADGE_KEYS[plan.period])}
         </span>
       </div>
       <h3 className="text-lg font-semibold">{plan.name}</h3>
       <div className="mt-4 flex flex-wrap items-baseline gap-2">
         <span className="text-4xl font-bold tracking-tight tabular-nums">
-          {(plan.priceMinor / 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}
+          {(plan.priceMinor / 100).toLocaleString(intl(locale), { maximumFractionDigits: 2 })}
         </span>
         <span className={cn('text-xs', featured ? 'text-white/60' : 'text-muted-foreground')}>
-          {plan.currency} / {plan.period}
+          {plan.currency} / {t(PLAN_PERIOD_KEYS[plan.period])}
         </span>
       </div>
       <p className={cn('mt-2 text-xs', featured ? 'text-white/55' : 'text-muted-foreground')}>
         {typeof plan.joinFeeMinor === 'number' && plan.joinFeeMinor > 0
-          ? `+ ${formatMoney(plan.joinFeeMinor, plan.currency)} join fee`
-          : 'No additional join fee listed'}
+          ? t('gym.store.plan.joinFee', {
+              amount: formatMoney(plan.joinFeeMinor, plan.currency),
+            })
+          : t('gym.store.plan.joinFeeNone')}
       </p>
       <div className={cn('my-6 border-t', featured ? 'border-white/15' : 'border-border')} />
       <p
@@ -155,7 +193,7 @@ function PlanCard({
           featured ? 'text-white/75' : 'text-muted-foreground',
         )}
       >
-        {plan.description || 'Speak with the front desk about what is included in this membership.'}
+        {plan.description || t('gym.store.plan.descriptionFallback')}
       </p>
       <p
         className={cn(
@@ -164,31 +202,31 @@ function PlanCard({
         )}
       >
         <Check className="size-3.5" />
-        Confirmed by your gym’s front desk
+        {t('gym.store.plan.confirmed')}
       </p>
-      {t.membership ? (
+      {tenant.membership ? (
         pending ? (
           <Badge
             className="justify-center bg-amber-500/15 py-3 text-amber-600 dark:text-amber-300"
             variant="secondary"
           >
-            Waiting for the desk
+            {t('gym.store.plan.waiting')}
           </Badge>
         ) : (
           <Button
             className="w-full"
             variant={featured ? 'default' : 'outline'}
             onClick={request}
-            disabled={t.mutating !== null || t.viewAs}
+            disabled={tenant.mutating !== null || tenant.viewAs}
           >
-            Choose this plan
+            {t('gym.store.plan.choose')}
             <ArrowUpRight className="size-4" />
           </Button>
         )
       ) : (
         <Button asChild className="w-full" variant={featured ? 'default' : 'outline'}>
           <a href={joinHref}>
-            Join
+            {t('gym.store.plan.join')}
             <ArrowUpRight className="size-4" />
           </a>
         </Button>
@@ -218,8 +256,10 @@ function ContactLink({
 }
 
 export function Storefront() {
-  const t = useTenant();
-  const { gym, classes, slots, plans, loading, error, slug, mode, demoRole, setDemoRole, can } = t;
+  const tenant = useTenant();
+  const { t, locale } = useI18n();
+  const { gym, classes, slots, plans, loading, error, slug, mode, demoRole, setDemoRole, can } =
+    tenant;
   const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButton = useRef<HTMLButtonElement>(null);
@@ -269,17 +309,17 @@ export function Storefront() {
   if (loading && !gym)
     return (
       <div className="mx-auto max-w-6xl space-y-4 p-6" role="status">
-        <span className="sr-only">Loading gym</span>
+        <span className="sr-only">{t('gym.store.loading')}</span>
         <div className="bg-muted h-80 animate-pulse rounded-3xl" />
       </div>
     );
   if (!gym && error)
     return (
       <div role="alert" className="mx-auto max-w-md p-6 text-center">
-        <h1 className="text-lg font-bold">Could not load this gym</h1>
+        <h1 className="text-lg font-bold">{t('gym.store.loadError')}</h1>
         <p className="text-muted-foreground mt-2 text-sm">{error}</p>
-        <Button onClick={t.reload} variant="outline" className="mt-4">
-          Retry
+        <Button onClick={tenant.reload} variant="outline" className="mt-4">
+          {t('sync.retry')}
         </Button>
       </div>
     );
@@ -298,10 +338,10 @@ export function Storefront() {
         href="#classes"
         className="bg-card sr-only fixed top-2 left-2 z-50 rounded-xl border p-3 focus:not-sr-only"
       >
-        Skip to classes
+        {t('gym.store.skipToClasses')}
       </a>
       <nav
-        aria-label="Gym navigation"
+        aria-label={t('gym.store.nav.aria')}
         className="bg-background/95 sticky top-0 z-30 border-b backdrop-blur-xl"
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
@@ -323,7 +363,7 @@ export function Storefront() {
                 href={href}
                 className="text-muted-foreground hover:text-foreground text-xs font-medium"
               >
-                {label}
+                {t(label)}
               </a>
             ))}
           </div>
@@ -332,19 +372,19 @@ export function Storefront() {
             <ThemeToggle />
             {can('checkin:door') && (
               <Button asChild size="sm" variant="outline" className="hidden text-xs sm:inline-flex">
-                <Link href={`/g/${slug}/console`}>Manage gym</Link>
+                <Link href={`/g/${slug}/console`}>{t('gym.store.manage')}</Link>
               </Button>
             )}
             <Button asChild size="sm" className="hidden text-xs sm:inline-flex">
-              <a href={t.membership ? '#membership' : joinHref}>
-                {t.membership ? 'My membership' : 'Get started'}
+              <a href={tenant.membership ? '#membership' : joinHref}>
+                {tenant.membership ? t('gym.store.myMembership') : t('gym.store.getStarted')}
                 <ArrowUpRight className="size-3.5" />
               </a>
             </Button>
             <button
               ref={menuButton}
               type="button"
-              aria-label={menuOpen ? 'Close gym menu' : 'Open gym menu'}
+              aria-label={t(menuOpen ? 'gym.store.menu.close' : 'gym.store.menu.open')}
               aria-expanded={menuOpen}
               aria-controls="gym-mobile-menu"
               className="hover:bg-secondary rounded-xl p-2 lg:hidden"
@@ -359,8 +399,8 @@ export function Storefront() {
           <div id="gym-mobile-menu" className="grid gap-1 border-t px-4 py-3 lg:hidden">
             {[
               ...LINKS,
-              [joinHref, t.membership ? 'My membership' : 'Get started'],
-              ...(can('checkin:door') ? [[`/g/${slug}/console`, 'Manage gym']] : []),
+              [joinHref, tenant.membership ? 'gym.store.myMembership' : 'gym.store.getStarted'],
+              ...(can('checkin:door') ? [[`/g/${slug}/console`, 'gym.store.manage']] : []),
             ].map(([href, label]) => (
               <a
                 key={href}
@@ -368,7 +408,7 @@ export function Storefront() {
                 className="hover:bg-secondary rounded-xl px-3 py-3 text-sm"
                 onClick={() => setMenuOpen(false)}
               >
-                {label}
+                {t(label)}
               </a>
             ))}
           </div>
@@ -378,12 +418,12 @@ export function Storefront() {
         <div>
           {mode === 'demo' && (
             <div className="text-muted-foreground mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2 text-[10px]">
-              <span>Demo gym · sample data · session-only changes</span>
+              <span>{t('gym.store.demo.banner')}</span>
               <span className="flex items-center gap-2">
-                <span>Viewing as</span>
+                <span>{t('gym.store.demo.viewingAs')}</span>
                 {/* Compact chrome: the same Select, sized down for the banner. */}
                 <Select
-                  aria-label="Demo persona"
+                  aria-label={t('gym.store.demo.personaAria')}
                   disabled={!interactive}
                   size="compact"
                   className="max-w-full min-w-40"
@@ -406,10 +446,10 @@ export function Storefront() {
               role="alert"
               className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm"
             >
-              <p>Some live details couldn’t be refreshed.</p>
+              <p>{t('gym.store.stale')}</p>
               <p className="text-muted-foreground mt-1 text-xs">{error}</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={t.reload}>
-                Retry live data
+              <Button variant="outline" size="sm" className="mt-3" onClick={tenant.reload}>
+                {t('gym.store.staleRetry')}
               </Button>
             </div>
           )}
@@ -419,7 +459,7 @@ export function Storefront() {
               {focuses.map((f) => (
                 <span key={f} className="flex items-center gap-2">
                   <span className="size-1 rounded-full" style={{ backgroundColor: accent }} />
-                  {GYM_FOCUS_LABELS[f] ?? f}
+                  {gymFocusLabel(f, t)}
                 </span>
               ))}
             </div>
@@ -433,17 +473,20 @@ export function Storefront() {
           </div>
         </div>
         <section data-reveal id="about" className="grid items-start gap-8 lg:grid-cols-2 lg:gap-20">
-          <SectionHeading number="01" eyebrow="Meet your gym" title="Find your kind of strong." />
+          <SectionHeading
+            number="01"
+            eyebrow={t('gym.store.about.eyebrow')}
+            title={t('gym.store.about.title')}
+          />
           <div>
             <p className="text-muted-foreground text-base leading-relaxed">
-              {gym.branding?.description ||
-                `Discover the classes, memberships and upcoming sessions at ${gym.name}. Explore what fits your goals, then make your next move.`}
+              {gym.branding?.description || t('gym.store.about.fallback', { name: gym.name })}
             </p>
             <div className="mt-7 grid grid-cols-3 divide-x border-y py-5">
               {[
-                [String(classes.length), 'Class formats'],
-                [String(publishedPlans.length), 'Membership options'],
-                [openDays === null ? '—' : String(openDays), 'Days open / week'],
+                [String(classes.length), t('gym.store.stat.classes')],
+                [String(publishedPlans.length), t('gym.store.stat.plans')],
+                [openDays === null ? '—' : String(openDays), t('gym.store.stat.days')],
               ].map(([value, label]) => (
                 <div key={label} className="px-3 first:pl-0">
                   <p className="text-3xl font-semibold tracking-tight tabular-nums">{value}</p>
@@ -457,12 +500,12 @@ export function Storefront() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <SectionHeading
               number="02"
-              eyebrow="Find your rhythm"
-              title="Train your way."
-              description="Explore the gym’s classes. Find something familiar—or your next challenge."
+              eyebrow={t('gym.store.classes.eyebrow')}
+              title={t('gym.store.classes.title')}
+              description={t('gym.store.classes.description')}
             />
             <a href="#timetable" className="flex items-center gap-2 text-xs font-semibold">
-              Explore the timetable
+              {t('gym.store.classes.explore')}
               <ArrowUpRight className="size-4" />
             </a>
           </div>
@@ -481,7 +524,7 @@ export function Storefront() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                     <span className="absolute top-4 left-4 rounded-full border border-white/20 bg-black/40 px-3 py-1.5 text-[10px] text-white backdrop-blur-sm">
-                      {GYM_FOCUS_LABELS[cls.focus] ?? cls.focus}
+                      {gymFocusLabel(cls.focus, t)}
                     </span>
                     <span className="absolute top-4 right-4 text-[10px] font-medium text-white/75">
                       {String(index + 1).padStart(2, '0')}
@@ -495,12 +538,18 @@ export function Storefront() {
                       <p className="text-muted-foreground flex items-center gap-3 text-xs">
                         <span className="flex items-center gap-1">
                           <Clock className="size-3" />
-                          {cls.minutes} min
+                          {t('gym.store.class.minutes', { minutes: cls.minutes })}
                         </span>
-                        <span className="capitalize">{cls.intensity} intensity</span>
+                        <span>
+                          {t('gym.store.class.intensity', {
+                            level: t(INTENSITY_KEYS[cls.intensity]),
+                          })}
+                        </span>
                       </p>
                       {cls.instructorName && (
-                        <p className="mt-2 text-[11px]">With {cls.instructorName}</p>
+                        <p className="mt-2 text-[11px]">
+                          {t('gym.store.class.with', { name: cls.instructorName })}
+                        </p>
                       )}
                     </div>
                     <span className="bg-secondary group-hover:bg-primary group-hover:text-primary-foreground flex size-9 shrink-0 items-center justify-center rounded-full">
@@ -512,25 +561,25 @@ export function Storefront() {
             </div>
           ) : (
             <p className="text-muted-foreground rounded-2xl border border-dashed p-8 text-sm">
-              The gym hasn’t published any classes yet. Check back soon.
+              {t('gym.store.classes.empty')}
             </p>
           )}
           {classes.length > 0 && (
             <p className="text-muted-foreground text-[10px]">
-              Class cards use illustrative SmartFit artwork, not photographs of this gym.
+              {t('gym.store.classes.artworkNote')}
             </p>
           )}
         </section>
-        <TrainingStatement labels={focuses.map((f) => GYM_FOCUS_LABELS[f] ?? f)} />
+        <TrainingStatement labels={focuses.map((f) => gymFocusLabel(f, t))} />
         <section id="timetable" className="space-y-7">
           <SectionHeading
             number="03"
-            eyebrow="Make time for you"
-            title="Timetable"
-            description="Find your next session. Check the available places and book a spot that works for you."
+            eyebrow={t('gym.store.timetable.eyebrow')}
+            title={t('gym.store.timetable.title')}
+            description={t('gym.store.timetable.description')}
           />
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap gap-2" aria-label="Filter timetable by class type">
+            <div className="flex flex-wrap gap-2" aria-label={t('gym.store.timetable.filterAria')}>
               {['all', ...focuses].map((value) => (
                 <button
                   key={value}
@@ -546,7 +595,7 @@ export function Storefront() {
                     focus === value ? { backgroundColor: accent, color: foreground } : undefined
                   }
                 >
-                  {value === 'all' ? 'All classes' : (GYM_FOCUS_LABELS[value] ?? value)}
+                  {value === 'all' ? t('gym.store.timetable.allClasses') : gymFocusLabel(value, t)}
                 </button>
               ))}
             </div>
@@ -554,20 +603,16 @@ export function Storefront() {
               <CalendarDays className="text-muted-foreground size-4" aria-hidden />
               <Select
                 id="timetable-date"
-                aria-label="Timetable date"
+                aria-label={t('gym.store.timetable.dateAria')}
                 size="sm"
                 className="max-w-full min-w-40"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               >
-                <option value="all">All upcoming dates</option>
+                <option value="all">{t('gym.store.timetable.allDates')}</option>
                 {allDays.map((day) => (
                   <option key={day.label} value={day.label}>
-                    {new Date(day.label).toLocaleDateString('en-GB', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                    })}
+                    {dayLabel(day.label, locale)}
                   </option>
                 ))}
               </Select>
@@ -575,7 +620,7 @@ export function Storefront() {
           </div>
           {!interactive ? (
             <p role="status" className="text-muted-foreground rounded-3xl border p-8 text-sm">
-              Loading timetable…
+              {t('gym.store.timetable.loading')}
             </p>
           ) : days.length ? (
             <div className="overflow-hidden rounded-3xl border">
@@ -586,10 +631,10 @@ export function Storefront() {
                 >
                   <div className="bg-secondary/40 p-5 md:p-6">
                     <h3 className="text-sm font-semibold">
-                      {new Date(day.label).toLocaleDateString('en-GB', { weekday: 'long' })}
+                      {weekdayLabels(locale, 'long')[new Date(day.label).getDay()]}
                     </h3>
                     <p className="text-muted-foreground mt-1 text-xs">
-                      {new Date(day.label).toLocaleDateString('en-GB', {
+                      {new Date(day.label).toLocaleDateString(intl(locale), {
                         day: 'numeric',
                         month: 'long',
                       })}
@@ -603,10 +648,12 @@ export function Storefront() {
                         <div key={slot.id} className="flex flex-wrap items-center gap-4 p-5">
                           <div className="min-w-20 text-xs">
                             <p className="text-base font-semibold tabular-nums">
-                              {timeOfDay(slot.startsAt)}
+                              {timeOfDay(slot.startsAt, locale)}
                             </p>
                             <p className="text-muted-foreground mt-1 tabular-nums">
-                              to {timeOfDay(slot.endsAt)}
+                              {t('gym.store.timetable.until', {
+                                time: timeOfDay(slot.endsAt, locale),
+                              })}
                             </p>
                           </div>
                           <div className="min-w-32 flex-1">
@@ -619,7 +666,7 @@ export function Storefront() {
                                   {cls.name}
                                 </Link>
                               ) : (
-                                'Class'
+                                t('gym.store.class.one')
                               )}
                             </p>
                             <p className="text-muted-foreground mt-1 text-[11px]">
@@ -636,7 +683,9 @@ export function Storefront() {
                               )}
                             >
                               <Users className="size-3.5" />
-                              {left ? `${left} left` : 'Full'}
+                              {left
+                                ? t('gym.store.timetable.left', { count: left })
+                                : t('gym.store.timetable.full')}
                             </span>
                             <SlotBookingActions slot={slot} />
                           </div>
@@ -652,8 +701,8 @@ export function Storefront() {
               <CalendarDays className="text-muted-foreground mx-auto mb-3 size-7" />
               <p className="text-sm font-semibold">
                 {upcoming.length
-                  ? 'No sessions match these filters.'
-                  : 'No classes are scheduled yet. Check back soon.'}
+                  ? t('gym.store.timetable.noMatch')
+                  : t('gym.store.timetable.empty')}
               </p>
               {upcoming.length > 0 && (
                 <Button
@@ -664,7 +713,7 @@ export function Storefront() {
                     setDate('all');
                   }}
                 >
-                  Reset timetable filters
+                  {t('gym.store.timetable.reset')}
                 </Button>
               )}
             </div>
@@ -674,12 +723,11 @@ export function Storefront() {
           <div className="flex flex-wrap items-end justify-between gap-4">
             <SectionHeading
               number="04"
-              eyebrow="Invest in your routine"
-              title="A plan for your next chapter."
+              eyebrow={t('gym.store.pricing.eyebrow')}
+              title={t('gym.store.pricing.title')}
             />
             <p className="text-muted-foreground max-w-xs text-xs leading-relaxed">
-              Request your plan here. The front desk confirms your membership after payment at the
-              gym.
+              {t('gym.store.pricing.note')}
             </p>
           </div>
           {publishedPlans.length ? (
@@ -704,13 +752,13 @@ export function Storefront() {
             </div>
           ) : (
             <div className="bg-card rounded-3xl border p-8">
-              <p className="font-semibold">Membership details are on their way.</p>
+              <p className="font-semibold">{t('gym.store.pricing.emptyTitle')}</p>
               <p className="text-muted-foreground mt-2 text-sm">
-                Contact the gym to ask about current plans and availability.
+                {t('gym.store.pricing.emptyBody')}
               </p>
               <Button variant="outline" asChild className="mt-5">
                 <a href="#visit">
-                  Contact the gym
+                  {t('gym.store.pricing.contact')}
                   <ArrowUpRight className="size-4" />
                 </a>
               </Button>
@@ -721,33 +769,30 @@ export function Storefront() {
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-muted-foreground text-[10px] font-semibold tracking-widest uppercase">
-                Your gym, connected
+                {t('gym.store.member.eyebrow')}
               </p>
               <h2 className="mt-2 text-xl font-semibold">
-                {t.membership ? 'Your member space' : 'Ready to make it yours?'}
+                {tenant.membership ? t('gym.store.member.title') : t('gym.store.member.titleGuest')}
               </h2>
             </div>
             <Link
               href={`/g/${slug}/coaching`}
               className="flex items-center gap-2 text-xs font-semibold"
             >
-              Coaching workspace
+              {t('gym.store.member.coaching')}
               <ArrowUpRight className="size-4" />
             </Link>
           </div>
           {loading || !interactive ? (
             <p id="membership" role="status" className="text-muted-foreground py-6 text-sm">
-              Updating your membership…
+              {t('gym.store.member.updating')}
             </p>
           ) : mode === 'cloud' && !user ? (
             <section id="membership" className="space-y-4">
-              <p className="text-muted-foreground text-sm">
-                Sign in to join this gym, manage your membership and keep your bookings in one
-                place.
-              </p>
+              <p className="text-muted-foreground text-sm">{t('gym.store.member.signInBody')}</p>
               <Button asChild>
                 <Link href={joinHref}>
-                  Sign in to get started
+                  {t('gym.store.member.signInCta')}
                   <ArrowUpRight className="size-4" />
                 </Link>
               </Button>
@@ -760,9 +805,9 @@ export function Storefront() {
         <section data-reveal id="visit" className="space-y-7">
           <SectionHeading
             number="05"
-            eyebrow="See you here"
-            title="Come find your people."
-            description="Everything you need to plan your first—or your next—visit."
+            eyebrow={t('gym.store.visit.eyebrow')}
+            title={t('gym.store.visit.title')}
+            description={t('gym.store.visit.description')}
           />
           <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
             <div className="relative overflow-hidden rounded-3xl bg-zinc-950 p-7 text-white sm:p-10">
@@ -784,13 +829,13 @@ export function Storefront() {
                     rel="noopener noreferrer"
                     className="relative mt-5 inline-flex items-center gap-2 border-b border-white/35 pb-1 text-xs font-medium"
                   >
-                    Get directions
+                    {t('gym.store.visit.directions')}
                     <ArrowUpRight className="size-4" />
                   </a>
                 </>
               ) : (
                 <p className="relative mt-3 text-sm text-white/65">
-                  Ask the gym for location details before your visit.
+                  {t('gym.store.visit.noAddress')}
                 </p>
               )}
               <div className="relative mt-8 space-y-3 border-t border-white/15 pt-6 text-xs">
@@ -816,7 +861,8 @@ export function Storefront() {
                   <p className="flex items-center gap-3">
                     <Phone className="size-4 shrink-0 text-white/45" />
                     <span>
-                      WhatsApp: <ContactLink kind="whatsapp" value={gym.contact.whatsapp} />
+                      {t('gym.store.visit.whatsapp')}{' '}
+                      <ContactLink kind="whatsapp" value={gym.contact.whatsapp} />
                     </span>
                   </p>
                 )}
@@ -824,29 +870,29 @@ export function Storefront() {
             </div>
             <div className="bg-card rounded-3xl border p-7 sm:p-8">
               <div className="mb-6 flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Opening hours</h3>
+                <h3 className="text-lg font-semibold">{t('gym.store.visit.hours')}</h3>
                 <Clock className="text-muted-foreground size-5" />
               </div>
               {gym.hours ? (
                 <ul className="divide-y">
                   {[1, 2, 3, 4, 5, 6, 0].map((day) => (
                     <li key={day} className="flex items-center justify-between gap-3 py-3 text-xs">
-                      <span className="text-muted-foreground">{DAY_NAMES[day]}</span>{' '}
+                      <span className="text-muted-foreground">
+                        {weekdayLabels(locale, 'long')[day]}
+                      </span>{' '}
                       <span className="font-medium tabular-nums">
                         {gym.hours?.[day]
                           ? `${gym.hours[day]!.open}–${gym.hours[day]!.close}`
-                          : 'Closed'}
+                          : t('gym.store.visit.closed')}
                       </span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-muted-foreground text-sm">
-                  Opening hours have not been published. Contact the gym to confirm your visit.
-                </p>
+                <p className="text-muted-foreground text-sm">{t('gym.store.visit.hoursMissing')}</p>
               )}
               <p className="text-muted-foreground mt-5 text-[10px]">
-                Hours as provided by the gym. Check with the desk for holiday changes.
+                {t('gym.store.visit.hoursNote')}
               </p>
             </div>
           </div>
@@ -857,18 +903,18 @@ export function Storefront() {
           <div>
             <p className="text-sm font-bold">{gym.name}</p>
             <p className="text-muted-foreground mt-1 text-[10px]">
-              Your training. Your community. Powered by SmartFit.
+              {t('gym.store.footer.tagline')}
             </p>
           </div>
           <div className="text-muted-foreground flex flex-wrap gap-5 text-xs">
             <Link href="/gyms" className="hover:text-foreground">
-              Browse more gyms on SmartFit
+              {t('gym.store.footer.browse')}
             </Link>
             <Link href="/support" className="hover:text-foreground">
-              Contact SmartFit support
+              {t('gym.store.footer.support')}
             </Link>
             <Link href="/privacy" className="hover:text-foreground">
-              Privacy
+              {t('gym.store.footer.privacy')}
             </Link>
           </div>
         </div>
@@ -877,12 +923,12 @@ export function Storefront() {
         <Button asChild variant="outline" className="flex-1">
           <a href="#timetable">
             <CalendarDays className="size-4" />
-            Find a class
+            {t('gym.store.mobile.findClass')}
           </a>
         </Button>
         <Button asChild className="flex-1">
           <a href="#pricing">
-            Memberships
+            {t('gym.store.mobile.memberships')}
             <ArrowUpRight className="size-4" />
           </a>
         </Button>

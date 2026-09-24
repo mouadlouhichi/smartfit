@@ -216,6 +216,14 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'progress.stat.calories': 'Calories — the word is the same in French.',
   'progress.stat.distance': 'Distance.',
   'progress.mix.total': '“total” is the French word too.',
+  // The gym's own taxonomy. Three of the six class types are the words French
+  // gyms actually use, and the other two are a unit and a loanword — a
+  // "translated" version of any of them would be wrong, not missing.
+  'gym.focus.combat': 'Combat — boxing gyms say it in both languages.',
+  'gym.focus.hiit': 'HIIT — the acronym is used untranslated.',
+  'gym.focus.cardio': 'Cardio — the loanword is the French word here.',
+  'gym.store.class.minutes': 'A duration and its unit symbol.',
+  'gym.store.plan.period.pass': '“pass” is what a French gym calls a single-visit pass.',
 };
 
 test('the translations are actually translated, not copied', () => {

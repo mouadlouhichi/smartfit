@@ -271,7 +271,28 @@ export function gymStatusLabel(status: string, t?: Translator): string {
 }
 
 /**
- * Display name for a measurement type./**
+ * The class-type taxonomy, as words.
+ *
+ * `combat`, `hiit`… are ids: the English words the demo fixtures and stored class
+ * documents use. This resolves the copy per locale, the same way `gymStatusLabel`
+ * does, and falls back to the id — so a gym that invents a focus of its own still
+ * renders something readable instead of a blank badge.
+ */
+export const GYM_FOCUS_KEYS: Record<string, string> = {
+  combat: 'gym.focus.combat',
+  hiit: 'gym.focus.hiit',
+  strength: 'gym.focus.strength',
+  cardio: 'gym.focus.cardio',
+  mind: 'gym.focus.mind',
+  aqua: 'gym.focus.aqua',
+};
+
+export function gymFocusLabel(focus: string, t?: Translator): string {
+  const key = GYM_FOCUS_KEYS[focus];
+  return key && t ? t(key) : focus;
+}
+
+/**
  * Display name for a measurement type.
  *
  * `bodyLabel` above is the English name the mobile client and the stored data
