@@ -1550,6 +1550,49 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'gym.share.streakValue': { one: '{count} day', other: '{count} days' },
     'gym.share.attendance': 'Class attendance:',
     'gym.share.lastShared': 'Last shared {date} · turning this off deletes the share immediately.',
+
+    // ── listing a gym (public application form) ───────────────────────────
+    'gym.apply.title': 'List your gym',
+    'gym.apply.body':
+      'Your timetable, bookings and memberships on your own SmartFit address — reviewed by a person, usually within a day.',
+    'gym.apply.name': 'Gym name *',
+    'gym.apply.namePlaceholder': 'Casablanca Boxing Club',
+    'gym.apply.slug': 'Preferred address',
+    'gym.apply.slugPlaceholder': 'casa-boxing',
+    'gym.apply.city': 'City',
+    'gym.apply.cityPlaceholder': 'Casablanca',
+    'gym.apply.email': 'Contact email *',
+    'gym.apply.emailPlaceholder': 'you@yourgym.ma',
+    'gym.apply.instagram': 'Instagram',
+    'gym.apply.message': 'Anything else',
+    'gym.apply.messagePlaceholder':
+      'Number of coaches, classes per week, what you want online booking for…',
+    'gym.apply.sending': 'Sending…',
+    'gym.apply.submit': 'Apply to list',
+    'gym.apply.note': 'No account needed. We only use the email to reply about your application.',
+    'gym.apply.demo': 'Captured — but this preview has no backend, so nothing was sent',
+    'gym.apply.received': 'Application received — we will be in touch',
+    'gym.apply.error': 'The application could not be sent. Try again.',
+    'gym.apply.offline': 'The application could not be sent. Check the connection and try again.',
+    'gym.apply.thanks.title': 'Thank you — application received',
+    'gym.apply.thanks.body':
+      'A person reviews every application, usually within a day or two. When yours is approved, your gym gets its own SmartFit address and a console to run it from.',
+
+    // ── gym storefront (the tenant's own public page) ─────────────────────
+    'gym.store.taglineFallback': 'Find your next session. Build your own rhythm.',
+    'gym.store.amenitiesAria': 'Gym amenities',
+    'gym.store.motion.offReduced': 'Animations off: reduced motion',
+    'gym.store.motion.resume': 'Resume animations',
+    'gym.store.motion.pause': 'Pause animations',
+    'gym.store.motion.reducedNote': 'Your reduced-motion preference is respected',
+
+    'gym.store.hero.mottoA': 'Your place.',
+    'gym.store.hero.mottoB': 'Your pace.',
+    'gym.store.hero.nameFallback': 'Your gym name',
+    'gym.store.hero.seePricing': 'See pricing',
+    'gym.store.hero.viewTimetable': 'View timetable',
+    'gym.store.hero.baseline': 'Start where you are. Go further.',
+    'gym.store.hero.artworkNote': 'Illustrative artwork · SmartFit',
   },
 
   fr: {
@@ -2995,6 +3038,50 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'gym.share.attendance': 'Présence aux cours :',
     'gym.share.lastShared':
       'Dernier partage le {date} · le désactiver supprime le partage immédiatement.',
+
+    // ── référencer une salle (formulaire public) ──────────────────────────
+    'gym.apply.title': 'Référencez votre salle',
+    'gym.apply.body':
+      'Votre planning, vos réservations et vos adhésions sur votre propre adresse SmartFit — examinés par une personne, généralement sous un jour.',
+    'gym.apply.name': 'Nom de la salle *',
+    'gym.apply.namePlaceholder': 'Casablanca Boxing Club',
+    'gym.apply.slug': 'Adresse souhaitée',
+    'gym.apply.slugPlaceholder': 'casa-boxing',
+    'gym.apply.city': 'Ville',
+    'gym.apply.cityPlaceholder': 'Casablanca',
+    'gym.apply.email': 'E-mail de contact *',
+    'gym.apply.emailPlaceholder': 'vous@votresalle.ma',
+    'gym.apply.instagram': 'Instagram',
+    'gym.apply.message': 'Autre chose',
+    'gym.apply.messagePlaceholder':
+      'Nombre de coachs, cours par semaine, ce que vous voulez gérer en ligne…',
+    'gym.apply.sending': 'Envoi…',
+    'gym.apply.submit': 'Demander le référencement',
+    'gym.apply.note':
+      'Aucun compte requis. L’e-mail sert uniquement à vous répondre au sujet de votre demande.',
+    'gym.apply.demo': 'Enregistré — mais cet aperçu n’a pas de backend : rien n’a été envoyé',
+    'gym.apply.received': 'Demande reçue — nous vous écrivons bientôt',
+    'gym.apply.error': 'La demande n’a pas pu être envoyée. Réessayez.',
+    'gym.apply.offline': 'La demande n’a pas pu être envoyée. Vérifiez la connexion et réessayez.',
+    'gym.apply.thanks.title': 'Merci — demande reçue',
+    'gym.apply.thanks.body':
+      'Chaque demande est lue par une personne, en général sous un ou deux jours. Une fois la vôtre acceptée, votre salle obtient sa propre adresse SmartFit et une console pour la gérer.',
+
+    // ── vitrine de salle (la page publique d’une salle) ───────────────────
+    'gym.store.taglineFallback': 'Trouvez votre prochaine séance. Imposez votre rythme.',
+    'gym.store.amenitiesAria': 'Équipements de la salle',
+    'gym.store.motion.offReduced': 'Animations désactivées : mouvement réduit',
+    'gym.store.motion.resume': 'Reprendre les animations',
+    'gym.store.motion.pause': 'Mettre en pause les animations',
+    'gym.store.motion.reducedNote': 'Votre préférence de mouvement réduit est respectée',
+
+    'gym.store.hero.mottoA': 'Votre salle.',
+    'gym.store.hero.mottoB': 'Votre rythme.',
+    'gym.store.hero.nameFallback': 'Le nom de votre salle',
+    'gym.store.hero.seePricing': 'Voir les tarifs',
+    'gym.store.hero.viewTimetable': 'Voir le planning',
+    'gym.store.hero.baseline': 'Partez de là où vous êtes. Allez plus loin.',
+    'gym.store.hero.artworkNote': 'Illustration · SmartFit',
   },
 };
 

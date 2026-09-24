@@ -204,6 +204,12 @@ const INTENTIONAL_COGNATES: Record<string, string> = {
   'goal.metric.minutes.unit': 'min — a unit symbol.',
   'goal.metric.calories.unit': 'kcal — a unit symbol.',
   'goal.metric.distance': 'Distance — the same word in French.',
+  // Placeholders in the "list your gym" form: a proper noun, a brand and the
+  // example address a Moroccan gym owner would actually type.
+  'gym.apply.namePlaceholder': 'Casablanca Boxing Club — a proper noun.',
+  'gym.apply.cityPlaceholder': 'Casablanca — the city the app is built in.',
+  'gym.apply.slugPlaceholder': 'casa-boxing — an address, not a phrase.',
+  'gym.apply.instagram': 'Instagram — a brand name.',
   'goal.metric.distance.unit': 'km — a unit symbol.',
   // Latin-derived statistical nouns French borrowed unchanged; "Calories"
   // would need a locale explanation, the others are simply the same word.
