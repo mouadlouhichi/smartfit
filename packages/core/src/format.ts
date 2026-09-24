@@ -292,6 +292,22 @@ export function gymFocusLabel(focus: string, t?: Translator): string {
   return key && t ? t(key) : focus;
 }
 
+/** The same idea for RBAC roles: `roleLabel` is the English name, this the copy. */
+export const ROLE_KEYS: Record<string, string> = {
+  'platform-admin': 'role.platformAdmin',
+  'gym-owner': 'role.gymOwner',
+  'gym-staff': 'role.gymStaff',
+  'gym-trainer': 'role.trainer',
+  'content-manager': 'role.contentManager',
+  'support-agent': 'role.supportAgent',
+  member: 'role.member',
+};
+
+export function roleText(role: string, t?: Translator): string {
+  const key = ROLE_KEYS[role];
+  return key && t ? t(key) : role;
+}
+
 /**
  * Display name for a measurement type.
  *

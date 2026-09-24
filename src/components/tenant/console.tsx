@@ -36,13 +36,16 @@ import {
 import {
   isGymCustomer,
   AT_RISK_DAYS,
+  gymStatusLabel,
   isAtRisk,
-  roleLabel,
+  roleText,
   type Capability,
   type GymMembership,
 } from '@smartfit/core';
 import { formatMoney, useTenant } from '@/lib/tenant-context';
 import { useAuth } from '@/lib/firebase/auth-context';
+import { useI18n } from '@/lib/i18n-context';
+import type { DemoPersonaKey } from '@/lib/tenant-demo';
 import type { GymBooking, GymClass, GymSlot } from '@/lib/firebase/tenant-repo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,22 +63,57 @@ import { cn } from '@/lib/utils';
 
 interface Section {
   id: string;
-  label: string;
+  /** Catalogue key: the nav label is copy, the id is the route. */
+  labelKey: string;
   icon: typeof LayoutDashboard;
   /** Capability required to see this section at all. */
   capability: Capability;
 }
 
 const SECTIONS: Section[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard, capability: 'reports:gym' },
-  { id: 'today', label: 'Today', icon: TicketCheck, capability: 'checkin:door' },
-  { id: 'timetable', label: 'Timetable', icon: CalendarDays, capability: 'class:create' },
-  { id: 'members', label: 'Members', icon: Users, capability: 'member:roster:read' },
-  { id: 'revenue', label: 'Revenue', icon: Banknote, capability: 'revenue:read' },
-  { id: 'plans', label: 'Plans', icon: Layers, capability: 'plan:manage' },
-  { id: 'staff', label: 'Team', icon: UserCog, capability: 'staff:invite' },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon, capability: 'branding:edit' },
+  {
+    id: 'overview',
+    labelKey: 'gym.console.tab.overview',
+    icon: LayoutDashboard,
+    capability: 'reports:gym',
+  },
+  { id: 'today', labelKey: 'gym.console.tab.today', icon: TicketCheck, capability: 'checkin:door' },
+  {
+    id: 'timetable',
+    labelKey: 'gym.console.tab.timetable',
+    icon: CalendarDays,
+    capability: 'class:create',
+  },
+  {
+    id: 'members',
+    labelKey: 'gym.console.tab.members',
+    icon: Users,
+    capability: 'member:roster:read',
+  },
+  {
+    id: 'revenue',
+    labelKey: 'gym.console.tab.revenue',
+    icon: Banknote,
+    capability: 'revenue:read',
+  },
+  { id: 'plans', labelKey: 'gym.console.tab.plans', icon: Layers, capability: 'plan:manage' },
+  { id: 'staff', labelKey: 'gym.console.tab.staff', icon: UserCog, capability: 'staff:invite' },
+  {
+    id: 'settings',
+    labelKey: 'gym.console.tab.settings',
+    icon: SettingsIcon,
+    capability: 'branding:edit',
+  },
 ];
+
+/** The demo switcher lists three real roles and two audience labels. */
+const DEMO_ROLE_KEYS: Record<DemoPersonaKey, string> = {
+  'gym-owner': 'role.gymOwner',
+  'gym-staff': 'role.gymStaff',
+  member: 'gym.console.demo.member',
+  prospect: 'gym.console.demo.prospect',
+  'platform-admin': 'role.platformAdmin',
+};
 
 const FOCUS_OPTIONS = ['combat', 'hiit', 'strength', 'cardio', 'mind', 'aqua'] as const;
 
@@ -141,62 +179,66 @@ function nextOccurrence(weekday: number, hhmm: string): number {
 
 function Overview() {
   const t = useTenant();
+  // The tenant context owns `t` in this file, so the translator is `tr`.
+  const { t: tr } = useI18n();
   const m = t.metrics;
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric
-          label="Active members"
+          label={tr('gym.console.metric.activeMembers')}
           value={t.rosterStatus === 'ready' ? String(m.activeMembers) : '—'}
           hint={
             t.rosterStatus === 'ready'
-              ? `${t.roster.length} people, including staff`
-              : 'Roster not yet verified'
+              ? tr('gym.console.metric.rosterPeople', { count: t.roster.length })
+              : tr('gym.console.metric.rosterPending')
           }
         />
         <Metric
-          label="MRR"
+          label={tr('gym.console.metric.mrr')}
           value={t.rosterStatus === 'ready' ? formatMoney(m.mrrMinor) : '—'}
-          hint="Active memberships, normalised"
+          hint={tr('gym.console.metric.mrrHint')}
           tone="good"
         />
         <Metric
-          label="Collected (30d)"
+          label={tr('gym.console.metric.collected')}
           value={formatMoney(m.collectedMinor)}
-          hint="Paid invoices"
+          hint={tr('gym.console.metric.collectedHint')}
         />
         <Metric
-          label="Occupancy"
+          label={tr('gym.console.metric.occupancy')}
           value={`${m.occupancyPct}%`}
-          hint={`${m.seatsBooked} of ${m.seatCapacity} seats`}
+          hint={tr('gym.console.metric.occupancyHint', {
+            booked: m.seatsBooked,
+            capacity: m.seatCapacity,
+          })}
         />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Metric
-          label="At risk"
+          label={tr('gym.console.metric.atRisk')}
           value={String(m.atRisk)}
-          hint={`No visit in ${AT_RISK_DAYS}+ days`}
+          hint={tr('gym.console.metric.atRiskHint', { days: AT_RISK_DAYS })}
           tone={m.atRisk > 0 ? 'warn' : 'default'}
         />
         <Metric
-          label="Expiring in 7 days"
+          label={tr('gym.console.metric.expiring')}
           value={String(m.expiringSoon)}
           tone={m.expiringSoon > 0 ? 'warn' : 'default'}
         />
-        <Metric label="Frozen" value={String(m.frozen)} />
+        <Metric label={tr('gym.status.frozen')} value={String(m.frozen)} />
       </div>
 
       {m.atRisk > 0 && (
         <Card className="border-amber-500/40">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="size-4 text-amber-500" /> Win-back worklist
+              <AlertTriangle className="size-4 text-amber-500" />{' '}
+              {tr('gym.console.overview.winback')}
             </CardTitle>
-            <CardDescription>
-              Members who have stopped coming. A message now is cheaper than replacing them later.
-            </CardDescription>
+            <CardDescription>{tr('gym.console.overview.winbackBody')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {t.roster
@@ -210,7 +252,7 @@ function Overview() {
                   >
                     <span className="font-medium">{r.displayName ?? r.uid}</span>
                     <span className="text-muted-foreground text-xs tabular-nums">
-                      last seen {days}d ago · {r.checkins} visits
+                      {tr('gym.console.overview.lastSeen', { days, visits: r.checkins })}
                     </span>
                   </div>
                 );
@@ -224,6 +266,7 @@ function Overview() {
 
 function Today() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const toast = useToast();
 
   const todays = useMemo(() => {
@@ -266,10 +309,10 @@ function Today() {
   async function onCheckIn(uid: string, name: string) {
     const ok = await t.checkInMember(uid);
     if (ok) {
-      toast(`${name} checked in`, 'success');
+      toast(tr('gym.console.today.checkedIn', { name }), 'success');
       setQuery('');
     } else {
-      toast(t.mutationError ?? 'Check-in failed', 'info');
+      toast(t.mutationError ?? tr('gym.console.today.checkInError'), 'info');
     }
   }
 
@@ -277,34 +320,37 @@ function Today() {
     const ok = await t.markBookingAttendance(b.id, status);
     if (ok) {
       const name = b.memberName ?? b.uid;
-      toast(status === 'attended' ? `${name} attended` : `${name} marked as no-show`, 'success');
+      toast(
+        status === 'attended'
+          ? tr('gym.console.today.attendedToast', { name })
+          : tr('gym.console.today.noShowToast', { name }),
+        'success',
+      );
     } else {
-      toast(t.mutationError ?? 'Could not mark attendance', 'info');
+      toast(t.mutationError ?? tr('gym.console.today.markError'), 'info');
     }
   }
 
   async function onPromote(b: GymBooking) {
     const ok = await t.promoteWaitlist(b.id);
-    if (ok) toast(`${b.memberName ?? b.uid} promoted from the waitlist`, 'success');
-    else toast(t.mutationError ?? 'Could not promote', 'info');
+    if (ok)
+      toast(tr('gym.console.today.promotedToast', { name: b.memberName ?? b.uid }), 'success');
+    else toast(t.mutationError ?? tr('gym.console.today.promoteError'), 'info');
   }
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Front desk check-in</CardTitle>
-          <CardDescription>
-            Search by name, mark them in. This writes to the roster; nothing here changes pricing or
-            deletes anyone.
-          </CardDescription>
+          <CardTitle className="text-base">{tr('gym.console.today.title')}</CardTitle>
+          <CardDescription>{tr('gym.console.today.body')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a member…"
-            aria-label="Search a member"
+            placeholder={tr('gym.console.today.searchPlaceholder')}
+            aria-label={tr('gym.console.today.searchAria')}
           />
           {matches.length > 0 && (
             <ul className="space-y-1">
@@ -315,14 +361,16 @@ function Today() {
                 >
                   <span>
                     {m.displayName ?? m.uid}
-                    <span className="text-muted-foreground ml-2 text-xs">{m.status}</span>
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {gymStatusLabel(m.status, tr)}
+                    </span>
                   </span>
                   <Button
                     size="sm"
                     onClick={() => onCheckIn(m.uid, m.displayName ?? m.uid)}
                     disabled={t.mutating === `checkin:${m.uid}`}
                   >
-                    Check in
+                    {tr('gym.console.today.checkIn')}
                   </Button>
                 </li>
               ))}
@@ -333,7 +381,9 @@ function Today() {
 
       {todays.length === 0 ? (
         <Card>
-          <CardContent className="text-muted-foreground p-6 text-sm">No classes today.</CardContent>
+          <CardContent className="text-muted-foreground p-6 text-sm">
+            {tr('gym.console.today.empty')}
+          </CardContent>
         </Card>
       ) : (
         todays.map((slot) => {
@@ -346,7 +396,7 @@ function Today() {
             <Card key={slot.id} data-slot-id={slot.id}>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-base">
-                  <span>{cls?.name ?? 'Class'}</span>
+                  <span>{cls?.name ?? tr('gym.store.class.one')}</span>
                   <Badge variant="secondary">
                     {new Date(slot.startsAt).toLocaleTimeString('en-GB', {
                       hour: '2-digit',
@@ -355,13 +405,18 @@ function Today() {
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  {cls?.studio} · {cls?.instructorName} · {seated.length}/{slot.capacity} booked
-                  {waitlist.length > 0 && ` · ${waitlist.length} waiting`}
+                  {cls?.studio} · {cls?.instructorName} ·{' '}
+                  {tr('gym.console.today.booked', {
+                    seated: seated.length,
+                    capacity: slot.capacity,
+                  })}
+                  {waitlist.length > 0 &&
+                    ` · ${tr('gym.console.today.waiting', { count: waitlist.length })}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-1">
                 {all.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Nobody booked yet.</p>
+                  <p className="text-muted-foreground text-sm">{tr('gym.console.today.nobody')}</p>
                 ) : (
                   all.map((b) => (
                     <div
@@ -370,7 +425,7 @@ function Today() {
                     >
                       <span>{b.memberName ?? b.uid}</span>
                       <span className="flex items-center gap-1.5">
-                        <Badge variant="outline">{b.status.replace('_', ' ')}</Badge>
+                        <Badge variant="outline">{gymStatusLabel(b.status, tr)}</Badge>
                         {b.status === 'booked' && canMark && (
                           <>
                             <Button
@@ -379,7 +434,7 @@ function Today() {
                               onClick={() => onMark(b, 'attended')}
                               disabled={t.mutating !== null}
                             >
-                              Attended
+                              {tr('gym.status.attended')}
                             </Button>
                             <Button
                               size="sm"
@@ -387,7 +442,7 @@ function Today() {
                               onClick={() => onMark(b, 'no_show')}
                               disabled={t.mutating !== null}
                             >
-                              No-show
+                              {tr('gym.status.noShow')}
                             </Button>
                           </>
                         )}
@@ -397,9 +452,13 @@ function Today() {
                             variant="outline"
                             onClick={() => onPromote(b)}
                             disabled={t.mutating !== null || left === 0}
-                            title={left === 0 ? 'The class is full' : 'Take the next seat'}
+                            title={
+                              left === 0
+                                ? tr('gym.console.today.full')
+                                : tr('gym.console.today.takeSeat')
+                            }
                           >
-                            Promote
+                            {tr('gym.console.today.promote')}
                           </Button>
                         )}
                       </span>
@@ -875,6 +934,7 @@ function Plans() {
  */
 function ViewAsBanner() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -899,11 +959,10 @@ function ViewAsBanner() {
       className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 p-3 text-sm text-sky-700 dark:text-sky-300"
     >
       <span className="font-medium">
-        Viewing {t.gym?.name ?? t.slug} — read-only gym workspace; changes are disabled. Your
-        platform identity is unchanged.
+        {tr('gym.console.viewAs.banner', { gym: t.gym?.name ?? t.slug })}
       </span>
       <Button asChild size="sm" variant="outline">
-        <a href={`/admin/gyms/${t.slug}`}>Exit view-as</a>
+        <a href={`/admin/gyms/${t.slug}`}>{tr('gym.console.viewAs.exit')}</a>
       </Button>
     </div>
   );
@@ -911,6 +970,7 @@ function ViewAsBanner() {
 
 export function Console() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const [tab, setTab] = useState<string | null>(null);
 
   const [wide, setWide] = useState(false);
@@ -954,19 +1014,19 @@ export function Console() {
   if (visible.length === 0) {
     return (
       <div className="mx-auto max-w-md p-6 text-center">
-        <p className="text-lg font-bold">You have no console access to this gym</p>
-        <p className="text-muted-foreground mt-2 text-sm">
-          An active owner or staff membership is required. Access may have been removed, frozen or
-          expired, or this gym may be unavailable. Ask the gym owner if you should have access.
-          Trainers can use the coaching workspace.
-        </p>
+        <p className="text-lg font-bold">{tr('gym.console.denied.title')}</p>
+        <p className="text-muted-foreground mt-2 text-sm">{tr('gym.console.denied.body')}</p>
         {t.error && (
           <p role="alert" className="text-destructive mt-3 text-sm">
-            {t.error} Reconnect and reload this page to verify access.
+            {tr('gym.console.denied.reconnect', { error: t.error })}
           </p>
         )}
         <Button asChild variant="outline" className="mt-4">
-          <a href={`/g/${t.slug}`}>Back to {t.gym?.name ?? 'the gym'}</a>
+          <a href={`/g/${t.slug}`}>
+            {tr('gym.console.denied.back', {
+              gym: t.gym?.name ?? tr('gym.console.denied.thisGym'),
+            })}
+          </a>
         </Button>
       </div>
     );
@@ -990,22 +1050,22 @@ export function Console() {
             </span>
           </Link>
           <p className="text-muted-foreground mb-3 hidden px-3 text-[10px] font-semibold tracking-[0.2em] uppercase lg:block">
-            Gym workspace
+            {tr('gym.console.workspace.eyebrow')}
           </p>
           <TabsList
-            aria-label="Gym workspace sections"
+            aria-label={tr('gym.console.workspace.sectionsAria')}
             className="grid h-auto w-full grid-cols-4 gap-1 rounded-none bg-transparent p-0 lg:flex lg:flex-col lg:items-stretch lg:gap-1.5"
           >
             {visible.map((section) => (
               <TabsTrigger
                 key={section.id}
-                aria-label={section.label}
+                aria-label={tr(section.labelKey)}
                 disabled={!interactive}
                 value={section.id}
                 className="data-[state=active]:bg-primary/10 flex min-w-0 flex-col gap-1.5 rounded-xl px-1 py-2.5 text-[10px] data-[state=active]:shadow-none lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:py-3 lg:text-xs"
               >
                 <section.icon className="size-4 shrink-0" />
-                <span>{section.label}</span>
+                <span>{tr(section.labelKey)}</span>
                 {section.id === 'members' && (
                   <span className="bg-secondary ml-auto hidden min-w-5 rounded-md px-1 py-0.5 text-center text-[10px] tabular-nums lg:inline-block">
                     {t.rosterStatus === 'ready' ? t.roster.filter(isGymCustomer).length : '—'}
@@ -1020,12 +1080,10 @@ export function Console() {
                 <ShieldCheck className="size-5" />
               </span>
               <p className="mt-3 text-xs font-semibold">
-                {t.viewAs ? 'A safe look inside' : 'Your gym. Your community.'}
+                {t.viewAs ? tr('gym.console.tip.viewAsTitle') : tr('gym.console.tip.title')}
               </p>
               <p className="text-muted-foreground mt-2 text-[10px] leading-relaxed">
-                {t.viewAs
-                  ? 'Browse your gym’s data without changing memberships or settings.'
-                  : 'Keep your members, classes and team connected in one workspace.'}
+                {t.viewAs ? tr('gym.console.tip.viewAsBody') : tr('gym.console.tip.body')}
               </p>
             </div>
             <div className="mt-5 flex min-w-0 items-center gap-2.5 border-t pt-5">
@@ -1033,7 +1091,7 @@ export function Console() {
               <div className="min-w-0">
                 <p className="truncate text-[11px] font-semibold">{t.gym?.name ?? t.slug}</p>
                 <p className="text-muted-foreground mt-0.5 text-[10px]">
-                  {t.mode === 'demo' ? 'Demo workspace' : 'Gym management'}
+                  {t.mode === 'demo' ? tr('gym.console.mode.demo') : tr('gym.console.mode.cloud')}
                 </p>
               </div>
             </div>
@@ -1043,22 +1101,25 @@ export function Console() {
           <header className="bg-card flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 lg:px-8">
             <div>
               <p className="text-muted-foreground mb-1 text-[10px]">
-                Workspace <span className="mx-2 opacity-40">/</span>{' '}
-                {visible.find((section) => section.id === tab)?.label ?? 'Overview'}
+                {tr('gym.console.workspace.breadcrumb')} <span className="mx-2 opacity-40">/</span>{' '}
+                {tr(
+                  visible.find((section) => section.id === tab)?.labelKey ??
+                    'gym.console.tab.overview',
+                )}
               </p>
               <h1 className="text-sm font-semibold tracking-tight">{t.gym?.name ?? t.slug}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-muted-foreground mr-1 hidden text-[11px] sm:inline">
-                {roleLabel(t.role)}
+                {roleText(t.role, tr)}
               </span>
               <Button asChild size="sm" variant="ghost" className="text-xs">
                 <Link href={`/g/${t.slug}`}>
-                  storefront <ArrowUpRight className="size-3.5" />
+                  {tr('gym.console.storefront')} <ArrowUpRight className="size-3.5" />
                 </Link>
               </Button>
               <Button asChild size="sm" variant="outline" className="rounded-xl text-xs">
-                <Link href={`/g/${t.slug}/coaching`}>Coaching</Link>
+                <Link href={`/g/${t.slug}/coaching`}>{tr('gym.console.coaching')}</Link>
               </Button>
               <Button
                 size="sm"
@@ -1066,7 +1127,7 @@ export function Console() {
                 className="rounded-xl"
                 onClick={t.reload}
                 disabled={t.loading}
-                aria-label="Refresh"
+                aria-label={tr('gym.console.refresh')}
               >
                 <RefreshCw className="size-3.5" />
               </Button>
@@ -1075,12 +1136,12 @@ export function Console() {
           <div className="space-y-5 p-4 sm:p-6 lg:p-8">
             {t.mode === 'demo' && (
               <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed px-3 py-2 text-[10px]">
-                <span>Demo workspace · sample data · changes last for this session only</span>
+                <span>{tr('gym.console.demo.banner')}</span>
                 <span className="flex items-center gap-2">
-                  <span>Demo role</span>
+                  <span>{tr('gym.console.demo.role')}</span>
                   {/* Compact chrome: same Select component, just narrower. */}
                   <Select
-                    aria-label="Demo role"
+                    aria-label={tr('gym.console.demo.role')}
                     disabled={!interactive}
                     size="compact"
                     className="min-w-40"
@@ -1089,11 +1150,13 @@ export function Console() {
                       t.setDemoRole(e.target.value as NonNullable<typeof t.demoRole>)
                     }
                   >
-                    <option value="gym-owner">Gym owner</option>
-                    <option value="gym-staff">Gym staff</option>
-                    <option value="member">Member</option>
-                    <option value="prospect">Prospect (not a member)</option>
-                    <option value="platform-admin">Platform admin</option>
+                    {(
+                      ['gym-owner', 'gym-staff', 'member', 'prospect', 'platform-admin'] as const
+                    ).map((role) => (
+                      <option key={role} value={role}>
+                        {tr(DEMO_ROLE_KEYS[role])}
+                      </option>
+                    ))}
                   </Select>
                 </span>
               </div>
@@ -1104,10 +1167,10 @@ export function Console() {
                 role="alert"
                 className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm"
               >
-                <p className="font-semibold">Some workspace data couldn’t be loaded</p>
+                <p className="font-semibold">{tr('gym.console.error.title')}</p>
                 <p className="text-muted-foreground mt-1 text-xs">{t.error}</p>
                 <Button className="mt-3" variant="outline" size="sm" onClick={t.reload}>
-                  Retry workspace data
+                  {tr('gym.console.error.retry')}
                 </Button>
               </div>
             )}
@@ -1140,7 +1203,7 @@ export function Console() {
             <TabsContent value="staff" className="mt-4">
               <Staff />
               <Button asChild variant="outline" className="mt-4">
-                <Link href={`/g/${t.slug}/coaching`}>Manage trainers & coaching</Link>
+                <Link href={`/g/${t.slug}/coaching`}>{tr('gym.console.staff.manage')}</Link>
               </Button>
             </TabsContent>
             <TabsContent
