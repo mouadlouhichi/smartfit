@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Sparkles, Play, Info, Dumbbell, Flame, Brain } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals } from './modal-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { ExerciseDetailDialog } from '@/components/exercise-detail';
 export function SuggestedWorkouts() {
   const { state } = useStore();
   const { openWith } = useModals();
+  const { t } = useI18n();
   const [detail, setDetail] = useState<string | null>(null);
 
   const suggestions = useMemo(() => suggestExercises(state), [state]);
@@ -40,13 +42,10 @@ export function SuggestedWorkouts() {
               <span className="bg-volt text-ink flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_4px_12px_-4px_rgba(138,210,0,0.5)]">
                 <Brain className="h-5 w-5" />
               </span>
-              AI Suggested for you
-              <Badge className="bg-volt text-ink ml-auto">AI Powered</Badge>
+              {t('overview.suggested.title')}
+              <Badge className="bg-volt text-ink ml-auto">{t('overview.suggested.badge')}</Badge>
             </CardTitle>
-            <p className="text-muted-foreground text-xs">
-              Picked from your weight, body fat, waist and recent training — log measurements and
-              these adapt.
-            </p>
+            <p className="text-muted-foreground text-xs">{t('overview.suggested.body')}</p>
           </CardHeader>
           <CardContent className="grid gap-3">
             {suggestions.slice(0, 4).map((s) => (
@@ -64,10 +63,10 @@ export function SuggestedWorkouts() {
                     <p className="truncate text-[13px] font-bold tracking-tight">{s.entry.name}</p>
                     <Badge variant="secondary" className="text-[10px]">
                       {s.entry.equipment === 'pool'
-                        ? 'Pool'
+                        ? t('overview.equipment.pool')
                         : s.entry.equipment === 'running'
-                          ? 'Running'
-                          : 'Gym'}
+                          ? t('overview.equipment.running')
+                          : t('overview.equipment.gym')}
                     </Badge>
                   </div>
                   <p className="text-muted-foreground mt-1 line-clamp-2 text-xs leading-relaxed">
@@ -75,7 +74,9 @@ export function SuggestedWorkouts() {
                   </p>
                   <div className="mt-1.5 flex gap-1">
                     <Badge variant="outline" className="text-[10px]">
-                      {exerciseMeasure(s.entry) === 'distance' ? 'Distance' : 'Strength'}
+                      {exerciseMeasure(s.entry) === 'distance'
+                        ? t('overview.measure.distance')
+                        : t('overview.measure.strength')}
                     </Badge>
                     <Badge
                       variant="outline"
@@ -87,7 +88,7 @@ export function SuggestedWorkouts() {
                 </div>
                 <div className="flex shrink-0 flex-col gap-1.5">
                   <Button size="sm" onClick={() => start(s.entry)} className="rounded-full">
-                    <Play className="h-3.5 w-3.5" /> Start
+                    <Play className="h-3.5 w-3.5" /> {t('overview.suggested.start')}
                   </Button>
                   <Button
                     size="sm"

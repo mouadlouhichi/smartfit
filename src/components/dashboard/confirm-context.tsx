@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { useI18n } from '@/lib/i18n-context';
 
 export interface ConfirmOptions {
   title: string;
@@ -33,6 +34,11 @@ const ConfirmContext = createContext<((options: ConfirmOptions) => Promise<boole
  * while rendering inside the same Dialog system as everything else.
  */
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+  // The two buttons belong to the dialog chrome, not to any one caller, so the
+  // fallback labels come from the catalogue. A caller that passes only a title
+  // used to get an English "Cancel" inside an otherwise French dialog.
+  const { t } = useI18n();
+
   // The pending request lives in a ref (not state) so `confirm()` stays a
   // stable callback and resolving never happens inside a render or updater.
   const requestRef = useRef<ConfirmRequest | null>(null);
@@ -75,14 +81,14 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           </DialogHeader>
           <DialogFooter className="mt-2">
             <Button type="button" variant="ghost" onClick={() => settle(false)}>
-              {request?.options.cancelLabel ?? 'Cancel'}
+              {request?.options.cancelLabel ?? t('action.cancel')}
             </Button>
             <Button
               type="button"
               variant={request?.options.destructive ? 'destructive' : 'default'}
               onClick={() => settle(true)}
             >
-              {request?.options.confirmLabel ?? 'Confirm'}
+              {request?.options.confirmLabel ?? t('action.confirm')}
             </Button>
           </DialogFooter>
         </DialogContent>

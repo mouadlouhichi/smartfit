@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Field } from '@/components/ui/field';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals, usePayload } from '../modal-context';
 import { useConfirm } from '../confirm-context';
 import {
@@ -26,6 +27,7 @@ import { cn } from '@/lib/utils';
 
 export function CategoryModal() {
   const { state, addCategory, deleteCategory } = useStore();
+  const { t } = useI18n();
   const { closeModal } = useModals();
   const confirmDialog = useConfirm();
   const open = usePayload('category') !== null;
@@ -37,7 +39,7 @@ export function CategoryModal() {
   function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
-      setNameError('Give the activity type a name.');
+      setNameError(t('modal.category.nameError'));
       return;
     }
     setNameError(null);
@@ -53,12 +55,11 @@ export function CategoryModal() {
   async function remove(id: string, label: string) {
     const used = categoryUsage(state, id);
     const ok = await confirmDialog({
-      title: `Delete "${label}"?`,
+      title: t('modal.category.deleteTitle', { name: label }),
       body: used
-        ? `${label} is used by ${used} logged ${used === 1 ? 'workout' : 'workouts'}. ` +
-          'Those workouts are kept and will show as "Other".'
-        : 'This activity type will be removed. This cannot be undone.',
-      confirmLabel: 'Delete type',
+        ? `${t('modal.category.usedBy', { name: label, count: used })} ${t('modal.category.deleteBody')}`
+        : t('modal.category.deleteBodyBare'),
+      confirmLabel: t('modal.category.deleteConfirm'),
       destructive: true,
     });
     if (!ok) return;
@@ -69,8 +70,8 @@ export function CategoryModal() {
     <Dialog open={open} onOpenChange={(o) => !o && closeModal()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Activity types</DialogTitle>
-          <DialogDescription>Categories group your workouts. Add your own.</DialogDescription>
+          <DialogTitle>{t('modal.category.title')}</DialogTitle>
+          <DialogDescription>{t('modal.category.blurb')}</DialogDescription>
         </DialogHeader>
 
         <div className="mt-2 grid gap-3">
@@ -97,9 +98,9 @@ export function CategoryModal() {
           </div>
 
           <form onSubmit={submit} className="border-border mt-2 grid gap-3 rounded-xl border p-3">
-            <Field id="c-name" label="New type" error={nameError}>
+            <Field id="c-name" label={t('modal.category.new')} error={nameError}>
               <Input
-                placeholder="e.g. Climbing"
+                placeholder={t('modal.category.placeholder')}
                 value={name}
                 maxLength={40}
                 onChange={(e) => {
@@ -109,7 +110,7 @@ export function CategoryModal() {
               />
             </Field>
             <div className="grid gap-1.5">
-              <Label>Icon</Label>
+              <Label>{t('modal.category.icon')}</Label>
               <div className="flex flex-wrap gap-1.5">
                 {CATEGORY_ICON_OPTIONS.map((ic) => (
                   <button
@@ -129,7 +130,7 @@ export function CategoryModal() {
               </div>
             </div>
             <div className="grid gap-1.5">
-              <Label>Color</Label>
+              <Label>{t('modal.category.color')}</Label>
               <div className="flex flex-wrap gap-1.5">
                 {CATEGORY_COLOR_OPTIONS.map((col) => (
                   <button
@@ -147,14 +148,14 @@ export function CategoryModal() {
               </div>
             </div>
             <Button type="submit" size="sm" className="justify-self-start">
-              Add type
+              {t('modal.category.add')}
             </Button>
           </form>
         </div>
 
         <DialogFooter>
           <Button type="button" variant="ghost" onClick={closeModal}>
-            Done
+            {t('action.done')}
           </Button>
         </DialogFooter>
       </DialogContent>

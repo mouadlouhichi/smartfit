@@ -24,6 +24,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { cn } from '@/lib/utils';
 import { useTablist } from '@/components/ui/use-tablist';
 import { useModals } from '../modal-context';
@@ -40,10 +41,10 @@ import {
 } from '@smartfit/core';
 import {
   bodyDisplayUnit,
-  bodyLabel,
+  bodyUnitLabel,
   bodyValueToDisplay,
-  EXERCISE_EQUIPMENT_LABELS,
-  EXERCISE_MUSCLE_LABELS,
+  exerciseEquipmentLabel,
+  exerciseMuscleLabel,
   formatDateLabel,
   fromKg,
   kgToTarget,
@@ -72,6 +73,7 @@ const UNIT_STYLE: Record<string, string> = {
 
 export function BodyScreen() {
   const { state, hasMoreBodyLogs, loadingMore, loadEarlierBodyLogs } = useStore();
+  const { t, locale } = useI18n();
   const { openModal, openWith } = useModals();
   const [pageError, setPageError] = useState<string | null>(null);
   const [mode, setMode] = useState<'measure' | 'muscles'>('muscles');
@@ -82,7 +84,7 @@ export function BodyScreen() {
     try {
       await loadEarlierBodyLogs();
     } catch (e) {
-      setPageError(e instanceof Error ? e.message : 'Could not load older measurements.');
+      setPageError(e instanceof Error ? e.message : t('body.error.loadOlder'));
     }
   }
 
@@ -104,10 +106,10 @@ export function BodyScreen() {
         .sort((a, b) => (a.date < b.date ? -1 : 1))
         .map((l) => ({
           date: l.date,
-          label: formatDateLabel(l.date),
+          label: formatDateLabel(l.date, locale),
           value: round(bodyValueToDisplay(l.value, l.unit, state.profile), 1),
         })),
-    [state.bodyLogs, activeUnit, state.profile],
+    [state.bodyLogs, activeUnit, state.profile, locale],
   );
 
   const latest = points[points.length - 1]?.value;
@@ -121,17 +123,13 @@ export function BodyScreen() {
   return (
     <div className="grid gap-5">
       <ScreenHeader
-        eyebrow="Body"
-        title={mode === 'muscles' ? 'Train by muscle' : 'Measurements'}
-        subtitle={
-          mode === 'muscles'
-            ? 'Select a muscle to see its exercises and start a focus workout.'
-            : 'Track weight and measurements to see real change.'
-        }
+        eyebrow={t('body.eyebrow')}
+        title={mode === 'muscles' ? t('body.title.muscles') : t('body.title.measure')}
+        subtitle={mode === 'muscles' ? t('body.subtitle.muscles') : t('body.subtitle.measure')}
         action={
           mode === 'measure' ? (
             <Button onClick={() => openModal('body')}>
-              <Plus className="h-4 w-4" /> Log measurement
+              <Plus className="h-4 w-4" /> {t('body.logMeasurement')}
             </Button>
           ) : undefined
         }
@@ -141,31 +139,31 @@ export function BodyScreen() {
       <div
         className="bg-secondary border-border mx-auto flex w-fit rounded-full border p-1 shadow-sm"
         role="tablist"
-        aria-label="Body mode"
+        aria-label={t('body.modeAria')}
       >
         {(
           [
-            { key: 'measure', label: 'Measurements', icon: Ruler },
-            { key: 'muscles', label: 'Train by muscle', icon: PersonStanding },
+            { key: 'measure', label: t('body.mode.measure'), icon: Ruler },
+            { key: 'muscles', label: t('body.mode.muscles'), icon: PersonStanding },
           ] as const
-        ).map((t, i) => (
+        ).map((tab, i) => (
           <button
-            key={t.key}
+            key={tab.key}
             ref={bodyTabs.setRef(i)}
             role="tab"
-            aria-selected={mode === t.key}
-            tabIndex={mode === t.key ? 0 : -1}
+            aria-selected={mode === tab.key}
+            tabIndex={mode === tab.key ? 0 : -1}
             onKeyDown={(e) => bodyTabs.onKeyDown(e, i)}
-            onClick={() => setMode(t.key)}
+            onClick={() => setMode(tab.key)}
             className={cn(
               'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-colors min-[420px]:px-6',
-              mode === t.key
+              mode === tab.key
                 ? 'bg-volt text-ink shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            <t.icon className="h-4 w-4" aria-hidden />
-            {t.label}
+            <tab.icon className="h-4 w-4" aria-hidden />
+            {tab.label}
           </button>
         ))}
       </div>
@@ -178,12 +176,9 @@ export function BodyScreen() {
             <span className="bg-accent text-accent-foreground flex h-14 w-14 items-center justify-center rounded-2xl">
               <Ruler className="h-7 w-7" />
             </span>
-            <p className="font-semibold">No measurements yet</p>
-            <p className="text-muted-foreground max-w-xs text-sm">
-              Log your body weight today. Over a few weeks the trend line tells the story a daily
-              number never could.
-            </p>
-            <Button onClick={() => openModal('body')}>Add first measurement</Button>
+            <p className="font-semibold">{t('body.emptyTitle')}</p>
+            <p className="text-muted-foreground max-w-xs text-sm">{t('body.emptyBody')}</p>
+            <Button onClick={() => openModal('body')}>{t('body.emptyCta')}</Button>
           </CardContent>
         </Card>
       ) : (
@@ -194,18 +189,20 @@ export function BodyScreen() {
                 <span className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
                   <CategoryIcon name={meta?.icon ?? 'ruler'} size={17} />
                 </span>
-                <span className="min-w-0">{meta?.label ?? activeUnit} trend</span>
+                <span className="min-w-0">
+                  {t('body.trend', { label: meta?.label ?? activeUnit })}
+                </span>
               </CardTitle>
               <Select
                 id="body-measurement"
-                aria-label="Choose which measurement to chart"
+                aria-label={t('body.chartAria')}
                 value={activeUnit}
                 onChange={(e) => setUnit(e.target.value as BodyUnit)}
                 className="w-full min-[480px]:w-40"
               >
                 {unitsWithData.map((u) => (
                   <option key={u} value={u}>
-                    {BODY_UNIT_META[u]?.label ?? u}
+                    {bodyUnitLabel(u, undefined, t)}
                   </option>
                 ))}
               </Select>
@@ -247,17 +244,22 @@ export function BodyScreen() {
                     >
                       <Target className="h-3.5 w-3.5" aria-hidden />
                       {toTarget <= 0
-                        ? 'Target reached'
-                        : `${round(fromKg(toTarget, state.profile.weightUnit), 1)} ${displayUnit} to target`}
+                        ? t('body.targetReached')
+                        : t('body.toTarget', {
+                            value: round(fromKg(toTarget, state.profile.weightUnit), 1),
+                            unit: displayUnit,
+                          })}
                     </span>
                   )}
                 </div>
                 <div className="text-muted-foreground grid grid-cols-2 gap-x-5 gap-y-1 text-right text-xs">
                   <span>
-                    First logged <b className="text-foreground tabular-nums">{first ?? '—'}</b>
+                    {t('body.firstLogged')}{' '}
+                    <b className="text-foreground tabular-nums">{first ?? '—'}</b>
                   </span>
                   <span>
-                    Entries <b className="text-foreground tabular-nums">{points.length}</b>
+                    {t('body.entries')}{' '}
+                    <b className="text-foreground tabular-nums">{points.length}</b>
                   </span>
                   {points[0] && <span className="col-span-2">{points[0].label}</span>}
                 </div>
@@ -323,9 +325,9 @@ export function BodyScreen() {
 
           <Card>
             <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-base">History</CardTitle>
+              <CardTitle className="text-base">{t('body.history')}</CardTitle>
               <span className="bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-xs font-bold tabular-nums">
-                {state.bodyLogs.length} entr{state.bodyLogs.length === 1 ? 'y' : 'ies'}
+                {t('body.entryCount', { count: state.bodyLogs.length })}
               </span>
             </CardHeader>
             <CardContent className="grid gap-2">
@@ -345,8 +347,10 @@ export function BodyScreen() {
                         <CategoryIcon name={lMeta?.icon ?? 'ruler'} size={16} />
                       </span>
                       <div className="flex-1">
-                        <p className="text-sm font-medium">{bodyLabel(l.unit, l.label)}</p>
-                        <p className="text-muted-foreground text-xs">{formatDateLabel(l.date)}</p>
+                        <p className="text-sm font-medium">{bodyUnitLabel(l.unit, l.label, t)}</p>
+                        <p className="text-muted-foreground text-xs">
+                          {formatDateLabel(l.date, locale)}
+                        </p>
                       </div>
                       <span className="text-sm font-bold tabular-nums">
                         {round(bodyValueToDisplay(l.value, l.unit, state.profile), 1)}{' '}
@@ -392,6 +396,7 @@ export function BodyScreen() {
 
 function MuscleLab() {
   const { state } = useStore();
+  const { t, locale } = useI18n();
   const { openWith } = useModals();
   const [muscle, setMuscle] = useState<ExerciseMuscle>('chest');
   const [detailName, setDetailName] = useState<string | null>(null);
@@ -412,7 +417,9 @@ function MuscleLab() {
     return acc;
   }, [state]);
 
-  const label = EXERCISE_MUSCLE_LABELS[muscle];
+  // Two names for the same muscle: `muscleName` is what the athlete reads
+  // (translated), `muscleId` is the reference id the exercise data uses.
+  const muscleName = exerciseMuscleLabel(muscle, t);
   const sets = setsByMuscle[muscle] ?? 0;
   /** Strength-only routine candidates — no runs/swims in a set-based focus. */
   const entries = useMemo(() => strengthEntriesForMuscle(muscle), [muscle]);
@@ -422,7 +429,7 @@ function MuscleLab() {
     if (picks.length === 0) return;
     openWith({
       kind: 'runner',
-      title: `${label} focus`,
+      title: t('body.muscle.focusTitle', { muscle: muscleName }),
       categoryId: 'cat-strength',
       intensity: 'moderate',
       exercises: picks.map((e, i) => ({
@@ -437,22 +444,20 @@ function MuscleLab() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-muted-foreground text-[11px] font-bold tracking-[0.18em] uppercase">
-            Train by body part
+            {t('body.trainByPart')}
           </p>
           <h2 className="text-lg font-extrabold tracking-tight sm:text-xl">
-            Pick a muscle, build the session
+            {t('body.pickMuscle')}
           </h2>
         </div>
-        <p className="text-muted-foreground text-sm">
-          Tap a region to open its weekly progress and exercises.
-        </p>
+        <p className="text-muted-foreground text-sm">{t('body.mapHint')}</p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:items-start">
         {/* The map */}
         <Card className="mx-auto w-full max-w-sm lg:mx-0">
           <CardContent className="p-4 sm:p-6">
-            <div className="sr-only">Tap a muscle to open its progress sheet.</div>
+            <div className="sr-only">{t('body.mapHintSr')}</div>
             <MuscleMap
               selected={muscle}
               onSelect={(m) => {
@@ -474,15 +479,15 @@ function MuscleLab() {
                 </span>
                 <div className="min-w-0">
                   <p className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
-                    {label}
+                    {muscleName}
                   </p>
-                  <p className="truncate text-sm font-bold">Focus zone</p>
+                  <p className="truncate text-sm font-bold">{t('body.focusZone')}</p>
                 </div>
               </div>
               <p className="shrink-0 text-sm font-bold tabular-nums">
-                {sets} sets{' '}
+                {t('body.muscle.setCount', { count: sets })}{' '}
                 <span className="text-muted-foreground font-medium">
-                  of {MUSCLE_WEEKLY_SET_TARGET}
+                  {t('body.muscle.setTarget', { target: MUSCLE_WEEKLY_SET_TARGET })}
                 </span>
               </p>
             </div>
@@ -493,7 +498,7 @@ function MuscleLab() {
               aria-valuenow={sets}
               aria-valuemin={0}
               aria-valuemax={MUSCLE_WEEKLY_SET_TARGET}
-              aria-label={`Sets this week for ${label}`}
+              aria-label={t('body.muscle.setsAria', { muscle: muscleName })}
             >
               {Array.from({ length: MUSCLE_WEEKLY_SET_TARGET }, (_, i) => (
                 <span
@@ -504,10 +509,10 @@ function MuscleLab() {
             </div>
             <p className="text-muted-foreground mt-2 text-xs">
               {sets === 0
-                ? `No ${label.toLowerCase()} sets logged this week yet.`
+                ? t('body.muscle.setsNone', { muscle: muscleName.toLowerCase() })
                 : sets >= MUSCLE_WEEKLY_SET_TARGET
-                  ? `Weekly target hit — ${label.toLowerCase()} is fully fuelled.`
-                  : 'Keep going — every set this week fills the bar.'}
+                  ? t('body.muscle.setsDone', { muscle: muscleName.toLowerCase() })
+                  : t('body.muscle.setsProgress')}
             </p>
           </div>
 
@@ -515,7 +520,7 @@ function MuscleLab() {
           <div>
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-base font-extrabold tracking-tight sm:text-lg">
-                {label} exercises
+                {t('body.muscle.exercises', { muscle: muscleName })}
               </h2>
               <span className="text-muted-foreground text-sm font-semibold">
                 {entries.length} exercise{entries.length === 1 ? '' : 's'}
@@ -525,8 +530,7 @@ function MuscleLab() {
             {entries.length === 0 ? (
               <Card className="mt-3">
                 <CardContent className="text-muted-foreground p-5 text-sm">
-                  No catalog exercises target {label.toLowerCase()} yet — log it as a custom
-                  exercise from the workout logger.
+                  {t('body.muscle.noCatalog', { muscle: muscleName.toLowerCase() })}
                 </CardContent>
               </Card>
             ) : (
@@ -548,12 +552,12 @@ function MuscleLab() {
                         <span className="text-muted-foreground block truncate text-xs">
                           {e.muscles
                             .slice(0, 3)
-                            .map((m) => EXERCISE_MUSCLE_LABELS[m])
+                            .map((m) => exerciseMuscleLabel(m, t))
                             .join(' · ')}
                         </span>
                       </span>
                       <span className="bg-secondary text-muted-foreground shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold">
-                        {EXERCISE_EQUIPMENT_LABELS[e.equipment]}
+                        {exerciseEquipmentLabel(e.equipment, t)}
                       </span>
                       <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
                     </button>
@@ -566,7 +570,7 @@ function MuscleLab() {
           {/* Launch the focus routine */}
           {picks.length > 0 && (
             <PillCta
-              label="Set as Today's workout"
+              label={t('body.setAsToday')}
               className="w-full justify-center sm:w-fit"
               onClick={startFocusRoutine}
             />

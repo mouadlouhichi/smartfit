@@ -330,12 +330,16 @@ async function main() {
   }
 
   /** Next occurrence of a weekday at HH:MM, local time. */
+  // "Next occurrence" means the future: on the slot's own weekday, a start time
+  // that has already passed rolls to next week instead of seeding a slot in
+  // the past (which the storefront then hides as no longer upcoming).
   function nextSlot(weekday, hhmm) {
     const [h, m] = hhmm.split(':').map(Number);
     const d = new Date();
     d.setHours(h, m, 0, 0);
     const delta = (weekday - d.getDay() + 7) % 7;
     d.setDate(d.getDate() + delta);
+    if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 7);
     return d.getTime();
   }
 

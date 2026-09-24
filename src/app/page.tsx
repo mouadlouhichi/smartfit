@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { LandingSessionProvider } from '@/components/landing/account-link';
+import { GymsSection } from '@/components/landing/gyms-section';
+import { listGymsServer } from '@/lib/tenant-server';
 import { Navigation } from '@/components/landing/navigation';
 import { HeroSection } from '@/components/landing/hero-section';
 import { WhatIsSection } from '@/components/landing/what-is-section';
@@ -39,21 +41,42 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title, description, images: ['/og.png'] },
 };
 
-export default function HomePage() {
+/**
+ * Rebuild the baked HTML every ten minutes.
+ *
+ * The page is static, which is what a marketing page should be — but the gyms
+ * section is a live directory, and a gym approved this morning must not wait
+ * for the next deploy to appear. Ten minutes is far longer than the crawl
+ * interval and far shorter than a human's patience for a stale directory.
+ */
+export const revalidate = 600;
+
+export default async function HomePage() {
+  // The directory degrades to nothing rather than 500-ing: a landing page that
+  // fails to render because a gym list failed is a marketing outage caused by
+  // an optional section.
+  let gyms: Awaited<ReturnType<typeof listGymsServer>> = [];
+  try {
+    gyms = await listGymsServer();
+  } catch (err) {
+    console.error('[landing-gyms] could not list gyms:', err);
+  }
+
   return (
-    // The marketing page is brand-dark regardless of the OS theme: the `dark`
-    // class scopes the dark token overrides to this subtree (the product app
-    // keeps following the user's theme choice).
-    <main
-      id="main-content"
-      className="landing dark noise-overlay relative min-h-screen overflow-x-hidden"
-    >
+    // The marketing page follows the visitor's theme, like the product does.
+    // Every section is drawn with the `--foreground`/`--muted-foreground`/
+    // `--primary` tokens, so both palettes are the same components. It used to
+    // force `.dark`, which made the light palette unreachable on the one page a
+    // visitor sees first — and left the hard-coded near-white ink in the
+    // inverted band invisible against it.
+    <main id="main-content" className="landing relative min-h-screen overflow-x-hidden">
       <LandingSessionProvider>
         <Navigation />
         <HeroSection />
         <WhatIsSection />
         <FeaturesSection />
         <HowItWorksSection />
+        <GymsSection gyms={gyms} />
         <FreeListSection />
         <MetricsSection />
         <PlansSection />

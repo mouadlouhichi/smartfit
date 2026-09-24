@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { CategoryIcon, chipAccentStyle } from '@/components/category-icon';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals, usePayload } from '../modal-context';
 import { useConfirm } from '../confirm-context';
 import { INTENSITY_META, toISODate, fromKm, toKm } from '@smartfit/core';
@@ -33,6 +34,7 @@ const BLANK_EXERCISE: WorkoutExercise = { name: '', sets: [{}] };
  */
 export function WorkoutModal() {
   const { state, addSession, updateSession, deleteSession, estimateSessionCalories } = useStore();
+  const { t } = useI18n();
   const { closeModal } = useModals();
   const confirmDialog = useConfirm();
   const payload = usePayload('workout');
@@ -90,7 +92,7 @@ export function WorkoutModal() {
     e.preventDefault();
     const mins = Number(duration);
     if (!Number.isFinite(mins) || mins <= 0) {
-      setDurationError('Enter how many minutes the session took.');
+      setDurationError(t('modal.workout.durationError'));
       return;
     }
     setDurationError(null);
@@ -101,7 +103,7 @@ export function WorkoutModal() {
     const record = {
       date,
       categoryId,
-      title: title.trim() || category?.name || 'Workout',
+      title: title.trim() || category?.name || t('modal.workout.fallbackTitle'),
       durationMin: Math.max(1, Math.round(mins)),
       intensity,
       calories: cal,
@@ -119,9 +121,9 @@ export function WorkoutModal() {
   async function removeSession() {
     if (!editing) return;
     const ok = await confirmDialog({
-      title: 'Delete this workout?',
-      body: `"${editing.title}" will be removed from your log. This cannot be undone.`,
-      confirmLabel: 'Delete workout',
+      title: t('modal.workout.deleteTitle'),
+      body: t('modal.workout.deleteBody', { name: editing.title }),
+      confirmLabel: t('modal.workout.deleteConfirm'),
       destructive: true,
     });
     if (!ok) return;
@@ -145,11 +147,11 @@ export function WorkoutModal() {
                 <CategoryIcon name={category?.icon ?? 'activity'} size={22} />
               </span>
               <div className="min-w-0">
-                <DialogTitle>{editing ? 'Edit workout' : 'Log workout'}</DialogTitle>
+                <DialogTitle>
+                  {editing ? t('modal.workout.title.edit') : t('modal.workout.title.new')}
+                </DialogTitle>
                 <DialogDescription>
-                  {editing
-                    ? 'Fix anything that went in wrong — totals, streaks and charts update instantly.'
-                    : 'Every session you log feeds your weekly stats and streaks.'}
+                  {editing ? t('modal.workout.blurb.edit') : t('modal.workout.blurb.new')}
                 </DialogDescription>
               </div>
             </div>
@@ -158,14 +160,14 @@ export function WorkoutModal() {
           <div className="mt-5 grid gap-5">
             {/* When + Type */}
             <div className="grid grid-cols-2 gap-3">
-              <Field id="w-date" label="Date">
+              <Field id="w-date" label={t('modal.field.date')}>
                 <DatePicker
                   value={date}
                   onValueChange={setDate}
                   weekStartsOn={state.profile.weekStartsOn ?? 1}
                 />
               </Field>
-              <Field id="w-cat" label="Type">
+              <Field id="w-cat" label={t('modal.field.type')}>
                 <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                   {state.categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -183,9 +185,9 @@ export function WorkoutModal() {
               </Field>
             </div>
 
-            <Field id="w-title" label="Title">
+            <Field id="w-title" label={t('modal.field.title')}>
               <Input
-                placeholder={category?.name ?? 'Workout'}
+                placeholder={category?.name ?? t('modal.workout.fallbackTitle')}
                 value={title}
                 maxLength={120}
                 onChange={(e) => setTitle(e.target.value)}
@@ -195,7 +197,7 @@ export function WorkoutModal() {
             {/* Two columns on phones (the third field goes full-width below):
                 three ~70px selects clip their own labels on a 320px dialog. */}
             <div className="grid grid-cols-2 gap-2 min-[430px]:grid-cols-3 sm:gap-3">
-              <Field id="w-dur" label="Minutes" error={durationError}>
+              <Field id="w-dur" label={t('modal.field.minutes')} error={durationError}>
                 <Input
                   type="number"
                   min={1}
@@ -208,7 +210,7 @@ export function WorkoutModal() {
                   required
                 />
               </Field>
-              <Field id="w-int" label="Intensity">
+              <Field id="w-int" label={t('modal.field.intensity')}>
                 <Select
                   value={intensity}
                   onChange={(e) => setIntensity(e.target.value as Intensity)}
@@ -246,13 +248,17 @@ export function WorkoutModal() {
                 </Field>
               ) : (
                 <div className="col-span-2 grid content-start gap-1.5 min-[430px]:col-span-1">
-                  <p className="text-foreground/90 text-sm leading-none font-medium">Est. burn</p>
+                  <p className="text-foreground/90 text-sm leading-none font-medium">
+                    {t('modal.workout.estBurn')}
+                  </p>
                   <div className="border-accent/60 bg-accent/40 flex h-11 items-center gap-2 rounded-xl border px-3 sm:h-10">
                     <Flame className="text-accent-foreground h-4 w-4 shrink-0" aria-hidden />
                     <span className="text-foreground text-sm font-extrabold tabular-nums">
                       {cal}
                     </span>
-                    <span className="text-accent-foreground/90 text-xs font-semibold">kcal</span>
+                    <span className="text-accent-foreground/90 text-xs font-semibold">
+                      {t('modal.workout.kcal')}
+                    </span>
                   </div>
                 </div>
               )}
@@ -267,7 +273,9 @@ export function WorkoutModal() {
                     <Flame className="h-4 w-4" aria-hidden />
                   </span>
                   <span className="min-w-0">
-                    <span className="text-foreground block text-sm font-bold">Estimated burn</span>
+                    <span className="text-foreground block text-sm font-bold">
+                      {t('modal.workout.estimatedBurn')}
+                    </span>
                     <span className="text-muted-foreground block truncate text-xs">
                       {Number(duration) > 0
                         ? `${Math.max(1, Math.round(Number(duration)))} min`
@@ -286,13 +294,15 @@ export function WorkoutModal() {
             <section className="border-border bg-secondary/40 grid min-w-0 gap-3 rounded-2xl border p-3 sm:p-3.5">
               <div className="flex min-w-0 items-center justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="text-foreground/90 text-sm leading-none font-medium">Exercises</p>
+                  <p className="text-foreground/90 text-sm leading-none font-medium">
+                    {t('modal.workout.exercises')}
+                  </p>
                   {/* Wraps instead of truncating: `truncate` is white-space:
                       nowrap, and a nowrap line reports its full length as the
                       section's min-content width — which stretched every
                       grid track in this sheet past the phone's edge. */}
                   <p className="text-muted-foreground mt-1 text-xs">
-                    Sets you completed — optional, but it makes history worth looking back at.
+                    {t('modal.workout.setsHint')}
                   </p>
                 </div>
                 <Button
@@ -302,7 +312,7 @@ export function WorkoutModal() {
                   onClick={addExercise}
                   className="shrink-0"
                 >
-                  <Plus className="h-3.5 w-3.5" aria-hidden /> Add
+                  <Plus className="h-3.5 w-3.5" aria-hidden /> {t('action.add')}
                 </Button>
               </div>
 
@@ -333,7 +343,7 @@ export function WorkoutModal() {
                       className="w-16 shrink-0 text-center min-[430px]:w-20"
                       type="number"
                       min={1}
-                      placeholder="sets"
+                      placeholder={t('modal.workout.setsPlaceholder')}
                       value={ex.sets.length}
                       onChange={(e) =>
                         setExercises((p) =>
@@ -366,9 +376,9 @@ export function WorkoutModal() {
               </div>
             </section>
 
-            <Field id="w-notes" label="Notes">
+            <Field id="w-notes" label={t('modal.field.notes')}>
               <Input
-                placeholder="How did it feel? (optional)"
+                placeholder={t('modal.field.feel')}
                 value={notes}
                 maxLength={2000}
                 onChange={(e) => setNotes(e.target.value)}
@@ -384,7 +394,7 @@ export function WorkoutModal() {
                 onClick={removeSession}
                 className="text-destructive hover:text-destructive w-full sm:w-auto"
               >
-                <Trash2 className="h-4 w-4" /> Delete
+                <Trash2 className="h-4 w-4" /> {t('action.delete')}
               </Button>
             )}
             {/* Mobile: full-width stacked actions (the footer is
@@ -397,10 +407,10 @@ export function WorkoutModal() {
                 onClick={closeModal}
                 className="w-full sm:w-auto"
               >
-                Cancel
+                {t('action.cancel')}
               </Button>
               <Button type="submit" className="w-full sm:w-auto">
-                {editing ? 'Save changes' : 'Save workout'}
+                {editing ? t('modal.workout.saveChanges') : t('modal.workout.save')}
               </Button>
             </div>
           </DialogFooter>

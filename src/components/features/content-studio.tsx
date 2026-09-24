@@ -11,11 +11,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Artwork } from '@/components/ui/artwork';
 import { trainingArtwork } from '@/lib/training-art';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { useFeatureData } from '@/lib/feature-client';
 import { DEMO_CONTENT, EMPTY_CONTENT } from '@/lib/feature-demo';
 import { FeatureShell } from './shell';
-const control = 'bg-background w-full rounded-xl border p-3 text-sm';
+const control = 'border-input bg-field w-full rounded-xl border p-3 text-sm';
 const split = (s: string) =>
   s
     .split(',')
@@ -136,11 +138,8 @@ export function ContentStudio() {
                 </p>
               )}
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-1 text-sm">
-                  Type
-                  <select
-                    aria-label="Type"
-                    className={control}
+                <Field id="studio-type" label="Type">
+                  <Select
                     value={draft.kind}
                     onChange={(e) => patch('kind', e.target.value as ContentDraft['kind'])}
                   >
@@ -150,13 +149,10 @@ export function ContentStudio() {
                         {v === 'challenge' ? ' (draft only)' : ''}
                       </option>
                     ))}
-                  </select>
-                </label>
-                <label className="space-y-1 text-sm">
-                  Status
-                  <select
-                    aria-label="Status"
-                    className={control}
+                  </Select>
+                </Field>
+                <Field id="studio-status" label="Status">
+                  <Select
                     value={draft.status}
                     onChange={(e) => patch('status', e.target.value as ContentDraft['status'])}
                   >
@@ -165,8 +161,8 @@ export function ContentStudio() {
                         {v}
                       </option>
                     ))}
-                  </select>
-                </label>
+                  </Select>
+                </Field>
               </div>
               <label className="block space-y-1 text-sm">
                 Title
@@ -189,11 +185,8 @@ export function ContentStudio() {
                 />
               </label>
               <div className="grid gap-4 sm:grid-cols-2">
-                <label className="space-y-1 text-sm">
-                  Difficulty
-                  <select
-                    aria-label="Difficulty"
-                    className={control}
+                <Field id="studio-difficulty" label="Difficulty">
+                  <Select
                     value={draft.difficulty}
                     onChange={(e) =>
                       patch('difficulty', e.target.value as ContentDraft['difficulty'])
@@ -204,8 +197,8 @@ export function ContentStudio() {
                         {v}
                       </option>
                     ))}
-                  </select>
-                </label>
+                  </Select>
+                </Field>
                 <label className="space-y-1 text-sm">
                   Duration (minutes)
                   <Input

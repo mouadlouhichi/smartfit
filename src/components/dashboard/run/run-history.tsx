@@ -7,6 +7,7 @@ import { EmptyState } from '../empty-state';
 import { RouteMap } from '../route-map';
 import { useModals } from '../modal-context';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import {
   computeRunStats,
   fmtDuration,
@@ -39,6 +40,7 @@ export function RunHistory({
   /** Jump to the record tab (the empty state's call to action). */
   onRecord?: () => void;
 }) {
+  const { t } = useI18n();
   const { openWith } = useModals();
   const { state } = useStore();
   const runs = useMemo(
@@ -54,13 +56,13 @@ export function RunHistory({
     const weekStart = toISODate(startOfWeekDate(new Date(), weekStartOf(state)));
     const out: { label: string; runs: WorkoutSession[] }[] = [];
     for (const run of runs) {
-      const label = run.date >= weekStart ? 'This week' : 'Earlier';
+      const label = run.date >= weekStart ? t('run.week.thisWeek') : t('run.week.earlier');
       const group = out.find((g) => g.label === label);
       if (group) group.runs.push(run);
       else out.push({ label, runs: [run] });
     }
     return out;
-  }, [runs, state]);
+  }, [runs, state, t]);
 
   const totals = useMemo(() => runTotals(runs), [runs]);
 
@@ -78,9 +80,11 @@ export function RunHistory({
     return (
       <EmptyState
         icon={Footprints}
-        title="No tracked runs yet"
-        body="Record a run and it lands here with its route, splits and best efforts — ready to share."
-        action={onRecord ? <Button onClick={onRecord}>Record a run</Button> : undefined}
+        title={t('run.history.emptyTitle')}
+        body={t('run.history.emptyBody')}
+        action={
+          onRecord ? <Button onClick={onRecord}>{t('run.history.emptyCta')}</Button> : undefined
+        }
       />
     );
   }
@@ -88,10 +92,10 @@ export function RunHistory({
   return (
     <div className="grid gap-6">
       <div className="border-border bg-card grid grid-cols-2 gap-4 rounded-3xl border p-4 shadow-sm sm:grid-cols-4 sm:p-5">
-        <Total label="Runs" value={`${totals.runs}`} />
-        <Total label="Distance" value={fmtKm(totals.distanceKm)} />
-        <Total label="Moving time" value={fmtDuration(totals.movingMin * 60)} />
-        <Total label="Climb" value={`${totals.elevationGainM} m`} />
+        <Total label={t('run.total.runs')} value={`${totals.runs}`} />
+        <Total label={t('run.total.distance')} value={fmtKm(totals.distanceKm)} />
+        <Total label={t('run.total.movingTime')} value={fmtDuration(totals.movingMin * 60)} />
+        <Total label={t('run.total.climb')} value={`${totals.elevationGainM} m`} />
       </div>
 
       {groups.map((group) => (

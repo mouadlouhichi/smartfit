@@ -10,11 +10,14 @@ import {
 } from '@smartfit/core';
 import { Button } from '@/components/ui/button';
 import { WorkspaceIllustration } from '@/components/ui/artwork';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { useFeatureData } from '@/lib/feature-client';
 import { DEMO_SUPPORT } from '@/lib/feature-demo';
 import { FeatureShell } from './shell';
-const control = 'bg-background w-full rounded-xl border p-3 text-sm';
+const control = 'border-input bg-field w-full rounded-xl border p-3 text-sm';
 export function SupportWorkspace() {
   const resource = useFeatureData('/api/support', DEMO_SUPPORT, 'smartfit.demo.support');
   const [demoStaff, setDemoStaff] = useState(false);
@@ -23,6 +26,7 @@ export function SupportWorkspace() {
     (resource.mode === 'local' && demoStaff);
   const [selected, setSelected] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
+  const [category, setCategory] = useState<string>(SUPPORT_CATEGORIES[0]);
   const [search, setSearch] = useState('');
   const [reply, setReply] = useState('');
   const [validation, setValidation] = useState('');
@@ -33,7 +37,9 @@ export function SupportWorkspace() {
     setValidation('');
     setNotice('');
     const form = e.currentTarget;
-    const input = Object.fromEntries(new FormData(form));
+    // `category` comes from state — the design-system Select is a button and
+    // contributes nothing to a form submission.
+    const input = { ...Object.fromEntries(new FormData(form)), category };
     try {
       const valid = validateTicket(input);
       const ok = await resource.request({ action: 'create', ...valid }, () => {
@@ -138,18 +144,17 @@ export function SupportWorkspace() {
       {!resource.error && (
         <>
           <div className="flex flex-wrap items-center gap-3">
+            {/* The label text is the Checkbox's own label, so the accessible
+                name stays exactly "Preview support-agent persona (demo only)". */}
             {resource.mode === 'local' && (
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={demoStaff}
-                  onChange={(e) => {
-                    setDemoStaff(e.target.checked);
-                    setSelected(null);
-                  }}
-                />
-                Preview support-agent persona (demo only)
-              </label>
+              <Checkbox
+                checked={demoStaff}
+                onChange={(e) => {
+                  setDemoStaff(e.target.checked);
+                  setSelected(null);
+                }}
+                label="Preview support-agent persona (demo only)"
+              />
             )}
             <Button variant="outline" onClick={exportTickets}>
               Export my loaded tickets
@@ -168,20 +173,18 @@ export function SupportWorkspace() {
             <form onSubmit={create} className="bg-card space-y-3 rounded-2xl border p-5">
               <h2 className="font-bold">Open a support ticket</h2>
               <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
-                <label className="text-sm">
-                  Subject
+                <Field id="ticket-subject" label="Subject">
                   <Input name="subject" required minLength={3} maxLength={120} />
-                </label>
-                <label className="text-sm">
-                  Category
-                  <select aria-label="Category" name="category" className={control}>
+                </Field>
+                <Field id="ticket-category" label="Category">
+                  <Select value={category} onChange={(e) => setCategory(e.target.value)}>
                     {SUPPORT_CATEGORIES.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>
                     ))}
-                  </select>
-                </label>
+                  </Select>
+                </Field>
               </div>
               <label className="block text-sm">
                 What happened?
@@ -203,22 +206,16 @@ export function SupportWorkspace() {
                 Find a ticket
                 <Input type="search" value={search} onChange={(e) => setSearch(e.target.value)} />
               </label>
-              <label className="block text-sm">
-                Status filter
-                <select
-                  aria-label="Status filter"
-                  className={control}
-                  value={filter}
-                  onChange={(e) => setFilter(e.target.value)}
-                >
+              <Field id="ticket-filter" label="Status filter">
+                <Select value={filter} onChange={(e) => setFilter(e.target.value)}>
                   <option value="all">All statuses</option>
                   {TICKET_STATES.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
                   ))}
-                </select>
-              </label>
+                </Select>
+              </Field>
               <p className="text-muted-foreground text-xs">
                 {visible.length} shown · up to 100 loaded
               </p>

@@ -17,10 +17,11 @@
  */
 import { useMemo } from 'react';
 import { CalendarCheck, CalendarX2, Clock3, CreditCard, DoorOpen, Share2 } from 'lucide-react';
-import { daysUntilExpiry, isGymLive } from '@smartfit/core';
+import { daysUntilExpiry, gymStatusLabel, isGymLive, type Locale } from '@smartfit/core';
 import { formatMoney, useTenant } from '@/lib/tenant-context';
 import type { GymSlot } from '@/lib/firebase/tenant-repo';
 import { useAuth } from '@/lib/firebase/auth-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useStore } from '@/lib/store-context';
 import { computeGymShareAggregates } from '@/lib/gym-share';
 import { Badge } from '@/components/ui/badge';
@@ -29,17 +30,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/toast';
 import { statusTone } from '@/components/tenant/console';
+import { intlTag } from '@/lib/intl';
 
-function fmtDate(ms: number): string {
-  return new Date(ms).toLocaleDateString('en-GB', {
+function fmtDate(ms: number, locale: Locale): string {
+  return new Date(ms).toLocaleDateString(intlTag(locale), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
   });
 }
 
-function fmtDateTime(ms: number): string {
-  return new Date(ms).toLocaleString('en-GB', {
+function fmtDateTime(ms: number, locale: Locale): string {
+  return new Date(ms).toLocaleString(intlTag(locale), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -48,8 +50,11 @@ function fmtDateTime(ms: number): string {
   });
 }
 
-function fmtTime(ms: number): string {
-  return new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+function fmtTime(ms: number, locale: Locale): string {
+  return new Date(ms).toLocaleTimeString(intlTag(locale), {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 
 // ── Booking actions on a timetable row ───────────────────────────────────────
@@ -63,50 +68,51 @@ function fmtTime(ms: number): string {
  * cancel. A past or cancelled slot offers nothing.
  */
 export function SlotBookingActions({ slot }: { slot: GymSlot }) {
-  const t = useTenant();
+  const tenant = useTenant();
+  const { t } = useI18n();
   const toast = useToast();
   const { user } = useAuth();
-  const busy = t.mutating !== null;
+  const busy = tenant.mutating !== null;
 
-  const mine = t.myBookings.find(
+  const mine = tenant.myBookings.find(
     (b) => b.slotId === slot.id && (b.status === 'booked' || b.status === 'waitlist'),
   );
   const left = Math.max(0, (slot.capacity ?? 0) - (slot.booked ?? 0));
 
   if (slot.cancelled || slot.startsAt < Date.now()) return null;
 
-  if (t.mode === 'cloud' && !user) {
+  if (tenant.mode === 'cloud' && !user) {
     return (
       <Button asChild size="sm" variant="outline">
-        <a href={`/login?gym=${t.slug}`}>Sign in to book</a>
+        <a href={`/login?gym=${tenant.slug}`}>{t('gym.member.signInToBook')}</a>
       </Button>
     );
   }
 
   // No identity to attribute a booking to (the demo platform-admin persona).
-  if (!t.viewerUid || !t.can('booking:create:self')) return null;
+  if (!tenant.viewerUid || !tenant.can('booking:create:self')) return null;
 
   async function onBook() {
-    const result = await t.bookSlot(slot.id);
+    const result = await tenant.bookSlot(slot.id);
     if (!result) {
-      toast(t.mutationError ?? 'Could not book that class', 'info');
+      toast(tenant.mutationError ?? t('gym.member.bookError'), 'info');
       return;
     }
-    if (result.status === 'waitlist') toast('Class is full — you are on the waitlist', 'info');
-    else toast('Booked — see you there', 'success');
+    if (result.status === 'waitlist') toast(t('gym.member.waitlistedToast'), 'info');
+    else toast(t('gym.member.bookedToast'), 'success');
   }
 
   async function onJoin() {
-    const ok = await t.joinGymAsMember();
-    if (ok) toast('Welcome — your trial membership is active', 'success');
-    else toast(t.mutationError ?? 'Could not join', 'info');
+    const ok = await tenant.joinGymAsMember();
+    if (ok) toast(t('gym.member.joinedToast'), 'success');
+    else toast(tenant.mutationError ?? t('gym.member.joinError'), 'info');
   }
 
   async function onCancel() {
     if (!mine) return;
-    const ok = await t.cancelMyBooking(mine.id);
-    if (ok) toast('Booking cancelled', 'success');
-    else toast(t.mutationError ?? 'Could not cancel', 'info');
+    const ok = await tenant.cancelMyBooking(mine.id);
+    if (ok) toast(t('gym.member.cancelledToast'), 'success');
+    else toast(tenant.mutationError ?? t('gym.member.cancelError'), 'info');
   }
 
   if (mine) {
@@ -120,28 +126,28 @@ export function SlotBookingActions({ slot }: { slot: GymSlot }) {
               : 'bg-emerald-500/15 text-emerald-600'
           }
         >
-          {mine.status === 'waitlist' ? 'On waitlist' : 'Booked'}
+          {gymStatusLabel(mine.status, t)}
         </Badge>
-        {t.can('booking:cancel:self') && (
+        {tenant.can('booking:cancel:self') && (
           <Button size="sm" variant="outline" onClick={onCancel} disabled={busy}>
-            {mine.status === 'waitlist' ? 'Leave' : 'Cancel'}
+            {mine.status === 'waitlist' ? t('gym.member.leaveWaitlist') : t('action.cancel')}
           </Button>
         )}
       </span>
     );
   }
 
-  if (!t.membership) {
+  if (!tenant.membership) {
     return (
       <Button size="sm" variant="outline" onClick={onJoin} disabled={busy}>
-        Join to book
+        {t('gym.member.joinToBook')}
       </Button>
     );
   }
 
   return (
     <Button size="sm" variant={left === 0 ? 'outline' : 'default'} onClick={onBook} disabled={busy}>
-      {left === 0 ? 'Join waitlist' : 'Book'}
+      {left === 0 ? t('gym.member.joinWaitlist') : t('gym.member.book')}
     </Button>
   );
 }
@@ -150,38 +156,39 @@ export function SlotBookingActions({ slot }: { slot: GymSlot }) {
 
 /** Join CTA for a signed-in visitor who is not (yet) a member. */
 function JoinCard() {
-  const t = useTenant();
+  const tenant = useTenant();
+  const { t } = useI18n();
   const toast = useToast();
-  const published = t.plans.filter((p) => p.published !== false);
+  const published = tenant.plans.filter((p) => p.published !== false);
   const cheapest = published.reduce<number | null>(
     (min, p) => (min === null || p.priceMinor < min ? p.priceMinor : min),
     null,
   );
 
   async function onJoin() {
-    const ok = await t.joinGymAsMember();
-    if (ok) toast('Welcome — your trial membership is active', 'success');
-    else toast(t.mutationError ?? 'Could not join', 'info');
+    const ok = await tenant.joinGymAsMember();
+    if (ok) toast(t('gym.member.joinedToast'), 'success');
+    else toast(tenant.mutationError ?? t('gym.member.joinError'), 'info');
   }
 
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">Train at {t.gym?.name ?? 'this gym'}</CardTitle>
-        <CardDescription>
-          One tap and you are in on a trial membership — the front desk can move you onto a plan
-          whenever you are ready.
-        </CardDescription>
+        <CardTitle className="text-base">
+          {t('gym.join.title', { gym: tenant.gym?.name ?? t('gym.member.thisGym') })}
+        </CardTitle>
+        <CardDescription>{t('gym.join.body')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {published.length > 0 && (
           <p className="text-muted-foreground text-sm">
-            Plans from {formatMoney(cheapest ?? published[0].priceMinor, published[0].currency)} —
-            see the full list below.
+            {t('gym.join.plansFrom', {
+              price: formatMoney(cheapest ?? published[0].priceMinor, published[0].currency),
+            })}
           </p>
         )}
-        <Button onClick={onJoin} disabled={t.mutating !== null}>
-          Join {t.gym?.name ?? 'the gym'}
+        <Button onClick={onJoin} disabled={tenant.mutating !== null}>
+          {t('gym.join.cta', { gym: tenant.gym?.name ?? t('gym.member.theGym') })}
         </Button>
       </CardContent>
     </Card>
@@ -189,43 +196,50 @@ function JoinCard() {
 }
 
 function MembershipCard() {
-  const t = useTenant();
-  const m = t.membership!;
-  const plan = t.plans.find((p) => p.id === m.planId);
+  const tenant = useTenant();
+  const { t, locale } = useI18n();
+  const m = tenant.membership!;
+  const plan = tenant.plans.find((p) => p.id === m.planId);
   const days = daysUntilExpiry(m.expiresAt, Date.now());
   const now = Date.now();
   const month = new Date(now).getMonth();
-  const visitsThisMonth = t.myCheckins.filter((c) => {
+  const visitsThisMonth = tenant.myCheckins.filter((c) => {
     const d = new Date(c.at);
     return d.getMonth() === month && d.getFullYear() === new Date(now).getFullYear();
   }).length;
-  const accent = t.gym?.branding?.accentColor || '#8ad200';
+  const accent = tenant.gym?.branding?.accentColor || 'var(--volt)';
 
   const rows: Array<[string, string]> = [
-    ['Plan', plan?.name ?? 'Trial'],
+    [t('gym.member.plan'), plan?.name ?? t('gym.status.trial')],
     [
-      'Expires',
+      t('gym.member.expires'),
       days === null
-        ? 'No end date'
+        ? t('gym.member.noEndDate')
         : days >= 0
-          ? `${days} day${days === 1 ? '' : 's'} left`
-          : `Lapsed ${-days} day${days === -1 ? '' : 's'} ago`,
+          ? t('gym.member.daysLeft', { count: days })
+          : t('gym.member.lapsed', { count: -days }),
     ],
-    ['Member since', new Date(m.joinedAt).toLocaleDateString('en-GB')],
-    ['Check-ins', `${m.checkins} all time · ${visitsThisMonth} this month`],
-    ['Last visit', typeof m.lastVisitAt === 'number' ? fmtDate(m.lastVisitAt) : 'Not yet'],
+    [t('gym.member.memberSince'), new Date(m.joinedAt).toLocaleDateString(intlTag(locale))],
+    [
+      t('gym.member.checkins'),
+      t('gym.member.checkinsValue', { all: m.checkins, month: visitsThisMonth }),
+    ],
+    [
+      t('gym.member.lastVisit'),
+      typeof m.lastVisitAt === 'number' ? fmtDate(m.lastVisitAt, locale) : t('gym.member.notYet'),
+    ],
   ];
 
   return (
     <Card className="overflow-hidden" style={{ borderTop: `4px solid ${accent}` }}>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center justify-between text-base">
-          <span>Membership</span>
+          <span>{t('gym.member.membership')}</span>
           <Badge className={statusTone(m.status)} variant="secondary">
-            {m.status}
+            {gymStatusLabel(m.status, t)}
           </Badge>
         </CardTitle>
-        <CardDescription>{m.displayName ?? t.gym?.name}</CardDescription>
+        <CardDescription>{m.displayName ?? tenant.gym?.name}</CardDescription>
       </CardHeader>
       <CardContent>
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -242,18 +256,19 @@ function MembershipCard() {
 }
 
 function BookingsCard() {
-  const t = useTenant();
+  const tenant = useTenant();
+  const { t, locale } = useI18n();
   const toast = useToast();
-  const classById = useMemo(() => new Map(t.classes.map((c) => [c.id, c])), [t.classes]);
-  const slotById = useMemo(() => new Map(t.slots.map((s) => [s.id, s])), [t.slots]);
+  const classById = useMemo(() => new Map(tenant.classes.map((c) => [c.id, c])), [tenant.classes]);
+  const slotById = useMemo(() => new Map(tenant.slots.map((s) => [s.id, s])), [tenant.slots]);
   const now = Date.now();
 
-  const upcoming = t.myBookings
+  const upcoming = tenant.myBookings
     .filter((b) => b.status === 'booked' || b.status === 'waitlist')
     .map((b) => ({ b, slot: slotById.get(b.slotId) }))
     .filter((x) => x.slot && x.slot.startsAt >= now)
     .sort((a, b) => a.slot!.startsAt - b.slot!.startsAt);
-  const past = t.myBookings
+  const past = tenant.myBookings
     .filter((b) => b.status !== 'booked' && b.status !== 'waitlist')
     .sort((a, b) => b.createdAt - a.createdAt)
     .slice(0, 6);
@@ -262,17 +277,15 @@ function BookingsCard() {
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <CalendarCheck className="size-4" /> My classes
+          <CalendarCheck className="size-4" /> {t('gym.member.myClasses')}
         </CardTitle>
         <CardDescription>
-          Booked with {t.gym?.name}. Cancel any time up to the class.
+          {t('gym.member.myClassesBody', { gym: tenant.gym?.name ?? t('gym.member.theGym') })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
         {upcoming.length === 0 && (
-          <p className="text-muted-foreground text-sm">
-            Nothing booked yet — pick a class from the timetable below.
-          </p>
+          <p className="text-muted-foreground text-sm">{t('gym.member.noBookings')}</p>
         )}
         {upcoming.map(({ b, slot }) => (
           <div
@@ -280,9 +293,12 @@ function BookingsCard() {
             className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-sm last:border-0"
           >
             <div>
-              <p className="font-medium">{classById.get(slot!.classId)?.name ?? 'Class'}</p>
+              <p className="font-medium">
+                {classById.get(slot!.classId)?.name ?? t('gym.member.classFallback')}
+              </p>
               <p className="text-muted-foreground text-xs tabular-nums">
-                {fmtDateTime(slot!.startsAt)} · {fmtTime(slot!.startsAt)}–{fmtTime(slot!.endsAt)}
+                {fmtDateTime(slot!.startsAt, locale)} · {fmtTime(slot!.startsAt, locale)}–
+                {fmtTime(slot!.endsAt, locale)}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -294,20 +310,20 @@ function BookingsCard() {
                     : 'bg-emerald-500/15 text-emerald-600'
                 }
               >
-                {b.status === 'waitlist' ? 'On waitlist' : 'Booked'}
+                {gymStatusLabel(b.status, t)}
               </Badge>
-              {t.can('booking:cancel:self') && (
+              {tenant.can('booking:cancel:self') && (
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={async () => {
-                    const ok = await t.cancelMyBooking(b.id);
-                    if (ok) toast('Booking cancelled', 'success');
-                    else toast(t.mutationError ?? 'Could not cancel', 'info');
+                    const ok = await tenant.cancelMyBooking(b.id);
+                    if (ok) toast(t('gym.member.cancelledToast'), 'success');
+                    else toast(tenant.mutationError ?? t('gym.member.cancelError'), 'info');
                   }}
-                  disabled={t.mutating !== null}
+                  disabled={tenant.mutating !== null}
                 >
-                  <CalendarX2 className="size-3.5" /> Cancel
+                  <CalendarX2 className="size-3.5" /> {t('action.cancel')}
                 </Button>
               )}
             </div>
@@ -317,7 +333,7 @@ function BookingsCard() {
         {past.length > 0 && (
           <div className="border-border/60 border-t pt-2">
             <p className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">
-              History
+              {t('gym.member.history')}
             </p>
             {past.map((b) => {
               const slot = slotById.get(b.slotId);
@@ -327,10 +343,10 @@ function BookingsCard() {
                   className="text-muted-foreground flex items-center justify-between py-0.5 text-xs"
                 >
                   <span>
-                    {slot ? fmtDateTime(slot.startsAt) : fmtDate(b.createdAt)} ·{' '}
-                    {classById.get(slot?.classId ?? '')?.name ?? 'Class'}
+                    {slot ? fmtDateTime(slot.startsAt, locale) : fmtDate(b.createdAt, locale)} ·{' '}
+                    {classById.get(slot?.classId ?? '')?.name ?? t('gym.member.classFallback')}
                   </span>
-                  <Badge variant="outline">{b.status.replace('_', ' ')}</Badge>
+                  <Badge variant="outline">{gymStatusLabel(b.status, t)}</Badge>
                 </div>
               );
             })}
@@ -342,22 +358,25 @@ function BookingsCard() {
 }
 
 function VisitHistoryCard() {
-  const t = useTenant();
-  const visits = t.myCheckins.slice(0, 8);
+  const tenant = useTenant();
+  const { t, locale } = useI18n();
+  const visits = tenant.myCheckins.slice(0, 8);
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <DoorOpen className="size-4" /> Visits
+          <DoorOpen className="size-4" /> {t('gym.member.visits')}
         </CardTitle>
         <CardDescription>
-          Recorded at the door{t.membership ? ` — ${t.membership.checkins} all time` : ''}.
+          {tenant.membership
+            ? t('gym.member.visitsBodyCount', { count: tenant.membership.checkins })
+            : t('gym.member.visitsBody')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         {visits.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No visits recorded yet.</p>
+          <p className="text-muted-foreground text-sm">{t('gym.member.noVisits')}</p>
         ) : (
           <ul className="space-y-1">
             {visits.map((v) => (
@@ -366,9 +385,9 @@ function VisitHistoryCard() {
                 className="text-muted-foreground flex items-center justify-between text-sm"
               >
                 <span className="flex items-center gap-2">
-                  <Clock3 className="size-3" /> {fmtDateTime(v.at)}
+                  <Clock3 className="size-3" /> {fmtDateTime(v.at, locale)}
                 </span>
-                <span className="text-xs">front desk</span>
+                <span className="text-xs">{t('gym.member.frontDesk')}</span>
               </li>
             ))}
           </ul>
@@ -379,42 +398,38 @@ function VisitHistoryCard() {
 }
 
 function ShareCard() {
-  const t = useTenant();
+  const tenant = useTenant();
+  const { t, locale } = useI18n();
   const toast = useToast();
   const { state } = useStore();
-  const busy = t.mutating !== null;
+  const busy = tenant.mutating !== null;
 
   const aggregates = useMemo(
     () =>
       computeGymShareAggregates(
         state,
-        t.myBookings.map((b) => b.status),
+        tenant.myBookings.map((b) => b.status),
       ),
-    [state, t.myBookings],
+    [state, tenant.myBookings],
   );
-  const shared = !!t.gymShare;
+  const shared = !!tenant.gymShare;
 
   async function onToggle(on: boolean) {
     const ok = on
-      ? await t.updateGymShare({ ...aggregates, sharedAt: Date.now() })
-      : await t.updateGymShare(null);
-    if (ok)
-      toast(
-        on ? 'Sharing on — the gym sees your three numbers' : 'Sharing off — share deleted',
-        'success',
-      );
-    else toast(t.mutationError ?? 'Could not update sharing', 'info');
+      ? await tenant.updateGymShare({ ...aggregates, sharedAt: Date.now() })
+      : await tenant.updateGymShare(null);
+    if (ok) toast(on ? t('gym.share.onToast') : t('gym.share.offToast'), 'success');
+    else toast(tenant.mutationError ?? t('gym.share.error'), 'info');
   }
 
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Share2 className="size-4" /> Progress sharing
+          <Share2 className="size-4" /> {t('gym.share.title')}
         </CardTitle>
         <CardDescription>
-          Let {t.gym?.name ?? 'the gym'} see how your training is going — three numbers, nothing
-          else. No workouts, no body data, no meals.
+          {t('gym.share.body', { gym: tenant.gym?.name ?? t('gym.member.theGym') })}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -423,34 +438,37 @@ function ShareCard() {
           htmlFor="gym-share"
         >
           <span className="text-sm font-medium">
-            {shared ? 'Sharing with ' + (t.gym?.name ?? 'the gym') : 'Off — the gym sees nothing'}
+            {shared
+              ? t('gym.share.on', { gym: tenant.gym?.name ?? t('gym.member.theGym') })
+              : t('gym.share.off')}
           </span>
           <Switch
             id="gym-share"
             checked={shared}
             onCheckedChange={onToggle}
-            disabled={busy || !t.can('member:data:share')}
-            aria-label="Share progress aggregates with this gym"
+            disabled={busy || !tenant.can('member:data:share')}
+            aria-label={t('gym.share.aria')}
           />
         </label>
         <ul className="text-muted-foreground space-y-1 text-xs">
           <li>
-            Sessions logged this month:{' '}
+            {t('gym.share.sessions')}{' '}
             <span className="text-foreground font-medium">{aggregates.sessionsThisMonth}</span>
           </li>
           <li>
-            Training streak:{' '}
-            <span className="text-foreground font-medium">{aggregates.streakDays} days</span>
+            {t('gym.share.streak')}{' '}
+            <span className="text-foreground font-medium">
+              {t('gym.share.streakValue', { count: aggregates.streakDays })}
+            </span>
           </li>
           <li>
-            Class attendance:{' '}
+            {t('gym.share.attendance')}{' '}
             <span className="text-foreground font-medium">{aggregates.attendancePct}%</span>
           </li>
         </ul>
-        {shared && typeof t.gymShare?.sharedAt === 'number' && (
+        {shared && typeof tenant.gymShare?.sharedAt === 'number' && (
           <p className="text-muted-foreground text-xs">
-            Last shared {fmtDate(t.gymShare.sharedAt)} · turning this off deletes the share
-            immediately.
+            {t('gym.share.lastShared', { date: fmtDate(tenant.gymShare.sharedAt, locale) })}
           </p>
         )}
       </CardContent>
@@ -465,16 +483,16 @@ function ShareCard() {
  * flash for their own gym.
  */
 export function MyGym() {
-  const t = useTenant();
+  const tenant = useTenant();
   const { user, initializing } = useAuth();
 
-  if (t.mode === 'cloud' && (initializing || !user)) return null;
-  if (t.mode === 'cloud' && !t.memberDataReady) return null;
-  if (!t.gym || !isGymLive(t.gym.status)) return null;
+  if (tenant.mode === 'cloud' && (initializing || !user)) return null;
+  if (tenant.mode === 'cloud' && !tenant.memberDataReady) return null;
+  if (!tenant.gym || !isGymLive(tenant.gym.status)) return null;
 
   return (
     <section id="membership" className="space-y-4">
-      {t.membership ? (
+      {tenant.membership ? (
         <div className="grid gap-4 lg:grid-cols-2">
           <MembershipCard />
           <BookingsCard />

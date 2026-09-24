@@ -2,21 +2,34 @@
 
 import {
   CalendarCheck,
+  Clock,
+  Compass,
+  Crown,
   Dumbbell,
   Flag,
   Flame,
+  Hourglass,
   Lock,
   Medal,
+  Mountain,
+  Repeat,
+  RotateCcw,
+  Route,
+  Scale,
+  Shield,
   Sunrise,
   Timer,
   TrendingUp,
   Trophy,
+  Utensils,
   Weight,
+  Zap,
   type LucideIcon,
 } from 'lucide-react';
 import type { Achievement } from '@smartfit/core';
 import { formatDateLabel } from '@smartfit/core';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n-context';
 
 const ICONS: Record<string, LucideIcon> = {
   flag: Flag,
@@ -29,6 +42,18 @@ const ICONS: Record<string, LucideIcon> = {
   weight: Weight,
   sunrise: Sunrise,
   medal: Medal,
+  shield: Shield,
+  crown: Crown,
+  clock: Clock,
+  mountain: Mountain,
+  repeat: Repeat,
+  'rotate-ccw': RotateCcw,
+  zap: Zap,
+  scale: Scale,
+  utensils: Utensils,
+  compass: Compass,
+  hourglass: Hourglass,
+  route: Route,
 };
 
 /**
@@ -49,13 +74,14 @@ export function AchievementWall({
   /** Shown under a locked tile when it is behind the Pro paywall. */
   lockedNote?: string;
 }) {
+  const { t, locale } = useI18n();
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold">
-          {unlockedCount} of {achievements.length} earned
+          {t('ach.wall.earned', { earned: unlockedCount, total: achievements.length })}
         </p>
         <div
           className="bg-secondary h-1.5 w-24 overflow-hidden rounded-full"
@@ -87,6 +113,7 @@ function AchievementTile({
   achievement: Achievement;
   lockedNote?: string;
 }) {
+  const { t, locale } = useI18n();
   const a = achievement;
   const Icon = ICONS[a.icon] ?? Medal;
 
@@ -96,7 +123,7 @@ function AchievementTile({
         'relative flex flex-col items-start gap-2.5 rounded-2xl border p-3.5 text-left transition-colors',
         a.unlocked ? 'bg-card border-transparent shadow-sm' : 'bg-secondary/50 border-border/60',
       )}
-      aria-label={`${a.name}${a.unlocked ? ', earned' : ', locked'}`}
+      aria-label={`${a.name}, ${a.unlocked ? t('ach.state.earned') : t('ach.state.locked')}`}
     >
       <Medallion tint={a.tint} unlocked={a.unlocked}>
         {a.unlocked ? (
@@ -115,7 +142,7 @@ function AchievementTile({
 
       {a.unlocked && a.unlockedAt ? (
         <p className="text-muted-foreground text-[11px] font-semibold">
-          Earned {formatDateLabel(a.unlockedAt)}
+          {t('ach.wall.earnedOn', { date: formatDateLabel(a.unlockedAt, locale) })}
         </p>
       ) : (
         <p className="text-muted-foreground text-[11px] font-semibold tabular-nums">
@@ -160,7 +187,7 @@ function Medallion({
     <span
       className={cn(
         'flex h-11 w-11 shrink-0 items-center justify-center rounded-full',
-        unlocked ? 'medal-pop text-[#0d1102]' : 'text-muted-foreground',
+        unlocked ? 'medal-pop text-[var(--primary-foreground)]' : 'text-muted-foreground',
       )}
       style={{
         background: unlocked
@@ -170,7 +197,7 @@ function Medallion({
           ? `inset 0 0 0 1px rgba(255,255,255,0.25), 0 6px 14px -6px ${tint}`
           : undefined,
         border: unlocked ? undefined : '1px solid var(--border)',
-        color: unlocked ? '#0d1102' : undefined,
+        color: unlocked ? 'var(--primary-foreground)' : undefined,
       }}
     >
       {children}

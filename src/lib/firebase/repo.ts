@@ -20,9 +20,17 @@ import {
   type WorkoutSession,
 } from '@smartfit/core';
 import { getFirebaseServices, colPath, userDoc } from './config';
+import { readOrFallback } from './load-errors';
 
 export type CollectionName =
-  'sessions' | 'schedule' | 'goals' | 'bodyLogs' | 'meals' | 'categories' | 'customGyms';
+  | 'sessions'
+  | 'schedule'
+  | 'goals'
+  | 'bodyLogs'
+  | 'meals'
+  | 'checkIns'
+  | 'categories'
+  | 'customGyms';
 
 export const ALL_COLLECTIONS: CollectionName[] = [
   'sessions',
@@ -30,6 +38,7 @@ export const ALL_COLLECTIONS: CollectionName[] = [
   'goals',
   'bodyLogs',
   'meals',
+  'checkIns',
   'categories',
   'customGyms',
 ];
@@ -102,7 +111,10 @@ function withId<T>(d: { id: string; data: () => unknown }): T {
  * Load a user's state. Returns null when the account has no profile document
  * yet (i.e. this is a brand-new sign-in).
  */
-export async function loadUserState(uid: string): Promise<FitnessState | null> {
+export async function loadUserState(
+  uid: string,
+  onBlocked?: (name: string, err: unknown) => void,
+): Promise<FitnessState | null> {
   const { db } = await requireServices();
   const { doc, getDoc, collection, getDocs } = await import('firebase/firestore');
 
@@ -113,36 +125,52 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
   const profile = (data?.profile as UserProfile) ?? null;
   if (!profile) return null;
 
-  // Small collections: fetch whole. Time series: fetch a bounded, ordered window.
-  const [schedule, goals, categories, customGyms, sessions, bodyLogs, meals] = await Promise.all([
-    getDocs(collection(db, colPath(uid, 'schedule'))).then((s) =>
-      s.docs.map((d) => withId<ScheduledWorkout>(d)),
-    ),
-    getDocs(collection(db, colPath(uid, 'goals'))).then((s) =>
-      s.docs.map((d) => withId<FitnessGoal>(d)),
-    ),
-    getDocs(collection(db, colPath(uid, 'categories'))).then((s) =>
-      s.docs.map((d) => withId<Category>(d)),
-    ),
-    getDocs(collection(db, colPath(uid, 'customGyms'))).then((s) =>
-      s.docs.map((d) => withId<any>(d)),
-    ),
-    loadHistoryWindow(
-      uid,
-      'sessions',
-      (rows) => parseState({ sessions: rows }).sessions,
-      null,
-      INITIAL_SESSION_LIMIT,
-    ),
-    loadHistoryWindow(
-      uid,
-      'bodyLogs',
-      (rows) => parseState({ bodyLogs: rows }).bodyLogs,
-      null,
-      PAGE_SIZE,
-    ),
-    loadHistoryWindow(uid, 'meals', (rows) => parseState({ meals: rows }).meals, null, PAGE_SIZE),
-  ]);
+  /*
+   * Small collections: fetch whole. Time series: fetch a bounded, ordered
+   * window.
+   *
+   * Every read except the profile (the identity anchor above, which must
+   * succeed or fail on its own terms) goes through `readOrFallback`: a
+   * collection the deployed rules do not grant degrades to empty and is
+   * reported, instead of rejecting the batch and locking the athlete out of an
+   * account whose data is sitting right there. Offline still throws — see
+   * `load-errors.ts` for why that distinction is load-bearing.
+   */
+  const readAll = <T>(name: CollectionName, run: () => Promise<T>): Promise<T> =>
+    readOrFallback(`${name}`, run, [] as unknown as T, onBlocked);
+  const readWindow = <T extends DescRow>(
+    name: 'sessions' | 'bodyLogs' | 'meals' | 'checkIns',
+    select: (rows: unknown[]) => T[],
+  ): Promise<T[]> =>
+    readOrFallback(`${name}`, () => loadHistoryWindow(uid, name, select, null), [], onBlocked);
+
+  const [schedule, goals, categories, customGyms, sessions, bodyLogs, meals, checkIns] =
+    await Promise.all([
+      readAll<ScheduledWorkout[]>('schedule', () =>
+        getDocs(collection(db, colPath(uid, 'schedule'))).then((s) =>
+          s.docs.map((d) => withId<ScheduledWorkout>(d)),
+        ),
+      ),
+      readAll<FitnessGoal[]>('goals', () =>
+        getDocs(collection(db, colPath(uid, 'goals'))).then((s) =>
+          s.docs.map((d) => withId<FitnessGoal>(d)),
+        ),
+      ),
+      readAll<Category[]>('categories', () =>
+        getDocs(collection(db, colPath(uid, 'categories'))).then((s) =>
+          s.docs.map((d) => withId<Category>(d)),
+        ),
+      ),
+      readAll<any[]>('customGyms', () =>
+        getDocs(collection(db, colPath(uid, 'customGyms'))).then((s) =>
+          s.docs.map((d) => withId<any>(d)),
+        ),
+      ),
+      readWindow('sessions', (rows) => parseState({ sessions: rows }).sessions),
+      readWindow('bodyLogs', (rows) => parseState({ bodyLogs: rows }).bodyLogs),
+      readWindow('meals', (rows) => parseState({ meals: rows }).meals),
+      readWindow('checkIns', (rows) => parseState({ checkIns: rows }).checkIns ?? []),
+    ]);
 
   // parseState guarantees a valid shape even if a document was written by an
   // older client or hand-edited in the console.
@@ -154,6 +182,7 @@ export async function loadUserState(uid: string): Promise<FitnessState | null> {
     goals,
     bodyLogs,
     meals,
+    checkIns,
     customGyms,
   });
 }
@@ -200,7 +229,7 @@ export async function loadMoreBodyLogs(
  */
 async function loadHistoryWindow<T extends DescRow>(
   uid: string,
-  name: 'sessions' | 'bodyLogs' | 'meals',
+  name: 'sessions' | 'bodyLogs' | 'meals' | 'checkIns',
   select: (rows: unknown[]) => T[],
   cursor: HistoryCursor | null,
   pageSize = cursor ? PAGE_SIZE : INITIAL_SESSION_LIMIT,
@@ -393,6 +422,7 @@ export async function replaceUserState(uid: string, state: FitnessState): Promis
   await replaceCollection(uid, 'goals', state.goals, { removeStale: false });
   await replaceCollection(uid, 'bodyLogs', state.bodyLogs, { removeStale: false });
   await replaceCollection(uid, 'meals', state.meals, { removeStale: false });
+  await replaceCollection(uid, 'checkIns', state.checkIns ?? [], { removeStale: false });
   await replaceCollection(uid, 'customGyms', (state.customGyms || []) as any, {
     removeStale: false,
   });
@@ -404,6 +434,7 @@ export async function replaceUserState(uid: string, state: FitnessState): Promis
   await removeStaleCollection(uid, 'goals', state.goals);
   await removeStaleCollection(uid, 'bodyLogs', state.bodyLogs);
   await removeStaleCollection(uid, 'meals', state.meals);
+  await removeStaleCollection(uid, 'checkIns', state.checkIns ?? []);
   await removeStaleCollection(uid, 'customGyms', (state.customGyms || []) as any);
 }
 
@@ -424,6 +455,7 @@ export async function importState(uid: string, state: FitnessState): Promise<voi
     ...state.goals.map((item) => ({ name: 'goals' as const, item })),
     ...state.bodyLogs.map((item) => ({ name: 'bodyLogs' as const, item })),
     ...state.meals.map((item) => ({ name: 'meals' as const, item })),
+    ...(state.checkIns ?? []).map((item) => ({ name: 'checkIns' as const, item })),
     ...((state.customGyms || []) as any).map((item: any) => ({
       name: 'customGyms' as const,
       item,

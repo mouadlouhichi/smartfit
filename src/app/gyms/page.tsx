@@ -97,7 +97,7 @@ export default async function GymsPage() {
                   <span
                     aria-hidden
                     className="mt-1 size-4 shrink-0 rounded-full"
-                    style={{ backgroundColor: gym.branding?.accentColor || '#8ad200' }}
+                    style={{ backgroundColor: gym.branding?.accentColor || 'var(--volt)' }}
                   />
                 </div>
                 {gym.branding?.tagline && (

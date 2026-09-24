@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import {
   EXERCISE_GROUPS,
   EXERCISE_EQUIPMENT_LABELS,
-  EXERCISE_MUSCLE_LABELS,
+  exerciseVocabulary,
   exerciseMeasure,
   searchExercises,
   suggestExercises,
@@ -21,6 +21,7 @@ import { ExerciseImage } from '@/components/exercise-image';
 import { ExerciseDetailDialog } from '@/components/exercise-detail';
 import { useAllExercises, useExtendedCatalogStatus } from '@/lib/use-extended-catalog';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 
 /** Tiles rendered before "Show more" — keeps the grid's image loads light. */
 const PAGE_SIZE = 24;
@@ -63,6 +64,10 @@ function inGroup(
  * Tapping a tile opens the step-by-step how-to.
  */
 export function ExerciseLibrary() {
+  const { t } = useI18n();
+  // One memo for every id → label lookup on this screen, so the library
+  // reads in the active locale rather than through the English maps.
+  const vocab = useMemo(() => exerciseVocabulary(t), [t]);
   const [group, setGroup] = useState<GroupFilter>('all');
   const [muscle, setMuscle] = useState<ExerciseMuscle | null>(null);
   const [equipment, setEquipment] = useState<ExerciseEquipment | null>(null);
@@ -167,7 +172,7 @@ export function ExerciseLibrary() {
     <Card>
       <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Dumbbell className="text-primary h-4 w-4" /> Exercise library
+          <Dumbbell className="text-primary h-4 w-4" /> {t('library.title')}
           <span className="text-muted-foreground font-normal">{catalog.length}</span>
         </CardTitle>
         <div className="relative w-full sm:w-64">
@@ -176,8 +181,8 @@ export function ExerciseLibrary() {
             className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
           />
           <Input
-            aria-label="Search exercises"
-            placeholder="Search exercises…"
+            aria-label={t('library.searchAria')}
+            placeholder={t('library.searchPlaceholder')}
             className="pr-8 pl-9 sm:h-9"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -185,7 +190,7 @@ export function ExerciseLibrary() {
           {query && (
             <button
               type="button"
-              aria-label="Clear search"
+              aria-label={t('library.clearSearch')}
               onClick={() => setQuery('')}
               className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
             >
@@ -195,19 +200,25 @@ export function ExerciseLibrary() {
         </div>
       </CardHeader>
       <CardContent className="grid gap-3">
-        <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Exercise sections">
+        <div
+          className="flex flex-wrap gap-1.5"
+          role="tablist"
+          aria-label={t('library.sectionsAria')}
+        >
           <Chip active={group === 'all'} onClick={() => selectGroup('all')}>
-            All <span className="opacity-60">{allCount}</span>
+            {t('library.section.all')} <span className="opacity-60">{allCount}</span>
           </Chip>
           <Chip active={group === 'popular'} onClick={() => selectGroup('popular')}>
-            Popular <span className="opacity-60">{groupCounts.get('popular') ?? 0}</span>
+            {t('library.section.popular')}{' '}
+            <span className="opacity-60">{groupCounts.get('popular') ?? 0}</span>
           </Chip>
           <Chip active={group === 'suggested'} onClick={() => selectGroup('suggested')}>
-            For you <span className="opacity-60">{groupCounts.get('suggested') ?? 0}</span>
+            {t('library.section.suggested')}{' '}
+            <span className="opacity-60">{groupCounts.get('suggested') ?? 0}</span>
           </Chip>
           {EXERCISE_GROUPS.map((g) => (
             <Chip key={g.id} active={group === g.id} onClick={() => selectGroup(g.id)}>
-              {g.label}{' '}
+              {vocab.group(g.id)}{' '}
               <span className={cn(groupCounts.get(g.id) ? 'opacity-60' : 'opacity-30')}>
                 {groupCounts.get(g.id) ?? 0}
               </span>
@@ -218,13 +229,13 @@ export function ExerciseLibrary() {
         <div
           className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1"
           role="group"
-          aria-label="Filter by equipment"
+          aria-label={t('library.equipmentAria')}
         >
           <span className="text-muted-foreground pr-1 text-xs font-semibold tracking-wide uppercase">
-            Equipment
+            {t('library.equipment')}
           </span>
           <Chip active={equipment === null} onClick={() => setEquipment(null)} className="shrink-0">
-            Any
+            {t('library.equipmentAny')}
           </Chip>
           {EQUIPMENT_ORDER.filter(
             (eq) => equipment === eq || (equipmentCounts.get(eq) ?? 0) > 0,
@@ -235,7 +246,7 @@ export function ExerciseLibrary() {
               onClick={() => setEquipment(equipment === eq ? null : eq)}
               className="shrink-0"
             >
-              {EXERCISE_EQUIPMENT_LABELS[eq]}{' '}
+              {vocab.equipment(eq)}{' '}
               <span className="opacity-60">{equipmentCounts.get(eq) ?? 0}</span>
             </Chip>
           ))}
@@ -245,10 +256,10 @@ export function ExerciseLibrary() {
           <div
             className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1"
             role="group"
-            aria-label="Focus on a muscle"
+            aria-label={t('library.focusAria')}
           >
             <span className="text-muted-foreground pr-1 text-xs font-semibold tracking-wide uppercase">
-              Focus
+              {t('library.focus')}
             </span>
             {muscleOptions.map(({ muscle: m, count }) => (
               <Chip
@@ -257,7 +268,7 @@ export function ExerciseLibrary() {
                 onClick={() => setMuscle(muscle === m ? null : m)}
                 className="shrink-0"
               >
-                {EXERCISE_MUSCLE_LABELS[m]} <span className="opacity-60">{count}</span>
+                {vocab.muscle(m)} <span className="opacity-60">{count}</span>
               </Chip>
             ))}
           </div>
@@ -266,35 +277,35 @@ export function ExerciseLibrary() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <span className="text-muted-foreground text-xs">
-              {results.length} {results.length === 1 ? 'exercise' : 'exercises'}
+              {t('library.results', { count: results.length })}
             </span>
             {status === 'loading' && (
               <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                Syncing the full 1,300+ library…
+                {t('library.syncing')}
               </span>
             )}
             {status === 'error' && (
               <span className="text-muted-foreground inline-flex items-center gap-1.5 text-xs">
                 <CloudOff className="h-3.5 w-3.5" aria-hidden="true" />
-                Full library offline — showing curated 103
+                {t('library.offline')}
               </span>
             )}
             {group !== 'all' && (
               <FilterPill
                 label={
                   group === 'popular'
-                    ? 'Popular'
+                    ? t('library.section.popular')
                     : group === 'suggested'
-                      ? 'For you'
-                      : (EXERCISE_GROUPS.find((g) => g.id === group)?.label ?? group)
+                      ? t('library.section.suggested')
+                      : EXERCISE_GROUPS.some((g) => g.id === group)
+                        ? vocab.group(group)
+                        : group
                 }
                 onClear={() => selectGroup('all')}
               />
             )}
-            {muscle && (
-              <FilterPill label={EXERCISE_MUSCLE_LABELS[muscle]} onClear={() => setMuscle(null)} />
-            )}
+            {muscle && <FilterPill label={vocab.muscle(muscle)} onClear={() => setMuscle(null)} />}
             {equipment && (
               <FilterPill
                 label={EXERCISE_EQUIPMENT_LABELS[equipment]}
@@ -307,14 +318,14 @@ export function ExerciseLibrary() {
                 onClick={clearFilters}
                 className="text-muted-foreground hover:text-foreground text-xs underline underline-offset-2"
               >
-                Clear all
+                {t('library.clearAll')}
               </button>
             )}
           </div>
           <div
             className="bg-secondary flex rounded-full p-0.5"
             role="group"
-            aria-label="Sort order"
+            aria-label={t('library.sortAria')}
           >
             {(['recommended', 'az'] as const).map((mode) => (
               <button
@@ -329,7 +340,7 @@ export function ExerciseLibrary() {
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
-                {mode === 'recommended' ? 'Recommended' : 'A–Z'}
+                {mode === 'recommended' ? t('library.sort.recommended') : t('library.sort.az')}
               </button>
             ))}
           </div>
@@ -338,13 +349,11 @@ export function ExerciseLibrary() {
         {shown.length === 0 ? (
           <div className="flex flex-col items-center gap-1.5 py-8 text-center">
             <Dumbbell className="text-muted-foreground/40 h-8 w-8" strokeWidth={1.5} />
-            <p className="text-foreground text-sm font-medium">No exercises match</p>
-            <p className="text-muted-foreground text-xs">
-              Try another name, or loosen the filters.
-            </p>
+            <p className="text-foreground text-sm font-medium">{t('library.emptyTitle')}</p>
+            <p className="text-muted-foreground text-xs">{t('library.emptyBody')}</p>
             {hasFilters && (
               <Button variant="secondary" size="sm" className="mt-1" onClick={clearFilters}>
-                Clear search &amp; filters
+                {t('library.emptyCta')}
               </Button>
             )}
           </div>
@@ -362,15 +371,15 @@ export function ExerciseLibrary() {
                   name={entry.name}
                   className="h-20 w-20 rounded-lg"
                   animateOnHover
-                  badge={EXERCISE_EQUIPMENT_LABELS[entry.equipment]}
+                  badge={vocab.equipment(entry.equipment)}
                 />
                 <span className="text-foreground mt-1 w-full truncate text-sm font-medium">
                   {entry.name}
                 </span>
                 <span className="text-muted-foreground w-full truncate text-xs">
-                  {EXERCISE_MUSCLE_LABELS[entry.muscles[0]]}
-                  {exerciseMeasure(entry) === 'distance' ? ' · metres' : ''}
-                  {entry.extended ? ' · full library' : ''}
+                  {vocab.muscle(entry.muscles[0])}
+                  {exerciseMeasure(entry) === 'distance' ? t('library.metres') : ''}
+                  {entry.extended ? t('library.fullLibrary') : ''}
                 </span>
               </button>
             ))}

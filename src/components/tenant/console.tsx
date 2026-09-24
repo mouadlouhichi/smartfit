@@ -36,13 +36,20 @@ import {
 import {
   isGymCustomer,
   AT_RISK_DAYS,
+  gymFocusLabel,
+  gymStatusLabel,
   isAtRisk,
-  roleLabel,
+  planPeriodLabel,
+  roleText,
+  weekdayLabels,
   type Capability,
   type GymMembership,
 } from '@smartfit/core';
 import { formatMoney, useTenant } from '@/lib/tenant-context';
 import { useAuth } from '@/lib/firebase/auth-context';
+import { useI18n } from '@/lib/i18n-context';
+import { intlTag } from '@/lib/intl';
+import type { DemoPersonaKey } from '@/lib/tenant-demo';
 import type { GymBooking, GymClass, GymSlot } from '@/lib/firebase/tenant-repo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,22 +67,79 @@ import { cn } from '@/lib/utils';
 
 interface Section {
   id: string;
-  label: string;
+  /** Catalogue key: the nav label is copy, the id is the route. */
+  labelKey: string;
   icon: typeof LayoutDashboard;
   /** Capability required to see this section at all. */
   capability: Capability;
 }
 
 const SECTIONS: Section[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard, capability: 'reports:gym' },
-  { id: 'today', label: 'Today', icon: TicketCheck, capability: 'checkin:door' },
-  { id: 'timetable', label: 'Timetable', icon: CalendarDays, capability: 'class:create' },
-  { id: 'members', label: 'Members', icon: Users, capability: 'member:roster:read' },
-  { id: 'revenue', label: 'Revenue', icon: Banknote, capability: 'revenue:read' },
-  { id: 'plans', label: 'Plans', icon: Layers, capability: 'plan:manage' },
-  { id: 'staff', label: 'Team', icon: UserCog, capability: 'staff:invite' },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon, capability: 'branding:edit' },
+  {
+    id: 'overview',
+    labelKey: 'gym.console.tab.overview',
+    icon: LayoutDashboard,
+    capability: 'reports:gym',
+  },
+  { id: 'today', labelKey: 'gym.console.tab.today', icon: TicketCheck, capability: 'checkin:door' },
+  {
+    id: 'timetable',
+    labelKey: 'gym.console.tab.timetable',
+    icon: CalendarDays,
+    capability: 'class:create',
+  },
+  {
+    id: 'members',
+    labelKey: 'gym.console.tab.members',
+    icon: Users,
+    capability: 'member:roster:read',
+  },
+  {
+    id: 'revenue',
+    labelKey: 'gym.console.tab.revenue',
+    icon: Banknote,
+    capability: 'revenue:read',
+  },
+  { id: 'plans', labelKey: 'gym.console.tab.plans', icon: Layers, capability: 'plan:manage' },
+  { id: 'staff', labelKey: 'gym.console.tab.staff', icon: UserCog, capability: 'staff:invite' },
+  {
+    id: 'settings',
+    labelKey: 'gym.console.tab.settings',
+    icon: SettingsIcon,
+    capability: 'branding:edit',
+  },
 ];
+
+const METHOD_KEYS: Record<string, string> = {
+  cash: 'gym.console.method.cash',
+  card: 'gym.console.method.card',
+  transfer: 'gym.console.method.transfer',
+  cmi: 'gym.console.method.cmi',
+  stripe: 'gym.console.method.stripe',
+  other: 'gym.console.method.other',
+};
+
+const PLAN_PERIOD_OPTION_KEYS: Record<string, string> = {
+  month: 'gym.console.plans.option.month',
+  quarter: 'gym.console.plans.option.quarter',
+  year: 'gym.console.plans.option.year',
+  pass: 'gym.console.plans.option.pass',
+};
+
+/** A payment method as words. Stored ids are data; this is the badge beside them. */
+function methodLabel(method: string, t: (key: string) => string): string {
+  const key = METHOD_KEYS[method];
+  return key ? t(key) : method;
+}
+
+/** The demo switcher lists three real roles and two audience labels. */
+const DEMO_ROLE_KEYS: Record<DemoPersonaKey, string> = {
+  'gym-owner': 'role.gymOwner',
+  'gym-staff': 'role.gymStaff',
+  member: 'gym.console.demo.member',
+  prospect: 'gym.console.demo.prospect',
+  'platform-admin': 'role.platformAdmin',
+};
 
 const FOCUS_OPTIONS = ['combat', 'hiit', 'strength', 'cardio', 'mind', 'aqua'] as const;
 
@@ -141,62 +205,66 @@ function nextOccurrence(weekday: number, hhmm: string): number {
 
 function Overview() {
   const t = useTenant();
+  // The tenant context owns `t` in this file, so the translator is `tr`.
+  const { t: tr } = useI18n();
   const m = t.metrics;
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Metric
-          label="Active members"
+          label={tr('gym.console.metric.activeMembers')}
           value={t.rosterStatus === 'ready' ? String(m.activeMembers) : '—'}
           hint={
             t.rosterStatus === 'ready'
-              ? `${t.roster.length} people, including staff`
-              : 'Roster not yet verified'
+              ? tr('gym.console.metric.rosterPeople', { count: t.roster.length })
+              : tr('gym.console.metric.rosterPending')
           }
         />
         <Metric
-          label="MRR"
+          label={tr('gym.console.metric.mrr')}
           value={t.rosterStatus === 'ready' ? formatMoney(m.mrrMinor) : '—'}
-          hint="Active memberships, normalised"
+          hint={tr('gym.console.metric.mrrHint')}
           tone="good"
         />
         <Metric
-          label="Collected (30d)"
+          label={tr('gym.console.metric.collected')}
           value={formatMoney(m.collectedMinor)}
-          hint="Paid invoices"
+          hint={tr('gym.console.metric.collectedHint')}
         />
         <Metric
-          label="Occupancy"
+          label={tr('gym.console.metric.occupancy')}
           value={`${m.occupancyPct}%`}
-          hint={`${m.seatsBooked} of ${m.seatCapacity} seats`}
+          hint={tr('gym.console.metric.occupancyHint', {
+            booked: m.seatsBooked,
+            capacity: m.seatCapacity,
+          })}
         />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Metric
-          label="At risk"
+          label={tr('gym.console.metric.atRisk')}
           value={String(m.atRisk)}
-          hint={`No visit in ${AT_RISK_DAYS}+ days`}
+          hint={tr('gym.console.metric.atRiskHint', { days: AT_RISK_DAYS })}
           tone={m.atRisk > 0 ? 'warn' : 'default'}
         />
         <Metric
-          label="Expiring in 7 days"
+          label={tr('gym.console.metric.expiring')}
           value={String(m.expiringSoon)}
           tone={m.expiringSoon > 0 ? 'warn' : 'default'}
         />
-        <Metric label="Frozen" value={String(m.frozen)} />
+        <Metric label={tr('gym.status.frozen')} value={String(m.frozen)} />
       </div>
 
       {m.atRisk > 0 && (
         <Card className="border-amber-500/40">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="size-4 text-amber-500" /> Win-back worklist
+              <AlertTriangle className="size-4 text-amber-500" />{' '}
+              {tr('gym.console.overview.winback')}
             </CardTitle>
-            <CardDescription>
-              Members who have stopped coming. A message now is cheaper than replacing them later.
-            </CardDescription>
+            <CardDescription>{tr('gym.console.overview.winbackBody')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {t.roster
@@ -210,7 +278,7 @@ function Overview() {
                   >
                     <span className="font-medium">{r.displayName ?? r.uid}</span>
                     <span className="text-muted-foreground text-xs tabular-nums">
-                      last seen {days}d ago · {r.checkins} visits
+                      {tr('gym.console.overview.lastSeen', { days, visits: r.checkins })}
                     </span>
                   </div>
                 );
@@ -224,6 +292,7 @@ function Overview() {
 
 function Today() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const toast = useToast();
 
   const todays = useMemo(() => {
@@ -266,10 +335,10 @@ function Today() {
   async function onCheckIn(uid: string, name: string) {
     const ok = await t.checkInMember(uid);
     if (ok) {
-      toast(`${name} checked in`, 'success');
+      toast(tr('gym.console.today.checkedIn', { name }), 'success');
       setQuery('');
     } else {
-      toast(t.mutationError ?? 'Check-in failed', 'info');
+      toast(t.mutationError ?? tr('gym.console.today.checkInError'), 'info');
     }
   }
 
@@ -277,34 +346,37 @@ function Today() {
     const ok = await t.markBookingAttendance(b.id, status);
     if (ok) {
       const name = b.memberName ?? b.uid;
-      toast(status === 'attended' ? `${name} attended` : `${name} marked as no-show`, 'success');
+      toast(
+        status === 'attended'
+          ? tr('gym.console.today.attendedToast', { name })
+          : tr('gym.console.today.noShowToast', { name }),
+        'success',
+      );
     } else {
-      toast(t.mutationError ?? 'Could not mark attendance', 'info');
+      toast(t.mutationError ?? tr('gym.console.today.markError'), 'info');
     }
   }
 
   async function onPromote(b: GymBooking) {
     const ok = await t.promoteWaitlist(b.id);
-    if (ok) toast(`${b.memberName ?? b.uid} promoted from the waitlist`, 'success');
-    else toast(t.mutationError ?? 'Could not promote', 'info');
+    if (ok)
+      toast(tr('gym.console.today.promotedToast', { name: b.memberName ?? b.uid }), 'success');
+    else toast(t.mutationError ?? tr('gym.console.today.promoteError'), 'info');
   }
 
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Front desk check-in</CardTitle>
-          <CardDescription>
-            Search by name, mark them in. This writes to the roster; nothing here changes pricing or
-            deletes anyone.
-          </CardDescription>
+          <CardTitle className="text-base">{tr('gym.console.today.title')}</CardTitle>
+          <CardDescription>{tr('gym.console.today.body')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-2">
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a member…"
-            aria-label="Search a member"
+            placeholder={tr('gym.console.today.searchPlaceholder')}
+            aria-label={tr('gym.console.today.searchAria')}
           />
           {matches.length > 0 && (
             <ul className="space-y-1">
@@ -315,14 +387,16 @@ function Today() {
                 >
                   <span>
                     {m.displayName ?? m.uid}
-                    <span className="text-muted-foreground ml-2 text-xs">{m.status}</span>
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {gymStatusLabel(m.status, tr)}
+                    </span>
                   </span>
                   <Button
                     size="sm"
                     onClick={() => onCheckIn(m.uid, m.displayName ?? m.uid)}
                     disabled={t.mutating === `checkin:${m.uid}`}
                   >
-                    Check in
+                    {tr('gym.console.today.checkIn')}
                   </Button>
                 </li>
               ))}
@@ -333,7 +407,9 @@ function Today() {
 
       {todays.length === 0 ? (
         <Card>
-          <CardContent className="text-muted-foreground p-6 text-sm">No classes today.</CardContent>
+          <CardContent className="text-muted-foreground p-6 text-sm">
+            {tr('gym.console.today.empty')}
+          </CardContent>
         </Card>
       ) : (
         todays.map((slot) => {
@@ -346,7 +422,7 @@ function Today() {
             <Card key={slot.id} data-slot-id={slot.id}>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between text-base">
-                  <span>{cls?.name ?? 'Class'}</span>
+                  <span>{cls?.name ?? tr('gym.store.class.one')}</span>
                   <Badge variant="secondary">
                     {new Date(slot.startsAt).toLocaleTimeString('en-GB', {
                       hour: '2-digit',
@@ -355,13 +431,18 @@ function Today() {
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  {cls?.studio} · {cls?.instructorName} · {seated.length}/{slot.capacity} booked
-                  {waitlist.length > 0 && ` · ${waitlist.length} waiting`}
+                  {cls?.studio} · {cls?.instructorName} ·{' '}
+                  {tr('gym.console.today.booked', {
+                    seated: seated.length,
+                    capacity: slot.capacity,
+                  })}
+                  {waitlist.length > 0 &&
+                    ` · ${tr('gym.console.today.waiting', { count: waitlist.length })}`}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-1">
                 {all.length === 0 ? (
-                  <p className="text-muted-foreground text-sm">Nobody booked yet.</p>
+                  <p className="text-muted-foreground text-sm">{tr('gym.console.today.nobody')}</p>
                 ) : (
                   all.map((b) => (
                     <div
@@ -370,7 +451,7 @@ function Today() {
                     >
                       <span>{b.memberName ?? b.uid}</span>
                       <span className="flex items-center gap-1.5">
-                        <Badge variant="outline">{b.status.replace('_', ' ')}</Badge>
+                        <Badge variant="outline">{gymStatusLabel(b.status, tr)}</Badge>
                         {b.status === 'booked' && canMark && (
                           <>
                             <Button
@@ -379,7 +460,7 @@ function Today() {
                               onClick={() => onMark(b, 'attended')}
                               disabled={t.mutating !== null}
                             >
-                              Attended
+                              {tr('gym.status.attended')}
                             </Button>
                             <Button
                               size="sm"
@@ -387,7 +468,7 @@ function Today() {
                               onClick={() => onMark(b, 'no_show')}
                               disabled={t.mutating !== null}
                             >
-                              No-show
+                              {tr('gym.status.noShow')}
                             </Button>
                           </>
                         )}
@@ -397,9 +478,13 @@ function Today() {
                             variant="outline"
                             onClick={() => onPromote(b)}
                             disabled={t.mutating !== null || left === 0}
-                            title={left === 0 ? 'The class is full' : 'Take the next seat'}
+                            title={
+                              left === 0
+                                ? tr('gym.console.today.full')
+                                : tr('gym.console.today.takeSeat')
+                            }
                           >
-                            Promote
+                            {tr('gym.console.today.promote')}
                           </Button>
                         )}
                       </span>
@@ -417,6 +502,7 @@ function Today() {
 
 function Timetable() {
   const t = useTenant();
+  const { t: tr, locale } = useI18n();
   const toast = useToast();
   const classById = useMemo(() => new Map(t.classes.map((c) => [c.id, c])), [t.classes]);
   const slots = useMemo(() => [...t.slots].sort((a, b) => a.startsAt - b.startsAt), [t.slots]);
@@ -443,10 +529,10 @@ function Timetable() {
     };
     const ok = await t.upsertClass(cls);
     if (ok) {
-      toast(`Added ${cls.name}`, 'success');
+      toast(tr('gym.console.class.added', { name: cls.name }), 'success');
       setName('');
     } else {
-      toast(t.mutationError ?? 'Could not add the class', 'info');
+      toast(t.mutationError ?? tr('gym.console.class.addError'), 'info');
     }
   }
 
@@ -464,8 +550,8 @@ function Timetable() {
       cancelled: false,
     };
     const ok = await t.upsertSlot(slot);
-    if (ok) toast(`Scheduled ${cls.name}`, 'success');
-    else toast(t.mutationError ?? 'Could not schedule the class', 'info');
+    if (ok) toast(tr('gym.console.slot.scheduled', { name: cls.name }), 'success');
+    else toast(t.mutationError ?? tr('gym.console.slot.scheduleError'), 'info');
   }
 
   return (
@@ -473,19 +559,19 @@ function Timetable() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">New class</CardTitle>
+            <CardTitle className="text-base">{tr('gym.console.class.new')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Field id="cls-name" label="Name">
+            <Field id="cls-name" label={tr('modal.field.name')}>
               <Input
                 id="cls-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Boxing Fundamentals"
+                placeholder={tr('gym.console.class.namePlaceholder')}
               />
             </Field>
             <div className="grid grid-cols-3 gap-2">
-              <Field id="cls-focus" label="Focus">
+              <Field id="cls-focus" label={tr('gym.console.class.focus')}>
                 <Select
                   id="cls-focus"
                   value={focus}
@@ -493,12 +579,12 @@ function Timetable() {
                 >
                   {FOCUS_OPTIONS.map((f) => (
                     <option key={f} value={f}>
-                      {f}
+                      {gymFocusLabel(f, tr)}
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field id="cls-min" label="Minutes">
+              <Field id="cls-min" label={tr('modal.field.minutes')}>
                 <Input
                   id="cls-min"
                   type="number"
@@ -506,7 +592,7 @@ function Timetable() {
                   onChange={(e) => setMinutes(e.target.value)}
                 />
               </Field>
-              <Field id="cls-cap" label="Capacity">
+              <Field id="cls-cap" label={tr('gym.console.class.capacity')}>
                 <Input
                   id="cls-cap"
                   type="number"
@@ -516,23 +602,23 @@ function Timetable() {
               </Field>
             </div>
             <Button onClick={addClass} disabled={!name.trim() || t.mutating !== null}>
-              <Plus className="size-4" /> Add class
+              <Plus className="size-4" /> {tr('gym.console.class.add')}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Schedule an occurrence</CardTitle>
+            <CardTitle className="text-base">{tr('gym.console.slot.title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Field id="slot-class" label="Class">
+            <Field id="slot-class" label={tr('gym.store.class.one')}>
               <Select
                 id="slot-class"
                 value={slotClassId}
                 onChange={(e) => setSlotClassId(e.target.value)}
               >
-                <option value="">Choose…</option>
+                <option value="">{tr('gym.console.choose')}</option>
                 {t.classes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -541,16 +627,16 @@ function Timetable() {
               </Select>
             </Field>
             <div className="grid grid-cols-2 gap-2">
-              <Field id="slot-day" label="Weekday">
+              <Field id="slot-day" label={tr('gym.console.slot.weekday')}>
                 <Select id="slot-day" value={weekday} onChange={(e) => setWeekday(e.target.value)}>
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+                  {weekdayLabels(locale, 'short').map((d, i) => (
                     <option key={d} value={String(i)}>
                       {d}
                     </option>
                   ))}
                 </Select>
               </Field>
-              <Field id="slot-time" label="Start">
+              <Field id="slot-time" label={tr('gym.console.slot.start')}>
                 <Input
                   id="slot-time"
                   type="time"
@@ -560,7 +646,7 @@ function Timetable() {
               </Field>
             </div>
             <Button onClick={addSlot} disabled={!slotClassId || t.mutating !== null}>
-              <Plus className="size-4" /> Schedule
+              <Plus className="size-4" /> {tr('gym.console.slot.schedule')}
             </Button>
           </CardContent>
         </Card>
@@ -568,11 +654,11 @@ function Timetable() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Scheduled</CardTitle>
+          <CardTitle className="text-base">{tr('gym.console.slot.list')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">
           {slots.length === 0 && (
-            <p className="text-muted-foreground text-sm">Nothing scheduled yet.</p>
+            <p className="text-muted-foreground text-sm">{tr('gym.console.slot.empty')}</p>
           )}
           {slots.map((s) => (
             <div
@@ -581,7 +667,7 @@ function Timetable() {
             >
               <span>{classById.get(s.classId)?.name ?? s.classId}</span>
               <span className="text-muted-foreground text-xs tabular-nums">
-                {new Date(s.startsAt).toLocaleString('en-GB', {
+                {new Date(s.startsAt).toLocaleString(intlTag(locale), {
                   weekday: 'short',
                   hour: '2-digit',
                   minute: '2-digit',
@@ -598,6 +684,7 @@ function Timetable() {
 
 function Revenue() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const toast = useToast();
   const invoices = useMemo(
     () => [...t.invoices].sort((a, b) => b.issuedAt - a.issuedAt),
@@ -621,31 +708,40 @@ function Revenue() {
     const ok = await t.takePlanPayment(memberUid, planId, method);
     if (ok) {
       toast(
-        `Recorded ${formatMoney(plan.priceMinor, plan.currency)} — membership applied`,
+        tr('gym.console.revenue.recorded', {
+          amount: formatMoney(plan.priceMinor, plan.currency),
+        }),
         'success',
       );
       setMemberUid('');
       setPlanId('');
     } else {
-      toast(t.mutationError ?? 'Could not record the payment', 'info');
+      toast(t.mutationError ?? tr('gym.console.revenue.recordError'), 'info');
     }
   }
 
   async function collect(invoiceId: string) {
     const ok = await t.collectInvoice(invoiceId, method);
-    if (ok) toast('Collected — membership applied', 'success');
-    else toast(t.mutationError ?? 'Could not collect', 'info');
+    if (ok) toast(tr('gym.console.revenue.collectedToast'), 'success');
+    else toast(t.mutationError ?? tr('gym.console.revenue.collectError'), 'info');
   }
 
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-3">
-        <Metric label="MRR" value={formatMoney(t.metrics.mrrMinor)} tone="good" />
-        <Metric label="Collected (30d)" value={formatMoney(t.metrics.collectedMinor)} />
         <Metric
-          label="Invoiced (all time)"
+          label={tr('gym.console.metric.mrr')}
+          value={formatMoney(t.metrics.mrrMinor)}
+          tone="good"
+        />
+        <Metric
+          label={tr('gym.console.metric.collected')}
+          value={formatMoney(t.metrics.collectedMinor)}
+        />
+        <Metric
+          label={tr('gym.console.revenue.invoiced')}
           value={formatMoney(total)}
-          hint={`${paid.length} paid`}
+          hint={tr('gym.console.revenue.paidHint', { count: paid.length })}
         />
       </div>
 
@@ -653,15 +749,12 @@ function Revenue() {
         <Card className="border-amber-500/40">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between text-base">
-              <span>To collect — online plan requests</span>
+              <span>{tr('gym.console.revenue.toCollect')}</span>
               <Badge className="bg-amber-500/15 text-amber-600" variant="secondary">
                 {drafts.length}
               </Badge>
             </CardTitle>
-            <CardDescription>
-              Members who chose a plan on the site and pay at the desk. Collecting marks the invoice
-              paid and applies the plan to their membership in one write.
-            </CardDescription>
+            <CardDescription>{tr('gym.console.revenue.toCollectBody')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             {drafts.map((i) => {
@@ -680,7 +773,7 @@ function Revenue() {
                     </span>
                   </span>
                   <Button size="sm" onClick={() => collect(i.id)} disabled={t.mutating !== null}>
-                    Collect ({method})
+                    {tr('gym.console.revenue.collect', { method: methodLabel(method, tr) })}
                   </Button>
                 </div>
               );
@@ -692,21 +785,18 @@ function Revenue() {
       {canIssue && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Sell a plan at the desk</CardTitle>
-            <CardDescription>
-              Walk-in sale: issues a paid invoice and applies the plan — status, tier and expiry —
-              to the member in one write.
-            </CardDescription>
+            <CardTitle className="text-base">{tr('gym.console.revenue.sell')}</CardTitle>
+            <CardDescription>{tr('gym.console.revenue.sellBody')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid gap-2 sm:grid-cols-3">
-              <Field id="pay-member" label="Member">
+              <Field id="pay-member" label={tr('role.member')}>
                 <Select
                   id="pay-member"
                   value={memberUid}
                   onChange={(e) => setMemberUid(e.target.value)}
                 >
-                  <option value="">Choose…</option>
+                  <option value="">{tr('gym.console.choose')}</option>
                   {t.roster
                     .filter((r) => r.role === 'member')
                     .map((r) => (
@@ -716,9 +806,9 @@ function Revenue() {
                     ))}
                 </Select>
               </Field>
-              <Field id="pay-plan" label="Plan">
+              <Field id="pay-plan" label={tr('gym.member.plan')}>
                 <Select id="pay-plan" value={planId} onChange={(e) => setPlanId(e.target.value)}>
-                  <option value="">Choose…</option>
+                  <option value="">{tr('gym.console.choose')}</option>
                   {t.plans.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} — {formatMoney(p.priceMinor, p.currency)}
@@ -726,21 +816,22 @@ function Revenue() {
                   ))}
                 </Select>
               </Field>
-              <Field id="pay-method" label="Method">
+              <Field id="pay-method" label={tr('gym.console.revenue.method')}>
                 <Select
                   id="pay-method"
                   value={method}
                   onChange={(e) => setMethod(e.target.value as typeof method)}
                 >
-                  <option value="cash">Cash</option>
-                  <option value="card">Card</option>
-                  <option value="transfer">Bank transfer</option>
-                  <option value="cmi">CMI</option>
+                  {(['cash', 'card', 'transfer', 'cmi'] as const).map((m) => (
+                    <option key={m} value={m}>
+                      {methodLabel(m, tr)}
+                    </option>
+                  ))}
                 </Select>
               </Field>
             </div>
             <Button onClick={takePayment} disabled={!memberUid || !planId || t.mutating !== null}>
-              Record payment
+              {tr('gym.console.revenue.recordPayment')}
             </Button>
           </CardContent>
         </Card>
@@ -748,7 +839,7 @@ function Revenue() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Invoices</CardTitle>
+          <CardTitle className="text-base">{tr('gym.console.revenue.invoices')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">
           {invoices.map((i) => (
@@ -758,9 +849,11 @@ function Revenue() {
             >
               <span>{t.roster.find((r) => r.uid === i.memberUid)?.displayName ?? i.memberUid}</span>
               <span className="flex items-center gap-2">
-                <Badge variant="outline">{i.method ?? 'pending'}</Badge>
+                <Badge variant="outline">
+                  {i.method ? methodLabel(i.method, tr) : tr('gym.console.revenue.pending')}
+                </Badge>
                 <Badge className={statusTone(i.status)} variant="secondary">
-                  {i.status}
+                  {gymStatusLabel(i.status, tr)}
                 </Badge>
                 <span className="w-28 text-right tabular-nums">
                   {formatMoney(i.amountMinor, i.currency)}
@@ -776,6 +869,7 @@ function Revenue() {
 
 function Plans() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const toast = useToast();
   const [name, setName] = useState('');
   const [price, setPrice] = useState('390');
@@ -792,10 +886,10 @@ function Plans() {
       published: true,
     });
     if (ok) {
-      toast(`Added ${name.trim()}`, 'success');
+      toast(tr('gym.console.plans.added', { name: name.trim() }), 'success');
       setName('');
     } else {
-      toast(t.mutationError ?? 'Could not add the plan', 'info');
+      toast(t.mutationError ?? tr('gym.console.plans.addError'), 'info');
     }
   }
 
@@ -806,7 +900,9 @@ function Plans() {
           <Card key={p.id}>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">{p.name}</CardTitle>
-              <CardDescription className="capitalize">per {p.period}</CardDescription>
+              <CardDescription className="capitalize">
+                {tr('gym.console.plans.perPeriod', { period: planPeriodLabel(p.period, tr) })}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
               <p className="text-2xl font-black tabular-nums">
@@ -814,7 +910,9 @@ function Plans() {
               </p>
               {p.description && <p className="text-muted-foreground text-xs">{p.description}</p>}
               <Badge variant={p.published === false ? 'outline' : 'secondary'}>
-                {p.published === false ? 'unpublished' : 'published'}
+                {p.published === false
+                  ? tr('gym.console.plans.unpublished')
+                  : tr('gym.console.plans.published')}
               </Badge>
             </CardContent>
           </Card>
@@ -823,19 +921,19 @@ function Plans() {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">New plan</CardTitle>
+          <CardTitle className="text-base">{tr('gym.console.plans.new')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-2 sm:grid-cols-3">
-            <Field id="plan-name" label="Name">
+            <Field id="plan-name" label={tr('modal.field.name')}>
               <Input
                 id="plan-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Monthly"
+                placeholder={tr('gym.console.plans.namePlaceholder')}
               />
             </Field>
-            <Field id="plan-price" label="Price (MAD)">
+            <Field id="plan-price" label={tr('gym.console.plans.price')}>
               <Input
                 id="plan-price"
                 type="number"
@@ -843,21 +941,22 @@ function Plans() {
                 onChange={(e) => setPrice(e.target.value)}
               />
             </Field>
-            <Field id="plan-period" label="Period">
+            <Field id="plan-period" label={tr('gym.console.plans.period')}>
               <Select
                 id="plan-period"
                 value={period}
                 onChange={(e) => setPeriod(e.target.value as typeof period)}
               >
-                <option value="month">Month</option>
-                <option value="quarter">Quarter</option>
-                <option value="year">Year</option>
-                <option value="pass">Day pass</option>
+                {(['month', 'quarter', 'year', 'pass'] as const).map((p) => (
+                  <option key={p} value={p}>
+                    {tr(PLAN_PERIOD_OPTION_KEYS[p])}
+                  </option>
+                ))}
               </Select>
             </Field>
           </div>
           <Button onClick={addPlan} disabled={!name.trim() || t.mutating !== null}>
-            <Plus className="size-4" /> Add plan
+            <Plus className="size-4" /> {tr('gym.console.plans.add')}
           </Button>
         </CardContent>
       </Card>
@@ -875,6 +974,7 @@ function Plans() {
  */
 function ViewAsBanner() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -899,11 +999,10 @@ function ViewAsBanner() {
       className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-sky-500/40 bg-sky-500/10 p-3 text-sm text-sky-700 dark:text-sky-300"
     >
       <span className="font-medium">
-        Viewing {t.gym?.name ?? t.slug} — read-only gym workspace; changes are disabled. Your
-        platform identity is unchanged.
+        {tr('gym.console.viewAs.banner', { gym: t.gym?.name ?? t.slug })}
       </span>
       <Button asChild size="sm" variant="outline">
-        <a href={`/admin/gyms/${t.slug}`}>Exit view-as</a>
+        <a href={`/admin/gyms/${t.slug}`}>{tr('gym.console.viewAs.exit')}</a>
       </Button>
     </div>
   );
@@ -911,6 +1010,7 @@ function ViewAsBanner() {
 
 export function Console() {
   const t = useTenant();
+  const { t: tr } = useI18n();
   const [tab, setTab] = useState<string | null>(null);
 
   const [wide, setWide] = useState(false);
@@ -954,19 +1054,19 @@ export function Console() {
   if (visible.length === 0) {
     return (
       <div className="mx-auto max-w-md p-6 text-center">
-        <p className="text-lg font-bold">You have no console access to this gym</p>
-        <p className="text-muted-foreground mt-2 text-sm">
-          An active owner or staff membership is required. Access may have been removed, frozen or
-          expired, or this gym may be unavailable. Ask the gym owner if you should have access.
-          Trainers can use the coaching workspace.
-        </p>
+        <p className="text-lg font-bold">{tr('gym.console.denied.title')}</p>
+        <p className="text-muted-foreground mt-2 text-sm">{tr('gym.console.denied.body')}</p>
         {t.error && (
           <p role="alert" className="text-destructive mt-3 text-sm">
-            {t.error} Reconnect and reload this page to verify access.
+            {tr('gym.console.denied.reconnect', { error: t.error })}
           </p>
         )}
         <Button asChild variant="outline" className="mt-4">
-          <a href={`/g/${t.slug}`}>Back to {t.gym?.name ?? 'the gym'}</a>
+          <a href={`/g/${t.slug}`}>
+            {tr('gym.console.denied.back', {
+              gym: t.gym?.name ?? tr('gym.console.denied.thisGym'),
+            })}
+          </a>
         </Button>
       </div>
     );
@@ -990,22 +1090,22 @@ export function Console() {
             </span>
           </Link>
           <p className="text-muted-foreground mb-3 hidden px-3 text-[10px] font-semibold tracking-[0.2em] uppercase lg:block">
-            Gym workspace
+            {tr('gym.console.workspace.eyebrow')}
           </p>
           <TabsList
-            aria-label="Gym workspace sections"
+            aria-label={tr('gym.console.workspace.sectionsAria')}
             className="grid h-auto w-full grid-cols-4 gap-1 rounded-none bg-transparent p-0 lg:flex lg:flex-col lg:items-stretch lg:gap-1.5"
           >
             {visible.map((section) => (
               <TabsTrigger
                 key={section.id}
-                aria-label={section.label}
+                aria-label={tr(section.labelKey)}
                 disabled={!interactive}
                 value={section.id}
                 className="data-[state=active]:bg-primary/10 flex min-w-0 flex-col gap-1.5 rounded-xl px-1 py-2.5 text-[10px] data-[state=active]:shadow-none lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:py-3 lg:text-xs"
               >
                 <section.icon className="size-4 shrink-0" />
-                <span>{section.label}</span>
+                <span>{tr(section.labelKey)}</span>
                 {section.id === 'members' && (
                   <span className="bg-secondary ml-auto hidden min-w-5 rounded-md px-1 py-0.5 text-center text-[10px] tabular-nums lg:inline-block">
                     {t.rosterStatus === 'ready' ? t.roster.filter(isGymCustomer).length : '—'}
@@ -1020,12 +1120,10 @@ export function Console() {
                 <ShieldCheck className="size-5" />
               </span>
               <p className="mt-3 text-xs font-semibold">
-                {t.viewAs ? 'A safe look inside' : 'Your gym. Your community.'}
+                {t.viewAs ? tr('gym.console.tip.viewAsTitle') : tr('gym.console.tip.title')}
               </p>
               <p className="text-muted-foreground mt-2 text-[10px] leading-relaxed">
-                {t.viewAs
-                  ? 'Browse your gym’s data without changing memberships or settings.'
-                  : 'Keep your members, classes and team connected in one workspace.'}
+                {t.viewAs ? tr('gym.console.tip.viewAsBody') : tr('gym.console.tip.body')}
               </p>
             </div>
             <div className="mt-5 flex min-w-0 items-center gap-2.5 border-t pt-5">
@@ -1033,7 +1131,7 @@ export function Console() {
               <div className="min-w-0">
                 <p className="truncate text-[11px] font-semibold">{t.gym?.name ?? t.slug}</p>
                 <p className="text-muted-foreground mt-0.5 text-[10px]">
-                  {t.mode === 'demo' ? 'Demo workspace' : 'Gym management'}
+                  {t.mode === 'demo' ? tr('gym.console.mode.demo') : tr('gym.console.mode.cloud')}
                 </p>
               </div>
             </div>
@@ -1043,22 +1141,25 @@ export function Console() {
           <header className="bg-card flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 lg:px-8">
             <div>
               <p className="text-muted-foreground mb-1 text-[10px]">
-                Workspace <span className="mx-2 opacity-40">/</span>{' '}
-                {visible.find((section) => section.id === tab)?.label ?? 'Overview'}
+                {tr('gym.console.workspace.breadcrumb')} <span className="mx-2 opacity-40">/</span>{' '}
+                {tr(
+                  visible.find((section) => section.id === tab)?.labelKey ??
+                    'gym.console.tab.overview',
+                )}
               </p>
               <h1 className="text-sm font-semibold tracking-tight">{t.gym?.name ?? t.slug}</h1>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-muted-foreground mr-1 hidden text-[11px] sm:inline">
-                {roleLabel(t.role)}
+                {roleText(t.role, tr)}
               </span>
               <Button asChild size="sm" variant="ghost" className="text-xs">
                 <Link href={`/g/${t.slug}`}>
-                  storefront <ArrowUpRight className="size-3.5" />
+                  {tr('gym.console.storefront')} <ArrowUpRight className="size-3.5" />
                 </Link>
               </Button>
               <Button asChild size="sm" variant="outline" className="rounded-xl text-xs">
-                <Link href={`/g/${t.slug}/coaching`}>Coaching</Link>
+                <Link href={`/g/${t.slug}/coaching`}>{tr('gym.console.coaching')}</Link>
               </Button>
               <Button
                 size="sm"
@@ -1066,7 +1167,7 @@ export function Console() {
                 className="rounded-xl"
                 onClick={t.reload}
                 disabled={t.loading}
-                aria-label="Refresh"
+                aria-label={tr('gym.console.refresh')}
               >
                 <RefreshCw className="size-3.5" />
               </Button>
@@ -1075,25 +1176,29 @@ export function Console() {
           <div className="space-y-5 p-4 sm:p-6 lg:p-8">
             {t.mode === 'demo' && (
               <div className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed px-3 py-2 text-[10px]">
-                <span>Demo workspace · sample data · changes last for this session only</span>
-                <label className="flex items-center gap-2">
-                  <span>Demo role</span>
-                  <select
-                    aria-label="Demo role"
+                <span>{tr('gym.console.demo.banner')}</span>
+                <span className="flex items-center gap-2">
+                  <span>{tr('gym.console.demo.role')}</span>
+                  {/* Compact chrome: same Select component, just narrower. */}
+                  <Select
+                    aria-label={tr('gym.console.demo.role')}
                     disabled={!interactive}
-                    className="bg-background rounded-lg border px-2 py-1 text-[11px]"
+                    size="compact"
+                    className="min-w-40"
                     value={t.demoRole ?? 'gym-owner'}
                     onChange={(e) =>
                       t.setDemoRole(e.target.value as NonNullable<typeof t.demoRole>)
                     }
                   >
-                    <option value="gym-owner">Gym owner</option>
-                    <option value="gym-staff">Gym staff</option>
-                    <option value="member">Member</option>
-                    <option value="prospect">Prospect (not a member)</option>
-                    <option value="platform-admin">Platform admin</option>
-                  </select>
-                </label>
+                    {(
+                      ['gym-owner', 'gym-staff', 'member', 'prospect', 'platform-admin'] as const
+                    ).map((role) => (
+                      <option key={role} value={role}>
+                        {tr(DEMO_ROLE_KEYS[role])}
+                      </option>
+                    ))}
+                  </Select>
+                </span>
               </div>
             )}
             {t.viewAs && <ViewAsBanner />}
@@ -1102,10 +1207,10 @@ export function Console() {
                 role="alert"
                 className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm"
               >
-                <p className="font-semibold">Some workspace data couldn’t be loaded</p>
+                <p className="font-semibold">{tr('gym.console.error.title')}</p>
                 <p className="text-muted-foreground mt-1 text-xs">{t.error}</p>
                 <Button className="mt-3" variant="outline" size="sm" onClick={t.reload}>
-                  Retry workspace data
+                  {tr('gym.console.error.retry')}
                 </Button>
               </div>
             )}
@@ -1138,7 +1243,7 @@ export function Console() {
             <TabsContent value="staff" className="mt-4">
               <Staff />
               <Button asChild variant="outline" className="mt-4">
-                <Link href={`/g/${t.slug}/coaching`}>Manage trainers & coaching</Link>
+                <Link href={`/g/${t.slug}/coaching`}>{tr('gym.console.staff.manage')}</Link>
               </Button>
             </TabsContent>
             <TabsContent

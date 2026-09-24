@@ -12,8 +12,14 @@ import { DashboardHeader } from './dashboard-header';
 import { DashboardModals } from './dashboard-modals';
 import { ModalProvider, useModals } from './modal-context';
 import { ConfirmProvider } from './confirm-context';
-import { MigrationPrompt, StorageWarningBanner, SyncBanner } from './sync-banner';
+import {
+  BlockedDataBanner,
+  MigrationPrompt,
+  StorageWarningBanner,
+  SyncBanner,
+} from './sync-banner';
 import { InstallPrompt } from '@/components/pwa-install';
+import { useI18n } from '@/lib/i18n-context';
 
 function isActive(pathname: string, href: string) {
   if (href === '/dashboard') return pathname === '/dashboard';
@@ -22,6 +28,7 @@ function isActive(pathname: string, href: string) {
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   return (
     <ConfirmProvider>
@@ -67,7 +74,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                           active ? 'text-white' : 'text-white/60 group-hover:text-white/90',
                         )}
                       >
-                        {item.label}
+                        {t(item.labelKey)}
                       </span>
                     </Link>
                   );
@@ -84,6 +91,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               <DashboardHeader />
               <MigrationPrompt />
               <SyncBanner />
+              <BlockedDataBanner />
               <StorageWarningBanner />
               <main className="flex-1 overflow-x-clip px-4 pt-1 pb-6 sm:px-6 lg:px-6 lg:pt-5">
                 <div
@@ -137,11 +145,12 @@ function GlobalLogCta() {
 
 /** Theme toggle tuned for the dark rail (light icon on charcoal). */
 function ThemeToggleDark() {
+  const { t } = useI18n();
   const { resolvedTheme, setTheme } = useTheme();
   const dark = resolvedTheme === 'dark';
   return (
     <button
-      aria-label="Toggle theme"
+      aria-label={t('ui.toggleTheme')}
       onClick={() => setTheme(dark ? 'light' : 'dark')}
       className="flex h-11 w-11 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
     >

@@ -101,3 +101,9 @@ test('member identities and missing dates format without fake timestamps', () =>
   assert.equal(memberDate(undefined), '—');
   assert.equal(memberDate(NaN), '—');
 });
+test('dates follow the interface language and keep British English as the default', () => {
+  const at = Date.UTC(2026, 8, 24); // 24 Sep 2026
+  assert.equal(memberDate(at), memberDate(at, 'en-GB'));
+  assert.match(memberDate(at, 'en-GB'), /Sep/);
+  assert.match(memberDate(at, 'fr-FR'), /sept\./);
+});

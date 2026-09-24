@@ -13,6 +13,7 @@ import {
 } from '@smartfit/core';
 import { formatDateLabel } from '@smartfit/core';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n-context';
 
 interface PersonalBest {
   key: string;
@@ -31,6 +32,7 @@ interface PersonalBest {
  * context for those numbers.
  */
 export function RunRecords({ sessions }: { sessions: WorkoutSession[] }) {
+  const { t, locale } = useI18n();
   const runs = useMemo(
     () =>
       sessions
@@ -50,9 +52,9 @@ export function RunRecords({ sessions }: { sessions: WorkoutSession[] }) {
     if ((longest.distanceKm ?? 0) > 0) {
       out.push({
         key: 'longest',
-        label: 'Longest run',
+        label: t('run.record.longest'),
         value: fmtKm(longest.distanceKm!),
-        detail: formatDateLabel(longest.date),
+        detail: formatDateLabel(longest.date, locale),
         icon: RouteIcon,
       });
     }
@@ -63,16 +65,16 @@ export function RunRecords({ sessions }: { sessions: WorkoutSession[] }) {
     if ((climb.elevationGainM ?? 0) > 0) {
       out.push({
         key: 'climb',
-        label: 'Biggest climb',
+        label: t('run.record.climb'),
         value: `${climb.elevationGainM} m`,
-        detail: `on ${formatDateLabel(climb.date)}`,
+        detail: t('run.record.on', { date: formatDateLabel(climb.date, locale) }),
         icon: Mountain,
       });
     }
 
     for (const target of [
-      { km: 1, label: 'Fastest 1 km' },
-      { km: 5, label: 'Fastest 5 km' },
+      { km: 1, label: t('run.record.fastest1km') },
+      { km: 5, label: t('run.record.fastest5km') },
     ]) {
       const best = bestWindow(runs, target.km);
       if (best) {
@@ -80,7 +82,7 @@ export function RunRecords({ sessions }: { sessions: WorkoutSession[] }) {
           key: `fastest-${target.km}`,
           label: target.label,
           value: fmtDuration(best.seconds),
-          detail: `${fmtPace(best.seconds / 60 / target.km)} /km · ${formatDateLabel(best.date)}`,
+          detail: `${fmtPace(best.seconds / 60 / target.km)} /km · ${formatDateLabel(best.date, locale)}`,
           icon: Gauge,
         });
       }
@@ -97,15 +99,15 @@ export function RunRecords({ sessions }: { sessions: WorkoutSession[] }) {
     if (paced.length > 0) {
       out.push({
         key: 'avg-pace',
-        label: 'Fastest average pace',
+        label: t('run.record.avgPace'),
         value: `${fmtPace(paced[0].pace)} /km`,
-        detail: `${fmtKm(paced[0].km)} on ${formatDateLabel(paced[0].date)}`,
+        detail: `${fmtKm(paced[0].km)} ${t('run.record.on', { date: formatDateLabel(paced[0].date, locale) })}`,
         icon: Flame,
       });
     }
 
     return out;
-  }, [runs]);
+  }, [runs, t, locale]);
 
   const totals = useMemo(() => runTotals(runs), [runs]);
   const trend = useMemo(() => eightWeekTrend(runs), [runs]);
@@ -114,8 +116,8 @@ export function RunRecords({ sessions }: { sessions: WorkoutSession[] }) {
     return (
       <EmptyState
         icon={Trophy}
-        title="No records yet"
-        body="Your personal bests — longest run, fastest kilometres, biggest climb — appear here once you have logged a tracked run."
+        title={t('run.records.emptyTitle')}
+        body={t('run.records.emptyBody')}
       />
     );
   }
@@ -145,18 +147,20 @@ export function RunRecords({ sessions }: { sessions: WorkoutSession[] }) {
       <div className="border-border bg-card rounded-3xl border p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="eyebrow text-muted-foreground">Last 8 weeks</p>
+            <p className="eyebrow text-muted-foreground">
+              {t('run.records.lastWeeks', { count: 8 })}
+            </p>
             <p className="font-display mt-1 text-2xl font-extrabold tracking-tight">
               {fmtKm(trend.reduce((sum, w) => sum + w.km, 0))}
             </p>
             <p className="text-muted-foreground text-xs">
-              across {trend.reduce((sum, w) => sum + w.runs, 0)} runs
+              {t('run.records.across', { count: trend.reduce((sum, w) => sum + w.runs, 0) })}
             </p>
           </div>
           <div className="flex gap-6 text-right">
             <div>
               <p className="text-muted-foreground text-[11px] font-bold tracking-wide uppercase">
-                All time
+                {t('run.total.allTime')}
               </p>
               <p className="font-mono text-lg font-extrabold tabular-nums">
                 {fmtKm(totals.distanceKm)}
@@ -164,7 +168,7 @@ export function RunRecords({ sessions }: { sessions: WorkoutSession[] }) {
             </div>
             <div>
               <p className="text-muted-foreground text-[11px] font-bold tracking-wide uppercase">
-                Time
+                {t('run.total.time')}
               </p>
               <p className="font-mono text-lg font-extrabold tabular-nums">
                 {fmtDuration(Math.round(totals.movingMin * 60))}
@@ -172,7 +176,7 @@ export function RunRecords({ sessions }: { sessions: WorkoutSession[] }) {
             </div>
             <div>
               <p className="text-muted-foreground text-[11px] font-bold tracking-wide uppercase">
-                Climb
+                {t('run.total.climb')}
               </p>
               <p className="font-mono text-lg font-extrabold tabular-nums">
                 {totals.elevationGainM} m

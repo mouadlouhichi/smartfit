@@ -1,12 +1,4 @@
 import type { GymSlot } from './firebase/tenant-repo';
-export const GYM_FOCUS_LABELS: Record<string, string> = {
-  combat: 'Combat',
-  hiit: 'HIIT',
-  strength: 'Strength',
-  cardio: 'Cardio',
-  mind: 'Mind & recovery',
-  aqua: 'Aqua',
-};
 export function classArtwork(focus: string): string {
   return focus === 'mind'
     ? '/images/branding/studio-cover.webp'

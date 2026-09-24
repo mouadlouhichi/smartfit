@@ -28,6 +28,7 @@ import { StreakRingsCard } from '../streak-rings-card';
 import { BodySelectHero } from '../body-select-hero';
 import { Footprints, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n-context';
 import { MetricCard, MiniBars, GradeRing } from '@/components/volt/volt-kit';
 import { SuggestedWorkouts } from '../suggested-workouts';
 import {
@@ -56,8 +57,11 @@ const RANGE_DAYS: Record<Range, number> = { Daily: 1, Weekly: 7, Monthly: 30 };
 export function OverviewScreen() {
   const { state } = useStore();
   const { openModal, openWith } = useModals();
+  const { t } = useI18n();
   const [range, setRange] = useState<Range>('Weekly');
-  const [programFilter, setProgramFilter] = useState('All type');
+  // `null` means every category — the sentinel is an id, not a label, so
+  // switching language cannot quietly drop the selection.
+  const [programFilter, setProgramFilter] = useState<string | null>(null);
   // The category rail is a live tablist — its length changes with the user's
   // categories, so the hook count updates every render (the hook only needs
   // the current length to wrap arrow navigation).
@@ -146,7 +150,7 @@ export function OverviewScreen() {
    * keeps its original meaning: clear the filter.
    */
   function startCategory(name: string, categoryId: string | null) {
-    setProgramFilter(name);
+    setProgramFilter(categoryId);
     if (!categoryId) return;
     openWith({
       kind: 'runner',
@@ -161,13 +165,17 @@ export function OverviewScreen() {
   }
 
   const quickActions = [
-    { label: 'Log workout', icon: Dumbbell, onClick: () => openModal('workout') },
-    { label: 'Log meal', icon: UtensilsCrossed, onClick: () => openWith({ kind: 'meal' }) },
-    { label: 'Run', icon: Footprints, href: '/dashboard/run' },
-    { label: 'Goals', icon: Target, href: '/dashboard/goals' },
-    { label: 'Plan', icon: CalendarCheck, href: '/dashboard/plan' },
-    { label: 'Stats', icon: BarChart3, href: '/dashboard/progress' },
-    { label: 'Coach', icon: Sparkles, href: '/dashboard/coach' },
+    { label: t('overview.quick.logWorkout'), icon: Dumbbell, onClick: () => openModal('workout') },
+    {
+      label: t('action.logMeal'),
+      icon: UtensilsCrossed,
+      onClick: () => openWith({ kind: 'meal' }),
+    },
+    { label: t('nav.short.run'), icon: Footprints, href: '/dashboard/run' },
+    { label: t('nav.short.goals'), icon: Target, href: '/dashboard/goals' },
+    { label: t('nav.short.plan'), icon: CalendarCheck, href: '/dashboard/plan' },
+    { label: t('overview.quick.stats'), icon: BarChart3, href: '/dashboard/progress' },
+    { label: t('nav.coach'), icon: Sparkles, href: '/dashboard/coach' },
   ];
 
   // The PWA manifest exposes a "Log a workout" shortcut to /dashboard?log=1.
@@ -184,10 +192,8 @@ export function OverviewScreen() {
 
   const agendaFiltered = useMemo(
     () =>
-      programFilter === 'All type'
-        ? agenda
-        : agenda.filter((a) => categoryById(state, a.slot.categoryId)?.name === programFilter),
-    [agenda, programFilter, state],
+      programFilter === null ? agenda : agenda.filter((a) => a.slot.categoryId === programFilter),
+    [agenda, programFilter],
   );
 
   const hasData = state.sessions.length > 0;
@@ -196,7 +202,7 @@ export function OverviewScreen() {
 
   return (
     <div className="grid max-w-full min-w-0 gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
-      <h1 className="sr-only">Overview</h1>
+      <h1 className="sr-only">{t('overview.title')}</h1>
 
       {/* ── Body-select training hero ────────────────────────────────────
           The app's primary training action: pick a muscle, train it. Sits
@@ -214,71 +220,82 @@ export function OverviewScreen() {
         <SuggestedWorkouts />
 
         {/* ── Health metrics — the reference 2×2 tile grid ─────────────── */}
-        <section aria-label="Health metrics" className="min-w-0">
+        <section aria-label={t('overview.metrics.aria')} className="min-w-0">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Health Metrics</h2>
+            <h2 className="text-base font-extrabold tracking-tight sm:text-lg">
+              {t('overview.metrics.title')}
+            </h2>
             <Link
               href="/dashboard/progress"
               className="text-primary text-sm font-bold transition-colors hover:underline"
             >
-              See All
+              {t('overview.seeAll')}
             </Link>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3">
             <MetricCard
               icon={Timer}
-              label="Active minutes"
+              label={t('overview.metrics.activeMinutes')}
               value={rangeAgg.minutes}
-              unit="min"
+              unit={t('overview.metrics.min')}
               chart={<MiniBars values={series.slice(-7).map((x) => x.minutes)} />}
             />
             <MetricCard
               icon={Dumbbell}
-              label="Sessions"
+              label={t('overview.metrics.sessions')}
               value={rangeAgg.workouts}
-              unit="workouts"
+              unit={t('overview.metrics.workouts')}
               chart={<MiniBars values={series.slice(-7).map((x) => x.workouts)} />}
             />
             <MetricCard
               icon={Footprints}
-              label="Distance"
+              label={t('overview.metrics.distance')}
               value={week.distance.toFixed(1)}
               unit={distanceUnit}
               chart={<MiniBars values={dayDistances} />}
             />
             <MetricCard
               icon={Target}
-              label="Weekly goal"
+              label={t('overview.metrics.weeklyGoal')}
               value={`${goalPct}%`}
-              unit="of target"
-              chart={<GradeRing value={goalPct} size={44} stroke={6} label="Weekly goal" />}
+              unit={t('overview.metrics.ofTarget')}
+              chart={
+                <GradeRing
+                  value={goalPct}
+                  size={44}
+                  stroke={6}
+                  label={t('overview.metrics.weeklyGoal')}
+                />
+              }
             />
           </div>
         </section>
 
         {/* ── Workout programs: chips + the featured session card ──────── */}
-        <section aria-label="Workout programs" className="min-w-0">
+        <section aria-label={t('overview.programs.aria')} className="min-w-0">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-extrabold tracking-tight sm:text-lg">Workout Programs</h2>
+            <h2 className="text-base font-extrabold tracking-tight sm:text-lg">
+              {t('overview.programs.title')}
+            </h2>
             <Link
               href="/dashboard/plan"
               className="text-primary text-sm font-bold transition-colors hover:underline"
             >
-              See All
+              {t('overview.seeAll')}
             </Link>
           </div>
           {/* Premium program tiles - enhanced with glow, better hierarchy, and Axel-inspired design */}
           <div
             className="no-scrollbar -mx-1 mt-4 flex min-w-0 snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-2 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7"
             role="tablist"
-            aria-label="Program category"
+            aria-label={t('overview.programs.categoryAria')}
           >
             {[
               {
                 id: null as string | null,
-                name: 'All type',
+                name: t('overview.programs.allTypes'),
                 icon: 'layout-grid',
-                color: '#8ad200',
+                color: 'var(--volt)',
                 count: state.sessions.length,
               },
               ...state.categories.map((c) => ({
@@ -289,10 +306,10 @@ export function OverviewScreen() {
                 count: state.sessions.filter((s) => s.categoryId === c.id).length,
               })),
             ].map((c, i) => {
-              const selected = programFilter === c.name;
+              const selected = programFilter === c.id;
               return (
                 <button
-                  key={c.name}
+                  key={c.id ?? 'all'}
                   ref={programTabs.setRef(i)}
                   role="tab"
                   aria-selected={selected}
@@ -303,7 +320,7 @@ export function OverviewScreen() {
                     'group relative flex min-w-[6.5rem] shrink-0 snap-start flex-col items-center gap-2 rounded-[20px] border px-3 py-4 text-center transition-all duration-300 sm:min-w-0',
                     'hover:scale-[1.02] hover:shadow-lg active:scale-[0.98]',
                     selected
-                      ? 'border-volt/80 bg-ink-card ring-volt/30 shadow-[0_0_0_1px_#8ad200,0_0_20px_-8px_#8ad200] ring-1'
+                      ? 'border-volt/80 bg-ink-card ring-volt/30 shadow-[0_0_0_1px_var(--volt),0_0_20px_-8px_var(--volt)] ring-1'
                       : 'bg-charcoal-2 hover:border-volt/30 border-white/[0.08] hover:bg-white/[0.06] hover:shadow-[0_8px_24px_-12px_rgba(0,0,0,0.5)]',
                   )}
                 >
@@ -395,10 +412,12 @@ export function OverviewScreen() {
                       </span>
                       {done ? (
                         <span className="bg-primary/10 text-primary flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
-                          <Check className="h-3 w-3" /> Done
+                          <Check className="h-3 w-3" /> {t('overview.done')}
                         </span>
                       ) : (
-                        <span className="text-primary text-[11px] font-bold">Log it</span>
+                        <span className="text-primary text-[11px] font-bold">
+                          {t('overview.logIt')}
+                        </span>
                       )}
                     </button>
                   </li>
@@ -415,7 +434,9 @@ export function OverviewScreen() {
         <div className="card-hero p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="font-display text-lg font-extrabold tracking-tight">Today</p>
+              <p className="font-display text-lg font-extrabold tracking-tight">
+                {t('overview.today')}
+              </p>
               <p className="hero-muted text-xs">
                 {new Date().toLocaleDateString(undefined, {
                   weekday: 'long',
@@ -427,7 +448,7 @@ export function OverviewScreen() {
             {rings.closed && (
               <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
                 <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--chart-3)' }} aria-hidden />
-                All rings closed
+                {t('overview.rings.closed')}
               </span>
             )}
           </div>
@@ -482,10 +503,10 @@ export function OverviewScreen() {
         </div>
 
         {/* Summary — its own section, separated from the plan items above. */}
-        <section aria-label="Summary" className="min-w-0">
+        <section aria-label={t('overview.summary.aria')} className="min-w-0">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="font-display text-xl font-extrabold tracking-tight sm:text-[1.35rem]">
-              Summary
+              {t('overview.summary.title')}
             </h2>
             <RangeToggle value={range} onChange={setRange} />
           </div>
@@ -494,8 +515,8 @@ export function OverviewScreen() {
             <EmptyState
               className="mt-5"
               icon={Dumbbell}
-              title="No workouts yet"
-              body="Tap the bolt to log your first session. Your streak, volume and distance will appear here."
+              title={t('overview.summary.emptyTitle')}
+              body={t('overview.summary.emptyBody')}
             />
           ) : (
             <>
@@ -506,13 +527,13 @@ export function OverviewScreen() {
                   <div className="bg-card relative ml-auto w-[78%] rounded-3xl p-4 shadow-sm">
                     <StatDot
                       color="var(--primary)"
-                      label="Active"
+                      label={t('overview.stat.active')}
                       value={`${rangeAgg.minutes}/${targets.minutes}min`}
                     />
                     <div className="bg-border my-3 h-px" />
                     <StatDot
                       color="var(--foreground)"
-                      label="Sessions"
+                      label={t('overview.stat.sessions')}
                       value={`${rangeAgg.workouts}/${targets.workouts}`}
                     />
                   </div>
@@ -520,7 +541,7 @@ export function OverviewScreen() {
 
                 {/* Bar chart card */}
                 <div className="bg-card ring-border flex flex-col rounded-3xl p-5 shadow-sm ring-1">
-                  <p className="text-muted-foreground text-xs">Sessions</p>
+                  <p className="text-muted-foreground text-xs">{t('overview.stat.sessions')}</p>
                   <p className="font-display text-2xl font-extrabold tracking-tight">
                     {rangeAgg.workouts}
                   </p>
@@ -547,13 +568,13 @@ export function OverviewScreen() {
                 {/* Dark distance card */}
                 <div className="bg-charcoal flex flex-col rounded-3xl p-5 text-white shadow-sm">
                   <RouteGraphic />
-                  <p className="mt-auto text-xs text-white/70">Distance</p>
+                  <p className="mt-auto text-xs text-white/70">{t('overview.stat.distance')}</p>
                   <p className="font-display text-2xl font-extrabold tracking-tight">
                     {formatDistance(rangeAgg.distance, distanceUnit)}
                   </p>
                   <p className="mt-1 text-xs text-white/50">
-                    {streak}-day streak
-                    {!targets.fromGoals && ' · set goals to tune these targets'}
+                    {t('overview.streakDays', { days: streak })}
+                    {!targets.fromGoals && t('overview.setGoalsHint')}
                   </p>
                 </div>
               </div>
@@ -562,13 +583,13 @@ export function OverviewScreen() {
               <div className="mt-8">
                 <div className="flex items-center justify-between">
                   <h3 className="font-display text-base font-extrabold tracking-tight">
-                    Recent activity
+                    {t('overview.recent')}
                   </h3>
                   <Link
                     href="/dashboard/plan"
                     className="text-primary flex items-center gap-0.5 text-xs font-semibold hover:underline"
                   >
-                    See all <ChevronRight className="h-3.5 w-3.5" />
+                    {t('overview.seeAll')} <ChevronRight className="h-3.5 w-3.5" />
                   </Link>
                 </div>
                 <ul className="mt-3 grid gap-2">
@@ -589,7 +610,7 @@ export function OverviewScreen() {
                           <span className="min-w-0 flex-1">
                             <span className="block truncate text-sm font-semibold">{s.title}</span>
                             <span className="text-muted-foreground block text-xs">
-                              {relativeDay(s.date)} · {formatMinutes(s.durationMin)}
+                              {relativeDay(s.date, new Date(), t)} · {formatMinutes(s.durationMin)}
                             </span>
                           </span>
                           <ChevronRight className="text-muted-foreground h-4 w-4 shrink-0" />
@@ -617,21 +638,30 @@ export function OverviewScreen() {
 }
 
 function RangeToggle({ value, onChange }: { value: Range; onChange: (r: Range) => void }) {
-  const ranges: Range[] = ['Daily', 'Weekly', 'Monthly'];
+  const { t } = useI18n();
+  const ranges: { id: Range; label: string }[] = [
+    { id: 'Daily', label: t('overview.range.daily') },
+    { id: 'Weekly', label: t('overview.range.weekly') },
+    { id: 'Monthly', label: t('overview.range.monthly') },
+  ];
   return (
-    <div className="bg-secondary flex rounded-full p-1" role="tablist" aria-label="Summary range">
+    <div
+      className="bg-secondary flex rounded-full p-1"
+      role="tablist"
+      aria-label={t('overview.summary.rangeAria')}
+    >
       {ranges.map((r) => (
         <button
-          key={r}
+          key={r.id}
           role="tab"
-          aria-selected={value === r}
-          onClick={() => onChange(r)}
+          aria-selected={value === r.id}
+          onClick={() => onChange(r.id)}
           className={cn(
             'rounded-full px-3 py-1.5 text-[13px] font-semibold transition-all min-[420px]:px-5 min-[420px]:py-2 min-[420px]:text-sm',
-            value === r ? 'bg-volt text-ink shadow-sm' : 'text-muted-foreground',
+            value === r.id ? 'bg-volt text-ink shadow-sm' : 'text-muted-foreground',
           )}
         >
-          {r}
+          {r.label}
         </button>
       ))}
     </div>
@@ -680,7 +710,7 @@ function SummaryArc({ activePct, sessPct }: { activePct: number; sessPct: number
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="#2b2b2b"
+        stroke="var(--border)"
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={`${activeLen} ${c}`}

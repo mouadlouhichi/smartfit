@@ -21,16 +21,16 @@ const appName = env.appName;
  * still clears instead of trapping the user.
  */
 const SPLASH_CSS = `
-#app-splash{display:none;position:fixed;inset:0;z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#050404;color:#edebe6;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;transition:opacity .3s ease,visibility .3s ease}
+#app-splash{display:none;position:fixed;inset:0;z-index:200;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--ink);color:var(--ink-paper);font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;transition:opacity .3s ease,visibility .3s ease}
 @media all (display-mode:standalone),(display-mode:fullscreen){#app-splash{display:flex}}
 /* iOS home-screen apps that predate display-mode support: navigator.standalone */
 #app-splash.splash-show{display:flex}
 #app-splash.splash-hide{opacity:0;visibility:hidden;pointer-events:none}
-#app-splash-mark{display:flex;align-items:center;justify-content:center;width:84px;height:84px;border-radius:24px;background:#8ad200;box-shadow:0 14px 44px rgba(138,210,0,.35)}
+#app-splash-mark{display:flex;align-items:center;justify-content:center;width:84px;height:84px;border-radius:24px;background:var(--volt);box-shadow:0 14px 44px rgba(138,210,0,.35)}
 #app-splash-mark svg{width:60px;height:60px}
 #app-splash-name{font-size:15px;font-weight:800;letter-spacing:.02em}
 #app-splash-bar{position:relative;width:118px;height:3px;border-radius:99px;overflow:hidden;background:rgba(237,235,230,.18)}
-#app-splash-bar::after{content:'';position:absolute;inset:0;width:42%;border-radius:99px;background:#8ad200;animation:app-splash-slide 1.1s ease-in-out infinite}
+#app-splash-bar::after{content:'';position:absolute;inset:0;width:42%;border-radius:99px;background:var(--volt);animation:app-splash-slide 1.1s ease-in-out infinite}
 @keyframes app-splash-slide{0%{transform:translateX(-110%)}100%{transform:translateX(310%)}}
 @media (prefers-reduced-motion:reduce){#app-splash-bar::after{animation:none;width:100%}}
 `;
@@ -107,8 +107,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#edebe6' },
-    { media: '(prefers-color-scheme: dark)', color: '#050404' },
+    { media: '(prefers-color-scheme: light)', color: 'var(--ink-paper)' },
+    { media: '(prefers-color-scheme: dark)', color: 'var(--ink)' },
   ],
   width: 'device-width',
   initialScale: 1,

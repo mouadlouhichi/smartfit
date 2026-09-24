@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useReveal } from './use-reveal';
+import { useI18n } from '@/lib/i18n-context';
+import { intlTag } from '@/lib/intl';
 
 function AnimatedCounter({
   end,
@@ -44,28 +46,30 @@ function AnimatedCounter({
   return (
     <div ref={ref} className="font-display text-6xl tracking-tight lg:text-8xl">
       {prefix}
-      {new Intl.NumberFormat('en-US').format(count)}
+      {new Intl.NumberFormat('en-GB').format(count)}
       {suffix}
     </div>
   );
 }
 
 const METRICS = [
-  { value: 4, suffix: '', label: 'Training styles to choose from' },
-  { value: 5, suffix: '', label: 'Built-in activity types' },
-  { value: 7, suffix: '', label: 'Days you can schedule each week' },
-  { value: 30, suffix: 's', label: 'To log a full session' },
+  { value: 4, suffix: '', label: 'landing.metrics.styles' },
+  { value: 5, suffix: '', label: 'landing.metrics.activities' },
+  { value: 7, suffix: '', label: 'landing.metrics.days' },
+  { value: 30, suffix: 's', label: 'landing.metrics.logging' },
 ];
 
 export function MetricsSection() {
+  const { t, locale } = useI18n();
   const { ref, visible } = useReveal<HTMLElement>(0.1);
   const [time, setTime] = useState<string | null>(null);
 
   useEffect(() => {
-    setTime(new Date().toLocaleTimeString('en-US'));
-    const interval = setInterval(() => setTime(new Date().toLocaleTimeString('en-US')), 1000);
+    const now = () => new Date().toLocaleTimeString(intlTag(locale));
+    setTime(now());
+    const interval = setInterval(() => setTime(now()), 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [locale]);
 
   return (
     <section
@@ -76,20 +80,20 @@ export function MetricsSection() {
       <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
         <div className="mb-16 flex flex-col gap-8 lg:mb-24 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <span className="eyebrow-mono mb-6">At a glance</span>
+            <span className="eyebrow-mono mb-6">{t('landing.metrics.eyebrow')}</span>
             <h2
               className="reveal text-4xl tracking-tight lg:text-6xl"
               data-state={visible ? 'visible' : 'hidden'}
             >
-              Training made simple
+              {t('landing.metrics.title')}
               <br />
-              with SmartFit.
+              {t('landing.metrics.titleLine2')}
             </h2>
           </div>
           <div className="flex items-center gap-4 font-mono text-sm text-[color:var(--muted-foreground)]">
             <span className="flex items-center gap-2">
               <span className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--primary)]" />
-              Live
+              {t('landing.metrics.live')}
             </span>
             <span className="text-[color:var(--foreground)]/30">|</span>
             <span suppressHydrationWarning>{time ?? '--:--:--'}</span>
@@ -106,7 +110,7 @@ export function MetricsSection() {
             >
               <AnimatedCounter end={metric.value} suffix={metric.suffix} />
               <div className="mt-4 text-lg text-[color:var(--muted-foreground)]">
-                {metric.label}
+                {t(metric.label)}
               </div>
             </div>
           ))}

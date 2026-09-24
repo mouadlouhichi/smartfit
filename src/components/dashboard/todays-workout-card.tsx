@@ -21,6 +21,7 @@ import {
   type WorkoutExercise,
 } from '@smartfit/core';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals } from './modal-context';
 import { MUSCLE_GROUP, MUSCLE_GROUP_COLOR } from '@/components/body/muscle-map';
 import { cn } from '@/lib/utils';
@@ -92,6 +93,7 @@ type DayProgram = {
 export function TodaysWorkoutCard() {
   const { state } = useStore();
   const { openWith } = useModals();
+  const { t } = useI18n();
   const streak = currentStreak(state);
 
   const programs = useMemo<DayProgram[]>(() => {
@@ -189,7 +191,7 @@ export function TodaysWorkoutCard() {
           <div
             className="bg-charcoal-2 no-scrollbar mx-auto flex w-fit max-w-full min-w-0 items-center gap-1 overflow-x-auto rounded-full border border-white/[0.08] p-1.5 shadow-inner"
             role="tablist"
-            aria-label="Workout day"
+            aria-label={t('overview.workoutday.aria')}
           >
             {programs.map((p, i) => (
               <button
@@ -216,7 +218,7 @@ export function TodaysWorkoutCard() {
         {/* ── Date · duration · intensity ─────────────────────────────── */}
         <div className="mt-5 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-white/90">
-            <span className="bg-volt h-1.5 w-1.5 rounded-full shadow-[0_0_8px_#8ad200]" />
+            <span className="bg-volt h-1.5 w-1.5 rounded-full shadow-[0_0_8px_var(--volt)]" />
             {dateLabel}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/60">
@@ -238,7 +240,7 @@ export function TodaysWorkoutCard() {
               Keep the streak alive — {day.title.toLowerCase()} is next up
             </p>
           </div>
-          <div className="bg-volt h-2 w-2 animate-pulse rounded-full shadow-[0_0_8px_#8ad200]" />
+          <div className="bg-volt h-2 w-2 animate-pulse rounded-full shadow-[0_0_8px_var(--volt)]" />
         </div>
 
         {day.split ? (
@@ -347,7 +349,7 @@ export function TodaysWorkoutCard() {
           className="press group text-ink relative mt-5 flex h-[52px] w-full items-center justify-center gap-2 overflow-hidden rounded-full bg-white text-[15px] font-extrabold tracking-tight shadow-[0_8px_24px_-8px_rgba(255,255,255,0.4)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_-8px_rgba(255,255,255,0.5)]"
         >
           <span className="from-volt/0 via-volt/10 to-volt/0 absolute inset-0 bg-gradient-to-r opacity-0 transition-opacity group-hover:opacity-100" />
-          <span className="relative">Set as Today&apos;s workout</span>
+          <span className="relative">{t('overview.workoutday.setAsToday')}</span>
           <span className="relative grid h-6 w-6 place-items-center rounded-full bg-black text-white transition-transform group-hover:translate-x-0.5">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
               <path

@@ -34,7 +34,25 @@ export type ModalPayload =
   | { kind: 'schedule'; schedule?: ScheduledWorkout }
   | { kind: 'goal'; goal?: FitnessGoal }
   | { kind: 'body'; log?: BodyLog }
-  | { kind: 'meal'; meal?: MealLog; date?: string; slot?: MealSlot }
+  | {
+      kind: 'meal';
+      meal?: MealLog;
+      date?: string;
+      slot?: MealSlot;
+      /**
+       * A suggestion from the food table, pre-filled into the form. The
+       * numbers come from our own table, and the athlete still reviews them
+       * before saving — a suggestion is never auto-logged.
+       */
+      prefill?: {
+        name: string;
+        calories: number;
+        protein: number;
+        carbs: number;
+        fat: number;
+        items: string[];
+      };
+    }
   | { kind: 'category' }
   | { kind: 'session-detail'; session: WorkoutSession }
   | { kind: 'pro' }

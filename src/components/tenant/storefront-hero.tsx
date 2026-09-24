@@ -1,5 +1,6 @@
 'use client';
 import { ArrowUpRight, ArrowDown, MoveUpRight } from 'lucide-react';
+import { useI18n } from '@/lib/i18n-context';
 import type { GymTenant } from '@smartfit/core';
 import { gymCover, safeImageUrl } from '@/lib/gym-profile';
 import { Artwork } from '@/components/ui/artwork';
@@ -17,10 +18,11 @@ export function StorefrontHero({
   gym: Pick<GymTenant, 'name' | 'slug' | 'branding'>;
   preview?: boolean;
 }) {
+  const { t } = useI18n();
   const { accent, foreground } = brandColors(gym);
   const motionRef = useHeroParallax(preview);
   const layout = gym.branding?.heroLayout ?? 'split';
-  const label = gym.branding?.ctaLabel?.trim() || 'See pricing';
+  const label = gym.branding?.ctaLabel?.trim() || t('gym.store.hero.seePricing');
   const content = (
     <div
       className={cn(
@@ -35,9 +37,9 @@ export function StorefrontHero({
           className={cn('border-white/20', preview ? 'size-12 text-sm' : 'size-14 text-lg')}
         />
         <span className="max-w-44 text-[10px] font-semibold tracking-[.22em] text-white/65 uppercase">
-          Your place.
+          {t('gym.store.hero.mottoA')}
           <br />
-          Your pace.
+          {t('gym.store.hero.mottoB')}
         </span>
       </div>
       <h1
@@ -46,7 +48,7 @@ export function StorefrontHero({
           preview ? 'text-4xl' : 'text-5xl @min-[600px]:text-6xl @min-[1000px]:text-7xl',
         )}
       >
-        {gym.name || 'Your gym name'}
+        {gym.name || t('gym.store.hero.nameFallback')}
         <span aria-hidden="true" style={{ color: accent }}>
           .
         </span>
@@ -57,10 +59,10 @@ export function StorefrontHero({
           preview ? 'text-sm' : 'text-base @min-[600px]:text-lg',
         )}
       >
-        {gym.branding?.tagline || 'Find your next session. Build your own rhythm.'}
+        {gym.branding?.tagline || t('gym.store.taglineFallback')}
       </p>
       {!!gym.branding?.amenities?.length && (
-        <ul className="mt-5 flex flex-wrap gap-2" aria-label="Gym amenities">
+        <ul className="mt-5 flex flex-wrap gap-2" aria-label={t('gym.store.amenitiesAria')}>
           {gym.branding.amenities.map((amenity) => (
             <li
               key={amenity}
@@ -81,7 +83,7 @@ export function StorefrontHero({
               {label} ↗
             </span>
             <span className="rounded-full border border-white/30 px-5 py-3 text-xs font-semibold">
-              View timetable
+              {t('gym.store.hero.viewTimetable')}
             </span>
           </>
         ) : (
@@ -111,7 +113,7 @@ export function StorefrontHero({
       </div>
       <div className="mt-10 flex items-center gap-3 text-[10px] font-medium tracking-[.18em] text-white/55 uppercase">
         <span className="h-px w-8" style={{ backgroundColor: accent }} />
-        Start where you are. Go further.
+        {t('gym.store.hero.baseline')}
       </div>
     </div>
   );
@@ -148,7 +150,7 @@ export function StorefrontHero({
       )}
       {!safeImageUrl(gym.branding?.coverUrl) && (
         <span className="absolute right-4 bottom-4 rounded-full bg-black/65 px-3 py-1 text-[10px] text-white/80">
-          Illustrative artwork · SmartFit
+          {t('gym.store.hero.artworkNote')}
         </span>
       )}
     </div>

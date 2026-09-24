@@ -74,8 +74,15 @@ export function memberInitials(name: string) {
       .toLocaleUpperCase() || '?'
   );
 }
-export function memberDate(at?: number) {
+/**
+ * A date as the directory writes it: `24 Sep 2026`.
+ *
+ * `locale` is an `Intl` tag, not a `Locale` — callers pass `intlTag(locale)` so
+ * the region is pinned to the interface's, and it defaults to British English
+ * for the callers that predate the picker.
+ */
+export function memberDate(at?: number, locale = 'en-GB') {
   return typeof at === 'number' && Number.isFinite(at)
-    ? new Date(at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? new Date(at).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
     : '—';
 }

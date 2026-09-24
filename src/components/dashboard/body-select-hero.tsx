@@ -14,6 +14,7 @@ import {
   type ExerciseMuscle,
 } from '@smartfit/core';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals } from './modal-context';
 import { MuscleMap, MUSCLE_GROUP, MUSCLE_GROUP_COLOR } from '@/components/body/muscle-map';
 import { MuscleMapModal } from '@/components/body/muscle-map-modal';
@@ -31,6 +32,7 @@ const QUICK: ExerciseMuscle[] = ['chest', 'lats', 'shoulders', 'quadriceps', 'bi
 export function BodySelectHero() {
   const { state } = useStore();
   const { openWith } = useModals();
+  const { t } = useI18n();
   const [muscle, setMuscle] = useState<ExerciseMuscle>('chest');
   const [open, setOpen] = useState(false);
 
@@ -68,15 +70,14 @@ export function BodySelectHero() {
         {/* Copy + quick picks */}
         <div className="order-2 flex flex-col items-start sm:order-1">
           <span className="text-volt inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1 text-[11px] font-bold tracking-[0.18em] uppercase">
-            <PersonStanding className="h-3.5 w-3.5" aria-hidden /> Train by body part
+            <PersonStanding className="h-3.5 w-3.5" aria-hidden /> {t('overview.body.badge')}
           </span>
           <h2 className="font-display mt-3 text-2xl font-extrabold tracking-tight sm:text-[1.75rem]">
-            Touch a muscle.
-            <br className="hidden sm:block" /> Train it today.
+            {t('overview.body.line1')}
+            <br className="hidden sm:block" /> {t('overview.body.line2')}
           </h2>
           <p className="mt-2 max-w-prose text-sm leading-relaxed text-white/65">
-            The body map shows this week&apos;s volume for every muscle. Tap any region to see the
-            exercises that hit it and start a focus workout in one tap.
+            {t('overview.body.body')}
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -122,7 +123,7 @@ export function BodySelectHero() {
             href="/dashboard/body"
             className="text-volt mt-5 inline-flex items-center gap-1.5 text-sm font-bold transition-colors hover:gap-2.5"
           >
-            Open the full body map
+            {t('overview.body.openMap')}
             <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
         </div>

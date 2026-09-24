@@ -41,6 +41,8 @@ import {
 import {
   PLANS,
   computeAchievements,
+  planName,
+  translateAchievements,
   currentStreak,
   formatDateLabel,
   formatWeight,
@@ -53,8 +55,10 @@ import {
 import type { WeekStart } from '@smartfit/core';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/firebase/auth-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useConfirm } from '../confirm-context';
 import { useToast } from '@/components/ui/toast';
+import { LocaleSwitcher } from '@/components/locale-switcher';
 import { ProBadge } from '../pro-badge';
 import { AchievementWall } from '../achievement-wall';
 
@@ -67,14 +71,15 @@ function initials(name: string): string {
 
 type ProfileTab = 'overview' | 'settings' | 'badges' | 'data';
 
-const PROFILE_TABS: { key: ProfileTab; label: string; icon: LucideIcon }[] = [
-  { key: 'overview', label: 'Overview', icon: UserRound },
-  { key: 'settings', label: 'Settings', icon: SlidersHorizontal },
-  { key: 'badges', label: 'Badges', icon: Trophy },
-  { key: 'data', label: 'Data', icon: Database },
+const PROFILE_TABS: { key: ProfileTab; labelKey: string; icon: LucideIcon }[] = [
+  { key: 'overview', labelKey: 'profile.tab.overview', icon: UserRound },
+  { key: 'settings', labelKey: 'profile.tab.settings', icon: SlidersHorizontal },
+  { key: 'badges', labelKey: 'profile.tab.badges', icon: Trophy },
+  { key: 'data', labelKey: 'profile.tab.data', icon: Database },
 ];
 
 export function ProfileScreen() {
+  const { t, locale } = useI18n();
   const {
     state,
     updateProfile,
@@ -102,7 +107,11 @@ export function ProfileScreen() {
   const [verifySent, setVerifySent] = useState(false);
   const [tab, setTab] = useState<ProfileTab>('overview');
   const profileTabs = useTablist(PROFILE_TABS.length);
-  const achievements = useMemo(() => computeAchievements(state), [state]);
+  // Core emits keys; the active translator turns them into the wall's copy.
+  const achievements = useMemo(
+    () => translateAchievements(computeAchievements(state), t),
+    [state, t],
+  );
   const [targetInput, setTargetInput] = useState(() =>
     state.profile.targetWeightKg != null
       ? String(Number(fromKg(state.profile.targetWeightKg, state.profile.weightUnit).toFixed(1)))
@@ -189,9 +198,7 @@ export function ProfileScreen() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      setDataError(
-        'The complete backup could not be loaded. Nothing was downloaded; check your connection and retry.',
-      );
+      setDataError(t('profile.error.export'));
     } finally {
       setBusy(null);
     }
@@ -256,11 +263,9 @@ export function ProfileScreen() {
       a.download = `smartfit-sessions-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast('CSV downloaded');
+      toast(t('profile.data.csvDone'));
     } catch {
-      setDataError(
-        'The complete CSV could not be loaded. Nothing was downloaded; check your connection and retry.',
-      );
+      setDataError(t('profile.error.exportCsv'));
     } finally {
       setBusy(null);
     }
@@ -281,7 +286,7 @@ export function ProfileScreen() {
     try {
       const parsed = parseStateJSON(await file.text());
       if (!parsed) {
-        setImportError('That file isn’t a SmartFit export we can read.');
+        setImportError(t('profile.error.notSmartfit'));
         return;
       }
       const total =
@@ -290,15 +295,15 @@ export function ProfileScreen() {
         parsed.schedule.length +
         parsed.bodyLogs.length;
       const ok = await confirmDialog({
-        title: 'Replace everything with this backup?',
-        body: `The backup holds ${total} record${total === 1 ? '' : 's'}. Your current data will be overwritten — this cannot be undone.`,
-        confirmLabel: 'Replace data',
+        title: t('profile.import.title'),
+        body: t('profile.import.body', { count: total }),
+        confirmLabel: t('profile.import.confirm'),
         destructive: true,
       });
       if (!ok) return;
       await replaceState(parsed);
     } catch {
-      setImportError('We couldn’t read that file.');
+      setImportError(t('profile.error.unreadable'));
     } finally {
       setBusy(null);
       if (fileRef.current) fileRef.current.value = '';
@@ -318,8 +323,8 @@ export function ProfileScreen() {
       } else {
         setDeleteError(
           err instanceof Error
-            ? err.message || 'We could not finish deleting your account. Retry to continue.'
-            : 'We could not finish deleting your account. Retry to continue the server deletion job.',
+            ? err.message || t('profile.error.delete')
+            : t('profile.error.deleteServer'),
         );
       }
     } finally {
@@ -329,9 +334,9 @@ export function ProfileScreen() {
 
   async function removeAccount() {
     const ok = await confirmDialog({
-      title: 'Delete your account?',
-      body: 'Your training data and sign-in credentials will be erased for good. Export a backup first if you might ever want it. This cannot be undone.',
-      confirmLabel: 'Delete account',
+      title: t('profile.deleteDialog.title'),
+      body: t('profile.deleteDialog.body'),
+      confirmLabel: t('profile.deleteDialog.confirm'),
       destructive: true,
     });
     if (!ok) return;
@@ -352,9 +357,9 @@ export function ProfileScreen() {
 
   async function eraseEverything() {
     const ok = await confirmDialog({
-      title: 'Erase all your SmartFit data?',
-      body: 'Workouts, goals, schedule and measurements will be deleted and the app resets to a fresh start. This cannot be undone.',
-      confirmLabel: 'Erase everything',
+      title: t('profile.eraseDialog.title'),
+      body: t('profile.eraseDialog.body'),
+      confirmLabel: t('profile.eraseDialog.confirm'),
       destructive: true,
     });
     if (ok) await clearData();
@@ -369,18 +374,21 @@ export function ProfileScreen() {
     <div className="grid max-w-full min-w-0 gap-5">
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="outline">
-          <Link href="/dashboard/personalize">Training preferences</Link>
+          <Link href="/dashboard/personalize">{t('profile.preferences')}</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/dashboard/coaching">My coaching</Link>
+          <Link href="/dashboard/coaching">{t('profile.coaching')}</Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/support">Help & support</Link>
+          <Link href="/support">{t('profile.support')}</Link>
         </Button>
       </div>
-      <section className="card-hero max-w-full min-w-0 p-4 sm:p-8" aria-label="Profile summary">
+      <section
+        className="card-hero max-w-full min-w-0 p-4 sm:p-8"
+        aria-label={t('profile.summaryAria')}
+      >
         <p className="text-volt-ink mb-3 text-[11px] font-bold tracking-[0.18em] uppercase">
-          Profile
+          {t('profile.eyebrow')}
         </p>
         <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3">
           <span
@@ -393,14 +401,16 @@ export function ProfileScreen() {
           <div className="min-w-0 flex-1 basis-48">
             <div className="flex min-w-0 items-center gap-2">
               <h1 className="font-display min-w-0 truncate text-xl font-extrabold tracking-tight sm:text-2xl">
-                {displayName || 'Profile & settings'}
+                {displayName || t('profile.eyebrow')}
               </h1>
               {pro && <ProBadge className="shrink-0" />}
             </div>
             <p className="hero-muted mt-0.5 text-sm">
               {cloud
-                ? `Signed in${user?.email ? ` as ${user.email}` : ''} — your training syncs to the cloud.`
-                : 'Your data stays on this device — no account needed.'}
+                ? t('profile.signedIn', {
+                    as: user?.email ? t('profile.signedInAs', { email: user.email }) : '',
+                  })
+                : t('profile.localOnly')}
             </p>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
@@ -410,12 +420,12 @@ export function ProfileScreen() {
               ) : (
                 <HardDrive className="text-primary h-3.5 w-3.5" aria-hidden />
               )}
-              {cloud ? 'Cloud synced' : 'Local mode'}
+              {cloud ? t('profile.cloudSynced') : t('profile.localMode')}
             </span>
             {streak > 0 && (
               <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
                 <Flame className="text-primary h-3.5 w-3.5" aria-hidden />
-                {streak}-day streak
+                {t('profile.streak', { days: streak })}
               </span>
             )}
           </div>
@@ -423,14 +433,18 @@ export function ProfileScreen() {
 
         <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
           {[
-            { label: 'Workouts', value: counts.workouts, icon: Database },
-            { label: 'Scheduled', value: counts.scheduled, icon: CalendarCheck2 },
-            { label: 'Goals', value: counts.goals, icon: Target },
-            { label: 'Measurements', value: counts.measurements, icon: SlidersHorizontal },
-            { label: 'Meals', value: state.meals.length, icon: UtensilsCrossed },
-          ].map((t, i) => (
+            { labelKey: 'profile.stat.workouts', value: counts.workouts, icon: Database },
+            { labelKey: 'profile.stat.scheduled', value: counts.scheduled, icon: CalendarCheck2 },
+            { labelKey: 'profile.stat.goals', value: counts.goals, icon: Target },
+            {
+              labelKey: 'profile.stat.measurements',
+              value: counts.measurements,
+              icon: SlidersHorizontal,
+            },
+            { labelKey: 'profile.stat.meals', value: state.meals.length, icon: UtensilsCrossed },
+          ].map((stat, i) => (
             <div
-              key={t.label}
+              key={stat.labelKey}
               className={cn(
                 'hero-tile min-w-0 rounded-2xl px-4 py-3',
                 i === 4 && 'col-span-2 sm:col-span-1',
@@ -438,11 +452,11 @@ export function ProfileScreen() {
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="hero-muted min-w-0 text-[11px] font-semibold tracking-wide uppercase">
-                  {t.label}
+                  {t(stat.labelKey)}
                 </p>
-                <t.icon className="text-primary h-3.5 w-3.5 shrink-0" aria-hidden />
+                <stat.icon className="text-primary h-3.5 w-3.5 shrink-0" aria-hidden />
               </div>
-              <p className="font-display mt-1 text-xl font-extrabold tabular-nums">{t.value}</p>
+              <p className="font-display mt-1 text-xl font-extrabold tabular-nums">{stat.value}</p>
             </div>
           ))}
         </div>
@@ -451,26 +465,26 @@ export function ProfileScreen() {
       <div
         className="bg-secondary border-border no-scrollbar mx-auto flex w-full max-w-xl min-w-0 overflow-x-auto rounded-full border p-1 shadow-sm sm:w-fit"
         role="tablist"
-        aria-label="Profile sections"
+        aria-label={t('profile.sectionsAria')}
       >
-        {PROFILE_TABS.map((t, i) => (
+        {PROFILE_TABS.map((tabItem, i) => (
           <button
-            key={t.key}
+            key={tabItem.key}
             ref={profileTabs.setRef(i)}
             role="tab"
-            aria-selected={tab === t.key}
-            tabIndex={tab === t.key ? 0 : -1}
+            aria-selected={tab === tabItem.key}
+            tabIndex={tab === tabItem.key ? 0 : -1}
             onKeyDown={(e) => profileTabs.onKeyDown(e, i)}
-            onClick={() => setTab(t.key)}
+            onClick={() => setTab(tabItem.key)}
             className={cn(
               'flex flex-1 shrink-0 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-bold whitespace-nowrap transition-colors',
-              tab === t.key
+              tab === tabItem.key
                 ? 'bg-volt text-ink shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            <t.icon className="h-4 w-4" aria-hidden />
-            {t.label}
+            <tabItem.icon className="h-4 w-4" aria-hidden />
+            {t(tabItem.labelKey)}
           </button>
         ))}
       </div>
@@ -482,7 +496,7 @@ export function ProfileScreen() {
               <span className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
                 <Cloud className="h-4.5 w-4.5" aria-hidden />
               </span>
-              Account
+              {t('profile.account')}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -507,7 +521,7 @@ export function ProfileScreen() {
                   ) : (
                     <LogOut className="h-4 w-4" />
                   )}
-                  {signingOut ? 'Signing out…' : 'Sign out'}
+                  {signingOut ? t('profile.signingOut') : t('profile.signOut')}
                 </Button>
               </div>
             </div>
@@ -517,21 +531,21 @@ export function ProfileScreen() {
                 <>
                   <CloudOff className="text-destructive h-4 w-4" />
                   <span className="text-muted-foreground min-w-0 flex-1">
-                    {syncError ?? 'Some changes haven’t reached the cloud.'}
+                    {syncError ?? t('profile.syncError')}
                   </span>
                   <Button size="sm" variant="outline" onClick={retrySync}>
-                    <RefreshCw className="h-3.5 w-3.5" /> Retry
+                    <RefreshCw className="h-3.5 w-3.5" /> {t('profile.sync.retry')}
                   </Button>
                 </>
               ) : syncStatus === 'saving' ? (
                 <>
                   <Loader2 className="text-primary h-4 w-4 animate-spin" />
-                  <span className="text-muted-foreground">Saving…</span>
+                  <span className="text-muted-foreground">{t('profile.sync.saving')}</span>
                 </>
               ) : (
                 <>
                   <Cloud className="text-primary h-4 w-4" />
-                  <span className="text-muted-foreground">All changes saved.</span>
+                  <span className="text-muted-foreground">{t('profile.sync.saved')}</span>
                 </>
               )}
             </div>
@@ -540,9 +554,7 @@ export function ProfileScreen() {
               <div className="bg-secondary/60 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5 text-xs">
                 <Mail className="text-muted-foreground h-4 w-4" />
                 <span className="text-muted-foreground min-w-0 flex-1">
-                  {verifySent
-                    ? 'Verification email sent — check your inbox.'
-                    : 'Email not verified yet. We sent a link when you signed up.'}
+                  {verifySent ? t('profile.verify.sent') : t('profile.verify.pending')}
                 </span>
                 <Button
                   size="sm"
@@ -550,24 +562,21 @@ export function ProfileScreen() {
                   disabled={verifySent}
                   onClick={() => void resendEmail()}
                 >
-                  {verifySent ? 'Sent' : 'Resend email'}
+                  {verifySent ? t('profile.verify.resent') : t('profile.verify.resend')}
                 </Button>
               </div>
             )}
 
             <div className="border-border border-t pt-3">
-              <p className="text-muted-foreground text-xs">
-                Deleting your account erases your training data and sign-in credentials for good.
-              </p>
+              <p className="text-muted-foreground text-xs">{t('profile.delete.blurb')}</p>
               {authError && <p className="text-destructive mt-1 text-xs">{authError}</p>}
               {deleteError && <p className="text-destructive mt-1 text-xs">{deleteError}</p>}
               {needPassword ? (
                 <form onSubmit={submitPassword} className="mt-2 grid gap-2">
                   <Label htmlFor="del-password">
-                    Confirm your password to delete the account
+                    {t('profile.delete.confirmLabel')}
                     <span className="text-muted-foreground block font-normal">
-                      For your security Firebase needs a fresh sign-in before an account can be
-                      deleted.
+                      {t('profile.delete.confirmHint')}
                     </span>
                   </Label>
                   <div className="flex flex-wrap gap-2">
@@ -590,7 +599,7 @@ export function ProfileScreen() {
                       ) : (
                         <Trash2 className="h-4 w-4" />
                       )}
-                      Delete for good
+                      {t('profile.delete.forGood')}
                     </Button>
                     <Button
                       type="button"
@@ -601,7 +610,7 @@ export function ProfileScreen() {
                         setPassword('');
                       }}
                     >
-                      Cancel
+                      {t('profile.cancel')}
                     </Button>
                   </div>
                 </form>
@@ -618,7 +627,7 @@ export function ProfileScreen() {
                   ) : (
                     <Trash2 className="h-4 w-4" />
                   )}
-                  Delete account
+                  {t('profile.delete.cta')}
                 </Button>
               )}
             </div>
@@ -633,19 +642,19 @@ export function ProfileScreen() {
               <span className="bg-chart-2/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
                 <UserRound className="h-4.5 w-4.5" aria-hidden />
               </span>
-              You
+              {t('profile.settings.you')}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
-            <Field id="p-name" label="Name">
+            <Field id="p-name" label={t('profile.field.name')}>
               <Input
                 value={state.profile.name}
                 onChange={(e) => updateProfile({ name: e.target.value })}
-                placeholder="Your name"
+                placeholder={t('profile.field.namePlaceholder')}
                 maxLength={80}
               />
             </Field>
-            <Field id="p-plan" label="Default strategy">
+            <Field id="p-plan" label={t('profile.field.strategy')}>
               <Select
                 value={state.profile.planId}
                 onChange={(e) =>
@@ -654,7 +663,7 @@ export function ProfileScreen() {
               >
                 {PLANS.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name}
+                    {planName(p.id, t)}
                   </option>
                 ))}
               </Select>
@@ -667,15 +676,13 @@ export function ProfileScreen() {
                     <Building2 className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="text-sm font-bold">Your gym</p>
-                    <p className="text-muted-foreground text-xs">
-                      Pick a gym running on SmartFit and build your week from its real timetable
-                    </p>
+                    <p className="text-sm font-bold">{t('profile.gym.title')}</p>
+                    <p className="text-muted-foreground text-xs">{t('profile.gym.blurb')}</p>
                   </div>
                 </div>
                 <Button size="sm" asChild className="rounded-full">
                   <Link href="/dashboard/plan">
-                    Choose <ArrowRight className="h-4 w-4" />
+                    {t('profile.gym.choose')} <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -683,23 +690,26 @@ export function ProfileScreen() {
 
             <Field
               id="p-weight"
-              label="Weight unit"
-              hint={`Body measurements follow this: ${
-                state.profile.weightUnit === 'kg' ? 'cm' : 'inches'
-              }.`}
+              label={t('profile.field.weightUnit')}
+              hint={t('profile.field.weightUnitHint', {
+                unit:
+                  state.profile.weightUnit === 'kg'
+                    ? t('profile.field.weightUnitHintKg')
+                    : t('profile.field.weightUnitHintLb'),
+              })}
             >
               <Select
                 value={state.profile.weightUnit}
                 onChange={(e) => changeWeightUnit(e.target.value as 'kg' | 'lb')}
               >
-                <option value="kg">Kilograms (kg)</option>
-                <option value="lb">Pounds (lb)</option>
+                <option value="kg">{t('profile.unit.kilograms')}</option>
+                <option value="lb">{t('profile.unit.pounds')}</option>
               </Select>
             </Field>
             <Field
               id="p-target-weight"
-              label={`Target weight (${state.profile.weightUnit})`}
-              hint="Drives the suggested program mix — closer target means more maintenance, further means more burn. Clear to disable."
+              label={t('profile.field.targetWeight', { unit: state.profile.weightUnit })}
+              hint={t('profile.field.targetWeightHint')}
               error={targetError}
             >
               <Input
@@ -714,22 +724,22 @@ export function ProfileScreen() {
                   setTargetError(null);
                 }}
                 onBlur={commitTargetWeight}
-                placeholder="e.g. 78"
+                placeholder={t('profile.field.targetWeightPlaceholder')}
               />
             </Field>
-            <Field id="p-distance" label="Distance unit">
+            <Field id="p-distance" label={t('profile.field.distanceUnit')}>
               <Select
                 value={state.profile.distanceUnit}
                 onChange={(e) => updateProfile({ distanceUnit: e.target.value as 'km' | 'mi' })}
               >
-                <option value="km">Kilometres (km)</option>
-                <option value="mi">Miles (mi)</option>
+                <option value="km">{t('profile.unit.kilometres')}</option>
+                <option value="mi">{t('profile.unit.miles')}</option>
               </Select>
             </Field>
             <Field
               id="p-weekstart"
-              label="Week starts on"
-              hint='Used for weekly goals, streaks and every "this week" total.'
+              label={t('profile.field.weekStart')}
+              hint={t('profile.field.weekStartHint')}
             >
               <Select
                 value={state.profile.weekStartsOn ?? 1}
@@ -737,14 +747,14 @@ export function ProfileScreen() {
                   updateProfile({ weekStartsOn: Number(e.target.value) as WeekStart })
                 }
               >
-                <option value={1}>Monday</option>
-                <option value={0}>Sunday</option>
+                <option value={1}>{t('profile.weekday.monday')}</option>
+                <option value={0}>{t('profile.weekday.sunday')}</option>
               </Select>
             </Field>
             <Field
               id="p-rest"
-              label="Rest days / week"
-              hint="Your streak survives this many untrained days a week."
+              label={t('profile.field.restDays')}
+              hint={t('profile.field.restDaysHint')}
             >
               <Select
                 value={state.profile.weeklyRestDays}
@@ -757,6 +767,11 @@ export function ProfileScreen() {
                 ))}
               </Select>
             </Field>
+            {/* Language sits with the other preferences rather than buried in
+                the diet section: it changes every label on this screen. */}
+            <div className="bg-secondary/40 rounded-2xl p-4 sm:col-span-2">
+              <LocaleSwitcher header />
+            </div>
           </CardContent>
         </Card>
       )}
@@ -769,7 +784,7 @@ export function ProfileScreen() {
                 <span className="bg-volt/10 text-ink flex h-9 w-9 items-center justify-center rounded-xl">
                   <Building2 className="h-5 w-5" />
                 </span>
-                Quick Actions
+                {t('profile.quick.title')}
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2 sm:grid-cols-2">
@@ -778,8 +793,8 @@ export function ProfileScreen() {
                 className="hover:bg-secondary/50 flex items-center justify-between rounded-2xl border p-4 transition-colors"
               >
                 <div>
-                  <p className="text-sm font-bold">Your gym</p>
-                  <p className="text-muted-foreground text-xs">Pick a gym, build your week</p>
+                  <p className="text-sm font-bold">{t('profile.gym.title')}</p>
+                  <p className="text-muted-foreground text-xs">{t('profile.quick.gym')}</p>
                 </div>
                 <ArrowRight className="text-muted-foreground h-4 w-4" />
               </Link>
@@ -788,8 +803,8 @@ export function ProfileScreen() {
                 className="hover:bg-secondary/50 flex items-center justify-between rounded-2xl border p-4 transition-colors"
               >
                 <div>
-                  <p className="text-sm font-bold">View Progress</p>
-                  <p className="text-muted-foreground text-xs">Check your growth & metrics</p>
+                  <p className="text-sm font-bold">{t('profile.quick.progress')}</p>
+                  <p className="text-muted-foreground text-xs">{t('profile.quick.progressBody')}</p>
                 </div>
                 <ArrowRight className="text-muted-foreground h-4 w-4" />
               </Link>
@@ -809,11 +824,16 @@ export function ProfileScreen() {
                 <Crown className="h-5 w-5 text-white" aria-hidden />
               </span>
               <div className="relative min-w-0 flex-1">
-                <p className="text-sm font-bold text-white">SmartFit Pro</p>
+                <p className="text-sm font-bold text-white">{t('profile.pro.title')}</p>
                 <p className="truncate text-xs text-white/75">
                   {pro
-                    ? `Active since ${formatDateLabel(toISODate(new Date(state.profile.pro?.since ?? Date.now())))} — thanks for supporting SmartFit.`
-                    : 'Unlimited AI coach, quarter & year analytics, Pro badge.'}
+                    ? t('profile.pro.activeSince', {
+                        date: formatDateLabel(
+                          toISODate(new Date(state.profile.pro?.since ?? Date.now())),
+                          locale,
+                        ),
+                      })
+                    : t('profile.pro.blurb')}
                 </p>
               </div>
               <Button
@@ -822,7 +842,7 @@ export function ProfileScreen() {
                 className={cn('relative', !pro && 'shadow-primary/40 shadow-lg')}
                 onClick={() => openWith({ kind: 'pro' })}
               >
-                {pro ? 'Manage' : 'Upgrade'}
+                {pro ? t('profile.pro.manage') : t('profile.pro.upgrade')}
               </Button>
             </div>
           </Card>
@@ -836,7 +856,7 @@ export function ProfileScreen() {
               <span className="bg-chart-3/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
                 <Trophy className="h-4.5 w-4.5" aria-hidden />
               </span>
-              Badges
+              {t('profile.badges.title')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -852,20 +872,28 @@ export function ProfileScreen() {
               <span className="bg-chart-4/10 text-foreground flex h-9 w-9 items-center justify-center rounded-xl">
                 <Database className="h-4.5 w-4.5" aria-hidden />
               </span>
-              Your data
+              {t('profile.data.title')}
             </CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="flex flex-wrap gap-2">
-              <Badge variant="secondary">{counts.workouts} workouts</Badge>
-              <Badge variant="secondary">{counts.scheduled} scheduled</Badge>
-              <Badge variant="secondary">{counts.goals} goals</Badge>
-              <Badge variant="secondary">{counts.measurements} measurements</Badge>
-              <Badge variant="secondary">{state.categories.length} activity types</Badge>
+              <Badge variant="secondary">
+                {t('profile.data.workouts', { count: counts.workouts })}
+              </Badge>
+              <Badge variant="secondary">
+                {t('profile.data.scheduled', { count: counts.scheduled })}
+              </Badge>
+              <Badge variant="secondary">{t('profile.data.goals', { count: counts.goals })}</Badge>
+              <Badge variant="secondary">
+                {t('profile.data.measurements', { count: counts.measurements })}
+              </Badge>
+              <Badge variant="secondary">
+                {t('profile.data.activityTypes', { count: state.categories.length })}
+              </Badge>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => openModal('category')}>
-                <Tag className="h-4 w-4" /> Activity types
+                <Tag className="h-4 w-4" /> {t('profile.data.types')}
               </Button>
               <Button
                 variant="outline"
@@ -878,17 +906,17 @@ export function ProfileScreen() {
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
-                Export JSON
+                {t('profile.data.exportJson')}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={busy === 'export'}
                 onClick={() => void exportCsv()}
-                title="Download sessions as CSV"
+                title={t('profile.data.exportCsvTitle')}
               >
                 <FileSpreadsheet className="h-4 w-4" />
-                Export CSV
+                {t('profile.data.exportCsv')}
               </Button>
               <Button
                 variant="outline"
@@ -901,7 +929,7 @@ export function ProfileScreen() {
                 ) : (
                   <Upload className="h-4 w-4" />
                 )}
-                Import backup
+                {t('profile.data.import')}
               </Button>
               <input
                 ref={fileRef}
@@ -919,17 +947,17 @@ export function ProfileScreen() {
                 className="text-destructive hover:text-destructive"
                 onClick={() => void eraseEverything()}
               >
-                <Trash2 className="h-4 w-4" /> Erase everything
+                <Trash2 className="h-4 w-4" /> {t('profile.data.erase')}
               </Button>
             </div>
             {importError && <p className="text-destructive text-xs">{importError}</p>}
             {dataError && <p className="text-destructive text-xs">{dataError}</p>}
             <p className="text-muted-foreground text-xs">
               {cloud
-                ? 'Your training is stored in Cloud Firestore under your account and synced across devices, with an offline copy on this device. Export a JSON backup any time.'
+                ? t('profile.data.blurbCloud')
                 : mode === 'cloud'
-                  ? 'You are signed out — data is stored in this browser’s local bucket until you sign in, then it syncs to the cloud. Anyone using this browser profile can see that local data.'
-                  : 'SmartFit stores everything locally in this browser (localStorage). Anyone using this browser profile can see it; nothing is sent to a server. Export regularly for a backup.'}
+                  ? t('profile.data.blurbSignedOut')
+                  : t('profile.data.blurbLocal')}
             </p>
           </CardContent>
         </Card>

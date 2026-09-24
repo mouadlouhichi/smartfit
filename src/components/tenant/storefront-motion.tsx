@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useRef, useState, type HTMLAttributes } from 'react';
+import { useI18n } from '@/lib/i18n-context';
 import { ArrowUpRight, Pause, Play } from 'lucide-react';
 
 const MotionContext = createContext({
@@ -66,6 +67,7 @@ export function StorefrontMotion({ children, ...props }: HTMLAttributes<HTMLDivE
 }
 
 export function MotionToggle() {
+  const { t } = useI18n();
   const { reduced, paused, toggle } = useContext(MotionContext);
   return (
     <button
@@ -75,17 +77,17 @@ export function MotionToggle() {
       aria-pressed={paused || reduced}
       aria-label={
         reduced
-          ? 'Animations off: reduced motion'
+          ? t('gym.store.motion.offReduced')
           : paused
-            ? 'Resume animations'
-            : 'Pause animations'
+            ? t('gym.store.motion.resume')
+            : t('gym.store.motion.pause')
       }
       title={
         reduced
-          ? 'Your reduced-motion preference is respected'
+          ? t('gym.store.motion.reducedNote')
           : paused
-            ? 'Resume animations'
-            : 'Pause animations'
+            ? t('gym.store.motion.resume')
+            : t('gym.store.motion.pause')
       }
       className="hover:bg-secondary inline-flex size-9 shrink-0 items-center justify-center rounded-full border disabled:opacity-50"
     >

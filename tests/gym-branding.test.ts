@@ -6,6 +6,7 @@ import {
   gymLogo,
   profileFromGym,
   safeLogoData,
+  gymGalleryImages,
   validateGymProfile,
 } from '../src/lib/gym-profile';
 import { trainingArtwork } from '../src/lib/training-art';
@@ -64,6 +65,36 @@ test('gym covers resolve custom HTTPS images or only allowlisted bundled art', (
     '/images/branding/strength-cover.webp',
   );
 });
+test('a gym shows more than one image, and its own photos come first', () => {
+  // No branding at all still yields the preset set — a card is never a single
+  // stock photo.
+  assert.deepEqual(gymGalleryImages(undefined), [
+    '/images/branding/strength-cover.webp',
+    '/images/cat-strength.jpg',
+    '/images/cat-cardio.jpg',
+  ]);
+  // The preset steers the set: a combat gym gets the fight floor.
+  assert.equal(gymGalleryImages({ coverPreset: 'combat' })[0], '/images/cat-sports.jpg');
+  // Uploaded photos outrank the bundled ones, after the cover.
+  assert.deepEqual(
+    gymGalleryImages({
+      coverPreset: 'studio',
+      galleryUrls: ['https://example.com/one.jpg', 'javascript:alert(1)'],
+    }),
+    [
+      '/images/branding/studio-cover.webp',
+      'https://example.com/one.jpg',
+      '/images/cat-mobility.jpg',
+    ],
+  );
+  // Never longer than asked, never the same image twice, and never repeating a
+  // bundled image to pad the count.
+  assert.equal(gymGalleryImages({ coverPreset: 'combat' }, 2).length, 2);
+  const all = gymGalleryImages({ coverPreset: 'combat' }, 10);
+  assert.equal(all.length, 3);
+  assert.equal(new Set(all).size, 3);
+});
+
 test('branding validation bounds layout, amenities, gallery and raster data', () => {
   const profile = profileFromGym(gym);
   for (const patch of [
