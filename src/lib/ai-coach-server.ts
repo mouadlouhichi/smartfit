@@ -88,6 +88,19 @@ export function serverCompletionsUrl(cfg: ServerAiConfig): string {
 }
 
 /**
+ * Model id for the image paths (`/api/meal-scan`, coach photos).
+ *
+ * A chat model and a vision model are usually not the same id, and silently
+ * sending a JPEG to a text-only model produces a provider error that reads
+ * like our bug. `AI_VISION_MODEL` overrides for images only; unset falls back
+ * to the chat model, which is right for the many multimodal endpoints where
+ * one id does both.
+ */
+export function readVisionModel(cfg: ServerAiConfig): string {
+  return process.env.AI_VISION_MODEL?.trim() || cfg.model;
+}
+
+/**
  * First token within this window, or the upstream is treated as dead.
  * The route arms the first-token window and then the ceiling below, so the
  * worst case one request can hold a function open is the sum of the two —

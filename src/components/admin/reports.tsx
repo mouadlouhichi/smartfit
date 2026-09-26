@@ -228,7 +228,7 @@ export function GymOperations({ slug }: { slug: string }) {
         <CardContent className="space-y-3 text-sm">
           <div
             className="bg-muted/40 rounded-xl border-l-4 p-4"
-            style={{ borderColor: gym.accentColor || '#8ad200' }}
+            style={{ borderColor: gym.accentColor || 'var(--volt)' }}
           >
             <p className="font-bold">{gym.name}</p>
             <p className="text-muted-foreground mt-1">{gym.tagline || 'No tagline set yet'}</p>

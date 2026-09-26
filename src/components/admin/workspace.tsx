@@ -28,6 +28,7 @@ import { formatMoney } from '@/lib/tenant-metrics';
 import { downloadCsv, toCsv } from '@/lib/csv';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -144,20 +145,18 @@ export function OverviewWorkspace() {
             </div>
             <div className="flex flex-wrap gap-4">
               {Object.entries(WIDGETS).map(([key, label]) => (
-                <label key={key} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={widgets.includes(key as Widget)}
-                    onChange={(e) =>
-                      change(
-                        e.target.checked
-                          ? [...widgets, key as Widget]
-                          : widgets.filter((w) => w !== key),
-                      )
-                    }
-                  />
-                  {label}
-                </label>
+                <Checkbox
+                  key={key}
+                  checked={widgets.includes(key as Widget)}
+                  onChange={(e) =>
+                    change(
+                      e.target.checked
+                        ? [...widgets, key as Widget]
+                        : widgets.filter((w) => w !== key),
+                    )
+                  }
+                  label={label}
+                />
               ))}
             </div>
           </CardContent>
@@ -386,7 +385,7 @@ export function RegistryWorkspace() {
     <Link href={`/admin/gyms/${g.slug}`} className="group flex items-center gap-3">
       <span
         style={{
-          backgroundColor: `${/^#[0-9a-f]{6}$/i.test(g.accentColor ?? '') ? g.accentColor : '#8ad200'}22`,
+          backgroundColor: `${/^#[0-9a-f]{6}$/i.test(g.accentColor ?? '') ? g.accentColor : 'var(--volt)'}22`,
         }}
         className="flex size-10 shrink-0 items-center justify-center rounded-xl font-black"
       >

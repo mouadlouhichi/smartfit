@@ -160,6 +160,12 @@ export interface FitnessGoal {
   cadence: GoalCadence;
   target: number;
   startDate: string;
+  /**
+   * Optional ISO date by which the goal should be met. Targets a *deadline*,
+   * not a cadence: with one set, the goal screen can say whether the current
+   * pace arrives in time instead of only reporting progress so far.
+   */
+  deadline?: string;
   createdAt: number;
 }
 
@@ -176,6 +182,9 @@ export interface BodyLog {
 /** Which eating occasion a meal log belongs to (day is on `date`). */
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
+/** Where a logged meal came from — drives the badge on the fuel list. */
+export type MealSource = 'manual' | 'scan' | 'photo' | 'voice' | 'voice+scan';
+
 /**
  * One logged meal / food entry. Macros are optional beyond calories and
  * protein — the two numbers people actually track — so logging stays fast.
@@ -189,9 +198,50 @@ export interface MealLog {
   protein: number; // grams
   carbs?: number; // grams
   fat?: number; // grams
-  /** Set when the entry came from the on-device meal scan. */
+  /** Set when the entry came from the on-device meal scan (kept for older records). */
   scanned?: boolean;
+  /** How this entry was captured; older records have no source. */
+  source?: MealSource;
+  /** Foods the scan/photo matched, by FOOD_DB id — powers one-tap swapping. */
+  items?: string[];
+  /**
+   * The photo that produced this entry, as a small data URL. Only ever kept
+   * locally (it is part of the export, never sent anywhere on its own).
+   */
+  photo?: string;
   createdAt: number;
+}
+
+/** One answered weekly check-in. Append-only: never edited, never re-derived. */
+export interface WeeklyCheckIn {
+  id: string;
+  /** ISO date the check-in was answered. */
+  date: string;
+  /** ISO date of the week's first day it covers. */
+  weekOf: string;
+  /** 1 (rough) – 5 (excellent): how the week felt, self-reported. */
+  feeling: 1 | 2 | 3 | 4 | 5;
+  /** Optional free text — the athlete's own words about the week. */
+  notes?: string;
+  /** Snapshot of the week, so history stays readable without recomputation. */
+  workouts: number;
+  minutes: number;
+  /** Latest body weight at check-in time (canonical kg), when one existed. */
+  weightKg?: number;
+  createdAt: number;
+}
+
+/**
+ * Dietary exclusions and preferences collected in Personalize.
+ *
+ * `restrictions` are hard filters (a suggestion that violates one is never
+ * shown); `favorites`/`dislikes` are soft ranking signals. Foods are named by
+ * FOOD_DB id so the data survives renames of the display label.
+ */
+export interface DietaryPreferences {
+  restrictions: string[];
+  favorites?: string[];
+  dislikes?: string[];
 }
 
 export type PlanId = 'ppl' | 'upper-lower' | 'full-body' | 'cardio-focus';
@@ -253,6 +303,13 @@ export interface UserProfile {
   sex?: 'female' | 'male';
   ageYears?: number;
   heightCm?: number;
+  /** Dietary exclusions + likes/dislikes. Hard filters apply to every suggestion. */
+  dietary?: DietaryPreferences;
+  /**
+   * Interface language (`en` / `fr`). Absent = follow the device, falling back
+   * to English. See `i18n.ts`.
+   */
+  locale?: string;
 }
 
 export interface FitnessState {
@@ -263,6 +320,8 @@ export interface FitnessState {
   goals: FitnessGoal[];
   bodyLogs: BodyLog[];
   meals: MealLog[];
+  /** Answered weekly check-ins, oldest first. Drives XP and the check-in card. */
+  checkIns?: WeeklyCheckIn[];
   /** Custom gyms created by user + built-in reference */
   customGyms?: import('./gym').CustomGym[];
   /** Enrolled programs/classes */

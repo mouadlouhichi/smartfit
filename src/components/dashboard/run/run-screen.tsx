@@ -6,15 +6,16 @@ import { RunRecord } from './run-record';
 import { RunHistory } from './run-history';
 import { RunRecords } from './run-records';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { isTrackedRun, runTotals, fmtKm, fmtDuration, fmtPace } from '@smartfit/core';
 import { cn } from '@/lib/utils';
 
 type Tab = 'record' | 'history' | 'records';
 
-const TABS: { id: Tab; label: string; icon: typeof Footprints }[] = [
-  { id: 'record', label: 'Record', icon: Footprints },
-  { id: 'history', label: 'History', icon: History },
-  { id: 'records', label: 'Records', icon: Trophy },
+const TABS: { id: Tab; labelKey: string; icon: typeof Footprints }[] = [
+  { id: 'record', labelKey: 'run.tab.record', icon: Footprints },
+  { id: 'history', labelKey: 'run.tab.history', icon: History },
+  { id: 'records', labelKey: 'run.tab.records', icon: Trophy },
 ];
 
 /**
@@ -26,6 +27,7 @@ const TABS: { id: Tab; label: string; icon: typeof Footprints }[] = [
  * answers "am I getting faster?" without hunting through Progress.
  */
 export function RunScreen() {
+  const { t } = useI18n();
   const { state, ready } = useStore();
   const [tab, setTab] = useState<Tab>('record');
 
@@ -37,25 +39,28 @@ export function RunScreen() {
     <div className="grid max-w-full min-w-0 gap-5">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-volt-ink text-[11px] font-bold tracking-[0.18em] uppercase">Cardio</p>
-          <h1 className="font-display text-2xl leading-tight font-extrabold tracking-tight sm:text-3xl">
-            Run
-          </h1>
-          <p className="text-muted-foreground mt-1 text-sm">
-            GPS recording, splits, best efforts and share cards — all on this device.
+          <p className="text-volt-ink text-[11px] font-bold tracking-[0.18em] uppercase">
+            {t('run.eyebrow')}
           </p>
+          <h1 className="font-display text-2xl leading-tight font-extrabold tracking-tight sm:text-3xl">
+            {t('run.heading')}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">{t('run.subtitle')}</p>
         </div>
         {runs.length > 0 && (
           <dl className="flex flex-wrap gap-x-6 gap-y-2">
-            <Stat label="Runs" value={`${totals.runs}`} />
-            <Stat label="Distance" value={fmtKm(totals.distanceKm)} />
-            <Stat label="Time" value={fmtDuration(Math.round(totals.movingMin * 60))} />
-            <Stat label="Avg pace" value={`${fmtPace(avgPace)} /km`} />
+            <Stat label={t('run.total.runs')} value={`${totals.runs}`} />
+            <Stat label={t('run.total.distance')} value={fmtKm(totals.distanceKm)} />
+            <Stat
+              label={t('run.total.time')}
+              value={fmtDuration(Math.round(totals.movingMin * 60))}
+            />
+            <Stat label={t('run.total.avgPace')} value={`${fmtPace(avgPace)} /km`} />
           </dl>
         )}
       </header>
 
-      <nav aria-label="Run sections" className="bg-secondary flex gap-1 rounded-full p-1">
+      <nav aria-label={t('run.sectionsAria')} className="bg-secondary flex gap-1 rounded-full p-1">
         {TABS.map((item) => {
           const Icon = item.icon;
           const active = tab === item.id;
@@ -73,7 +78,7 @@ export function RunScreen() {
               )}
             >
               <Icon className="h-4 w-4" aria-hidden />
-              {item.label}
+              {t(item.labelKey)}
             </button>
           );
         })}

@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { ArrowRight, Check } from 'lucide-react';
 import type { GymProgram } from '@smartfit/core';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ export function GymPicker({
   /** Called once with the server-loaded list (the Plan screen owns the state). */
   onLoad: (programs: GymProgram[]) => void;
 }) {
+  const { t } = useI18n();
   const { state, updateProfile } = useStore();
   const selected = state.profile.gymId ?? '';
   const [error, setError] = useState<string | null>(null);
@@ -59,14 +61,14 @@ export function GymPicker({
       <CardContent className="grid gap-3 p-4 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="font-display text-lg font-extrabold tracking-tight">Your gym</p>
-            <p className="text-muted-foreground text-xs">
-              Gyms running on SmartFit — pick one to build your week from its real timetable.
+            <p className="font-display text-lg font-extrabold tracking-tight">
+              {t('gym.picker.title')}
             </p>
+            <p className="text-muted-foreground text-xs">{t('gym.picker.body')}</p>
           </div>
           <Button size="sm" variant="outline" asChild className="rounded-full">
             <Link href="/gyms">
-              Browse gyms <ArrowRight className="h-4 w-4" />
+              {t('gym.picker.browse')} <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
@@ -75,7 +77,7 @@ export function GymPicker({
 
         {programs.length === 0 && !error && (
           <p className="text-muted-foreground text-sm">
-            {selected ? 'Loading your gym…' : 'No gyms are listed yet — nothing to pick for now.'}
+            {selected ? t('gym.picker.loading') : t('gym.picker.empty')}
           </p>
         )}
 

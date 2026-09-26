@@ -3,6 +3,7 @@
 import { ThemeProvider } from './theme-provider';
 import { AuthProvider } from '@/lib/firebase/auth-context';
 import { StoreProvider } from '@/lib/store-context';
+import { I18nProvider } from '@/lib/i18n-context';
 import { ToastProvider } from '@/components/ui/toast';
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
@@ -17,7 +18,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       */}
       <ToastProvider>
         <AuthProvider>
-          <StoreProvider>{children}</StoreProvider>
+          <StoreProvider>
+            {/* Inside the store: the chosen language is a profile field, so it
+                syncs across devices like every other preference. */}
+            <I18nProvider>{children}</I18nProvider>
+          </StoreProvider>
         </AuthProvider>
       </ToastProvider>
     </ThemeProvider>

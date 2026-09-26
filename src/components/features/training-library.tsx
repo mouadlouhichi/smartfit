@@ -7,6 +7,8 @@ import { Artwork, WorkspaceIllustration } from '@/components/ui/artwork';
 import { trainingArtwork } from '@/lib/training-art';
 import { safeImageUrl } from '@/lib/gym-profile';
 import { Input } from '@/components/ui/input';
+import { Field } from '@/components/ui/field';
+import { Select } from '@/components/ui/select';
 import { useFeatureData } from '@/lib/feature-client';
 import { DEMO_CONTENT } from '@/lib/feature-demo';
 import { FeatureShell } from './shell';
@@ -57,64 +59,43 @@ export function TrainingLibrary({ onStart }: { onStart?: (item: TrainingContent)
     >
       {!resource.error && (
         <>
+          {/* One `Field` per filter, so labels are wired with htmlFor and every
+              control is the same height and boundary. */}
           <div className="grid gap-3 sm:grid-cols-4">
-            <label className="text-sm">
-              Search
+            <Field id="lib-search" label="Search">
               <Input
                 type="search"
                 placeholder="Name or muscle group"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-            </label>
-            <label className="text-sm">
-              Content type
-              <select
-                aria-label="Content type"
-                className="bg-card min-h-11 w-full rounded-xl border px-3"
-                value={kind}
-                onChange={(e) => setKind(e.target.value)}
-              >
+            </Field>
+            <Field id="lib-kind" label="Content type">
+              <Select value={kind} onChange={(e) => setKind(e.target.value)}>
                 <option value="all">All types</option>
-                {['exercise', 'workout', 'plan'].map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              Difficulty
-              <select
-                aria-label="Difficulty"
-                className="bg-card min-h-11 w-full rounded-xl border px-3"
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
-              >
+                <option value="exercise">Exercise</option>
+                <option value="workout">Workout</option>
+                <option value="plan">Plan</option>
+              </Select>
+            </Field>
+            <Field id="lib-difficulty" label="Difficulty">
+              <Select value={difficulty} onChange={(e) => setDifficulty(e.target.value)}>
                 <option value="all">All levels</option>
-                {['beginner', 'intermediate', 'advanced'].map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              Equipment
-              <select
-                aria-label="Equipment"
-                className="bg-card min-h-11 w-full rounded-xl border px-3"
-                value={equipment}
-                onChange={(e) => setEquipment(e.target.value)}
-              >
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </Select>
+            </Field>
+            <Field id="lib-equipment" label="Equipment">
+              <Select value={equipment} onChange={(e) => setEquipment(e.target.value)}>
                 <option value="all">Any equipment</option>
                 {[...new Set(published.flatMap((i) => i.equipment))].sort().map((v) => (
                   <option key={v} value={v}>
                     {v}
                   </option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </Field>
           </div>
           <p role="status" className="text-muted-foreground text-sm">
             {visible.length} result{visible.length === 1 ? '' : 's'} · published catalog (up to 100

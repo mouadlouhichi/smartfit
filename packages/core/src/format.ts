@@ -1,6 +1,7 @@
-import { BODY_UNIT_META } from './constants';
+import { BODY_UNIT_META, GOAL_METRIC_META, PLANS, SEEDED_GOAL_NAMES } from './constants';
 import type { BodyUnit, DistanceUnit, UserProfile, WeightUnit } from './types';
 import { bodyDisplayUnit, bodyValueToDisplay, fromKg, fromKm } from './units';
+import type { Translator } from './i18n';
 
 export function formatMinutes(min: number): string {
   const m = Math.round(min);
@@ -110,24 +111,282 @@ export function bodyLabel(bodyUnit: BodyUnit, custom?: string): string {
   return BODY_UNIT_META[bodyUnit]?.label ?? bodyUnit;
 }
 
+/**
+ * Catalogue keys for the measurement types, one per `BODY_UNIT_META` entry.
+ *
+ * A static map, not `body.unit.${unit}`: the key guard needs to see each key
+ * in the source it scans, and a test asserts this covers the whole meta table
+ * so a new measurement type cannot ship with an English-only name.
+ */
+export const BODY_UNIT_KEYS: Record<BodyUnit, string> = {
+  weight: 'body.unit.weight',
+  bodyfat: 'body.unit.bodyfat',
+  waist: 'body.unit.waist',
+  chest: 'body.unit.chest',
+  arms: 'body.unit.arms',
+  custom: 'body.unit.custom',
+};
+
+/**
+ * Weekday names in the interface language, **Sunday first** — the order of
+ * `WEEKDAYS` / `WEEKDAYS_LONG` in `constants.ts`, so a call site keeps whatever
+ * rotation it already applies.
+ *
+ * These are not catalogue entries: day names are exactly the copy `Intl` knows,
+ * which is the same reason `formatDateLabel` uses it. The reference week is
+ * fixed (31 December 2023 was a Sunday) and read in UTC, so the output cannot
+ * depend on the machine's timezone or on the day the test runs.
+ */
+export function weekdayLabels(locale?: string, width: 'short' | 'long' = 'short'): string[] {
+  const fmt = new Intl.DateTimeFormat(intlLocale(locale), { weekday: width, timeZone: 'UTC' });
+  const days = [
+    new Date(Date.UTC(2023, 11, 31)), // Sunday
+    ...[1, 2, 3, 4, 5, 6].map((d) => new Date(Date.UTC(2024, 0, d))), // Mon…Sat
+  ];
+  return days.map((d) => fmt.format(d));
+}
+
+/** One weekday by `Date.getDay()` index, wrapping out-of-range values. */
+export function weekdayLabel(
+  weekday: number,
+  locale?: string,
+  width: 'short' | 'long' = 'long',
+): string {
+  const names = weekdayLabels(locale, width);
+  return names[((Math.trunc(weekday) % 7) + 7) % 7];
+}
+
+/**
+ * Catalogue keys for the training plans and the goal metrics, by id.
+ *
+ * Same arrangement as `BODY_UNIT_KEYS`: the English copy lives in the data
+ * (`PLANS`, `GOAL_METRIC_META`) because the mobile client reads it directly,
+ * and these keys resolve the localised copy for the web UI.
+ */
+export const PLAN_KEYS: Record<string, { name: string; description: string }> = {
+  ppl: { name: 'plan.ppl.name', description: 'plan.ppl.description' },
+  'upper-lower': { name: 'plan.upperLower.name', description: 'plan.upperLower.description' },
+  'full-body': { name: 'plan.fullBody.name', description: 'plan.fullBody.description' },
+  'cardio-focus': { name: 'plan.cardioFocus.name', description: 'plan.cardioFocus.description' },
+};
+
+export const GOAL_METRIC_KEYS: Record<string, { label: string; unit: string }> = {
+  workouts: { label: 'goal.metric.workouts', unit: 'goal.metric.workouts.unit' },
+  minutes: { label: 'goal.metric.minutes', unit: 'goal.metric.minutes.unit' },
+  calories: { label: 'goal.metric.calories', unit: 'goal.metric.calories.unit' },
+  distance: { label: 'goal.metric.distance', unit: 'goal.metric.distance.unit' },
+};
+
+/**
+ * Display name and one-line description of a training plan. Without a
+ * translator both fall back to the English data, so core callers, the mobile
+ * app and the tests keep reading the same words.
+ */
+export function planName(planId: string, t?: Translator): string {
+  const key = PLAN_KEYS[planId]?.name;
+  if (key && t) return t(key);
+  return PLANS.find((p) => p.id === planId)?.name ?? PLANS[0].name;
+}
+
+export function planDescription(planId: string, t?: Translator): string {
+  const key = PLAN_KEYS[planId]?.description;
+  if (key && t) return t(key);
+  return PLANS.find((p) => p.id === planId)?.description ?? '';
+}
+
+/**
+ * The human name of a goal metric ("Active minutes") and the unit it is
+ * counted in ("min"). The unit is a symbol — `km`, `kcal`, `min` — which is
+ * why the French catalogue repeats it rather than inventing a word.
+ */
+export function goalMetricLabel(metric: string, t?: Translator): string {
+  const key = GOAL_METRIC_KEYS[metric]?.label;
+  if (key && t) return t(key);
+  return GOAL_METRIC_META[metric]?.label ?? metric;
+}
+
+export function goalMetricUnit(metric: string, t?: Translator): string {
+  const key = GOAL_METRIC_KEYS[metric]?.unit;
+  if (key && t) return t(key);
+  return GOAL_METRIC_META[metric]?.unit ?? '';
+}
+
+/**
+ * The stored name for a goal created during onboarding, in canonical English.
+ * The onboarding flow writes this rather than a translated string, so a goal
+ * created in French reads correctly after the athlete switches to English.
+ */
+export function seededGoalName(metric: string): string {
+  return SEEDED_GOAL_NAMES[metric] ?? SEEDED_GOAL_NAMES.workouts;
+}
+
+/**
+ * The name to show for a goal.
+ *
+ * The two names onboarding seeds were written by us, so they translate; every
+ * other name is the athlete's own words and passes through untouched — which
+ * is also why the seeded ones cannot be detected by anything but their stored
+ * value.
+ */
+export function goalDisplayName(name: string, t?: Translator): string {
+  if (!t) return name;
+  const seeded = Object.keys(SEEDED_GOAL_NAMES).find((m) => SEEDED_GOAL_NAMES[m] === name);
+  if (seeded) return t(`goal.seed.${seeded}`);
+  // A goal the athlete created without naming it is stored as "<metric> goal".
+  const unnamed = Object.keys(GOAL_METRIC_META).find(
+    (m) => `${GOAL_METRIC_META[m].label} goal` === name,
+  );
+  if (unnamed) return t('goal.defaultName', { metric: goalMetricLabel(unnamed, t) });
+  return name;
+}
+
+/**
+ * Membership, invoice and booking statuses.
+ *
+ * Stored as ids (`active`, `no_show`) and shown as words, in the member's view
+ * and in the gym's console alike — one map, so the two never disagree about
+ * what a membership is called.
+ */
+export const GYM_STATUS_KEYS: Record<string, string> = {
+  active: 'gym.status.active',
+  trial: 'gym.status.trial',
+  frozen: 'gym.status.frozen',
+  expired: 'gym.status.expired',
+  paid: 'gym.status.paid',
+  overdue: 'gym.status.overdue',
+  void: 'gym.status.void',
+  draft: 'gym.status.draft',
+  booked: 'gym.status.booked',
+  waitlist: 'gym.status.waitlist',
+  attended: 'gym.status.attended',
+  no_show: 'gym.status.noShow', // the stored id keeps its snake case
+  cancelled: 'gym.status.cancelled',
+  refunded: 'gym.status.refunded',
+  // Not a stored status: `directoryStatus` derives it when a record carries an
+  // id the taxonomy does not know. Listed so the member directory can name it.
+  review: 'gym.status.review',
+};
+
+/** A status as words. Unknown ids fall back to the id itself, de-snake-cased. */
+export function gymStatusLabel(status: string, t?: Translator): string {
+  const key = GYM_STATUS_KEYS[status];
+  if (key && t) return t(key);
+  return status.replace(/_/g, ' ');
+}
+
+/**
+ * The class-type taxonomy, as words.
+ *
+ * `combat`, `hiit`… are ids: the English words the demo fixtures and stored class
+ * documents use. This resolves the copy per locale, the same way `gymStatusLabel`
+ * does, and falls back to the id — so a gym that invents a focus of its own still
+ * renders something readable instead of a blank badge.
+ */
+export const GYM_FOCUS_KEYS: Record<string, string> = {
+  combat: 'gym.focus.combat',
+  hiit: 'gym.focus.hiit',
+  strength: 'gym.focus.strength',
+  cardio: 'gym.focus.cardio',
+  mind: 'gym.focus.mind',
+  aqua: 'gym.focus.aqua',
+};
+
+export function gymFocusLabel(focus: string, t?: Translator): string {
+  const key = GYM_FOCUS_KEYS[focus];
+  return key && t ? t(key) : focus;
+}
+
+/**
+ * The billing period of a membership plan.
+ *
+ * The stored ids (`month`, `quarter`, `year`, `pass`) are data; this is what the
+ * storefront, the console and the plan forms show next to a price.
+ */
+export const PLAN_PERIOD_KEYS: Record<string, string> = {
+  month: 'plan.period.month',
+  quarter: 'plan.period.quarter',
+  year: 'plan.period.year',
+  pass: 'plan.period.pass',
+};
+
+export function planPeriodLabel(period: string, t?: Translator): string {
+  const key = PLAN_PERIOD_KEYS[period];
+  return key && t ? t(key) : period;
+}
+
+/** The same idea for RBAC roles: `roleLabel` is the English name, this the copy. */
+export const ROLE_KEYS: Record<string, string> = {
+  'platform-admin': 'role.platformAdmin',
+  'gym-owner': 'role.gymOwner',
+  'gym-staff': 'role.gymStaff',
+  'gym-trainer': 'role.trainer',
+  'content-manager': 'role.contentManager',
+  'support-agent': 'role.supportAgent',
+  member: 'role.member',
+};
+
+export function roleText(role: string, t?: Translator): string {
+  const key = ROLE_KEYS[role];
+  return key && t ? t(key) : role;
+}
+
+/**
+ * Display name for a measurement type.
+ *
+ * `bodyLabel` above is the English name the mobile client and the stored data
+ * use; this resolves the translated copy when a translator is passed and falls
+ * back to `bodyLabel` when there is none (core callers, tests, mobile).
+ * A custom measurement always shows the athlete's own label.
+ */
+export function bodyUnitLabel(
+  bodyUnit: BodyUnit | string,
+  custom?: string,
+  t?: Translator,
+): string {
+  if (bodyUnit === 'custom')
+    return custom?.trim() || (t ? t(BODY_UNIT_KEYS.custom) : 'Measurement');
+  const key = BODY_UNIT_KEYS[bodyUnit as BodyUnit];
+  if (key && t) return t(key);
+  return bodyLabel(bodyUnit as BodyUnit, custom);
+}
+
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
-export function formatDateLabel(iso: string): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const date = new Date(y, (m ?? 1) - 1, d ?? 1);
-  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+/**
+ * BCP-47 tag for `Intl`: 'fr' → 'fr-FR', anything else → the device default.
+ *
+ * Month, weekday and number formatting is the one part of localisation `Intl`
+ * already does, so handing the app locale over is all it takes.
+ */
+function intlLocale(locale?: string): string | undefined {
+  return locale === 'fr' ? 'fr-FR' : undefined;
 }
 
-export function relativeDay(iso: string, now = new Date()): string {
+/**
+ * "Mon, 3 Mar"-style label. The month and weekday names are the one piece of
+ * copy `Intl` can translate for us, so the locale is the only thing to pass —
+ * the pattern itself is fine in both languages.
+ */
+export function formatDateLabel(iso: string, locale?: string): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+  return date.toLocaleDateString(intlLocale(locale), {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+export function relativeDay(iso: string, now = new Date(), t?: Translator): string {
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
   const [y, m, d] = iso.split('-').map(Number);
   const date = new Date(y, (m ?? 1) - 1, d ?? 1);
   const diff = Math.round((date.getTime() - today.getTime()) / 86_400_000);
-  if (diff === 0) return 'Today';
-  if (diff === -1) return 'Yesterday';
-  if (diff === 1) return 'Tomorrow';
+  if (diff === 0) return t?.('time.today') ?? 'Today';
+  if (diff === -1) return t?.('time.yesterday') ?? 'Yesterday';
+  if (diff === 1) return t?.('time.tomorrow') ?? 'Tomorrow';
   return formatDateLabel(iso);
 }

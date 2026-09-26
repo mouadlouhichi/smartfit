@@ -13,7 +13,9 @@ import { useGymAccessWatch } from '@/lib/gym-access-watch';
 import { useFeatureData } from '@/lib/feature-client';
 import { Button } from '@/components/ui/button';
 import { WorkspaceIllustration } from '@/components/ui/artwork';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import { ConfirmProvider, useConfirm } from '@/components/dashboard/confirm-context';
 import { useModals } from '@/components/dashboard/modal-context';
 import { FeatureShell } from './shell';
@@ -23,7 +25,7 @@ interface CoachingData {
   items: CoachingAssignment[];
   roster: { uid: string; role: string; displayName: string; active: boolean }[];
 }
-const control = 'bg-background w-full rounded-xl border p-3 text-sm';
+const control = 'border-input bg-field w-full rounded-xl border p-3 text-sm';
 export function MemberCoaching({ slug }: { slug: string }) {
   const { openWith } = useModals();
   return (
@@ -186,24 +188,23 @@ function CoachingContent({
             </Button>
             <span className="text-sm font-bold">{roleLabel(role)}</span>
             {resource.mode === 'local' && (
-              <label className="text-sm">
-                Demo coaching persona
-                <select
-                  aria-label="Demo coaching persona"
-                  className={control}
-                  value={demoRole}
-                  onChange={(e) => {
-                    setDemoRole(e.target.value as Role);
-                    setSelected('');
-                  }}
-                >
-                  {(['gym-owner', 'gym-staff', 'gym-trainer', 'member'] as Role[]).map((r) => (
-                    <option key={r} value={r}>
-                      {roleLabel(r)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <div className="w-full sm:w-56">
+                <Field id="coach-persona" label="Demo coaching persona">
+                  <Select
+                    value={demoRole}
+                    onChange={(e) => {
+                      setDemoRole(e.target.value as Role);
+                      setSelected('');
+                    }}
+                  >
+                    {(['gym-owner', 'gym-staff', 'gym-trainer', 'member'] as Role[]).map((r) => (
+                      <option key={r} value={r}>
+                        {roleLabel(r)}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              </div>
             )}
           </div>
           {notice && <p role="status">{notice}</p>}
@@ -216,14 +217,8 @@ function CoachingContent({
                   member must accept before coaching begins.
                 </p>
                 <div className="grid items-end gap-3 sm:grid-cols-3">
-                  <label className="text-sm">
-                    Member
-                    <select
-                      aria-label="Member"
-                      className={control}
-                      value={memberUid}
-                      onChange={(e) => setMemberUid(e.target.value)}
-                    >
+                  <Field id="assign-member" label="Member">
+                    <Select value={memberUid} onChange={(e) => setMemberUid(e.target.value)}>
                       <option value="">Choose a member</option>
                       {resource.data.roster
                         .filter((m) => m.role === 'member' && m.active)
@@ -232,16 +227,10 @@ function CoachingContent({
                             {m.displayName}
                           </option>
                         ))}
-                    </select>
-                  </label>
-                  <label className="text-sm">
-                    Trainer
-                    <select
-                      aria-label="Trainer"
-                      className={control}
-                      value={trainerUid}
-                      onChange={(e) => setTrainerUid(e.target.value)}
-                    >
+                    </Select>
+                  </Field>
+                  <Field id="assign-trainer" label="Trainer">
+                    <Select value={trainerUid} onChange={(e) => setTrainerUid(e.target.value)}>
                       <option value="">Choose a trainer</option>
                       {resource.data.roster
                         .filter((m) => m.role === 'trainer' && m.active)
@@ -250,8 +239,8 @@ function CoachingContent({
                             {m.displayName}
                           </option>
                         ))}
-                    </select>
-                  </label>
+                    </Select>
+                  </Field>
                   <Button
                     disabled={!memberUid || !trainerUid || resource.busy}
                     onClick={() => void assign()}

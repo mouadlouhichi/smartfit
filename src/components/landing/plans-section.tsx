@@ -1,29 +1,30 @@
 'use client';
 
-import { PLANS } from '@smartfit/core';
+import { PLANS, planDescription, planName } from '@smartfit/core';
 import { useReveal } from './use-reveal';
+import { useI18n } from '@/lib/i18n-context';
 
 export function PlansSection() {
+  const { t } = useI18n();
   const { ref, visible } = useReveal<HTMLElement>(0.1);
 
   return (
     <section id="plans" ref={ref} className="relative overflow-x-clip py-24 lg:py-32">
       <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
         <div className="mb-16 max-w-3xl lg:mb-20">
-          <span className="eyebrow-mono mb-6">Training styles</span>
+          <span className="eyebrow-mono mb-6">{t('landing.plans.eyebrow')}</span>
           <h2
             className="reveal text-4xl tracking-tight lg:text-6xl"
             data-state={visible ? 'visible' : 'hidden'}
           >
-            Four proven splits.
+            {t('landing.plans.title')}
             <br />
             <span className="text-[color:var(--muted-foreground)]">
-              Pick the one that fits your week.
+              {t('landing.plans.titleLine2')}
             </span>
           </h2>
           <p className="mt-6 max-w-2xl text-lg text-[color:var(--muted-foreground)]">
-            Switch strategies anytime from Profile — your logged history, streaks and goals stay
-            intact.
+            {t('landing.plans.body')}
           </p>
         </div>
 
@@ -36,18 +37,18 @@ export function PlansSection() {
               style={{ transitionDelay: `${index * 100}ms` }}
             >
               <span className="font-mono text-xs text-[color:var(--muted-foreground)]">
-                {new Intl.NumberFormat('en-US', {
+                {new Intl.NumberFormat('en-GB', {
                   minimumIntegerDigits: 2,
                   useGrouping: false,
                 }).format(index + 1)}
               </span>
-              <h3 className="font-display mt-4 text-2xl leading-tight">{plan.name}</h3>
+              <h3 className="font-display mt-4 text-2xl leading-tight">{planName(plan.id, t)}</h3>
               <p className="mt-3 text-sm leading-relaxed text-[color:var(--muted-foreground)]">
-                {plan.description}
+                {planDescription(plan.id, t)}
               </p>
               <div className="mt-6 flex items-center gap-2 font-mono text-xs">
                 <span className="inline-block h-2 w-2 rounded-full bg-[color:var(--primary)]" />
-                {plan.sessionsPerWeek} sessions / week
+                {t('landing.plans.sessions', { count: plan.sessionsPerWeek })}
               </div>
             </div>
           ))}

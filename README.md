@@ -281,6 +281,7 @@ missing from `.env.example`, so this list cannot drift.
 | `AI_COACH_ENDPOINT` | web (server) | _unset_ | **Recommended.** OpenAI-compatible base URL for the coach proxy (`/api/coach`) — the base, not the full path (`/chat/completions` is appended unless you include it). Must be reachable **from the deployment**: a `localhost`/private address is refused with an explicit error, because a serverless function cannot call your machine | — Gemini's OpenAI layer, Groq, OpenRouter, Pollinations… Unset = the proxy stays off |
 | `AI_COACH_API_KEY` | web (server) | _unset_ | Provider key, used only by `/api/coach`; never shipped to the browser. Free tiers exist for Groq/Gemini |
 | `AI_COACH_MODEL` | web (server) | _unset_ | Model id, e.g. `llama-3.3-70b-versatile`; omit to let the provider choose |
+| `AI_VISION_MODEL` | web (server) | _unset_ | Model used for the photo paths (`/api/meal-scan`, coach photos). Vision models are usually not the chat model, so this overrides `AI_COACH_MODEL` for images only; unset = reuse it |
 | `NEXT_PUBLIC_AI_ENDPOINT` | web (browser) | _unset_ | Legacy/local endpoint: the browser calls the provider directly. Use for a keyless model on your own machine (Ollama: `http://localhost:11434/v1`) — it is only consulted when `AI_COACH_ENDPOINT` is unset. `NEXT_PUBLIC_*` is public, so never a shared secret |
 | `NEXT_PUBLIC_AI_API_KEY` | web (browser) | _unset_ | Key for the browser-side mode above (visible in the bundle) |
 | `NEXT_PUBLIC_AI_MODEL` | web (browser) | _unset_ | Model id for the browser-side mode |

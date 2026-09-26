@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   RefreshCw,
 } from 'lucide-react';
-import { MEMBER_STATUSES, isGymCustomer, type GymMembership } from '@smartfit/core';
+import { MEMBER_STATUSES, gymStatusLabel, isGymCustomer, type GymMembership } from '@smartfit/core';
 import { useTenant, formatMoney } from '@/lib/tenant-context';
 import {
   directoryStats,
@@ -28,6 +28,8 @@ import {
   memberDate,
 } from '@/lib/member-directory';
 import { downloadCsv, toCsv } from '@/lib/csv';
+import { useI18n } from '@/lib/i18n-context';
+import { intlTag } from '@/lib/intl';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +61,7 @@ function MemberAvatar({ member, large = false }: { member: GymMembership; large?
   );
 }
 function MemberStatus({ member }: { member: GymMembership }) {
+  const { t: tr } = useI18n();
   const status = directoryStatus(member);
   return (
     <span
@@ -74,13 +77,16 @@ function MemberStatus({ member }: { member: GymMembership }) {
       )}
     >
       <span className="size-1.5 rounded-full bg-current" />
-      {status === 'review' ? 'Needs review' : status}
+      {gymStatusLabel(status, tr)}
     </span>
   );
 }
 const PAGE_SIZE = 8;
 export function MemberDirectory() {
+  // The tenant context owns `t` in this file, so the translator is `tr`.
   const t = useTenant();
+  const { t: tr, locale } = useI18n();
+  const date = (at?: number) => memberDate(at, intlTag(locale));
   const [query, setQuery] = useState('');
   const [segment, setSegment] = useState('all');
   const [sort, setSort] = useState('newest');
@@ -101,7 +107,11 @@ export function MemberDirectory() {
     setPage(0);
   };
   const planName = (member: GymMembership) =>
-    t.plans.find((plan) => plan.id === member.planId)?.name ?? member.planId ?? 'No plan assigned';
+    t.plans.find((plan) => plan.id === member.planId)?.name ??
+    member.planId ??
+    tr('gym.directory.noPlan');
+  // The CSV headers stay English on purpose: they label columns for a
+  // spreadsheet and the `Status`/`Role` columns export raw ids, not copy.
   const exportRows = () =>
     downloadCsv(
       `${t.slug}-members.csv`,
@@ -128,18 +138,17 @@ export function MemberDirectory() {
       ]),
     );
   return (
-    <section className="space-y-6" aria-label="Member directory">
+    <section className="space-y-6" aria-label={tr('gym.directory.aria')}>
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-muted-foreground mb-2 text-[10px] font-semibold tracking-[0.2em] uppercase">
-            Your community
+            {tr('gym.directory.eyebrow')}
           </p>
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Member directory<span className="text-primary">.</span>
+            {tr('gym.directory.title')}
+            <span className="text-primary">.</span>
           </h2>
-          <p className="text-muted-foreground mt-2 text-sm">
-            A little more insight. A more personal member experience.
-          </p>
+          <p className="text-muted-foreground mt-2 text-sm">{tr('gym.directory.body')}</p>
         </div>
         <Button
           onClick={exportRows}
@@ -148,36 +157,36 @@ export function MemberDirectory() {
           disabled={!ready || !rows.length}
         >
           <Download className="size-4" />
-          Export filtered roster
+          {tr('gym.directory.export')}
         </Button>
       </header>
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {[
           {
-            label: 'Total members',
+            label: 'gym.directory.stat.total',
             value: stats.total,
-            note: 'Customer records, not staff',
+            note: 'gym.directory.stat.totalNote',
             icon: Users,
             tone: 'total',
           },
           {
-            label: 'Active & trial',
+            label: 'gym.directory.stat.active',
             value: stats.active,
-            note: 'Current memberships',
+            note: 'gym.directory.stat.activeNote',
             icon: Activity,
             tone: 'active',
           },
           {
-            label: 'Renewing soon',
+            label: 'gym.directory.stat.renewing',
             value: stats.renewing,
-            note: 'Within the next 7 days',
+            note: 'gym.directory.stat.renewingNote',
             icon: CalendarClock,
             tone: 'renewing',
           },
           {
-            label: 'At risk',
+            label: 'gym.directory.stat.risk',
             value: stats.atRisk,
-            note: 'No recent visit',
+            note: 'gym.directory.stat.riskNote',
             icon: HeartHandshake,
             tone: 'risk',
           },
@@ -204,7 +213,7 @@ export function MemberDirectory() {
                   tone === 'total' ? 'text-zinc-300' : 'text-muted-foreground',
                 )}
               >
-                {label}
+                {tr(label)}
               </p>
               <span
                 className={cn(
@@ -233,7 +242,7 @@ export function MemberDirectory() {
                 tone === 'total' ? 'text-zinc-400' : 'text-muted-foreground',
               )}
             >
-              {ready ? note : 'Not yet verified'}
+              {ready ? tr(note) : tr('gym.directory.notVerified')}
             </p>
           </div>
         ))}
@@ -241,26 +250,23 @@ export function MemberDirectory() {
       {t.viewAs && (
         <div className="flex items-center gap-2 text-xs text-sky-700 dark:text-sky-300">
           <ShieldCheck className="size-4" />
-          Read-only gym view · profiles and counts use this gym’s roster, not your personal
-          membership.
+          {tr('gym.directory.viewAs')}
         </div>
       )}
       {ready && stats.unclassified > 0 && (
         <p className="rounded-xl border border-amber-500/25 bg-amber-500/5 p-3 text-xs text-amber-800 dark:text-amber-200">
-          {stats.unclassified} legacy {stats.unclassified === 1 ? 'record has' : 'records have'} an
-          unclassified role. Included in the count so nobody disappears; access is not granted and
-          editing is disabled until the record is reviewed.
+          {tr('gym.directory.unclassified', { count: stats.unclassified })}
         </p>
       )}
       <div className="grid items-start gap-5 2xl:grid-cols-[minmax(0,1fr)_250px]">
         <div className="bg-card border-border/70 min-w-0 overflow-hidden rounded-2xl border shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b px-5 pt-4">
-            <div className="flex flex-wrap gap-5" aria-label="Member quick filters">
+            <div className="flex flex-wrap gap-5" aria-label={tr('gym.directory.filtersAria')}>
               {[
-                ['all', 'All members'],
-                ['active', 'Active'],
-                ['trial', 'Trial'],
-                ['at-risk', 'At risk'],
+                ['all', 'gym.directory.segmentAll'],
+                ['active', 'gym.status.active'],
+                ['trial', 'gym.status.trial'],
+                ['at-risk', 'gym.directory.stat.risk'],
               ].map(([value, label]) => (
                 <button
                   key={value}
@@ -274,7 +280,7 @@ export function MemberDirectory() {
                       : 'text-muted-foreground hover:text-foreground border-transparent',
                   )}
                 >
-                  {label}
+                  {tr(label)}
                   {value === 'all' && (
                     <span className="bg-secondary rounded-md px-1.5 py-0.5 text-[10px] tabular-nums">
                       {ready ? stats.total : '—'}
@@ -289,7 +295,7 @@ export function MemberDirectory() {
                   'rounded-md p-1.5',
                   view === 'list' ? 'bg-secondary' : 'text-muted-foreground',
                 )}
-                aria-label="Table view"
+                aria-label={tr('gym.directory.viewTable')}
                 aria-pressed={view === 'list'}
                 onClick={() => setView('list')}
               >
@@ -300,7 +306,7 @@ export function MemberDirectory() {
                   'rounded-md p-1.5',
                   view === 'grid' ? 'bg-secondary' : 'text-muted-foreground',
                 )}
-                aria-label="Grid view"
+                aria-label={tr('gym.directory.viewGrid')}
                 aria-pressed={view === 'grid'}
                 onClick={() => setView('grid')}
               >
@@ -312,34 +318,34 @@ export function MemberDirectory() {
             <div className="relative min-w-40 flex-1">
               <Search className="text-muted-foreground pointer-events-none absolute top-3 left-3 size-4" />
               <Input
-                aria-label="Search members"
+                aria-label={tr('gym.directory.searchAria')}
                 className="bg-background h-10 rounded-xl pl-9"
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setPage(0);
                 }}
-                placeholder="Search name, email or member ID…"
+                placeholder={tr('gym.directory.searchPlaceholder')}
               />
             </div>
             <Select
-              aria-label="Member segment"
+              aria-label={tr('gym.directory.segmentAria')}
               className="w-auto min-w-32 rounded-xl text-xs"
               value={segment}
               onChange={(e) => filter(e.target.value)}
             >
-              <option value="all">All memberships</option>
-              <option value="at-risk">At risk</option>
-              <option value="renewing">Renewing in 7 days</option>
+              <option value="all">{tr('gym.directory.option.allMemberships')}</option>
+              <option value="at-risk">{tr('gym.directory.stat.risk')}</option>
+              <option value="renewing">{tr('gym.directory.option.renewing')}</option>
               {MEMBER_STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  {gymStatusLabel(status, tr)}
                 </option>
               ))}
-              <option value="review">Needs review</option>
+              <option value="review">{tr('gym.status.review')}</option>
             </Select>
             <Select
-              aria-label="Sort members"
+              aria-label={tr('gym.directory.sortAria')}
               className="w-auto min-w-32 rounded-xl text-xs"
               value={sort}
               onChange={(e) => {
@@ -347,10 +353,10 @@ export function MemberDirectory() {
                 setPage(0);
               }}
             >
-              <option value="newest">Newest first</option>
-              <option value="name">Name A–Z</option>
-              <option value="visits">Most visits</option>
-              <option value="expiry">Next renewal</option>
+              <option value="newest">{tr('gym.directory.sort.newest')}</option>
+              <option value="name">{tr('gym.directory.sort.name')}</option>
+              <option value="visits">{tr('gym.directory.sort.visits')}</option>
+              <option value="expiry">{tr('gym.directory.sort.expiry')}</option>
             </Select>
           </div>
           {t.rosterStatus === 'error' ? (
@@ -358,18 +364,18 @@ export function MemberDirectory() {
               role="alert"
               className="m-5 rounded-xl border border-rose-500/25 bg-rose-500/5 p-6"
             >
-              <h3 className="font-semibold">We couldn’t load the member list</h3>
+              <h3 className="font-semibold">{tr('gym.directory.errorTitle')}</h3>
               <p className="text-muted-foreground mt-2 text-sm">
-                {t.rosterError} This is a loading error, not an empty gym.
+                {t.rosterError} {tr('gym.directory.errorBody')}
               </p>
               <Button onClick={t.reload} variant="outline" className="mt-4">
                 <RefreshCw className="size-4" />
-                Retry members
+                {tr('gym.directory.errorRetry')}
               </Button>
             </div>
           ) : !ready ? (
             <div role="status" className="text-muted-foreground px-5 py-16 text-center text-sm">
-              Loading your gym’s members…
+              {tr('gym.directory.loading')}
             </div>
           ) : rows.length === 0 ? (
             <div className="px-6 py-14 text-center">
@@ -377,12 +383,10 @@ export function MemberDirectory() {
                 <Users className="text-muted-foreground size-6" />
               </div>
               <h3 className="font-semibold">
-                {roster.length ? 'No members match these filters' : 'Your community starts here'}
+                {tr(roster.length ? 'gym.directory.noMatchTitle' : 'gym.directory.emptyTitle')}
               </h3>
               <p className="text-muted-foreground mx-auto mt-2 max-w-sm text-sm">
-                {roster.length
-                  ? 'Try another name or reset your filters to see the complete directory.'
-                  : 'No customer memberships have been added to this gym yet. Staff and trainers live in Team.'}
+                {tr(roster.length ? 'gym.directory.noMatchBody' : 'gym.directory.emptyBody')}
               </p>
               {roster.length > 0 ? (
                 <Button
@@ -393,12 +397,12 @@ export function MemberDirectory() {
                     filter('all');
                   }}
                 >
-                  Clear filters
+                  {tr('gym.directory.clearFilters')}
                 </Button>
               ) : (
                 <Button asChild variant="outline" className="mt-4">
                   <a href={`/g/${t.slug}`}>
-                    Open gym page
+                    {tr('gym.directory.openGymPage')}
                     <ArrowUpRight className="size-4" />
                   </a>
                 </Button>
@@ -411,13 +415,22 @@ export function MemberDirectory() {
                   <table className="w-full min-w-[650px] text-left text-sm">
                     <thead className="bg-secondary/40 text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
                       <tr>
-                        {['Member', 'Membership', 'Status', 'Visits', 'Renewal', ''].map(
-                          (label, i) => (
-                            <th scope="col" key={i} className="px-4 py-3 font-medium first:pl-5">
-                              {label || <span className="sr-only">Profile</span>}
-                            </th>
-                          ),
-                        )}
+                        {[
+                          'gym.directory.colMember',
+                          'gym.member.membership',
+                          'gym.directory.colStatus',
+                          'gym.member.visits',
+                          'gym.directory.colRenewal',
+                          '',
+                        ].map((label, i) => (
+                          <th scope="col" key={i} className="px-4 py-3 font-medium first:pl-5">
+                            {label ? (
+                              tr(label)
+                            ) : (
+                              <span className="sr-only">{tr('gym.directory.colProfile')}</span>
+                            )}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody className="divide-border/60 divide-y">
@@ -435,7 +448,7 @@ export function MemberDirectory() {
                                   {m.displayName ?? m.uid}
                                 </span>
                                 <span className="text-muted-foreground mt-1 block max-w-52 truncate text-[11px]">
-                                  {m.email ?? 'No email on file'}
+                                  {m.email ?? tr('gym.directory.noEmailOnFile')}
                                 </span>
                               </span>
                             </button>
@@ -443,7 +456,9 @@ export function MemberDirectory() {
                           <td className="px-4 py-4">
                             <span className="text-xs font-medium">{planName(m)}</span>
                             <span className="text-muted-foreground mt-1 block text-[10px]">
-                              {m.role === 'member' ? 'Gym member' : 'Unclassified role'}
+                              {m.role === 'member'
+                                ? tr('gym.directory.roleMember')
+                                : tr('gym.directory.roleUnclassified')}
                             </span>
                           </td>
                           <td className="px-4 py-4">
@@ -454,21 +469,21 @@ export function MemberDirectory() {
                               {m.checkins ?? '—'}
                             </span>
                             <span className="text-muted-foreground mt-1 block text-[10px] whitespace-nowrap">
-                              {m.lastVisitAt ? memberDate(m.lastVisitAt) : 'No visits yet'}
+                              {m.lastVisitAt
+                                ? date(m.lastVisitAt)
+                                : tr('gym.directory.noVisitsYet')}
                             </span>
                           </td>
                           <td className="px-4 py-4">
-                            <span className="text-xs whitespace-nowrap">
-                              {memberDate(m.expiresAt)}
-                            </span>
+                            <span className="text-xs whitespace-nowrap">{date(m.expiresAt)}</span>
                             {renewingSoon(m, now) && (
                               <span className="mt-1 block text-[10px] text-amber-700 dark:text-amber-300">
-                                Due soon
+                                {tr('gym.directory.dueSoon')}
                               </span>
                             )}
                             {memberAtRisk(m, now) && (
                               <span className="text-muted-foreground mt-1 block text-[10px]">
-                                Follow up
+                                {tr('gym.directory.followUp')}
                               </span>
                             )}
                           </td>
@@ -476,7 +491,9 @@ export function MemberDirectory() {
                             <button
                               onClick={() => setSelected(m.uid)}
                               className="text-muted-foreground hover:bg-secondary rounded-full p-2"
-                              aria-label={`View profile for ${m.displayName ?? m.uid}`}
+                              aria-label={tr('gym.directory.viewProfile', {
+                                name: m.displayName ?? m.uid,
+                              })}
                             >
                               <ArrowUpRight className="size-4" />
                             </button>
@@ -507,14 +524,17 @@ export function MemberDirectory() {
                       {m.displayName ?? m.uid}
                     </h3>
                     <p className="text-muted-foreground mt-1 truncate text-xs">
-                      {m.email ?? 'No email on file'}
+                      {m.email ?? tr('gym.directory.noEmailOnFile')}
                     </p>
                     <div className="my-4 border-t" />
                     <div className="flex items-center justify-between gap-3">
                       <span className="min-w-0">
                         <span className="block truncate text-xs font-medium">{planName(m)}</span>
                         <span className="text-muted-foreground mt-1 block text-[11px]">
-                          {m.checkins ?? '—'} visits · {memberDate(m.expiresAt)}
+                          {tr('gym.directory.visitsLine', {
+                            count: m.checkins ?? 0,
+                            date: date(m.expiresAt),
+                          })}
                         </span>
                       </span>
                       <ArrowUpRight className="size-4 shrink-0" />
@@ -527,15 +547,17 @@ export function MemberDirectory() {
           <footer className="text-muted-foreground flex flex-wrap items-center justify-between gap-3 border-t px-5 py-4 text-[11px]">
             <span>
               {ready
-                ? `${rows.length ? currentPage * PAGE_SIZE + 1 : 0}–${Math.min((currentPage + 1) * PAGE_SIZE, rows.length)} of ${rows.length} matching members`
-                : 'Member count unavailable'}
+                ? tr('gym.directory.range', {
+                    from: rows.length ? currentPage * PAGE_SIZE + 1 : 0,
+                    to: Math.min((currentPage + 1) * PAGE_SIZE, rows.length),
+                    total: rows.length,
+                  })
+                : tr('gym.directory.countUnavailable')}
             </span>
             <div className="flex items-center gap-3">
-              <span>
-                Page {currentPage + 1} of {pageCount}
-              </span>
+              <span>{tr('gym.directory.pageOf', { page: currentPage + 1, pages: pageCount })}</span>
               <button
-                aria-label="Previous member page"
+                aria-label={tr('gym.directory.prevPage')}
                 disabled={currentPage === 0 || !ready}
                 onClick={() => setPage(currentPage - 1)}
                 className="hover:bg-secondary rounded-lg border p-1.5 disabled:opacity-35"
@@ -543,7 +565,7 @@ export function MemberDirectory() {
                 <ChevronLeft className="size-3.5" />
               </button>
               <button
-                aria-label="Next member page"
+                aria-label={tr('gym.directory.nextPage')}
                 disabled={currentPage >= pageCount - 1 || !ready}
                 onClick={() => setPage(currentPage + 1)}
                 className="hover:bg-secondary rounded-lg border p-1.5 disabled:opacity-35"
@@ -553,18 +575,21 @@ export function MemberDirectory() {
             </div>
           </footer>
         </div>
-        <aside className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-1" aria-label="Member insights">
+        <aside
+          className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-1"
+          aria-label={tr('gym.directory.insightsAria')}
+        >
           <div className="bg-card border-border/70 rounded-2xl border p-5">
             <div className="mb-5 flex items-center gap-2">
               <Activity className="text-primary size-4" />
-              <h3 className="text-sm font-semibold">Membership pulse</h3>
+              <h3 className="text-sm font-semibold">{tr('gym.directory.pulse')}</h3>
             </div>
             {['active', 'trial', 'frozen', 'expired', 'cancelled'].map((status) => {
               const count = roster.filter((m) => directoryStatus(m, now) === status).length;
               return (
                 <div className="mt-4" key={status}>
                   <div className="mb-2 flex justify-between text-xs">
-                    <span className="text-muted-foreground capitalize">{status}</span>
+                    <span className="text-muted-foreground">{gymStatusLabel(status, tr)}</span>
                     <span className="font-medium tabular-nums">{ready ? count : '—'}</span>
                   </div>
                   <div className="bg-secondary h-1.5 overflow-hidden rounded-full">
@@ -588,7 +613,7 @@ export function MemberDirectory() {
               );
             })}
             <p className="text-muted-foreground mt-5 text-[10px] leading-relaxed">
-              Based on current customer records. Expired dates are reflected in the status.
+              {tr('gym.directory.pulseNote')}
             </p>
           </div>
           <div className="relative overflow-hidden rounded-2xl bg-zinc-900 p-5 text-white">
@@ -600,17 +625,18 @@ export function MemberDirectory() {
               <HeartHandshake className="size-5" />
             </span>
             <h3 className="relative mt-4 text-lg font-semibold tracking-tight">
-              A small check-in.
-              <br />A lasting connection.
+              {tr('gym.directory.cardTitle1')}
+              <br />
+              {tr('gym.directory.cardTitle2')}
             </h3>
             <p className="relative mt-2 text-xs leading-relaxed text-zinc-400">
-              Spot members who haven’t visited recently and plan a personal follow-up.
+              {tr('gym.directory.cardBody')}
             </p>
             <button
               onClick={() => filter('at-risk')}
               className="relative mt-5 flex w-full items-center justify-between rounded-xl bg-lime-300 px-3 py-2.5 text-xs font-semibold text-zinc-950"
             >
-              Review at-risk members
+              {tr('gym.directory.cardCta')}
               <ArrowUpRight className="size-4" />
             </button>
           </div>
@@ -618,8 +644,7 @@ export function MemberDirectory() {
       </div>
       <p className="text-muted-foreground flex items-start gap-2 text-[10px] leading-relaxed">
         <ShieldCheck className="mt-0.5 size-3 shrink-0" />
-        Private to authorized gym operators. Exports contain personal data; share responsibly. Staff
-        and trainers are managed separately in Team.
+        {tr('gym.directory.privacy')}
       </p>
       <Dialog
         open={!!member}
@@ -637,13 +662,16 @@ export function MemberDirectory() {
 
 function MemberDetail({ member: m }: { member: GymMembership }) {
   const t = useTenant();
+  // The tenant context owns `t` here too, so the translator is `tr`.
+  const { t: tr, locale } = useI18n();
   const toast = useToast();
+  const date = (at?: number) => memberDate(at, intlTag(locale));
   const [notes, setNotes] = useState(m.notes ?? '');
   const busy = t.mutating !== null || t.viewAs || m.role !== 'member';
   const plan = t.plans.find((p) => p.id === m.planId);
   async function action(run: () => Promise<boolean>, message: string) {
     if (await run()) toast(message, 'success');
-    else toast('Could not save. Check the console error and retry.', 'info');
+    else toast(tr('gym.directory.saveError'), 'info');
   }
   return (
     <>
@@ -652,52 +680,54 @@ function MemberDetail({ member: m }: { member: GymMembership }) {
           <MemberAvatar member={m} large />
           <div className="min-w-0">
             <p className="text-muted-foreground mb-1 text-[10px] tracking-widest uppercase">
-              Member profile
+              {tr('gym.directory.profile')}
             </p>
             <DialogTitle className="truncate text-xl">
-              {m.displayName ?? 'Member profile'}
+              {m.displayName ?? tr('gym.directory.profile')}
             </DialogTitle>
             <DialogDescription className="mt-1 text-xs break-all">{m.uid}</DialogDescription>
           </div>
         </div>
         <div className="mt-4 flex items-center gap-2">
           <MemberStatus member={m} />
-          {t.viewAs && <Badge variant="outline">Read-only</Badge>}
-          {m.role !== 'member' && <Badge variant="outline">Unclassified role</Badge>}
+          {t.viewAs && <Badge variant="outline">{tr('gym.directory.readOnly')}</Badge>}
+          {m.role !== 'member' && (
+            <Badge variant="outline">{tr('gym.directory.roleUnclassified')}</Badge>
+          )}
         </div>
       </div>
       <div className="space-y-5">
         <div className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
-            <p className="text-muted-foreground text-xs">Contact</p>
-            <p className="break-all">{m.email || 'No email'}</p>
-            <p>{m.phone || 'No phone'}</p>
+            <p className="text-muted-foreground text-xs">{tr('gym.directory.contact')}</p>
+            <p className="break-all">{m.email || tr('gym.directory.noEmail')}</p>
+            <p>{m.phone || tr('gym.directory.noPhone')}</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs">Membership</p>
-            <p>{plan?.name ?? m.planId ?? 'No plan assigned'}</p>
+            <p className="text-muted-foreground text-xs">{tr('gym.member.membership')}</p>
+            <p>{plan?.name ?? m.planId ?? tr('gym.directory.noPlan')}</p>
             <p>
               {m.expiresAt
-                ? `Expires ${new Date(m.expiresAt).toLocaleDateString('en-GB')}`
-                : 'No expiry set'}
+                ? tr('gym.directory.expiresOn', { date: date(m.expiresAt) })
+                : tr('gym.directory.noExpiry')}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs">Joined</p>
-            {memberDate(m.joinedAt)}
+            <p className="text-muted-foreground text-xs">{tr('gym.directory.joined')}</p>
+            {date(m.joinedAt)}
           </div>
           <div>
-            <p className="text-muted-foreground text-xs">Visits</p>
-            {m.checkins} check-ins
+            <p className="text-muted-foreground text-xs">{tr('gym.member.visits')}</p>
+            {tr('gym.directory.checkinCount', { count: m.checkins ?? 0 })}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {t.can('checkin:door') && (
             <Button
               disabled={busy}
-              onClick={() => action(() => t.checkInMember(m.uid), 'Member checked in')}
+              onClick={() => action(() => t.checkInMember(m.uid), tr('gym.directory.toastCheckIn'))}
             >
-              Check in
+              {tr('gym.console.today.checkIn')}
             </Button>
           )}
           {t.can('member:status:change') &&
@@ -708,25 +738,25 @@ function MemberDetail({ member: m }: { member: GymMembership }) {
                 onClick={() =>
                   action(
                     () => t.setMemberStatus(m.uid, m.status === 'frozen' ? 'active' : 'frozen'),
-                    'Member status updated',
+                    tr('gym.directory.toastStatus'),
                   )
                 }
               >
-                {m.status === 'frozen' ? 'Reactivate membership' : 'Freeze membership'}
+                {m.status === 'frozen'
+                  ? tr('gym.directory.reactivate')
+                  : tr('gym.directory.freeze')}
               </Button>
             )}
         </div>
         <div>
           <label htmlFor="member-notes" className="text-sm font-semibold">
-            Internal notes
+            {tr('gym.directory.notes')}
           </label>
-          <p className="text-muted-foreground mb-2 text-xs">
-            For gym operators. Never displayed in the member’s interface.
-          </p>
+          <p className="text-muted-foreground mb-2 text-xs">{tr('gym.directory.notesHint')}</p>
           <textarea
             id="member-notes"
             rows={4}
-            className="bg-background w-full rounded-xl border p-3 text-sm"
+            className="border-input bg-field w-full rounded-xl border p-3 text-sm"
             maxLength={2000}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -737,15 +767,17 @@ function MemberDetail({ member: m }: { member: GymMembership }) {
             <Button
               size="sm"
               disabled={busy || !t.can('member:status:change') || notes === (m.notes ?? '')}
-              onClick={() => action(() => t.updateMemberNotes(m.uid, notes), 'Notes saved')}
+              onClick={() =>
+                action(() => t.updateMemberNotes(m.uid, notes), tr('gym.directory.toastNotes'))
+              }
             >
-              Save notes
+              {tr('gym.directory.saveNotes')}
             </Button>
           </div>
         </div>
         {t.can('revenue:read') && (
           <div>
-            <p className="mb-2 text-sm font-semibold">Recent invoices</p>
+            <p className="mb-2 text-sm font-semibold">{tr('gym.directory.invoices')}</p>
             {t.invoices
               .filter((i) => i.memberUid === m.uid)
               .sort((a, b) => b.issuedAt - a.issuedAt)
@@ -753,13 +785,13 @@ function MemberDetail({ member: m }: { member: GymMembership }) {
               .map((i) => (
                 <div key={i.id} className="flex items-center justify-between border-b py-2 text-sm">
                   <span>
-                    {new Date(i.issuedAt).toLocaleDateString('en-GB')} · {i.status}
+                    {date(i.issuedAt)} · {gymStatusLabel(i.status, tr)}
                   </span>
                   <strong>{formatMoney(i.amountMinor, i.currency)}</strong>
                 </div>
               ))}
             {!t.invoices.some((i) => i.memberUid === m.uid) && (
-              <p className="text-muted-foreground text-xs">No invoices for this member.</p>
+              <p className="text-muted-foreground text-xs">{tr('gym.directory.noInvoices')}</p>
             )}
           </div>
         )}

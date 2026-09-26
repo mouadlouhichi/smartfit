@@ -12,8 +12,12 @@ import {
 import { useStore } from '@/lib/store-context';
 import { useConfirm } from '@/components/dashboard/confirm-context';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+import { Field } from '@/components/ui/field';
+import { Select } from '@/components/ui/select';
+import { DietPreferences } from './diet-preferences';
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const control = 'bg-background mt-1 min-h-11 w-full rounded-xl border px-3';
 export function Personalization() {
   const { state, updateProfile, replaceSchedule, flushWrites } = useStore();
   const confirm = useConfirm();
@@ -89,57 +93,41 @@ export function Personalization() {
         }}
       >
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="text-sm">
-            Primary goal
-            <select
-              aria-label="Primary goal"
-              className={control}
+          <Field id="pref-goal" label="Primary goal">
+            <Select
               value={prefs.goal}
               onChange={(e) => patch('goal', e.target.value as TrainingPreferences['goal'])}
             >
               <option value="fitness">General fitness</option>
               <option value="strength">Strength</option>
               <option value="muscle">Build muscle</option>
-            </select>
-          </label>
-          <label className="text-sm">
-            Experience
-            <select
-              aria-label="Experience"
-              className={control}
+            </Select>
+          </Field>
+          <Field id="pref-experience" label="Experience">
+            <Select
               value={prefs.experience}
               onChange={(e) =>
                 patch('experience', e.target.value as TrainingPreferences['experience'])
               }
             >
-              {['beginner', 'intermediate', 'advanced'].map((v) => (
-                <option value={v} key={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            Training location
-            <select
-              aria-label="Training location"
-              className={control}
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </Select>
+          </Field>
+          <Field id="pref-location" label="Training location">
+            <Select
               value={prefs.location}
               onChange={(e) => patch('location', e.target.value as TrainingPreferences['location'])}
             >
-              {['home', 'gym', 'outdoors'].map((v) => (
-                <option value={v} key={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-sm">
-            Time available
-            <select
-              aria-label="Time available"
-              className={control}
-              value={prefs.minutes}
+              <option value="home">Home</option>
+              <option value="gym">Gym</option>
+              <option value="outdoors">Outdoors</option>
+            </Select>
+          </Field>
+          <Field id="pref-minutes" label="Time available">
+            <Select
+              value={String(prefs.minutes)}
               onChange={(e) =>
                 patch('minutes', Number(e.target.value) as TrainingPreferences['minutes'])
               }
@@ -149,19 +137,23 @@ export function Personalization() {
                   {v} minutes
                 </option>
               ))}
-            </select>
-          </label>
+            </Select>
+          </Field>
         </div>
         <fieldset>
           <legend className="mb-3 font-semibold">Available days (choose 1–6)</legend>
           <div className="flex flex-wrap gap-3">
             {days.map((label, i) => (
+              /* A checkbox that reads as a chip: the whole tile is the label,
+                 so the 44px target and the selected state are one control. */
               <label
                 key={label}
-                className="bg-background flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm"
+                className={cn(
+                  'bg-field border-input flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 text-sm font-medium transition-colors',
+                  prefs.days.includes(i as Weekday) && 'border-primary bg-primary/5',
+                )}
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={prefs.days.includes(i as Weekday)}
                   onChange={(e) =>
                     patch(
@@ -181,21 +173,19 @@ export function Personalization() {
           <legend className="mb-3 font-semibold">Available equipment</legend>
           <div className="flex gap-4">
             {(['bodyweight', 'dumbbells'] as const).map((v) => (
-              <label key={v} className="flex min-h-11 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={prefs.equipment.includes(v)}
-                  onChange={(e) =>
-                    patch(
-                      'equipment',
-                      e.target.checked
-                        ? [...prefs.equipment, v]
-                        : prefs.equipment.filter((x) => x !== v),
-                    )
-                  }
-                />
-                {v === 'bodyweight' ? 'Bodyweight / no equipment' : 'Dumbbells'}
-              </label>
+              <Checkbox
+                key={v}
+                checked={prefs.equipment.includes(v)}
+                onChange={(e) =>
+                  patch(
+                    'equipment',
+                    e.target.checked
+                      ? [...prefs.equipment, v]
+                      : prefs.equipment.filter((x) => x !== v),
+                  )
+                }
+                label={v === 'bodyweight' ? 'Bodyweight / no equipment' : 'Dumbbells'}
+              />
             ))}
           </div>
         </fieldset>
@@ -207,21 +197,19 @@ export function Personalization() {
           </p>
           <div className="flex flex-wrap gap-4">
             {(['no-floor', 'no-overhead'] as const).map((v) => (
-              <label key={v} className="flex min-h-11 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={prefs.constraints.includes(v)}
-                  onChange={(e) =>
-                    patch(
-                      'constraints',
-                      e.target.checked
-                        ? [...prefs.constraints, v]
-                        : prefs.constraints.filter((x) => x !== v),
-                    )
-                  }
-                />
-                {v === 'no-floor' ? 'Avoid floor exercises' : 'Avoid overhead movement'}
-              </label>
+              <Checkbox
+                key={v}
+                checked={prefs.constraints.includes(v)}
+                onChange={(e) =>
+                  patch(
+                    'constraints',
+                    e.target.checked
+                      ? [...prefs.constraints, v]
+                      : prefs.constraints.filter((x) => x !== v),
+                  )
+                }
+                label={v === 'no-floor' ? 'Avoid floor exercises' : 'Avoid overhead movement'}
+              />
             ))}
           </div>
         </fieldset>
@@ -231,38 +219,32 @@ export function Personalization() {
           </summary>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {STARTER_MOVEMENTS.map((m) => (
-              <label key={m.id} className="flex min-h-11 items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={prefs.excludedExercises.includes(m.id)}
-                  onChange={(e) =>
-                    patch(
-                      'excludedExercises',
-                      e.target.checked
-                        ? [...prefs.excludedExercises, m.id]
-                        : prefs.excludedExercises.filter((x) => x !== m.id),
-                    )
-                  }
-                />
-                {m.name}
-              </label>
+              <Checkbox
+                key={m.id}
+                checked={prefs.excludedExercises.includes(m.id)}
+                onChange={(e) =>
+                  patch(
+                    'excludedExercises',
+                    e.target.checked
+                      ? [...prefs.excludedExercises, m.id]
+                      : prefs.excludedExercises.filter((x) => x !== m.id),
+                  )
+                }
+                label={m.name}
+              />
             ))}
           </div>
         </details>
-        <label className="flex items-start gap-3 rounded-xl bg-amber-500/10 p-4 text-sm">
-          <input
-            type="checkbox"
+        <div className="rounded-xl bg-amber-500/10 p-4">
+          <Checkbox
             checked={prefs.needsClearance}
-            className="mt-1"
             onChange={(e) => patch('needsClearance', e.target.checked)}
+            label="I have pain, an injury, a medical concern, or have been advised to get professional clearance before exercise. Pause automatic suggestions."
           />
-          <span>
-            I have pain, an injury, a medical concern, or have been advised to get professional
-            clearance before exercise. Pause automatic suggestions.
-          </span>
-        </label>
+        </div>
         <Button disabled={busy}>Save preferences</Button>
       </form>
+      <DietPreferences />
       <section className="bg-card space-y-4 rounded-2xl border p-5">
         <h2 className="text-xl font-bold">Your starter week preview</h2>
         <ul className="text-muted-foreground list-inside list-disc space-y-2 text-sm">

@@ -1,3 +1,4 @@
+import type { Translator } from './i18n';
 /**
  * SmartFit exercise catalog.
  *
@@ -1663,4 +1664,44 @@ export function measureForExerciseName(name: string): 'weight' | 'distance' {
   const entry = matchExercise(name);
   if (entry) return exerciseMeasure(entry);
   return FREE_TEXT_CARDIO_PATTERN.test(name.trim()) ? 'distance' : 'weight';
+}
+
+/**
+ * The label maps above are the English reference (the mobile app reads them
+ * directly). The web UI renders the *keys* through the active translator, so
+ * the library reads in French without a second copy of the vocabulary living
+ * in a component.
+ *
+ * Ids carry spaces ("middle back") and dots ("ez-bar"), neither of which a
+ * catalogue key allows: both collapse to a hyphen. `tests/exercise-vocabulary`
+ * in core asserts every id has copy in every locale, so a new muscle cannot
+ * ship as `library.muscle.shin`.
+ */
+function vocabKey(prefix: string, id: string): string {
+  return `${prefix}.${id.replace(/[\s.]+/g, '-')}`;
+}
+
+export function exerciseGroupLabel(id: ExerciseGroup, t: Translator): string {
+  return t(vocabKey('library.group', id));
+}
+
+export function exerciseMuscleLabel(muscle: ExerciseMuscle, t: Translator): string {
+  return t(vocabKey('library.muscle', muscle));
+}
+
+export function exerciseEquipmentLabel(equipment: ExerciseEquipment, t: Translator): string {
+  return t(vocabKey('library.equipment', equipment));
+}
+
+/** All three maps at once, for the library UIs that render them together. */
+export function exerciseVocabulary(t: Translator): {
+  group: (id: ExerciseGroup) => string;
+  muscle: (muscle: ExerciseMuscle) => string;
+  equipment: (equipment: ExerciseEquipment) => string;
+} {
+  return {
+    group: (id) => exerciseGroupLabel(id, t),
+    muscle: (muscle) => exerciseMuscleLabel(muscle, t),
+    equipment: (equipment) => exerciseEquipmentLabel(equipment, t),
+  };
 }

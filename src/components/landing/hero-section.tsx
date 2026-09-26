@@ -5,17 +5,30 @@ import Link from 'next/link';
 import { AccountLink } from './account-link';
 import { ArrowRight } from 'lucide-react';
 import { AnimatedSphere } from './animated-sphere';
+import { useI18n } from '@/lib/i18n-context';
 
-const WORDS = ['train', 'perform', 'progress', 'recover'];
+/** Keys, so the rotating verb rotates in the active language too. */
+const WORDS = [
+  'landing.hero.word.train',
+  'landing.hero.word.perform',
+  'landing.hero.word.progress',
+  'landing.hero.word.recover',
+];
 
+/** Keys and the two literal figures; the values are data, the words are copy. */
 const STATS = [
-  { value: '4', label: 'training styles to pick from', detail: 'PPL · UPPER/LOWER & MORE' },
-  { value: '5', label: 'activity types built in', detail: 'STRENGTH · CARDIO · HIIT' },
-  { value: '0', label: 'wearables required', detail: 'JUST YOU & THE GYM' },
-  { value: '30s', label: 'to log a full session', detail: 'NO FORMS, NO FUSS' },
+  { value: '4', label: 'landing.hero.stat.styles', detail: 'landing.hero.stat.stylesDetail' },
+  {
+    value: '5',
+    label: 'landing.hero.stat.activities',
+    detail: 'landing.hero.stat.activitiesDetail',
+  },
+  { value: '0', label: 'landing.hero.stat.wearables', detail: 'landing.hero.stat.wearablesDetail' },
+  { value: '30s', label: 'landing.hero.stat.logging', detail: 'landing.hero.stat.loggingDetail' },
 ];
 
 export function HeroSection() {
+  const { t } = useI18n();
   const [wordIndex, setWordIndex] = useState(0);
 
   useEffect(() => {
@@ -58,25 +71,27 @@ export function HeroSection() {
 
       <div className="relative z-10 mx-auto max-w-[1400px] px-6 py-32 lg:px-12 lg:py-40">
         <div className="mb-8">
-          <span className="eyebrow-mono">Free · Private · No wearable required</span>
+          <span className="eyebrow-mono">{t('landing.hero.eyebrow')}</span>
         </div>
 
         <div className="mb-12">
           <h1 className="font-display text-[clamp(2.25rem,12vw,10rem)] leading-[0.9] tracking-tight">
-            <span className="block">The SmartFit app</span>
+            <span className="block">{t('landing.hero.title')}</span>
             <span className="block whitespace-nowrap">
-              to{' '}
+              {t('landing.hero.turn')}{' '}
               <span className="relative inline-block">
                 <span key={wordIndex} className="text-volt-ink inline-flex">
-                  {WORDS[wordIndex].split('').map((character, index) => (
-                    <span
-                      key={`${wordIndex}-${index}`}
-                      className="animate-char-in inline-block"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      {character}
-                    </span>
-                  ))}
+                  {t(WORDS[wordIndex])
+                    .split('')
+                    .map((character, index) => (
+                      <span
+                        key={`${wordIndex}-${index}`}
+                        className="animate-char-in inline-block"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        {character}
+                      </span>
+                    ))}
                 </span>
                 <span
                   aria-hidden="true"
@@ -89,17 +104,16 @@ export function HeroSection() {
 
         <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-24">
           <p className="max-w-xl text-xl leading-relaxed text-[color:var(--muted-foreground)] lg:text-2xl">
-            Log each session and the plan it belongs to — two separate views that stay reconciled
-            through every workout. Strength, cardio and HIIT, tracked privately on your device.
+            {t('landing.hero.body')}
           </p>
 
           <div className="flex flex-col items-start gap-4 sm:flex-row lg:-translate-y-6">
             <AccountLink className="btn-primary group">
-              Start training free
+              {t('landing.hero.start')}
               <ArrowRight className="ms-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </AccountLink>
             <Link href="/#how-it-works" className="btn-outline">
-              See how it works
+              {t('landing.hero.how')}
             </Link>
           </div>
         </div>
@@ -114,8 +128,8 @@ export function HeroSection() {
                 <div key={`${stat.detail}-${setIndex}`} className="flex items-baseline gap-4">
                   <span className="font-display text-4xl lg:text-5xl">{stat.value}</span>
                   <span className="text-sm text-[color:var(--muted-foreground)]">
-                    {stat.label}
-                    <span className="mt-1 block font-mono text-xs">{stat.detail}</span>
+                    {t(stat.label)}
+                    <span className="mt-1 block font-mono text-xs">{t(stat.detail)}</span>
                   </span>
                 </div>
               ))}

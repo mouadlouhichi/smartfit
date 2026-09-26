@@ -28,6 +28,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { DatePicker } from '@/components/ui/date-picker';
 import { ScreenHeader } from '../screen-header';
+import { MealPlanCard, SwapMealButton } from '../meal-plan';
+import { useI18n } from '@/lib/i18n-context';
 import {
   ACTIVITY_LEVELS,
   MEAL_SLOTS,
@@ -49,6 +51,15 @@ function shiftISODate(iso: string, days: number): string {
   return toISODate(d);
 }
 
+/** Which meal the clock says it is — the planner opens on the useful slot. */
+function defaultSlotForNow(): MealSlot {
+  const h = new Date().getHours();
+  if (h < 10) return 'breakfast';
+  if (h < 15) return 'lunch';
+  if (h < 21) return 'dinner';
+  return 'snack';
+}
+
 const SLOT_ICONS: Record<MealSlot, LucideIcon> = {
   breakfast: Sunrise,
   lunch: Sun,
@@ -65,11 +76,14 @@ const SLOT_ICONS: Record<MealSlot, LucideIcon> = {
  * links straight to the body log.
  */
 export function FuelScreen() {
-  const { state, updateProfile } = useStore();
+  const { state, updateProfile, updateMeal } = useStore();
   const { openWith } = useModals();
+  const { t, locale } = useI18n();
   const pro = hasProAccess(state);
   const today = toISODate(new Date());
   const [date, setDate] = useState(today);
+  /** Which slot the planner is suggesting for (the meal list follows it). */
+  const [activeSlot, setActiveSlot] = useState<MealSlot>(() => defaultSlotForNow());
 
   const targets = useMemo(() => nutritionTargets(state), [state]);
   const dayMeals = useMemo(
@@ -115,12 +129,12 @@ export function FuelScreen() {
   return (
     <div className="grid gap-5">
       <ScreenHeader
-        eyebrow="Fuel"
-        title="Nutrition"
-        subtitle="Calories and protein per meal, measured against a target that follows your body and your goal."
+        eyebrow={t('nav.fuel')}
+        title={t('fuel.title')}
+        subtitle={t('fuel.subtitle')}
         action={
           <Button onClick={() => openWith({ kind: 'meal', date })}>
-            <Plus className="h-4 w-4" /> Log meal
+            <Plus className="h-4 w-4" /> {t('action.logMeal')}
           </Button>
         }
       />
@@ -130,7 +144,7 @@ export function FuelScreen() {
         <Button
           variant="outline"
           size="icon"
-          aria-label="Previous day"
+          aria-label={t('fuel.prevDay')}
           onClick={() => setDate((d) => shiftISODate(d, -1))}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -139,12 +153,12 @@ export function FuelScreen() {
           value={date}
           onValueChange={setDate}
           weekStartsOn={profile.weekStartsOn ?? 1}
-          aria-label="Choose day"
+          aria-label={t('fuel.chooseDay')}
         />
         <Button
           variant="outline"
           size="icon"
-          aria-label="Next day"
+          aria-label={t('fuel.nextDay')}
           disabled={date >= today}
           onClick={() => setDate((d) => shiftISODate(d, 1))}
         >
@@ -152,11 +166,11 @@ export function FuelScreen() {
         </Button>
         {!isToday && (
           <Button variant="ghost" size="sm" onClick={() => setDate(today)}>
-            Back to today
+            {t('fuel.backToToday')}
           </Button>
         )}
         <p className="text-muted-foreground ml-auto text-sm font-semibold">
-          {isToday ? 'Today' : formatDateLabel(date)}
+          {isToday ? t('fuel.today') : formatDateLabel(date, locale)}
         </p>
       </div>
 
@@ -167,7 +181,7 @@ export function FuelScreen() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="text-muted-foreground text-xs font-bold tracking-wide uppercase">
-                  {over ? 'Over target' : 'Remaining'}
+                  {over ? t('fuel.overTarget') : t('fuel.remaining')}
                 </p>
                 <p
                   className={cn(
@@ -181,19 +195,25 @@ export function FuelScreen() {
               </div>
               <div className="flex gap-6 text-right">
                 <div>
-                  <p className="text-muted-foreground text-[11px] font-bold uppercase">Eaten</p>
+                  <p className="text-muted-foreground text-[11px] font-bold uppercase">
+                    {t('fuel.eaten')}
+                  </p>
                   <p className="font-display text-xl font-extrabold tabular-nums">
                     {totals.calories}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-[11px] font-bold uppercase">Burned</p>
+                  <p className="text-muted-foreground text-[11px] font-bold uppercase">
+                    {t('fuel.burned')}
+                  </p>
                   <p className="font-display text-volt-ink text-xl font-extrabold tabular-nums">
                     {burned}
                   </p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground text-[11px] font-bold uppercase">Target</p>
+                  <p className="text-muted-foreground text-[11px] font-bold uppercase">
+                    {t('fuel.target')}
+                  </p>
                   <p className="font-display text-xl font-extrabold tabular-nums">
                     {targets.calories}
                   </p>
@@ -203,21 +223,23 @@ export function FuelScreen() {
 
             <Progress
               value={Math.min(100, (totals.calories / targets.calories) * 100)}
-              aria-label="Calories eaten versus target"
+              aria-label={t('fuel.caloriesVersusTarget')}
               indicatorClassName={over ? 'bg-destructive' : 'bg-volt'}
             />
 
             <div className="grid grid-cols-3 gap-4">
               {(
                 [
-                  { label: 'Protein', got: totals.protein, want: targets.protein, unit: 'g' },
-                  { label: 'Carbs', got: totals.carbs, want: targets.carbs, unit: 'g' },
-                  { label: 'Fat', got: totals.fat, want: targets.fat, unit: 'g' },
+                  { key: 'protein', got: totals.protein, want: targets.protein, unit: 'g' },
+                  { key: 'carbs', got: totals.carbs, want: targets.carbs, unit: 'g' },
+                  { key: 'fat', got: totals.fat, want: targets.fat, unit: 'g' },
                 ] as const
               ).map((m) => (
-                <div key={m.label}>
+                <div key={m.key}>
                   <div className="mb-1 flex items-baseline justify-between gap-1">
-                    <span className="text-muted-foreground text-xs font-bold">{m.label}</span>
+                    <span className="text-muted-foreground text-xs font-bold">
+                      {t(`fuel.macro.${m.key}`)}
+                    </span>
                     <span className="text-xs font-bold tabular-nums">
                       {Math.round(m.got)}
                       <span className="text-muted-foreground">
@@ -229,7 +251,7 @@ export function FuelScreen() {
                   <Progress
                     className="h-1.5"
                     value={m.want > 0 ? Math.min(100, (m.got / m.want) * 100) : 0}
-                    aria-label={`${m.label} versus target`}
+                    aria-label={t('fuel.macroVersusTarget', { macro: t(`fuel.macro.${m.key}`) })}
                   />
                 </div>
               ))}
@@ -242,16 +264,24 @@ export function FuelScreen() {
             <span className="bg-accent text-accent-foreground flex h-14 w-14 items-center justify-center rounded-2xl">
               <Scale className="h-7 w-7" />
             </span>
-            <p className="font-semibold">One weigh-in unlocks your targets</p>
-            <p className="text-muted-foreground max-w-sm text-sm">
-              Your daily calorie and protein targets are computed from your weight, activity and
-              goal — log your weight once and the math is yours. You can still log meals below.
-            </p>
+            <p className="font-semibold">{t('fuel.unlock.title')}</p>
+            <p className="text-muted-foreground max-w-sm text-sm">{t('fuel.unlock.body')}</p>
             <Button onClick={() => openWith({ kind: 'body' })}>
-              <Plus className="h-4 w-4" /> Log your weight
+              <Plus className="h-4 w-4" /> {t('fuel.logWeight')}
             </Button>
           </CardContent>
         </Card>
+      )}
+
+      {/* What to eat next — ranked from the food table against the day. */}
+      {targets && (
+        <MealPlanCard
+          date={date}
+          calorieTarget={targets.calories}
+          proteinTarget={targets.protein}
+          activeSlot={activeSlot}
+          onActiveSlotChange={setActiveSlot}
+        />
       )}
 
       {/* Meals by slot */}
@@ -266,7 +296,7 @@ export function FuelScreen() {
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2.5 text-sm">
                     <SlotIcon className="text-volt-ink h-4 w-4" aria-hidden />
-                    {s.label}
+                    {t(`fuel.slot.${s.id}`)}
                     {slotKcal > 0 && (
                       <span className="text-muted-foreground font-semibold tabular-nums">
                         · {slotKcal} kcal
@@ -291,27 +321,50 @@ export function FuelScreen() {
                         <button
                           className="min-w-0 flex-1 text-left"
                           onClick={() => openWith({ kind: 'meal', meal: m })}
-                          aria-label={`Edit ${m.name}`}
+                          aria-label={`${t('action.edit')} ${m.name}`}
                         >
                           <p className="truncate text-sm font-semibold">
                             {m.name}{' '}
-                            {m.scanned && (
+                            {(m.scanned || m.source) && (
                               <Badge variant="accent" className="ml-1 align-middle">
-                                <Sparkles className="h-3 w-3" /> Scan
+                                <Sparkles className="h-3 w-3" />
+                                {m.source === 'photo'
+                                  ? t('fuel.badge.photo')
+                                  : m.source === 'voice'
+                                    ? t('fuel.badge.voice')
+                                    : t('fuel.badge.scan')}
                               </Badge>
                             )}
                           </p>
                           <p className="text-muted-foreground text-xs tabular-nums">
                             <Flame className="mr-1 inline h-3 w-3" aria-hidden />
-                            {m.calories} kcal · {m.protein} g protein
-                            {m.carbs != null ? ` · ${m.carbs} g carbs` : ''}
-                            {m.fat != null ? ` · ${m.fat} g fat` : ''}
+                            {m.carbs != null && m.fat != null
+                              ? t('fuel.macrosMore', {
+                                  calories: m.calories,
+                                  protein: m.protein,
+                                  carbs: m.carbs,
+                                  fat: m.fat,
+                                })
+                              : t('fuel.macros', {
+                                  calories: m.calories,
+                                  protein: m.protein,
+                                })}
                           </p>
                         </button>
+                        {/* Swap an equivalent food in — same energy, new food. */}
+                        <SwapMealButton
+                          mealId={m.id}
+                          items={m.items ?? []}
+                          kcal={m.calories}
+                          protein={m.protein}
+                          carbs={m.carbs}
+                          fat={m.fat}
+                          onSwap={(patch) => updateMeal(m.id, patch)}
+                        />
                         <Button
                           size="icon"
                           variant="ghost"
-                          aria-label={`Edit ${m.name}`}
+                          aria-label={`${t('action.edit')} ${m.name}`}
                           onClick={() => openWith({ kind: 'meal', meal: m })}
                         >
                           <Pencil className="h-4 w-4" />
@@ -383,8 +436,8 @@ export function FuelScreen() {
                   ))}
                 </div>
                 <div className="text-muted-foreground mt-2 flex justify-between text-[11px] tabular-nums">
-                  <span>{formatDateLabel(week[0].date)}</span>
-                  <span>Dashed line = {targets.calories} kcal target · red bars went over</span>
+                  <span>{formatDateLabel(week[0].date, locale)}</span>
+                  <span>{t('fuel.chartLegend', { kcal: targets.calories })}</span>
                 </div>
               </>
             ) : (
@@ -400,11 +453,9 @@ export function FuelScreen() {
                 </div>
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
                   <Button size="sm" onClick={() => openWith({ kind: 'pro' })}>
-                    <Crown className="h-3.5 w-3.5" /> Unlock adherence trends
+                    <Crown className="h-3.5 w-3.5" /> {t('fuel.adherence.unlock')}
                   </Button>
-                  <p className="text-muted-foreground text-xs">
-                    See whether your week matches your goal
-                  </p>
+                  <p className="text-muted-foreground text-xs">{t('fuel.adherence.hint')}</p>
                 </div>
               </div>
             )}

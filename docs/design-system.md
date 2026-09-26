@@ -62,14 +62,16 @@ screens       components/dashboard/screens/*, auth, onboarding, landing
 | Component | File | When to use | Notes |
 | --- | --- | --- | --- |
 | `Button` | `ui/button.tsx` | any action | variants: default / outline / ghost / destructive; `asChild` for links; `zap-glow` class adds the volt pulse; mobile-first sizes — default h-11, sm h-9, icon 44px, compacted on sm+; dark-theme default renders the volt CTA (soft→volt gradient, ink text, volt glow) matching `.btn-volt` |
-| `Input` | `ui/input.tsx` | free text, numbers | h-11 + 16px type on mobile (no iOS focus zoom), h-10 + text-sm on sm+, rounded-xl; `aria-invalid=true` → destructive border |
-| `Select` | `ui/select.tsx` | closed choice sets | styled native `<select>` + chevron; same invalid styling; keep native picker on mobile |
+| `Input` | `ui/input.tsx` | free text, numbers | h-11 + 16px type on mobile (no iOS focus zoom), h-10 + text-sm on sm+, rounded-xl; `aria-invalid=true` → destructive border + destructive wash |
+| `Select` | `ui/select.tsx` | **every** closed choice set | custom listbox (button + `role="listbox"` panel) that is a drop-in for a native `<select>`: same `value`, event-shaped `onChange`, `<option>` children. Keyboard + ARIA per APG (arrow keys, `aria-activedescendant`, Escape/outside-click). `size` = `default` \| `sm` \| `compact` for chrome; see §5 |
 | `DatePicker` | `ui/date-picker.tsx` | **every** date field | trigger styled like `Select`; the calendar popover is closed until pressed (native date inputs auto-open theirs on some devices). Month paging, Today/Yesterday quick picks, arrow/Home/End keyboard grid, `max` (default today) and `min` bounds, `weekStartsOn` follows the profile |
 | `Field` | `ui/field.tsx` | **every** labelled control | label + control + hint + error with a11y wiring; see §4 |
 | `Label` | `ui/label.tsx` | standalone labels (rare — prefer `Field`) | Radix label; clicking focuses the control |
 | `Card` / `CardHeader` / `CardTitle` / `CardContent` | `ui/card.tsx` | grouped content | screen sections; `card-hero` class for heroes; layered depth — soft ambient shadow in light, inset light edge + deeper drop in dark ("soft elevation") |
 | `Badge` | `ui/badge.tsx` | small status/meta | `variant="accent"` for highlights |
 | `Switch` | `ui/switch.tsx` | boolean toggles | Radix; needs its own visible label |
+| `Checkbox` | `ui/checkbox.tsx` | **every** checkbox | a real `<input type="checkbox">` with the native box replaced (`appearance-none`): 20px `--field` box with the `--input` boundary, `--primary` when checked, 44px labelled row. Tick/dash are driven by the input's own `:checked`/`:indeterminate`, so they need no JS. Props: `label`, `hint`, `indeterminate` |
+| `LocaleSwitcher` | `locale-switcher.tsx` | language choice | pressed-state buttons, each labelled in its own language; writes `profile.locale`; `header` adds the icon + copy block. Mounted in Personalize and Profile → Settings |
 | `Dialog` | `ui/dialog.tsx` | modals | mobile bottom sheet (grabber + swipe-to-dismiss + sticky `DialogFooter` action bar), centered dialog on sm+; via `modal-context` / `confirm-context` only; bespoke dark sheets (Pro) use `hideHandle`/`hideClose` + `SheetHandle` + a pinned `DialogFooter` |
 | `Tabs` | `ui/tabs.tsx` | in-page views | body screen measurement families |
 | `Progress` | `ui/progress.tsx` | goal/completion bars | volt gradient fill (`from-primary/75 to-primary`) + soft glow in dark; pair with a numeric label |
@@ -112,22 +114,43 @@ screens       components/dashboard/screens/*, auth, onboarding, landing
 
 ## 5. Control visual contract
 
-Shared by `Input` and `Select` (kept byte-identical in their class strings):
-
-Soft-fill pills — controls sit *on* cards as tinted chips (the same visual
-family as `MetaChip`/segmented controls), never as bordered browser defaults:
+Shared by `Input`, `Select`, `DatePicker` and `Checkbox` (kept byte-identical
+in their class strings): a **field surface**, not a soft-fill chip. The control
+sits on the card as its own surface (`--field`) with a visible boundary
+(`--input`), so a form reads as editable without hovering it.
 
 | State | Treatment |
 | --- | --- |
-| default | `h-11 rounded-xl border-transparent bg-secondary text-base font-medium sm:h-10 sm:text-sm` (no shadow) |
-| hover | `bg-secondary/70` |
-| focus-visible | surface lifts to `bg-background` + `border-ring` + 2px ring |
+| default | `h-11 rounded-xl border border-input bg-field text-base font-medium sm:h-10 sm:text-sm` |
+| hover | `hover:border-foreground/40` (the boundary darkens; the fill stays put) |
+| focus-visible | `border-ring` + 2px `ring-ring` |
 | invalid | `aria-[invalid=true]:border-destructive bg-destructive/5` |
 | disabled | `opacity-50 cursor-not-allowed` |
-| size overrides | via `className` (twMerge wins — the base now carries `sm:` resets, so pin both variants, e.g. `h-12 sm:h-12`) |
+| checked (checkbox) | `bg-primary` + `--primary-foreground` tick, `border-primary` |
 
-Freeform multi-line entry (coach composer) mirrors the same fill:
-`bg-secondary rounded-2xl` textarea with the identical focus ring.
+Contrast is a hard rule, not a preference: boundary ≥ 3:1 against **both** the
+card and the page (`tests/theme-contrast.test.ts` enforces it), text ≥ 4.5:1,
+and every token must exist in both themes. Re-run `node scripts/audit-theme.mjs`
+after touching a colour.
+
+### Sizing
+
+Two mechanisms, in this order:
+
+1. **A `size` prop** where the component offers one (`Select`):
+   `default` (h-11 → sm:h-10, w-full) · `sm` (h-9, w-auto, text-xs) ·
+   `compact` (h-8, w-auto, text-[11px] — demo/console chrome).
+2. **`className`** otherwise — `cn()` is `twMerge`, so a later class *replaces*
+   the base one (`w-16` removes `w-full`).
+
+The trap: `twMerge` only resolves the **same** variant. It cannot remove a base
+`sm:h-10`, so `className="h-8"` still renders 40px tall on `sm+`. When a control
+overrides a size that the base also sets at a breakpoint, pin **both**
+(`className="h-8 sm:h-8"`) — or add a `size` preset, which is why `Select` has
+one.
+
+Freeform multi-line entry mirrors the same boundary: `border-input bg-field`
+textarea with the identical focus ring.
 
 ## 6. Accessibility contract
 
@@ -150,13 +173,27 @@ Freeform multi-line entry (coach composer) mirrors the same fill:
 | Kind | Values |
 | --- | --- |
 | Profile field ids | `p-name`, `p-plan`, `p-gym`, `p-weight`, `p-target-weight`, `p-distance`, `p-weekstart`, `p-rest` |
-| Other ids | `plan-strategy`, `log-filter`, `body-measurement` |
+| Other ids | `plan-strategy`, `log-filter`, `body-measurement`, `timetable-date`, `pref-goal`, `pref-experience`, `pref-location`, `pref-minutes`, `lib-search`, `lib-kind`, `lib-difficulty`, `lib-equipment`, `studio-type`, `studio-status`, `studio-difficulty`, `ticket-subject`, `ticket-category`, `ticket-filter`, `claims-uid`, `claims-role`, `claims-action`, `assign-member`, `assign-trainer`, `access-search`, `access-new-role` |
 | Test ids | `import-suggested-week` |
 | Label-copy locators | `Title`, `Minutes`, `Notes`, `What should we call you?` (modals/onboarding — treat as frozen strings) |
 | Frozen strings | `New goal`, `Log measurement`, `Schedule session`, `Export JSON`, `Erase everything`, `Send`, `Train this week`, `Body weight trend`, `Message your coach`, `Load earlier workouts`, `Load earlier measurements` |
 
 ## 8. Adoption status
 
+- **Zero raw controls left:** every `<select>` (23 call sites across the feature
+  and tenant workspaces) and every `<input type="checkbox">` (10) now renders
+  the design-system component. Grep is the check:
+  `grep -rn "<select\|type=\"checkbox\"" src/components src/app` returns only
+  `ui/select.tsx` and `ui/checkbox.tsx` themselves. Textareas and the raw
+  search inputs moved to the same `border-input bg-field` contract.
+- **Select sizing:** chrome pickers (demo persona/role banners, timetable date,
+  console toolbar filters) use the `size` preset rather than class overrides —
+  see §5 "Sizing" for why a bare `className="h-8"` is not enough.
+- **E2E:** `Select` is a button + listbox, so Playwright's `selectOption()`
+  cannot drive it. Use the helpers in `e2e/select.ts`
+  (`selectOption` / `selectOptionIn` / `selectIndex`); the accessible name is
+  unchanged (`aria-label`, or `Field`'s label → `htmlFor`), so the selectors
+  themselves stay as they were.
 - **Migrated to `Field`:** Profile (8 settings + target-weight range error),
   Plan (strategy picker), all dashboard modals — `WorkoutModal` (date/type/
   title/minutes/intensity/distance/notes + minutes range error, date via

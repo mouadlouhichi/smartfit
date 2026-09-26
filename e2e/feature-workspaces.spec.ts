@@ -1,12 +1,13 @@
 import { test, expect } from '@playwright/test';
 import { emptyState, STORAGE_KEY } from '@smartfit/core';
+import { selectOption } from './select';
 
 test('editor publishes a revision into guest discovery and archives it again', async ({ page }) => {
   await page.goto('/studio');
   await page.getByLabel('Title', { exact: true }).fill('Beginner test workout');
   await page.getByRole('button', { name: 'Add exercise', exact: true }).click();
   await page.getByLabel('Exercise name', { exact: true }).fill('Bodyweight Squat');
-  await page.getByLabel('Status', { exact: true }).selectOption('published');
+  await selectOption(page, 'Status', 'published');
   await page.getByRole('button', { name: 'Save revision', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Content saved');
   await page.getByRole('link', { name: 'Preview published library' }).click();
@@ -16,7 +17,7 @@ test('editor publishes a revision into guest discovery and archives it again', a
   await expect(page.getByText(/Bodyweight Squat · 2 sets/)).toBeVisible();
   await page.goto('/studio');
   await page.getByRole('button', { name: /Beginner test workout/ }).click();
-  await page.getByLabel('Status', { exact: true }).selectOption('archived');
+  await selectOption(page, 'Status', 'archived');
   await page.getByRole('button', { name: 'Save revision', exact: true }).click();
   await page.getByRole('link', { name: 'Preview published library' }).click();
   await page.getByLabel('Search', { exact: true }).fill('Beginner test workout');
@@ -50,16 +51,17 @@ test('owner assigns trainer; member consent gates routines and staff stays read-
   page,
 }) => {
   await page.goto('/g/zone-fight/coaching');
-  await page.getByLabel('Member', { exact: true }).selectOption('demo-member-1');
-  await page.getByLabel('Trainer', { exact: true }).selectOption('demo-trainer');
+  // Option labels are the people's names, not their uids.
+  await selectOption(page, 'Member', 'Amina Rachidi');
+  await selectOption(page, 'Trainer', 'Karim Idrissi');
   await page.getByRole('button', { name: 'Assign trainer', exact: true }).click();
-  await page.getByLabel('Demo coaching persona').selectOption('gym-trainer');
+  await selectOption(page, 'Demo coaching persona', 'Trainer');
   await page.getByRole('button', { name: /Amina Rachidi/ }).click();
   await expect(page.getByLabel('Routine title')).toHaveCount(0);
-  await page.getByLabel('Demo coaching persona').selectOption('member');
+  await selectOption(page, 'Demo coaching persona', 'Member');
   await page.getByRole('button', { name: /Amina Rachidi/ }).click();
   await page.getByRole('button', { name: 'Accept coaching' }).click();
-  await page.getByLabel('Demo coaching persona').selectOption('gym-trainer');
+  await selectOption(page, 'Demo coaching persona', 'Trainer');
   await page.getByRole('button', { name: /Amina Rachidi/ }).click();
   await page.getByLabel('Routine title').fill('Coached starter');
   await page.getByLabel('Exercise to add').fill('Bodyweight Squat');
@@ -67,7 +69,7 @@ test('owner assigns trainer; member consent gates routines and staff stays read-
   await expect(page.getByRole('heading', { name: 'Coached starter' })).toBeVisible();
   await page.getByLabel('Feedback', { exact: true }).fill('Keep a comfortable pace.');
   await page.getByRole('button', { name: 'Send feedback' }).click();
-  await page.getByLabel('Demo coaching persona').selectOption('gym-staff');
+  await selectOption(page, 'Demo coaching persona', 'Gym staff');
   await page.getByRole('button', { name: /Amina Rachidi/ }).click();
   await expect(page.getByText('Keep a comfortable pace.', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Send feedback' })).toHaveCount(0);

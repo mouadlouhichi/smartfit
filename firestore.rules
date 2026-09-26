@@ -405,6 +405,9 @@ service cloud.firestore {
       }
 
       // ── meal / nutrition logs ──────────────────────────────────────────
+      // The field count grew with the photo/voice capture paths (source,
+      // matched items, thumbnail) and the cap scales with it — its job is to
+      // bound an abusive write, not to enumerate today's schema.
       match /meals/{docId} {
         allow read, delete: if isOwner(userId);
         allow create, update: if isOwner(userId)
@@ -414,10 +417,35 @@ service cloud.firestore {
           && numBetween(request.resource.data.calories, 0, 100000)
           && numBetween(request.resource.data.protein, 0, 10000)
           && numBetween(request.resource.data.createdAt, 0, 4102444800000)
-          && request.resource.data.size() <= 9
+          && request.resource.data.size() <= 13
           && (!('carbs' in request.resource.data) || numBetween(request.resource.data.carbs, 0, 10000))
           && (!('fat' in request.resource.data) || numBetween(request.resource.data.fat, 0, 10000))
-          && (!('scanned' in request.resource.data) || request.resource.data.scanned is bool);
+          && (!('scanned' in request.resource.data) || request.resource.data.scanned is bool)
+          && (!('source' in request.resource.data)
+              || request.resource.data.source in ['manual', 'scan', 'photo', 'voice', 'voice+scan'])
+          && (!('items' in request.resource.data)
+              || (request.resource.data.items is list && request.resource.data.items.size() <= 12))
+          && (!('photo' in request.resource.data)
+              || strAtMost(request.resource.data.photo, 130000));
+      }
+
+      // ── weekly check-ins ───────────────────────────────────────────────
+      // Append-only by convention: the client never rewrites an answered week.
+      // Enforced here as a shape, since a check-in is the athlete's own word
+      // and re-deriving it would defeat the point of asking.
+      match /checkIns/{docId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && isoDate(request.resource.data.date)
+          && isoDate(request.resource.data.weekOf)
+          && numBetween(request.resource.data.feeling, 1, 5)
+          && numBetween(request.resource.data.workouts, 0, 1000)
+          && numBetween(request.resource.data.minutes, 0, 100000)
+          && numBetween(request.resource.data.createdAt, 0, 4102444800000)
+          && request.resource.data.size() <= 8
+          && (!('notes' in request.resource.data) || strAtMost(request.resource.data.notes, 400))
+          && (!('weightKg' in request.resource.data)
+              || numBetween(request.resource.data.weightKg, 0, 1000));
       }
 
       // ── activity categories ────────────────────────────────────────────

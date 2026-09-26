@@ -126,6 +126,20 @@ export const PLANS: Plan[] = [
   },
 ];
 
+/**
+ * The names onboarding gives its first goal.
+ *
+ * They are stored in English like every other canonical string — the mobile
+ * client, the Firestore documents and the coach's prompt all read them — and
+ * `goalDisplayName()` resolves the localised copy for the screen. Changing a
+ * value here changes stored data, so the catalogue copy is asserted against
+ * these strings rather than written twice.
+ */
+export const SEEDED_GOAL_NAMES: Record<string, string> = {
+  workouts: 'Train this week',
+  minutes: 'Active minutes this week',
+};
+
 export const GOAL_METRIC_META: Record<
   string,
   { label: string; unit: string; icon: string; step: number }

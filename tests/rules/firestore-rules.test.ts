@@ -272,6 +272,78 @@ test('meal logs reject junk payloads', async () => {
   await assertFails(setDoc(doc(bob, 'users', ALICE, 'meals', 'meal-9'), valid));
 });
 
+test('meal capture fields are accepted within bounds and rejected outside them', async () => {
+  const alice = env.authenticatedContext(ALICE).firestore();
+  const base = {
+    date: '2026-09-01',
+    name: 'Photo meal',
+    slot: 'lunch',
+    calories: 620,
+    protein: 45,
+    createdAt: Date.now(),
+  };
+  const path = (id: string) => doc(alice, 'users', ALICE, 'meals', id);
+
+  // Every capture path the app can write.
+  for (const source of ['manual', 'scan', 'photo', 'voice', 'voice+scan']) {
+    await assertSucceeds(setDoc(path(`meal-src-${source}`), { ...base, source }));
+  }
+  await assertSucceeds(
+    setDoc(path('meal-items'), {
+      ...base,
+      items: ['chicken', 'rice'],
+      photo: 'data:image/jpeg;base64,AAA',
+    }),
+  );
+  await assertSucceeds(setDoc(path('meal-photoless'), { ...base, source: 'photo', items: [] }));
+
+  // Junk the capture paths could plausibly produce, and must not.
+  await assertFails(setDoc(path('meal-bad-src'), { ...base, source: 'telepathy' }));
+  await assertFails(
+    setDoc(path('meal-many-items'), { ...base, items: Array.from({ length: 40 }, () => 'rice') }),
+  );
+  await assertFails(setDoc(path('meal-huge-photo'), { ...base, photo: 'x'.repeat(140_000) }));
+  await assertFails(setDoc(path('meal-item-string'), { ...base, items: 'rice' }));
+});
+
+test('weekly check-ins obey their shape and belong to their owner', async () => {
+  const alice = env.authenticatedContext(ALICE).firestore();
+  const valid = {
+    date: '2026-09-21',
+    weekOf: '2026-09-14',
+    feeling: 4,
+    workouts: 4,
+    minutes: 180,
+    weightKg: 78.4,
+    notes: 'solid week',
+    createdAt: Date.now(),
+  };
+  const path = (id: string) => doc(alice, 'users', ALICE, 'checkIns', id);
+
+  await assertSucceeds(setDoc(path('ci-1'), valid));
+  await assertSucceeds(
+    setDoc(path('ci-minimal'), {
+      date: '2026-09-21',
+      weekOf: '2026-09-14',
+      feeling: 3,
+      workouts: 0,
+      minutes: 0,
+      createdAt: Date.now(),
+    }),
+  );
+
+  await assertFails(setDoc(path('ci-bad-feeling'), { ...valid, feeling: 9 }));
+  await assertFails(setDoc(path('ci-zero-feeling'), { ...valid, feeling: 0 }));
+  await assertFails(setDoc(path('ci-bad-week'), { ...valid, weekOf: 'last tuesday' }));
+  await assertFails(setDoc(path('ci-long-notes'), { ...valid, notes: 'x'.repeat(500) }));
+  await assertFails(setDoc(path('ci-bad-weight'), { ...valid, weightKg: 'heavy' }));
+  await assertFails(setDoc(path('ci-extra'), { ...valid, junk: 1, junk2: 2, junk3: 3, junk4: 4 }));
+
+  const bob = env.authenticatedContext(BOB).firestore();
+  await assertFails(getDoc(doc(bob, 'users', ALICE, 'checkIns', 'ci-1')));
+  await assertFails(setDoc(doc(bob, 'users', ALICE, 'checkIns', 'ci-9'), valid));
+});
+
 test('clients cannot mint paid Pro entitlements', async () => {
   const alice = env.authenticatedContext(ALICE).firestore();
   const ref = doc(alice, 'users', ALICE);

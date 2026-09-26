@@ -209,14 +209,29 @@ export function clearAllRunDrafts() {
 
 /* ── misc ────────────────────────────────────────────────────────────── */
 
+export type TimeOfDay = 'morning' | 'afternoon' | 'evening' | 'night';
+
+/**
+ * Which part of the day it is, as an id.
+ *
+ * The id — not an English word — is what call sites should hold: the greeting
+ * and the seeded run title both need a translated phrase, and picking the
+ * phrase from a string that happens to read "Morning" would tie the French
+ * copy to the English spelling.
+ */
+export function timeOfDayPeriod(date = new Date()): TimeOfDay {
+  const h = date.getHours();
+  if (h < 5) return 'night';
+  if (h < 12) return 'morning';
+  if (h < 18) return 'afternoon';
+  if (h < 22) return 'evening';
+  return 'night';
+}
+
 /** "Morning" / "Afternoon" / "Evening" / "Night" — run naming like Strava's. */
 export function timeOfDayLabel(date = new Date()): string {
-  const h = date.getHours();
-  if (h < 5) return 'Night';
-  if (h < 12) return 'Morning';
-  if (h < 18) return 'Afternoon';
-  if (h < 22) return 'Evening';
-  return 'Night';
+  const period = timeOfDayPeriod(date);
+  return period.charAt(0).toUpperCase() + period.slice(1);
 }
 
 /** Estimated intensity from pace, so the calorie estimate matches the effort. */

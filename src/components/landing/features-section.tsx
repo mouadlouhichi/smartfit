@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useReveal } from './use-reveal';
+import { useI18n } from '@/lib/i18n-context';
 
 const FEATURE_VISUALS = ['logs', 'plan', 'reconcile', 'shield'] as const;
 type FeatureVisual = (typeof FEATURE_VISUALS)[number];
@@ -242,39 +243,36 @@ type Feature = {
 const FEATURES: Feature[] = [
   {
     number: '01',
-    title: 'Know what it is',
-    description:
-      'Every logged session is tagged to an activity type — strength, cardio, HIIT, mobility — so the workout stays separate from the plan behind it.',
+    title: 'landing.features.whatItIs.title',
+    description: 'landing.features.whatItIs.body',
     visual: 'logs',
-    link: { href: '/#how-it-works', anchor: 'Why the session and the plan stay separate' },
+    link: { href: '/#how-it-works', anchor: 'landing.guides.foundations.anchor' },
   },
   {
     number: '02',
-    title: 'Pick a style that fits you',
-    description:
-      'Choose from four proven training strategies. SmartFit lays out your weekly split automatically — push/pull/legs, upper/lower, full body or cardio focus.',
+    title: 'landing.features.style.title',
+    description: 'landing.features.style.body',
     visual: 'plan',
-    link: { href: '/#plans', anchor: 'Compare 4 training styles' },
+    link: { href: '/#plans', anchor: 'landing.features.style.anchor' },
   },
   {
     number: '03',
-    title: 'See it all reconcile',
-    description:
-      'Volume, calories, distance and streaks reconcile across every view. Logged sessions update your plan, goals and trends together — nothing drifts.',
+    title: 'landing.features.reconcile.title',
+    description: 'landing.features.reconcile.body',
     visual: 'reconcile',
-    link: { href: '/dashboard', anchor: 'See how the views stay in sync' },
+    link: { href: '/dashboard', anchor: 'landing.features.reconcile.anchor' },
   },
   {
     number: '04',
-    title: 'Private by default',
-    description:
-      'Local mode keeps your log in this browser; account mode syncs it to your own protected cloud account. Delete a session and its effect reverses cleanly. Export or erase everything from Profile.',
+    title: 'landing.security.private.title',
+    description: 'landing.features.private.body',
     visual: 'shield',
-    link: { href: '/#security', anchor: 'How SmartFit privacy works' },
+    link: { href: '/#security', anchor: 'landing.features.private.anchor' },
   },
 ];
 
 function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
+  const { t } = useI18n();
   const { ref, visible } = useReveal<HTMLDivElement>(0.2);
   return (
     <div
@@ -292,17 +290,17 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
         <div className="grid flex-1 items-center gap-8 lg:grid-cols-2">
           <div>
             <h3 className="mb-4 text-3xl transition-transform duration-500 group-hover:translate-x-2 lg:text-4xl">
-              {feature.title}
+              {t(feature.title)}
             </h3>
             <p className="text-lg leading-relaxed text-[color:var(--muted-foreground)]">
-              {feature.description}
+              {t(feature.description)}
             </p>
             {feature.link && (
               <Link
                 href={feature.link.href}
                 className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[color:var(--foreground)] underline-offset-4 hover:underline"
               >
-                {feature.link.anchor} →
+                {t(feature.link.anchor)} →
               </Link>
             )}
           </div>
@@ -318,32 +316,32 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
 }
 
 export function FeaturesSection() {
+  const { t } = useI18n();
   const { ref, visible } = useReveal<HTMLElement>(0.1);
   return (
     <section id="features" ref={ref} className="relative overflow-x-clip py-24 lg:py-32">
       <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
         <div className="mb-16 lg:mb-24">
-          <span className="eyebrow-mono mb-6">Training styles &amp; capabilities</span>
+          <span className="eyebrow-mono mb-6">{t('landing.features.eyebrow')}</span>
           <h2
             className="reveal text-4xl tracking-tight lg:text-6xl"
             data-state={visible ? 'visible' : 'hidden'}
           >
-            Log your training.
+            {t('landing.features.title')}
             <br />
             <span className="text-[color:var(--muted-foreground)]">
-              Track it by plan or session.
+              {t('landing.features.titleLine2')}
             </span>
           </h2>
           <p className="mt-6 max-w-2xl text-[color:var(--muted-foreground)]">
-            SmartFit is a{' '}
+            {t('landing.features.body.lead')}{' '}
             <Link
               href="/"
               className="text-[color:var(--foreground)] underline underline-offset-4 hover:no-underline"
             >
-              free private fitness tracker
+              {t('landing.features.body.link')}
             </Link>{' '}
-            built for consistency — it keeps your activity types separate from your recurring plan
-            and reconciles them automatically.
+            {t('landing.features.body.tail')}
           </p>
         </div>
 

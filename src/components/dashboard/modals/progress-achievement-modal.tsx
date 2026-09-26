@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, X } from 'lucide-react';
 import { currentStreak, nextStreakMilestone } from '@smartfit/core';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 
 /**
  * "Today's progress" — the post-workout achievement celebration.
@@ -23,6 +24,7 @@ export function ProgressAchievementModal({
   prCount: number;
   onDone: () => void;
 }) {
+  const { t } = useI18n();
   const { state } = useStore();
   const streak = currentStreak(state);
   const milestone = nextStreakMilestone(streak);
@@ -33,11 +35,11 @@ export function ProgressAchievementModal({
     <div
       role="alertdialog"
       aria-modal="true"
-      aria-label="Today's progress"
-      className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-[#0a0a09]"
+      aria-label={t('progress.modal.aria')}
+      className="fixed inset-0 z-[70] flex flex-col overflow-hidden bg-[var(--ink-2)]"
       style={{
         backgroundImage:
-          'radial-gradient(120% 80% at 50% 110%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%), linear-gradient(180deg, #0d0e0a 0%, #050404 100%)',
+          'radial-gradient(120% 80% at 50% 110%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 55%), linear-gradient(180deg, var(--ink-2) 0%, var(--ink) 100%)',
       }}
     >
       {/* grabber */}
@@ -60,7 +62,7 @@ export function ProgressAchievementModal({
         {prCount > 0 && (
           <p
             className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold"
-            style={{ background: 'rgba(138,210,0,0.14)', color: '#8AD200' }}
+            style={{ background: 'rgba(138,210,0,0.14)', color: 'var(--volt)' }}
           >
             ⭐ {prCount} personal record{prCount === 1 ? '' : 's'}
           </p>
@@ -72,7 +74,7 @@ export function ProgressAchievementModal({
           <button
             type="button"
             onClick={onDone}
-            aria-label={`Next milestone: ${milestone}-day streak`}
+            aria-label={t('progress.modal.milestone', { count: milestone })}
             className="absolute top-1/2 -right-16 hidden -translate-y-1/2 flex-col items-start gap-1 rounded-3xl border px-5 py-4 text-left sm:flex"
             style={{
               borderColor: 'rgba(138,210,0,0.55)',
@@ -80,9 +82,11 @@ export function ProgressAchievementModal({
               width: '9.5rem',
             }}
           >
-            <span className="text-[11px] font-semibold text-white/50">Challenge</span>
+            <span className="text-[11px] font-semibold text-white/50">
+              {t('progress.modal.challenge')}
+            </span>
             <span className="text-volt-soft text-2xl font-extrabold tabular-nums">{milestone}</span>
-            <span className="text-xs text-white/60">Days · next streak goal</span>
+            <span className="text-xs text-white/60">{t('progress.modal.daysGoal')}</span>
             <ChevronRight className="text-volt-soft mt-1 h-4 w-4" aria-hidden />
           </button>
 
@@ -98,15 +102,15 @@ export function ProgressAchievementModal({
             {/* seam + hinge dots — the flip-clock split */}
             <div className="absolute inset-x-0 top-1/2 h-px bg-black/50" aria-hidden />
             <div
-              className="absolute top-1/2 left-0 h-2 w-2 -translate-y-1/2 rounded-r-full bg-[#050404]"
+              className="absolute top-1/2 left-0 h-2 w-2 -translate-y-1/2 rounded-r-full bg-[var(--ink)]"
               aria-hidden
             />
             <div
-              className="absolute top-1/2 right-0 h-2 w-2 -translate-y-1/2 rounded-l-full bg-[#050404]"
+              className="absolute top-1/2 right-0 h-2 w-2 -translate-y-1/2 rounded-l-full bg-[var(--ink)]"
               aria-hidden
             />
 
-            <p className="text-sm font-semibold text-white/85">Workout streak</p>
+            <p className="text-sm font-semibold text-white/85">{t('progress.modal.streak')}</p>
 
             {/* digit row: ghost neighbours + today */}
             <div className="relative mt-2 flex items-center justify-center" aria-hidden>
@@ -120,9 +124,7 @@ export function ProgressAchievementModal({
                 {streak + 1}
               </span>
             </div>
-            <span className="sr-only">
-              Workout streak: {streak} day{streak === 1 ? '' : 's'}
-            </span>
+            <span className="sr-only">{t('progress.modal.streakAria', { count: streak })}</span>
 
             <div
               className="pointer-events-none absolute inset-x-6 bottom-0 h-16"
@@ -132,7 +134,9 @@ export function ProgressAchievementModal({
               }}
               aria-hidden
             />
-            <p className="relative mt-8 text-base font-bold text-white/90">Days</p>
+            <p className="relative mt-8 text-base font-bold text-white/90">
+              {t('progress.modal.days')}
+            </p>
           </div>
         </div>
       </div>
@@ -142,14 +146,14 @@ export function ProgressAchievementModal({
         <button
           type="button"
           onClick={onDone}
-          className="press h-14 w-full rounded-full bg-white text-base font-extrabold text-[#0d1102] shadow-xl transition-transform hover:-translate-y-0.5"
+          className="press h-14 w-full rounded-full bg-white text-base font-extrabold text-[var(--primary-foreground)] shadow-xl transition-transform hover:-translate-y-0.5"
         >
           Keep it going
         </button>
         <button
           type="button"
           onClick={onDone}
-          aria-label="Dismiss"
+          aria-label={t('progress.modal.dismiss')}
           className="absolute -top-12 right-6 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80 transition-colors hover:bg-white/20 sm:hidden"
         >
           <X className="h-5 w-5" />

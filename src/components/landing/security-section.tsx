@@ -2,42 +2,37 @@
 
 import { Shield, Lock, Eye, FileCheck } from 'lucide-react';
 import { useReveal } from './use-reveal';
+import { useI18n } from '@/lib/i18n-context';
 
 const FEATURES = [
   {
     icon: Shield,
-    title: 'Private by default',
-    description:
-      'Your workouts live in local-first storage on your device — and if your SmartFit uses cloud sync, in a private account only you can read.',
+    title: 'landing.security.private.title',
+    description: 'landing.security.private.body',
   },
   {
     icon: Lock,
-    title: 'No sensors, no surveillance',
-    description:
-      'SmartFit never pairs with a watch, ring or phone sensor. You decide what counts as a session.',
+    title: 'landing.security.sensors.title',
+    description: 'landing.security.sensors.body',
   },
-  {
-    icon: Eye,
-    title: 'No advertising profiles',
-    description:
-      'We never use your training data to build ad profiles or sell it to third parties. No trackers.',
-  },
+  { icon: Eye, title: 'landing.security.ads.title', description: 'landing.security.ads.body' },
   {
     icon: FileCheck,
-    title: 'Export or delete anytime',
-    description: 'Export a complete JSON backup or erase every byte from Profile in one tap.',
+    title: 'landing.security.export.title',
+    description: 'landing.security.export.body',
   },
 ];
 
 const BADGES = [
-  'Local-first storage',
-  'No wearable pairing',
-  'JSON export',
-  'No ad profiles',
-  'Delete anytime',
+  'landing.security.badge.local',
+  'landing.security.badge.noWearable',
+  'landing.security.badge.json',
+  'landing.security.badge.noAds',
+  'landing.security.badge.delete',
 ];
 
 export function SecuritySection() {
+  const { t } = useI18n();
   const { ref, visible } = useReveal<HTMLElement>(0.1);
 
   return (
@@ -49,15 +44,14 @@ export function SecuritySection() {
       <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
         <div className="grid gap-16 lg:grid-cols-2 lg:gap-24">
           <div className="reveal" data-state={visible ? 'visible' : 'hidden'}>
-            <span className="eyebrow-mono mb-6">Privacy</span>
+            <span className="eyebrow-mono mb-6">{t('landing.security.eyebrow')}</span>
             <h2 className="mb-8 text-4xl tracking-tight lg:text-6xl">
-              Your training,
+              {t('landing.security.title')}
               <br />
-              your business.
+              {t('landing.security.titleLine2')}
             </h2>
             <p className="mb-12 text-xl leading-relaxed text-[color:var(--muted-foreground)]">
-              Everything stays under your control — on your device or in your private account.
-              Export and deletion controls live in Profile, and nothing is ever shared.
+              {t('landing.security.body')}
             </p>
             <div className="flex flex-wrap gap-3">
               {BADGES.map((cert, index) => (
@@ -67,7 +61,7 @@ export function SecuritySection() {
                   data-state={visible ? 'visible' : 'hidden'}
                   style={{ transitionDelay: `${index * 50 + 200}ms` }}
                 >
-                  {cert}
+                  {t(cert)}
                 </span>
               ))}
             </div>
@@ -87,9 +81,9 @@ export function SecuritySection() {
                   </div>
                   <div>
                     <h3 className="mb-1 text-lg font-medium transition-transform duration-300 group-hover:translate-x-1">
-                      {feature.title}
+                      {t(feature.title)}
                     </h3>
-                    <p className="text-[color:var(--muted-foreground)]">{feature.description}</p>
+                    <p className="text-[color:var(--muted-foreground)]">{t(feature.description)}</p>
                   </div>
                 </div>
               </div>

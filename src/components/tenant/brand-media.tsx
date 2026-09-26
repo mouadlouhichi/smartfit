@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { contrastRatio, type GymTenant } from '@smartfit/core';
-import { gymCover, gymLogo, safeImageUrl } from '@/lib/gym-profile';
+import { gymCover, gymGalleryImages, gymLogo, safeImageUrl } from '@/lib/gym-profile';
 import { Artwork } from '@/components/ui/artwork';
 import { cn } from '@/lib/utils';
 type BrandGym = Pick<GymTenant, 'name' | 'branding'>;
@@ -63,11 +63,16 @@ function LogoBadge({ gym, src, className }: { gym: BrandGym; src?: string; class
   );
 }
 export function GymCardMedia({ gym }: { gym: BrandGym }) {
+  // One cover says "a gym"; three say "this gym". The extra two are the bundled
+  // set for this gym's cover preset, so a card is never a single stock photo —
+  // and a gym that uploaded its own gallery shows those instead.
+  const [cover, ...rest] = gymGalleryImages(gym.branding, 3);
   return (
     <div className="relative mb-5">
       <div className="relative h-44 overflow-hidden rounded-t-2xl">
         <Artwork
-          src={gymCover(gym.branding)}
+          src={cover}
+          alt={`${gym.name} cover`}
           className="h-full w-full transition-transform duration-500 group-hover:scale-105"
           style={{ objectPosition: gym.branding?.coverPosition ?? 'center' }}
         />
@@ -77,6 +82,19 @@ export function GymCardMedia({ gym }: { gym: BrandGym }) {
           </span>
         )}
       </div>
+      {rest.length > 0 && (
+        <div className="mt-px grid grid-cols-2 gap-px">
+          {rest.map((src, index) => (
+            <div key={`${src}-${index}`} className="h-20 overflow-hidden">
+              <Artwork
+                src={src}
+                alt={`${gym.name} photo ${index + 2}`}
+                className="h-full w-full transition-transform duration-500 group-hover:scale-105"
+              />
+            </div>
+          ))}
+        </div>
+      )}
       <GymLogo gym={gym} className="absolute -bottom-5 left-5 ring-4 ring-[var(--card)]" />
     </div>
   );

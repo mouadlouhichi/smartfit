@@ -22,15 +22,32 @@ interface Option {
  * arrows move the active item, Enter/Space commit, Escape/outside-click close,
  * and the active option is announced via `aria-activedescendant`.
  */
+/**
+ * Trigger sizes, as presets rather than `className` overrides.
+ *
+ * Tailwind resolves conflicts by *stylesheet* order, not by the order classes
+ * are written in, so `className="w-auto"` loses to the trigger's own `w-full`
+ * no matter where it sits. A prop is the only deterministic way to size it.
+ * Any one-off class the preset does not set can still come through `className`.
+ */
+export type SelectSize = 'default' | 'sm' | 'compact';
+
+const SIZES: Record<SelectSize, string> = {
+  default: 'h-11 w-full rounded-xl px-3 text-base sm:h-10 sm:text-sm',
+  sm: 'h-9 w-auto rounded-xl px-2.5 text-xs',
+  compact: 'h-8 w-auto rounded-lg px-2 text-[11px]',
+};
+
 const Select = React.forwardRef<
   HTMLButtonElement,
-  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'value' | 'onChange'> & {
+  Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'value' | 'onChange' | 'size'> & {
     value?: string | number;
     onChange?: (e: { target: { value: string } }) => void;
     'aria-invalid'?: boolean | 'true' | 'false';
     'aria-label'?: string;
+    size?: SelectSize;
   }
->(({ className, value, onChange, children, disabled, id, ...rest }, ref) => {
+>(({ className, value, onChange, children, disabled, id, size = 'default', ...rest }, ref) => {
   const options = React.useMemo(() => extractOptions(children), [children]);
   const selected = options.find((o) => o.value === String(value));
 
@@ -117,9 +134,12 @@ const Select = React.forwardRef<
         onKeyDown={onKeyDown}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'bg-secondary text-foreground hover:bg-secondary/70 focus-visible:ring-ring focus-visible:border-ring focus-visible:bg-background',
+          // Same field surface and 3:1 boundary as `Input`, so a form's text
+          // fields and its pickers are visibly one family.
+          'bg-field text-foreground border-input hover:border-foreground/40 focus-visible:ring-ring focus-visible:border-ring',
           // Mobile-first: 44px trigger + 16px type; compact on sm+ (§5).
-          'flex h-11 w-full items-center justify-between gap-2 rounded-xl border border-transparent pr-3 pl-3 text-left text-base font-medium transition-colors sm:h-10 sm:text-sm',
+          'flex items-center justify-between gap-2 border text-left font-medium transition-colors',
+          SIZES[size],
           'focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
           'aria-[invalid=true]:border-destructive aria-[invalid=true]:bg-destructive/5',
           className,

@@ -574,6 +574,81 @@ export const FOOD_DB: FoodEntry[] = [
   },
 ];
 
+const FOOD_BY_ID = new Map(FOOD_DB.map((f) => [f.id, f]));
+
+/** Look up a food by its stable id (the key used by logs, swaps and aliases). */
+export function foodById(id: string): FoodEntry | null {
+  return FOOD_BY_ID.get(id) ?? null;
+}
+
+/**
+ * Localised aliases for the food table.
+ *
+ * Translating the *interface* is not enough for a scanner: the athlete types or
+ * says "poulet et riz", so the parser has to know the local word. Aliases are
+ * extra names a food answers to — they never replace the English ones, so a
+ * French user can still type "chicken", and a mixed-language entry ("poulet
+ * 200g with rice") still resolves.
+ */
+export const FOOD_ALIASES: Record<string, Record<string, string[]>> = {
+  fr: {
+    chicken: ['poulet', 'blanc de poulet', 'poulet grillé', 'poulet grille'],
+    beef: ['bœuf', 'boeuf', 'viande hachée', 'viande hachee', 'kefta'],
+    salmon: ['saumon'],
+    tuna: ['thon'],
+    fish: ['poisson', 'cabillaud', 'merlan'],
+    egg: ['œuf', 'oeuf', 'œufs', 'oeufs'],
+    rice: ['riz'],
+    pasta: ['pâtes', 'pates', 'spaghetti'],
+    couscous: ['semoule'],
+    bread: ['pain', 'khobz', 'baguette', 'tranche de pain'],
+    oats: ['avoine', 'flocons d’avoine', 'flocons d avoine', 'porridge'],
+    potato: ['pomme de terre', 'pommes de terre'],
+    sweetpotato: ['patate douce'],
+    lentils: ['lentilles'],
+    chickpeas: ['pois chiches'],
+    beans: ['haricots', 'haricots blancs', 'haricots rouges'],
+    'greek-yogurt': ['yaourt grec', 'yaourt', 'yoghourt'],
+    milk: ['lait', 'verre de lait'],
+    cheese: ['fromage'],
+    whey: ['protéine', 'proteine', 'poudre de protéine', 'shaker'],
+    'peanut-butter': ['beurre de cacahuète', 'beurre de cacahuete'],
+    almonds: ['amandes', 'noix'],
+    banana: ['banane'],
+    apple: ['pomme'],
+    dates: ['datte', 'dattes'],
+    avocado: ['avocat'],
+    'olive-oil': ['huile d’olive', 'huile d olive', 'huile'],
+    salad: ['salade verte'],
+    broccoli: ['brocoli', 'brocolis'],
+    vegetables: ['légumes', 'legumes', 'légumes cuits'],
+    pizza: ['part de pizza'],
+    burger: ['hamburger', 'cheeseburger'],
+    sandwich: ['cassecroûte', 'cassecroute'],
+    tajine: ['tagine'],
+    latte: ['café au lait', 'cafe au lait'],
+    juice: ['jus', 'jus d’orange', 'jus d orange'],
+    soda: ['coca', 'cola'],
+    'protein-bar': ['barre protéinée', 'barre proteinee', 'barre de protéine'],
+  },
+};
+
+/**
+ * Every name a food answers to, in the athlete's language first.
+ * English names always come last so a scan never loses them.
+ */
+export function localizedFoodNames(food: FoodEntry, locale = 'en'): string[] {
+  const aliases = FOOD_ALIASES[locale]?.[food.id] ?? [];
+  return [...aliases, ...food.names];
+}
+
+/** Display label for a food, honouring the athlete's language when known. */
+export function foodLabel(food: FoodEntry | string, locale = 'en'): string {
+  const entry = typeof food === 'string' ? foodById(food) : food;
+  if (!entry) return typeof food === 'string' ? food : '';
+  return localizedFoodNames(entry, locale)[0] ?? entry.names[0];
+}
+
 const QTY_UNITS: Record<string, number> = {
   g: 1,
   gr: 1,
@@ -593,7 +668,52 @@ const QTY_UNITS: Record<string, number> = {
   slices: 1,
   unit: 1,
   units: 1,
+  // French measures — "2 tranches de pain", "un verre de lait", "un bol de riz".
+  tranche: 1,
+  tranches: 1,
+  verre: 1,
+  verres: 1,
+  bol: 1,
+  bols: 1,
 };
+
+/** Units that mean "this many servings", not "this many grams". */
+const COUNTABLE_UNITS = new Set([
+  'tbsp',
+  'spoon',
+  'scoop',
+  'scoops',
+  'slice',
+  'slices',
+  'piece',
+  'pieces',
+  'pcs',
+  'unit',
+  'units',
+  'tranche',
+  'tranches',
+  'verre',
+  'verres',
+  'bol',
+  'bols',
+]);
+
+/**
+ * One recognised food inside a scan, with the macros it contributed.
+ *
+ * The totals are the sum of these, never a separate calculation — which is
+ * what makes swapping a single food exact: replace the line, re-add, done.
+ * Without it, "swap the rice" would have to re-guess every other portion.
+ */
+export interface MealScanLine {
+  id: string;
+  /** Display label with the portion, e.g. "chicken 200 g". */
+  label: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 
 export interface MealScan {
   name: string;
@@ -603,8 +723,89 @@ export interface MealScan {
   fat: number;
   /** Human-readable matches, e.g. "chicken ×200 g". */
   matched: string[];
+  /** `FOOD_DB` ids behind the matches — powers one-tap swapping. */
+  items: string[];
+  /** Per-food breakdown; `calories` above is exactly their sum. */
+  lines: MealScanLine[];
   /** True when nothing in the text mapped to the food table. */
   empty: boolean;
+}
+
+/** Sum a set of lines back into the scan's headline numbers. */
+export function totalsOfLines(lines: MealScanLine[]): {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+} {
+  const sum = (pick: (l: MealScanLine) => number) =>
+    Math.round(lines.reduce((a, l) => a + pick(l), 0));
+  return {
+    calories: sum((l) => l.calories),
+    protein: sum((l) => l.protein),
+    carbs: sum((l) => l.carbs),
+    fat: sum((l) => l.fat),
+  };
+}
+
+/** Rebuild a scan from its lines, keeping name/items/matched in step. */
+export function scanFromLines(scan: MealScan, lines: MealScanLine[]): MealScan {
+  return {
+    ...scan,
+    ...totalsOfLines(lines),
+    lines,
+    items: lines.map((l) => l.id),
+    matched: lines.map((l) => l.label),
+    empty: lines.length === 0,
+  };
+}
+
+/**
+ * Replace one line with a different food, at the portion that keeps the
+ * energy the same. Returns the original scan when the swap is not possible
+ * (unknown food, no sensible portion), so callers can call it unconditionally.
+ */
+export function swapScanLine(scan: MealScan, index: number, foodId: string): MealScan {
+  const line = scan.lines[index];
+  const food = foodById(foodId);
+  if (!line || !food || food.kcal <= 0 || line.calories <= 0) return scan;
+
+  // Match on energy: a swap that keeps calories roughly fixed is the only kind
+  // that does not silently move the day's target.
+  const factor = food.per === '100g' ? line.calories / food.kcal : line.calories / food.kcal;
+  const count =
+    food.per === '100g'
+      ? Math.min(6, Math.max(0.5, Math.round(factor * 20) / 20))
+      : Math.min(8, Math.max(0.5, Math.round(factor * 2) / 2));
+
+  const label =
+    food.per === '100g'
+      ? `${Math.round(count * 100)} g`
+      : count === 1
+        ? food.unitLabel
+        : `${count} × ${food.unitLabel}`;
+
+  const next: MealScanLine = {
+    id: food.id,
+    label: `${food.names[0]} ${label}`,
+    calories: Math.round(food.kcal * count),
+    protein: Math.round(food.protein * count),
+    carbs: Math.round(food.carbs * count),
+    fat: Math.round(food.fat * count),
+  };
+  const lines = scan.lines.map((l, i) => (i === index ? next : l));
+  return scanFromLines(scan, lines);
+}
+
+export interface MealScanOptions {
+  /**
+   * Language the text is written in. Localised aliases are tried *in addition*
+   * to the English names, so the scan keeps working when someone types
+   * "poulet 200g with rice".
+   */
+  locale?: string;
+  /** Treat these foods as already-eaten and skip them (re-scanning a meal). */
+  exclude?: string[];
 }
 
 /**
@@ -613,13 +814,38 @@ export interface MealScan {
  * and offline — the expensive provider path stays optional on top of it.
  * Explicit numbers in the text ("450 kcal", "30g protein") always win.
  */
-export function parseMealDescription(text: string): MealScan {
-  const lower = ` ${text
+/**
+ * Fold a food string into one comparable form.
+ *
+ * Beyond lower-casing, this normalises the apostrophe: French food writing is
+ * full of them ("huile d'olive", "flocons d'avoine") and they arrive as a
+ * straight quote from a keyboard, a typographic one from iOS autocorrect and a
+ * backtick from a hurried phone user. Matching them all against one form is
+ * what makes the alias table workable.
+ */
+export function normalizeFoodText(text: string): string {
+  return text
     .toLowerCase()
+    .replace(/[’‘`´]/g, "'")
     .replace(/[,;.+]/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim()} `;
+    .trim();
+}
+
+/**
+ * An optional connector between an amount and the food it belongs to.
+ * "200 g **de** poulet" and "2 cups **of** rice" mean the same thing as
+ * "200g poulet" — without this, a French portion silently fell back to the
+ * default 100 g and under-counted the meal.
+ */
+const CONNECTOR = "(?:(?:de|du|des|d'|of|the)\\s+)?";
+
+export function parseMealDescription(text: string, opts: MealScanOptions = {}): MealScan {
+  const lower = ` ${normalizeFoodText(text)} `;
+  const exclude = new Set(opts.exclude ?? []);
   const matched: string[] = [];
+  const items: string[] = [];
+  const lines: MealScanLine[] = [];
   let kcal = 0;
   let protein = 0;
   let carbs = 0;
@@ -637,26 +863,32 @@ export function parseMealDescription(text: string): MealScan {
   const exCarbs = explicit(/\b(\d{1,3})\s*g\s*(?:of\s*)?(?:carbs|carbohydrates)\b/);
   const exFat = explicit(/\b(\d{1,3})\s*g\s*(?:of\s*)?fat\b/);
 
-  const consumed = new Set<string>();
+  const consumed = new Set<string>(exclude);
   for (const food of FOOD_DB) {
-    // Longest name first so "chicken breast" beats "chicken".
-    const names = [...food.names].sort((a, b) => b.length - a.length);
+    // Longest name first so "chicken breast" beats "chicken". Localised
+    // aliases join in *after* sorting, so "poulet grillé" beats "poulet"
+    // exactly as the English pair does. Names get the same folding as the
+    // input, or "huile d’olive" would never match a typed "huile d'olive".
+    const names = localizedFoodNames(food, opts.locale)
+      .map(normalizeFoodText)
+      .sort((a, b) => b.length - a.length);
     const hit = names.find(
       (n) => lower.includes(` ${n} `) || lower.includes(` ${n}`) || lower.includes(`${n} `),
     );
     if (!hit || consumed.has(food.id)) continue;
     consumed.add(food.id);
 
-    // Quantity right before ("200g chicken") or after ("chicken 200g") the name.
+    // Quantity right before ("200g chicken", "200 g de poulet") or after
+    // ("chicken 200g") the name.
     const before = lower.match(
       new RegExp(
-        `(\\d+(?:[.,]\\d+)?)\\s*(g|gr|kg|ml|oz|cups?|tbsp|scoops?|pieces?|pcs|slices?)\\s+${hit}\\b`,
+        `(\\d+(?:[.,]\\d+)?)\\s*(g|gr|kg|ml|oz|cups?|tbsp|scoops?|pieces?|pcs|slices?|tranches?|verres?|bols?)\\s+${CONNECTOR}${hit}\\b`,
       ),
     );
-    const countBefore = lower.match(new RegExp(`(\\d+)\\s+(?:x\\s*)?${hit}\\b`));
+    const countBefore = lower.match(new RegExp(`(\\d+)\\s+(?:x\\s*)?${CONNECTOR}${hit}\\b`));
     const after = lower.match(
       new RegExp(
-        `\\b${hit}\\b\\s*(\\d+(?:[.,]\\d+)?)\\s*(g|gr|kg|ml|oz|cups?|tbsp|scoops?|pieces?|pcs|slices?)`,
+        `\\b${hit}\\b\\s*(\\d+(?:[.,]\\d+)?)\\s*(g|gr|kg|ml|oz|cups?|tbsp|scoops?|pieces?|pcs|slices?|tranches?|verres?|bols?)`,
       ),
     );
     const countAfter = lower.match(new RegExp(`\\b${hit}\\b\\s*[x:]?\\s*(\\d{1,2})\\b`));
@@ -671,15 +903,14 @@ export function parseMealDescription(text: string): MealScan {
       if (food.per === '100g') {
         grams = value * (QTY_UNITS[unit] ?? 1);
         qtyLabel = `${value} ${unit}`;
+      } else if (COUNTABLE_UNITS.has(unit)) {
+        // "2 slices of bread", "2 tranches de pain" — a count, not a weight.
+        units = value;
+        qtyLabel = `${value} ${unit}`;
       } else {
-        units =
-          unit === 'tbsp' ||
-          unit === 'scoop' ||
-          unit === 'slice' ||
-          unit === 'piece' ||
-          unit === 'pcs'
-            ? value
-            : Math.round(value / 100) || 1;
+        // A weight given for a countable food ("150 g of bread") is read as
+        // that many grams of it, at the entry's nominal serving size.
+        units = Math.max(1, Math.round(value / 100));
         qtyLabel = `${value} ${unit}`;
       }
     } else if (countBefore && Number(countBefore[1]) <= 12) {
@@ -696,7 +927,17 @@ export function parseMealDescription(text: string): MealScan {
     protein += food.protein * scale;
     carbs += food.carbs * scale;
     fat += food.fat * scale;
-    matched.push(`${food.names[0]} ${qtyLabel}`.trim());
+    const label = `${foodLabel(food, opts.locale)} ${qtyLabel}`.trim();
+    matched.push(label);
+    items.push(food.id);
+    lines.push({
+      id: food.id,
+      label,
+      calories: Math.round(food.kcal * scale),
+      protein: Math.round(food.protein * scale),
+      carbs: Math.round(food.carbs * scale),
+      fat: Math.round(food.fat * scale),
+    });
   }
 
   const scan: MealScan = {
@@ -706,6 +947,8 @@ export function parseMealDescription(text: string): MealScan {
     carbs: Math.round(exCarbs ?? carbs),
     fat: Math.round(exFat ?? fat),
     matched,
+    items,
+    lines,
     empty: matched.length === 0 && exKcal == null,
   };
   return scan;

@@ -3,35 +3,34 @@
 import Link from 'next/link';
 import { AccountLink } from './account-link';
 import { ArrowRight } from 'lucide-react';
+import { useI18n } from '@/lib/i18n-context';
 
 const GUIDES = [
   {
-    category: 'Training Foundations',
-    readTime: '4 min read',
-    title: 'Why “what you did” and “your plan” are two different questions',
-    excerpt:
-      'Most training frustration comes from mixing a one-off session with the recurring split it belongs to. Keep them separate and progress becomes measurable.',
-    anchor: 'Learn why the session and the plan stay separate',
+    category: 'landing.guides.foundations.category',
+    readTime: 'landing.guides.foundations.readTime',
+    title: 'landing.guides.foundations.title',
+    excerpt: 'landing.guides.foundations.excerpt',
+    anchor: 'landing.guides.foundations.anchor',
   },
   {
-    category: 'Training Methods',
-    readTime: '5 min read',
-    title: 'Picking a training style that actually fits your week',
-    excerpt:
-      'Push/Pull/Legs isn’t for everyone. Here’s how to match a split to your availability, recovery and goals — and switch without losing history.',
-    anchor: 'Compare the 4 training styles',
+    category: 'landing.guides.methods.category',
+    readTime: 'landing.guides.methods.readTime',
+    title: 'landing.guides.methods.title',
+    excerpt: 'landing.guides.methods.excerpt',
+    anchor: 'landing.guides.methods.anchor',
   },
   {
-    category: 'Consistency',
-    readTime: '3 min read',
-    title: 'The streak leak: where skipped days quietly break momentum',
-    excerpt:
-      'Hard sessions are easy to remember. The small, unlogged ones are where streaks die. A few habits that make consistency visible again.',
-    anchor: 'Keep your streak alive',
+    category: 'landing.guides.consistency.category',
+    readTime: 'landing.guides.consistency.readTime',
+    title: 'landing.guides.consistency.title',
+    excerpt: 'landing.guides.consistency.excerpt',
+    anchor: 'landing.guides.consistency.anchor',
   },
 ];
 
 export function GuidesSection() {
+  const { t } = useI18n();
   return (
     <section
       id="guides"
@@ -39,15 +38,16 @@ export function GuidesSection() {
     >
       <div className="mx-auto max-w-[1400px] px-6 lg:px-12">
         <div className="mb-16 max-w-3xl lg:mb-20">
-          <span className="eyebrow-mono mb-6">Training guides</span>
+          <span className="eyebrow-mono mb-6">{t('landing.guides.eyebrow')}</span>
           <h2 className="mb-6 text-4xl tracking-tight lg:text-6xl">
-            Learn to train better,
+            {t('landing.guides.title')}
             <br />
-            <span className="text-[color:var(--muted-foreground)]">with consistency in mind.</span>
+            <span className="text-[color:var(--muted-foreground)]">
+              {t('landing.guides.titleLine2')}
+            </span>
           </h2>
           <p className="text-lg leading-relaxed text-[color:var(--muted-foreground)]">
-            Short, practical guides from the SmartFit team — built around the one idea that matters:
-            keep your sessions honest and your plan clear.
+            {t('landing.guides.body')}
           </p>
         </div>
 
@@ -59,20 +59,20 @@ export function GuidesSection() {
             >
               <div className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1.5">
                 <span className="rounded-full bg-[color:var(--foreground)]/5 px-2.5 py-1 font-mono text-xs text-[color:var(--muted-foreground)]">
-                  {guide.category}
+                  {t(guide.category)}
                 </span>
                 <span className="font-mono text-xs text-[color:var(--muted-foreground)]">
-                  {guide.readTime}
+                  {t(guide.readTime)}
                 </span>
               </div>
               <h3 className="font-display mb-3 text-xl transition-colors group-hover:text-[color:var(--primary)] lg:text-2xl">
-                {guide.title}
+                {t(guide.title)}
               </h3>
               <p className="mb-6 flex-1 text-sm leading-relaxed text-[color:var(--muted-foreground)]">
-                {guide.excerpt}
+                {t(guide.excerpt)}
               </p>
               <span className="inline-flex items-center gap-2 text-sm font-medium text-[color:var(--foreground)] underline-offset-4 group-hover:underline">
-                {guide.anchor}{' '}
+                {t(guide.anchor)}{' '}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </span>
             </article>
@@ -81,19 +81,19 @@ export function GuidesSection() {
 
         <div className="mt-12 flex flex-wrap gap-3">
           <AccountLink className="inline-flex items-center gap-2 rounded-full bg-[color:var(--foreground)] px-6 py-3 text-sm font-medium text-[color:var(--background)] hover:bg-[color:var(--foreground)]/90">
-            Start training free <ArrowRight className="h-4 w-4" />
+            {t('landing.hero.start')} <ArrowRight className="h-4 w-4" />
           </AccountLink>
           <Link
             href="/#features"
             className="inline-flex items-center gap-2 rounded-full border border-[color:var(--foreground)]/10 px-6 py-3 text-sm font-medium hover:border-[color:var(--foreground)]/30"
           >
-            What you can log
+            {t('landing.guides.whatYouCanLog')}
           </Link>
           <Link
             href="/#plans"
             className="inline-flex items-center gap-2 rounded-full border border-[color:var(--foreground)]/10 px-6 py-3 text-sm font-medium hover:border-[color:var(--foreground)]/30"
           >
-            4 training styles
+            {t('landing.guides.styles')}
           </Link>
         </div>
       </div>

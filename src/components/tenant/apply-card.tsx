@@ -15,6 +15,7 @@
 import { useState } from 'react';
 import { Send } from 'lucide-react';
 import { isFirebaseConfigured } from '@/lib/firebase/config';
+import { useI18n } from '@/lib/i18n-context';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -22,6 +23,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/toast';
 
 export function ApplyCard() {
+  const { t } = useI18n();
   const toast = useToast();
   const cloud = isFirebaseConfigured;
   const [gymName, setGymName] = useState('');
@@ -41,7 +43,7 @@ export function ApplyCard() {
       // Demo mode has no backend to receive this — say so instead of faking
       // a queue entry that will never be reviewed.
       setSent(true);
-      toast('Captured — but this preview has no backend, so nothing was sent', 'info');
+      toast(t('gym.apply.demo'), 'info');
       return;
     }
 
@@ -54,13 +56,13 @@ export function ApplyCard() {
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        toast(body.error ?? 'The application could not be sent. Try again.', 'info');
+        toast(body.error ?? t('gym.apply.error'), 'info');
         return;
       }
       setSent(true);
-      toast('Application received — we will be in touch', 'success');
+      toast(t('gym.apply.received'), 'success');
     } catch {
-      toast('The application could not be sent. Check the connection and try again.', 'info');
+      toast(t('gym.apply.offline'), 'info');
     } finally {
       setSending(false);
     }
@@ -70,11 +72,8 @@ export function ApplyCard() {
     return (
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Thank you — application received</CardTitle>
-          <CardDescription>
-            A person reviews every application, usually within a day or two. When yours is approved,
-            your gym gets its own SmartFit address and a console to run it from.
-          </CardDescription>
+          <CardTitle className="text-base">{t('gym.apply.thanks.title')}</CardTitle>
+          <CardDescription>{t('gym.apply.thanks.body')}</CardDescription>
         </CardHeader>
       </Card>
     );
@@ -83,51 +82,48 @@ export function ApplyCard() {
   return (
     <Card id="apply">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base">List your gym</CardTitle>
-        <CardDescription>
-          Your timetable, bookings and memberships on your own SmartFit address — reviewed by a
-          person, usually within a day.
-        </CardDescription>
+        <CardTitle className="text-base">{t('gym.apply.title')}</CardTitle>
+        <CardDescription>{t('gym.apply.body')}</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="space-y-3">
           <div className="grid gap-2 sm:grid-cols-2">
-            <Field id="ap-name" label="Gym name *">
+            <Field id="ap-name" label={t('gym.apply.name')}>
               <Input
                 id="ap-name"
                 value={gymName}
                 onChange={(e) => setGymName(e.target.value)}
-                placeholder="Casablanca Boxing Club"
+                placeholder={t('gym.apply.namePlaceholder')}
                 required
               />
             </Field>
-            <Field id="ap-slug" label="Preferred address">
+            <Field id="ap-slug" label={t('gym.apply.slug')}>
               <Input
                 id="ap-slug"
                 value={slug}
                 onChange={(e) => setSlug(e.target.value)}
-                placeholder="casa-boxing"
+                placeholder={t('gym.apply.slugPlaceholder')}
               />
             </Field>
-            <Field id="ap-city" label="City">
+            <Field id="ap-city" label={t('gym.apply.city')}>
               <Input
                 id="ap-city"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                placeholder="Casablanca"
+                placeholder={t('gym.apply.cityPlaceholder')}
               />
             </Field>
-            <Field id="ap-email" label="Contact email *">
+            <Field id="ap-email" label={t('gym.apply.email')}>
               <Input
                 id="ap-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@yourgym.ma"
+                placeholder={t('gym.apply.emailPlaceholder')}
                 required
               />
             </Field>
-            <Field id="ap-ig" label="Instagram">
+            <Field id="ap-ig" label={t('gym.apply.instagram')}>
               <Input
                 id="ap-ig"
                 value={instagram}
@@ -136,23 +132,21 @@ export function ApplyCard() {
               />
             </Field>
           </div>
-          <Field id="ap-msg" label="Anything else">
+          <Field id="ap-msg" label={t('gym.apply.message')}>
             <textarea
               id="ap-msg"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={3}
-              placeholder="Number of coaches, classes per week, what you want online booking for…"
-              className="bg-secondary text-foreground placeholder:text-muted-foreground focus-visible:ring-ring focus-visible:border-ring focus-visible:bg-background flex min-h-11 w-full min-w-0 rounded-xl border border-transparent px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
+              placeholder={t('gym.apply.messagePlaceholder')}
+              className="bg-field text-foreground placeholder:text-muted-foreground border-input hover:border-foreground/40 focus-visible:ring-ring focus-visible:border-ring flex min-h-11 w-full min-w-0 rounded-xl border px-3 py-2 text-base font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm"
             />
           </Field>
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" disabled={sending || !gymName.trim() || !email.trim()}>
-              <Send className="size-4" /> {sending ? 'Sending…' : 'Apply to list'}
+              <Send className="size-4" /> {sending ? t('gym.apply.sending') : t('gym.apply.submit')}
             </Button>
-            <p className="text-muted-foreground text-xs">
-              No account needed. We only use the email to reply about your application.
-            </p>
+            <p className="text-muted-foreground text-xs">{t('gym.apply.note')}</p>
           </div>
         </form>
       </CardContent>

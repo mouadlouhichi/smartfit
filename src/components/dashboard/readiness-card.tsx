@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { Activity, Crown, Lock } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals } from './modal-context';
 import { Button } from '@/components/ui/button';
 import { hasProAccess, loadSeries, readiness } from '@smartfit/core';
@@ -24,6 +25,7 @@ const LABEL_TONE: Record<string, string> = {
 export function ReadinessCard() {
   const { state } = useStore();
   const { openWith } = useModals();
+  const { t } = useI18n();
   const pro = hasProAccess(state);
   const ready = useMemo(() => readiness(state), [state]);
   const series = useMemo(() => (pro ? loadSeries(state, 28) : []), [state, pro]);
@@ -31,7 +33,7 @@ export function ReadinessCard() {
 
   return (
     <section
-      aria-label="Readiness"
+      aria-label={t('overview.readiness.aria')}
       className="bg-card rounded-[2rem] p-5 shadow-sm min-[420px]:p-6"
     >
       <div className="flex items-start justify-between gap-3">
@@ -41,18 +43,16 @@ export function ReadinessCard() {
           </span>
           <div>
             <p className="font-display text-base font-extrabold tracking-tight">
-              Readiness{' '}
+              {t('overview.readiness.title')}{' '}
               <span className={cn('font-bold', LABEL_TONE[ready.label])}>· {ready.label}</span>
             </p>
-            <p className="text-muted-foreground text-xs">
-              From your training load — no wearable needed
-            </p>
+            <p className="text-muted-foreground text-xs">{t('overview.readiness.subtitle')}</p>
           </div>
         </div>
         {pro && ready.score !== null ? (
           <p
             className="font-display text-3xl font-extrabold tabular-nums"
-            aria-label={`Readiness score ${ready.score} of 100`}
+            aria-label={t('overview.readiness.scoreAria', { score: ready.score ?? 0 })}
           >
             {ready.score}
             <span className="text-muted-foreground text-sm font-bold">/100</span>
@@ -63,8 +63,8 @@ export function ReadinessCard() {
           <button
             onClick={() => openWith({ kind: 'pro' })}
             className="press relative rounded-2xl"
-            aria-label="Unlock your readiness score with Pro"
-            title="Unlock with Pro"
+            aria-label={t('overview.readiness.unlockAria')}
+            title={t('overview.readiness.unlockTitle')}
           >
             <span
               className="font-display text-3xl font-extrabold tabular-nums blur-md select-none"
@@ -94,7 +94,7 @@ export function ReadinessCard() {
               <div
                 className="flex h-14 items-end gap-[3px]"
                 role="img"
-                aria-label={`Training load, last 28 days. Acute to chronic ratio ${ready.ratio}.`}
+                aria-label={t('overview.readiness.loadAria', { ratio: ready.ratio })}
               >
                 {series.map((p) => (
                   <div
@@ -109,10 +109,11 @@ export function ReadinessCard() {
                 ))}
               </div>
               <div className="text-muted-foreground mt-1.5 flex justify-between text-[11px] tabular-nums">
-                <span>28 days ago</span>
+                <span>{t('overview.readiness.daysAgo')}</span>
                 <span>
-                  Load ratio <b className="text-foreground">{ready.ratio}</b> · over 1.3 means back
-                  off
+                  {t('overview.readiness.loadRatio')}{' '}
+                  <b className="text-foreground">{ready.ratio}</b> ·{' '}
+                  {t('overview.readiness.loadNote')}
                 </span>
               </div>
             </div>
@@ -123,15 +124,15 @@ export function ReadinessCard() {
           <div className="relative overflow-hidden rounded-2xl">
             <div className="grid gap-1.5 blur-[6px] select-none" aria-hidden>
               <p className="bg-secondary rounded-lg px-3 py-2 text-sm">
-                Volume spiked 40% vs your average
+                {t('overview.readiness.gate1')}
               </p>
               <p className="bg-secondary rounded-lg px-3 py-2 text-sm">
-                No hard session in 4+ days
+                {t('overview.readiness.gate2')}
               </p>
             </div>
             <div className="absolute inset-0 flex items-center justify-center">
               <Button size="sm" onClick={() => openWith({ kind: 'pro' })}>
-                <Crown className="h-3.5 w-3.5" /> Unlock score & drivers
+                <Crown className="h-3.5 w-3.5" /> {t('overview.readiness.unlockCta')}
               </Button>
             </div>
           </div>

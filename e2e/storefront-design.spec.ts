@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { selectIndex } from './select';
 
 test('storefront class discovery, timetable filters and visit links use the current gym', async ({
   page,
@@ -22,8 +23,8 @@ test('storefront class discovery, timetable filters and visit links use the curr
   await expect(
     timetable.getByRole('link', { name: 'Strength Foundations', exact: true }),
   ).toBeVisible();
-  const dates = timetable.getByRole('combobox', { name: 'Timetable date' });
-  await dates.selectOption({ index: 1 });
+  // Index 1 = the first real date; index 0 is "All upcoming dates".
+  await selectIndex(timetable, 'Timetable date', 1);
   await expect(timetable.getByRole('heading', { level: 3 })).toHaveCount(1);
   const directions = page.getByRole('link', { name: 'Get directions' });
   await expect(directions).toHaveAttribute(

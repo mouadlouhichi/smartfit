@@ -3,10 +3,13 @@ import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/firebase/auth-context';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 export function AccessRoles() {
   const { user, mode } = useAuth();
   const [role, setRole] = useState('content-manager');
+  const [action, setAction] = useState('grant');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -16,7 +19,9 @@ export function AccessRoles() {
     setNotice('');
     setBusy(true);
     const form = new FormData(e.currentTarget);
-    const grant = form.get('action') === 'grant';
+    // `action` is state, not FormData: the design-system Select is a button and
+    // contributes no value to a form submission.
+    const grant = action === 'grant';
     try {
       if (mode === 'local') {
         setNotice('Demo only: no account claims were changed.');
@@ -61,36 +66,24 @@ export function AccessRoles() {
         </Link>
       </div>
       <form className="bg-card space-y-4 rounded-2xl border p-5" onSubmit={submit}>
-        <label className="block text-sm">
-          Firebase account UID
+        <Field id="claims-uid" label="Firebase account UID">
           <Input name="uid" required maxLength={128} placeholder="Existing account UID" />
-        </label>
-        <label className="block text-sm">
-          Platform role
-          <select
-            aria-label="Platform role"
-            className="bg-background mt-1 min-h-11 w-full rounded-xl border px-3"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-          >
+        </Field>
+        <Field id="claims-role" label="Platform role">
+          <Select value={role} onChange={(e) => setRole(e.target.value)}>
             <option value="content-manager">Content manager — publishing only</option>
             <option value="support-agent">Support agent — support conversations only</option>
             <option value="platform-admin">
               Platform administrator — full platform operations
             </option>
-          </select>
-        </label>
-        <label className="block text-sm">
-          Action
-          <select
-            aria-label="Action"
-            name="action"
-            className="bg-background mt-1 min-h-11 w-full rounded-xl border px-3"
-          >
+          </Select>
+        </Field>
+        <Field id="claims-action" label="Action">
+          <Select value={action} onChange={(e) => setAction(e.target.value)}>
             <option value="grant">Assign selected role (replaces current platform role)</option>
             <option value="revoke">Remove platform role</option>
-          </select>
-        </label>
+          </Select>
+        </Field>
         <p className="text-muted-foreground text-sm">
           A subscription never grants an operational role. Self-demotion is blocked. Grants and
           removals are recorded in the platform audit log.

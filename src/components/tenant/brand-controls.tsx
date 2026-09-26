@@ -9,6 +9,8 @@ import { GymLogo } from './brand-media';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Field } from '@/components/ui/field';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 export function BrandControls({
@@ -213,9 +215,7 @@ export function BrandControls({
           ))}
         </div>
         <Field id="studio-cover-position" label="Cover crop focus">
-          <select
-            id="studio-cover-position"
-            className="border-input bg-background min-h-11 w-full rounded-xl border px-3 text-sm"
+          <Select
             value={value.coverPosition ?? 'center'}
             onChange={(e) =>
               update('coverPosition', e.target.value as GymBranding['coverPosition'])
@@ -224,7 +224,7 @@ export function BrandControls({
             <option value="top">Top</option>
             <option value="center">Center</option>
             <option value="bottom">Bottom</option>
-          </select>
+          </Select>
         </Field>
       </section>
       <fieldset className="space-y-3">
@@ -234,12 +234,16 @@ export function BrandControls({
         </p>
         <div className="grid grid-cols-2 gap-2">
           {GYM_AMENITIES.map((a) => (
+            /* Chip-style Checkbox: the tile is the click target and the box
+               carries the state, so tapping "Parking" still labels itself. */
             <label
               key={a}
-              className="flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs"
+              className={cn(
+                'border-input bg-field flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-colors',
+                value.amenities?.includes(a) && 'border-primary bg-primary/5',
+              )}
             >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={value.amenities?.includes(a) ?? false}
                 onChange={(e) =>
                   update(

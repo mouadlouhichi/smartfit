@@ -215,8 +215,8 @@ export function DatePicker({
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'bg-secondary text-foreground hover:bg-secondary/70 focus-visible:ring-ring focus-visible:border-ring focus-visible:bg-background',
-          'flex h-11 w-full items-center gap-2 rounded-xl border border-transparent px-3 text-left text-base font-medium transition-colors sm:h-10 sm:text-sm',
+          'bg-field text-foreground border-input hover:border-foreground/40 focus-visible:ring-ring focus-visible:border-ring',
+          'flex h-11 w-full items-center gap-2 rounded-xl border px-3 text-left text-base font-medium transition-colors sm:h-10 sm:text-sm',
           'focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
           'aria-[invalid=true]:border-destructive aria-[invalid=true]:bg-destructive/5',
         )}

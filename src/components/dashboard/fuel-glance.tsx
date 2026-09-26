@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Flame, Plus, Scale, UtensilsCrossed } from 'lucide-react';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useModals } from './modal-context';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -18,6 +19,7 @@ import { burnedOn, mealsOn, nutritionTargets, sumMeals, toISODate } from '@smart
 export function FuelGlance() {
   const { state } = useStore();
   const { openWith } = useModals();
+  const { t } = useI18n();
   const today = toISODate(new Date());
 
   const targets = useMemo(() => nutritionTargets(state), [state]);
@@ -30,7 +32,7 @@ export function FuelGlance() {
 
   return (
     <section
-      aria-label="Today's fuel"
+      aria-label={t('overview.fuel.aria')}
       className="bg-card border-border rounded-3xl border p-4 sm:p-5"
     >
       <div className="flex items-center justify-between gap-3">
@@ -39,15 +41,17 @@ export function FuelGlance() {
             <UtensilsCrossed className="h-[18px] w-[18px]" />
           </span>
           <div>
-            <p className="text-sm leading-tight font-extrabold tracking-tight">Today’s fuel</p>
-            <p className="text-muted-foreground text-xs">In vs out, and your protein</p>
+            <p className="text-sm leading-tight font-extrabold tracking-tight">
+              {t('overview.fuel.title')}
+            </p>
+            <p className="text-muted-foreground text-xs">{t('overview.fuel.subtitle')}</p>
           </div>
         </div>
         <Link
           href="/dashboard/fuel"
           className="text-primary flex items-center gap-0.5 text-sm font-bold transition-colors hover:underline"
         >
-          Fuel <ChevronRight className="h-3.5 w-3.5" />
+          {t('overview.fuel.link')} <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 
@@ -67,22 +71,27 @@ export function FuelGlance() {
                 over ? 'text-destructive' : 'text-volt-ink',
               )}
             >
-              {over ? `${-remaining!} over` : `${remaining} left`}
+              {over
+                ? t('overview.fuel.over', { kcal: -remaining! })
+                : t('overview.fuel.left', { kcal: remaining ?? 0 })}
             </p>
           </div>
           <Progress
             className="h-2"
             value={pct}
-            aria-label="Calories eaten versus target today"
+            aria-label={t('overview.fuel.barAria')}
             indicatorClassName={over ? 'bg-destructive' : 'bg-volt'}
           />
           <div className="text-muted-foreground flex items-center gap-4 text-xs font-semibold tabular-nums">
             <span>
               <Flame className="text-volt-ink mr-1 inline h-3.5 w-3.5" aria-hidden />
-              {burned} kcal burned
+              {t('overview.fuel.burned', { kcal: burned })}
             </span>
             <span>
-              Protein {Math.round(totals.protein)}/{targets.protein} g
+              {t('overview.fuel.protein', {
+                value: Math.round(totals.protein),
+                target: targets.protein,
+              })}
             </span>
           </div>
           <Button
@@ -95,20 +104,17 @@ export function FuelGlance() {
         </div>
       ) : (
         <div className="mt-4 grid gap-3">
-          <p className="text-muted-foreground text-sm">
-            Log your weight once and SmartFit computes your daily calorie & protein targets from
-            your goal and activity.
-          </p>
+          <p className="text-muted-foreground text-sm">{t('overview.fuel.noTarget')}</p>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => openWith({ kind: 'body' })}>
-              <Scale className="h-4 w-4" /> Log weight
+              <Scale className="h-4 w-4" /> {t('overview.fuel.logWeight')}
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => openWith({ kind: 'meal', date: today })}
             >
-              <Plus className="h-4 w-4" /> Log meal anyway
+              <Plus className="h-4 w-4" /> {t('overview.fuel.logAnyway')}
             </Button>
           </div>
         </div>

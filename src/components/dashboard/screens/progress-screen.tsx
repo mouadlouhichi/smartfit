@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useStore } from '@/lib/store-context';
+import { useI18n } from '@/lib/i18n-context';
 import { useTablist } from '@/components/ui/use-tablist';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,8 @@ import { Ring } from '../ring';
 import { EmptyState } from '../empty-state';
 import { ConsistencyHeatmap } from '../consistency-heatmap';
 import { AchievementWall } from '../achievement-wall';
+import { CheckInCard, CheckInHistory } from '../checkin-card';
+import { XpCard } from '../xp-card';
 import { cn } from '@/lib/utils';
 import { GradeRing } from '@/components/volt/volt-kit';
 import { INTENSITY_META } from '@smartfit/core';
@@ -45,7 +48,10 @@ import {
   heatmapActiveDays,
   personalRecords,
   computeAchievements,
+  translateAchievements,
   muscleVolume,
+  pendingCheckIn,
+  xpSummary,
 } from '@smartfit/core';
 import { useModals } from '../modal-context';
 import { MiniRings } from '../mini-rings';
@@ -66,12 +72,39 @@ const RING_ROWS = [0, 1, 2, 3, 4, 5, 6];
 const DAY_INITIALS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 type RingCell = { date: string; rings: DayRings } | null;
-const RANGES: { key: Range; label: string; short: string; days: number; pro?: boolean }[] = [
-  { key: 'daily', label: 'Daily', short: 'Day', days: 1 },
-  { key: 'weekly', label: 'Weekly', short: 'Week', days: 7 },
-  { key: 'monthly', label: 'Monthly', short: 'Month', days: 30 },
-  { key: 'quarter', label: 'Quarter', short: 'Qtr', days: 90, pro: true },
-  { key: 'year', label: 'Year', short: 'Year', days: 364, pro: true },
+const RANGES: { key: Range; labelKey: string; shortKey: string; days: number; pro?: boolean }[] = [
+  {
+    key: 'daily',
+    labelKey: 'progress.range.daily',
+    shortKey: 'progress.range.short.daily',
+    days: 1,
+  },
+  {
+    key: 'weekly',
+    labelKey: 'progress.range.weekly',
+    shortKey: 'progress.range.short.weekly',
+    days: 7,
+  },
+  {
+    key: 'monthly',
+    labelKey: 'progress.range.monthly',
+    shortKey: 'progress.range.short.monthly',
+    days: 30,
+  },
+  {
+    key: 'quarter',
+    labelKey: 'progress.range.quarter',
+    shortKey: 'progress.range.short.quarter',
+    days: 90,
+    pro: true,
+  },
+  {
+    key: 'year',
+    labelKey: 'progress.range.year',
+    shortKey: 'progress.range.short.year',
+    days: 364,
+    pro: true,
+  },
 ];
 
 /** Sessions in the `days`-long window ending today. */
@@ -85,6 +118,7 @@ function rangeDaysSessions(state: ReturnType<typeof useStore>['state'], days: nu
 }
 
 export function ProgressScreen() {
+  const { t, locale } = useI18n();
   const { state } = useStore();
   const { openWith } = useModals();
   const pro = hasProAccess(state);
@@ -145,8 +179,17 @@ export function ProgressScreen() {
   const heatmap = useMemo(() => consistencyHeatmap(state, 18), [state]);
   const heatDays = useMemo(() => heatmapActiveDays(heatmap), [heatmap]);
   const records = useMemo(() => personalRecords(state), [state]);
-  const achievements = useMemo(() => computeAchievements(state), [state]);
+  // Core emits keys; the active translator turns them into the wall's copy.
+  const achievements = useMemo(
+    () => translateAchievements(computeAchievements(state), t),
+    [state, t],
+  );
   const muscles = useMemo(() => muscleVolume(state, days), [state, days]);
+
+  // XP is derived from the log like achievements, so it costs a render and
+  // needs no migration — and a week rolling over can never demote anyone.
+  const xp = useMemo(() => xpSummary(state), [state]);
+  const checkIn = useMemo(() => pendingCheckIn(state), [state]);
 
   // Targets come from the user's goals (falling back to their plan) — the same
   // source the overview uses. Calories and distance rings only fill when the
@@ -176,24 +219,68 @@ export function ProgressScreen() {
   );
   const gradeCopy =
     healthScore >= 80
-      ? 'Perfect progress — keep going like this.'
+      ? t('progress.grade.perfect')
       : healthScore >= 60
-        ? 'Solid work — one more session moves the needle.'
-        : 'Every session counts. Let’s build momentum.';
+        ? t('progress.grade.solid')
+        : t('progress.grade.building');
+
+  // ── hero extras ────────────────────────────────────────────────────────
+  // 1. The comparison the grade alone cannot give: is this window better than
+  //    the one before it? Only shown when there *is* a previous window to
+  //    compare against — "up 100%" from nothing is noise (same rule as the
+  //    stat tiles below).
+  const minutesDelta = prevAgg.minutes > 0 ? rangeAgg.minutes - prevAgg.minutes : null;
+  // 2. One concrete next step, taken from the ring furthest behind *as a
+  //    share of its own target* — "20 min to go" beats "300 kcal to go" for
+  //    a 30-minute goal, which raw numbers alone would get backwards.
+  const ringGaps = [
+    {
+      gap: Math.max(0, targets.minutes - rangeAgg.minutes),
+      share: targets.minutes > 0 ? 1 - Math.min(1, rangeAgg.minutes / targets.minutes) : 0,
+      copy: (n: number) => t('progress.next.minutes', { value: n }),
+    },
+    ...(targets.calories > 0
+      ? [
+          {
+            gap: Math.max(0, targets.calories - rangeAgg.calories),
+            share: 1 - Math.min(1, rangeAgg.calories / targets.calories),
+            copy: (n: number) => t('progress.next.calories', { value: formatCalories(n) }),
+          },
+        ]
+      : []),
+    ...(targets.distanceKm > 0
+      ? [
+          {
+            gap: Math.max(0, targets.distanceKm - (rangeAgg.distance ?? 0)),
+            share: 1 - Math.min(1, (rangeAgg.distance ?? 0) / targets.distanceKm),
+            copy: (n: number) => `${formatDistance(n, distanceUnit)} to close the distance ring`,
+          },
+        ]
+      : []),
+  ];
+  const nextStep = ringGaps.some((ring) => ring.gap > 0)
+    ? ringGaps
+        .filter((ring) => ring.gap > 0)
+        .sort((a, b) => b.share - a.share)
+        .slice(0, 2)
+        .map((ring) => ring.copy(ring.gap))
+        .map((copy) => copy.charAt(0).toUpperCase() + copy.slice(1))
+        .join(' · ')
+    : t('progress.next.none');
 
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <p className="text-volt-ink text-[11px] font-bold tracking-[0.18em] uppercase">
-            Progress
+            {t('progress.eyebrow')}
           </p>
           <h1 className="font-display-tight text-xl font-extrabold tracking-tight sm:text-2xl">
-            Your Stats
+            {t('progress.title')}
           </h1>
           <p className="text-muted-foreground text-sm">
-            {state.sessions.length} session{state.sessions.length === 1 ? '' : 's'} logged all-time
-            {streak > 0 ? ` · ${streak}-day streak` : ''}
+            {t('progress.sessionsLogged', { count: state.sessions.length })}
+            {streak > 0 ? ` · ${t('progress.streak', { count: streak })}` : ''}
           </p>
         </div>
 
@@ -203,7 +290,7 @@ export function ProgressScreen() {
         <div
           className="bg-secondary no-scrollbar flex w-full max-w-sm min-w-0 overflow-x-auto rounded-full p-1 sm:w-auto sm:flex-none sm:overflow-visible"
           role="tablist"
-          aria-label="Stats range"
+          aria-label={t('progress.range.aria')}
         >
           {RANGES.map((r, i) => {
             const locked = !!r.pro && !pro;
@@ -224,8 +311,8 @@ export function ProgressScreen() {
                 )}
               >
                 {locked && <Lock className="h-3 w-3 shrink-0" aria-hidden />}
-                <span className="sm:hidden">{r.short}</span>
-                <span className="hidden sm:inline">{r.label}</span>
+                <span className="sm:hidden">{t(r.shortKey)}</span>
+                <span className="hidden sm:inline">{t(r.labelKey)}</span>
               </button>
             );
           })}
@@ -235,96 +322,141 @@ export function ProgressScreen() {
       {/* ── Health Grade — the reference report hero ───────────────────── */}
       <section
         className="card-hero p-4 min-[420px]:p-6 sm:p-8"
-        aria-label="Health grade and goal rings"
+        aria-label={t('progress.hero.aria')}
       >
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="min-w-0">
             <h2 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-              Health Grade
+              {t('progress.grade')}
             </h2>
             <p className="hero-muted mt-1 max-w-[17rem] text-sm">{gradeCopy}</p>
           </div>
-          <GradeRing value={healthScore} size={88} label="Health grade" />
+          <GradeRing
+            value={healthScore}
+            size={88}
+            label={t('progress.grade')}
+            ariaLabel={t('progress.grade.aria', { value: healthScore })}
+          />
         </div>
         <div className="mt-5 mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">
           <p className="eyebrow hero-muted">
-            Last {days} day{days === 1 ? '' : 's'}
+            {days === 1 ? t('progress.window.one') : t('progress.window', { count: days })}
           </p>
-          {streak > 0 && (
-            <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
-              <Flame className="text-volt-ink h-3.5" aria-hidden />
-              {streak}-day streak
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {minutesDelta !== null && minutesDelta !== 0 && (
+              <span
+                className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold"
+                // Spoken as a sentence: the arrow is decoration, and the label
+                // is what a screen reader gets.
+                aria-label={(minutesDelta > 0
+                  ? t('progress.vs.aria.more')
+                  : t('progress.vs.aria.less')
+                )
+                  .replace('{value}', formatMinutes(Math.abs(minutesDelta)))
+                  .replace('{count}', String(days))}
+              >
+                {minutesDelta > 0 ? (
+                  <ArrowUpRight className="text-volt-ink h-3.5" aria-hidden />
+                ) : (
+                  <ArrowDownRight className="hero-muted h-3.5" aria-hidden />
+                )}
+                <span aria-hidden>
+                  {t('progress.vs', { value: formatMinutes(Math.abs(minutesDelta)), count: days })}
+                </span>
+              </span>
+            )}
+            {streak > 0 && (
+              <span className="hero-tile inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold">
+                <Flame className="text-volt-ink h-3.5" aria-hidden />
+                {t('progress.streak', { count: streak })}
+                {/* The best run is what makes the current one legible. */}
+                {ringStats.best > streak && (
+                  <span className="hero-muted font-medium">
+                    · {t('progress.streak.best', { count: ringStats.best })}
+                  </span>
+                )}
+              </span>
+            )}
+          </div>
         </div>
         {/* Three rings plus their value captions must share ~240px on a
             320px phone — compact dials and one-line captions keep them in. */}
         <div className="flex items-start justify-between gap-1 sm:gap-2">
           <RingStat
             pct={minPct}
-            label="Exercise"
+            label={t('progress.ring.exercise')}
             value={`${rangeAgg.minutes}/${targets.minutes}min`}
             icon={Timer}
-            color="#a8b80f"
+            color="var(--chart-2)"
           />
           <RingStat
             pct={calPct}
-            label="Burned"
+            label={t('progress.ring.burned')}
             value={formatCalories(rangeAgg.calories)}
             icon={Flame}
-            color="#699E00"
+            color="var(--volt-dim)"
             big
           />
           <RingStat
             pct={distPct}
-            label="Distance"
+            label={t('progress.ring.distance')}
             value={formatDistance(rangeAgg.distance ?? 0, distanceUnit)}
             icon={Footprints}
-            color="#8a8a8a"
+            color="var(--border)"
           />
         </div>
+        {/* What to do next, from the ring furthest behind — and, when the
+            athlete has no burn/distance goals yet, why those rings are flat. */}
+        <p className="hero-muted mt-5 text-center text-xs">{nextStep}</p>
         {targets.calories === 0 && targets.distanceKm === 0 && (
-          <p className="hero-muted mt-5 text-center text-xs">
-            Burn and distance rings fill once you set a calories or distance goal.
-          </p>
+          <p className="hero-muted mt-1 text-center text-xs">{t('progress.next.rings')}</p>
         )}
       </section>
+
+      {/* ── Level + XP ────────────────────────────────────────────────────
+          Either the weekly check-in owns the block (it embeds the XP card and
+          is the more useful thing to see first), or the card stands alone. */}
+      {checkIn ? <CheckInCard review={checkIn.review} xp={xp} /> : <XpCard summary={xp} />}
 
       {/* ── Stat tiles with deltas vs the previous window ────────────────── */}
       <div className="grid grid-cols-2 gap-3">
         <StatCard
           icon={CalendarDays}
           tile="bg-primary/10 text-primary"
-          label="Sessions"
+          label={t('progress.stat.sessions')}
           value={`${rangeAgg.workouts}`}
-          sub={`last ${days} day${days === 1 ? '' : 's'}`}
+          sub={
+            days === 1 ? t('progress.stat.lastDay') : t('progress.stat.lastDays', { count: days })
+          }
           current={rangeAgg.workouts}
           previous={prevAgg.workouts}
         />
         <StatCard
           icon={Timer}
           tile="bg-chart-2/10 text-foreground"
-          label="Active time"
+          label={t('progress.stat.activeTime')}
           value={formatMinutes(rangeAgg.minutes)}
-          sub={`last ${days} day${days === 1 ? '' : 's'}`}
+          sub={
+            days === 1 ? t('progress.stat.lastDay') : t('progress.stat.lastDays', { count: days })
+          }
           current={rangeAgg.minutes}
           previous={prevAgg.minutes}
         />
         <StatCard
           icon={Flame}
           tile="bg-chart-4/10 text-foreground"
-          label="Calories"
+          label={t('progress.stat.calories')}
           value={formatCalories(rangeAgg.calories)}
-          sub="burned"
+          sub={t('progress.stat.burned')}
           current={rangeAgg.calories}
           previous={prevAgg.calories}
         />
         <StatCard
           icon={Footprints}
           tile="bg-clay/10 text-foreground"
-          label="Distance"
+          label={t('progress.stat.distance')}
           value={formatDistance(rangeAgg.distance ?? 0, distanceUnit)}
-          sub="covered"
+          sub={t('progress.stat.covered')}
           current={rangeAgg.distance ?? 0}
           previous={prevAgg.distance ?? 0}
         />
@@ -337,26 +469,22 @@ export function ProgressScreen() {
             <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
               <TrendingUp className="h-4 w-4" aria-hidden />
             </span>
-            Active minutes · last 8 weeks
+            {t('progress.volume.title')}
           </p>
           {seriesMinutes > 0 && (
             <span className="bg-secondary text-secondary-foreground rounded-full px-3 py-1 text-xs font-bold tabular-nums">
-              {formatMinutes(seriesMinutes)} total
+              {t('progress.volume.total', { value: formatMinutes(seriesMinutes) })}
             </span>
           )}
         </div>
         {state.sessions.length === 0 ? (
           <EmptyState
             icon={BarChart3}
-            title="No data yet"
-            body="Log workouts to see your weekly volume trend."
+            title={t('progress.volume.emptyTitle')}
+            body={t('progress.volume.emptyBody')}
           />
         ) : (
-          <div
-            className="h-56 w-full"
-            role="img"
-            aria-label="Active minutes per week for the last eight weeks"
-          >
+          <div className="h-56 w-full" role="img" aria-label={t('progress.volume.aria')}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={series} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
                 <defs>
@@ -397,10 +525,14 @@ export function ProgressScreen() {
           </div>
         )}
         {state.sessions.length > 0 && (
-          <ul className="sr-only" aria-label="Weekly active minutes data">
+          <ul className="sr-only" aria-label={t('progress.chart.weeklyAria')}>
             {series.map((week) => (
               <li key={week.label}>
-                {week.label}: {week.minutes} active minutes, {week.workouts} sessions
+                {t('progress.chart.weekRow', {
+                  label: week.label,
+                  minutes: week.minutes,
+                  workouts: week.workouts,
+                })}
               </li>
             ))}
           </ul>
@@ -414,20 +546,20 @@ export function ProgressScreen() {
             <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
               <Flame className="h-4 w-4" aria-hidden />
             </span>
-            Activity rings
+            {t('progress.rings.title')}
           </p>
           <div className="text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 text-[11px] font-bold tabular-nums">
             <span>
-              Streak <b className="text-foreground">{ringStats.current}</b>
+              {t('progress.rings.streak')} <b className="text-foreground">{ringStats.current}</b>
             </span>
             <span>
-              Best <b className="text-foreground">{ringStats.best}</b>
+              {t('progress.rings.best')} <b className="text-foreground">{ringStats.best}</b>
             </span>
             <span>
-              Ring run <b className="text-foreground">{ringStats.ringStreak}</b>
+              {t('progress.rings.run')} <b className="text-foreground">{ringStats.ringStreak}</b>
             </span>
             <span>
-              Weeks on target{' '}
+              {t('progress.rings.weeksOnTarget')}{' '}
               <b className="text-foreground">
                 {ringStats.weeksOnTarget}/{ringStats.weeksChecked}
               </b>
@@ -437,15 +569,15 @@ export function ProgressScreen() {
         {state.sessions.length === 0 ? (
           <EmptyState
             icon={Flame}
-            title="No rings closed yet"
-            body="Log a session and today's three rings start filling — move, exercise and showed-up."
+            title={t('progress.rings.emptyTitle')}
+            body={t('progress.rings.emptyBody')}
           />
         ) : (
           <div className="no-scrollbar min-w-0 overflow-x-auto">
             <div
               className="grid min-w-[360px] gap-1.5"
               role="img"
-              aria-label="Ring history, last 8 weeks"
+              aria-label={t('progress.rings.historyAria')}
             >
               {RING_ROWS.map((rowIdx) => (
                 <div key={rowIdx} className="flex items-center gap-1.5">
@@ -458,7 +590,13 @@ export function ProgressScreen() {
                       <span key={ci} className="flex min-w-0 flex-1 justify-center">
                         {cell ? (
                           <span
-                            title={`${formatDateLabel(cell.date)}${cell.rings.closed ? ' — all rings closed' : ''}`}
+                            title={
+                              cell.rings.closed
+                                ? t('progress.rings.cellClosed', {
+                                    date: formatDateLabel(cell.date, locale),
+                                  })
+                                : formatDateLabel(cell.date, locale)
+                            }
                           >
                             <MiniRings rings={cell.rings} size={26} />
                           </span>
@@ -485,13 +623,13 @@ export function ProgressScreen() {
           <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
             <CalendarDays className="h-4 w-4" aria-hidden />
           </span>
-          Consistency
+          {t('progress.consistency.title')}
         </p>
         {state.sessions.length === 0 ? (
           <EmptyState
             icon={CalendarDays}
-            title="No days trained yet"
-            body="Your training grid fills in as you log sessions — a visual streak to protect."
+            title={t('progress.consistency.emptyTitle')}
+            body={t('progress.consistency.emptyBody')}
           />
         ) : (
           <ConsistencyHeatmap
@@ -509,14 +647,14 @@ export function ProgressScreen() {
             <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
               <Trophy className="h-4 w-4" aria-hidden />
             </span>
-            Personal records
+            {t('progress.records.title')}
           </p>
         </div>
         {records.length === 0 ? (
           <EmptyState
             icon={Trophy}
-            title="No records yet"
-            body="Log a set with a weight and rep count and SmartFit scores your one-rep max."
+            title={t('progress.records.emptyTitle')}
+            body={t('progress.records.emptyBody')}
           />
         ) : (
           <ul className="grid gap-2">
@@ -532,14 +670,16 @@ export function ProgressScreen() {
                   <p className="truncate text-sm font-bold">{r.name}</p>
                   <p className="text-muted-foreground text-xs tabular-nums">
                     {r.bestReps} × {formatWeight(r.bestWeight, state.profile.weightUnit)} ·{' '}
-                    {relativeDay(r.date)}
+                    {relativeDay(r.date, new Date(), t)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="font-display text-base font-extrabold tabular-nums">
                     {formatWeight(r.bestE1rm, state.profile.weightUnit)}
                   </p>
-                  <p className="text-muted-foreground text-[10px] tracking-wide uppercase">e1RM</p>
+                  <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
+                    {t('progress.records.e1rm')}
+                  </p>
                 </div>
               </li>
             ))}
@@ -553,10 +693,13 @@ export function ProgressScreen() {
           <span className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-xl">
             <Medal className="h-4 w-4" aria-hidden />
           </span>
-          Achievements
+          {t('progress.achievements.title')}
         </p>
         <AchievementWall achievements={achievements} />
       </Card>
+
+      {/* ── Past check-ins (the history behind the weekly streak) ────── */}
+      <CheckInHistory />
 
       {/* ── Muscle-group volume ──────────────────────────────────────── */}
       {muscles.length > 0 && (
@@ -565,12 +708,16 @@ export function ProgressScreen() {
             <span className="bg-chart-4/10 text-foreground flex h-8 w-8 items-center justify-center rounded-xl">
               <DumbbellIcon className="h-4 w-4" aria-hidden />
             </span>
-            Volume by muscle · last {days} days
+            {t('progress.chart.volumeTitle', { count: days })}
           </p>
-          <ul className="sr-only" aria-label={`Muscle volume for the last ${days} days`}>
+          <ul className="sr-only" aria-label={t('progress.chart.volumeAria', { count: days })}>
             {muscles.slice(0, 8).map((m) => (
               <li key={m.muscle}>
-                {m.label}: {formatVolume(m.volume, state.profile.weightUnit)}, {m.sets} sets
+                {t('progress.chart.muscleRow', {
+                  label: m.label,
+                  volume: formatVolume(m.volume, state.profile.weightUnit),
+                  sets: m.sets,
+                })}
               </li>
             ))}
           </ul>
@@ -601,12 +748,12 @@ export function ProgressScreen() {
       <div className="grid gap-5 lg:grid-cols-2">
         {/* ── Activity mix ─────────────────────────────────────────────── */}
         <Card className="p-5">
-          <p className="font-display mb-4 text-sm font-bold">Time by activity</p>
+          <p className="font-display mb-4 text-sm font-bold">{t('progress.mix.title')}</p>
           {breakdown.length === 0 ? (
             <EmptyState
               icon={BarChart3}
-              title="Nothing logged"
-              body="Your activity mix will appear here."
+              title={t('progress.mix.emptyTitle')}
+              body={t('progress.mix.emptyBody')}
             />
           ) : (
             <div className="flex flex-col gap-4 min-[480px]:flex-row min-[480px]:items-center min-[480px]:gap-5">
@@ -619,7 +766,7 @@ export function ProgressScreen() {
                     {formatMinutes(totalMin)}
                   </span>
                   <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
-                    total
+                    {t('progress.mix.total')}
                   </span>
                 </div>
               </div>
@@ -659,29 +806,33 @@ export function ProgressScreen() {
         {/* ── Intensity ────────────────────────────────────────────────── */}
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between gap-2">
-            <p className="font-display text-sm font-bold">Intensity spread</p>
+            <p className="font-display text-sm font-bold">{t('progress.intensity.title')}</p>
             <Link
               href="/dashboard/body"
               className="text-primary text-xs font-semibold hover:underline"
             >
-              See body trends →
+              {t('progress.intensity.link')}
             </Link>
           </div>
           {intensityData.length === 0 ? (
             <EmptyState
               icon={Flame}
-              title="No sessions"
-              body="Intensity distribution shows up after logging."
+              title={t('progress.intensity.emptyTitle')}
+              body={t('progress.intensity.emptyBody')}
             />
           ) : (
             <>
-              <ul className="sr-only" aria-label="Intensity distribution">
+              <ul className="sr-only" aria-label={t('progress.intensity.aria')}>
                 {intensityData.map((d) => {
                   const total = intensityData.reduce((a, x) => a + x.value, 0);
                   const pct = Math.round((d.value / total) * 100);
                   return (
                     <li key={d.key}>
-                      {d.name}: {d.value} session{d.value === 1 ? '' : 's'}, {pct}%
+                      {t('progress.intensity.row', {
+                        name: d.name,
+                        count: t('unit.sessions', { count: d.value }),
+                        pct,
+                      })}
                     </li>
                   );
                 })}

@@ -234,7 +234,7 @@ export function ExercisePicker({
             aria-autocomplete="list"
             aria-activedescendant={open ? `${listId}-row-${highlight}` : undefined}
             autoComplete="off"
-            className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring focus-visible:border-ring h-11 w-full rounded-xl border pr-9 pl-9 text-base shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none sm:h-10 sm:text-sm"
+            className="border-input bg-field placeholder:text-muted-foreground focus-visible:ring-ring focus-visible:border-ring h-11 w-full rounded-xl border pr-9 pl-9 text-base shadow-sm transition-colors focus-visible:ring-2 focus-visible:outline-none sm:h-10 sm:text-sm"
             placeholder={placeholder}
             maxLength={maxLength}
             value={value}
