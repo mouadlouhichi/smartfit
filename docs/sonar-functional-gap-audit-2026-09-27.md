@@ -8,9 +8,10 @@
 
 - **Sonar:** reviewed its public website, App Store and Google Play listings, and public developer documentation. Store/website claims are not proof that each feature works for every account, device, or region.
 - **SmartFit:** reviewed the current repository's domain model, web and Expo routes, README, and current MVP/feature-expansion audits. A feature not found in this checkout is treated as **not implemented in this codebase**, not as proof that no separate deployment has it.
-- **Not tested:** I could not sign into or operate the Sonar mobile app. There was no SmartFit production account or physical iOS/Android device available for permission, sync, notification, or wearable testing. This is a code-and-public-information audit, not a hands-on usability or clinical validation.
+- **Screenshot evidence:** the user supplied 13 iPhone screenshots covering onboarding, the Pro offer, a notification pre-prompt, and first-run Home sections for recovery, strain, energy/stress, sleep, training, nutrition, daily goals, and vital trends. I reviewed the visible screens, but did not operate the app.
+- **Not tested:** I could not sign into or interact with Sonar. The screenshots do not expose taps, network/sync behavior, health permissions, error recovery, the full Trends/Activity/AI/settings flows, or subscription transactions. No SmartFit production account or physical device was available for parity testing. This remains a visual/code audit, not clinical validation.
 
-Confidence is **high** for SmartFit gaps visible in source, **medium** for Sonar functionality described in current public materials, and **low** for Sonar's in-app interaction details until screenshots or access are available.
+Confidence is **high** for SmartFit gaps visible in source, **medium** for Sonar capabilities described in public materials, and **high for the visual details shown in the submitted screenshots**; behavior beyond those screens remains unverified.
 
 ## 2. Executive verdict
 
@@ -156,3 +157,50 @@ A sensible “Sonar-inspired, still SmartFit” milestone is **connected recover
 - `src/components/dashboard/screens/fuel-screen.tsx`, `src/components/dashboard/modals/MealModal.tsx`, and `src/app/api/meal-scan/route.ts` — nutrition/logging/scan paths.
 - `apps/mobile/src/app/` and `apps/mobile/src/lib/store.tsx` — current Expo routes and AsyncStorage persistence.
 - `docs/mvp-audit-2026-09-11.md`, `docs/feature-expansion-plan.md`, and `docs/persona-workflows.md` — current release, notification, native, and integration limits.
+
+## 8. First-batch screenshot functional and UI/UX audit
+
+**Evidence:** 13 user-provided iPhone screenshots, apparently covering profile basics/height, goal selection, optional health-history intake, the Sonar Pro offer, a notification pre-prompt, and first-run Home sections. This is a visual review of the displayed states, not interaction testing. The second signup step and the device-connection, Trends, Activity, AI response, and settings flows were not shown.
+
+### Journey reconstructed from the screenshots
+
+1. **Profile basics:** select metric/kg units, enter height, optionally enter weight/country; the height field opens a full-screen numeric keypad with a visible unit and Save button.
+2. **Goals:** choose from health, weight, stress, energy/productivity, athletic-performance, and mindfulness goals. The shown state allows multiple selections.
+3. **Additional health context:** add medications, medical conditions, family history, or allergies, then Finish.
+4. **Monetization:** a Sonar Pro sheet promotes recovery/strain/sleep/nutrition analysis, multi-device sync, widgets, Apple Watch, benchmarks, AI, metrics, and historical data. It shows `$49.99 per year`, “Start free trial,” See Plans, Redeem, Restore, and a close control; the screenshots do not show trial duration or first renewal date.
+5. **First app entry:** welcome/splash, then a personalized-notifications pre-prompt with Enable Notifications / Not Now.
+6. **Home:** score rings, a strain target, energy/stress, sleep stages, training/cardio load, recent activity, nutrition/glucose, daily goals, and vital trends. Some cards have a sync CTA; others show locks and/or pending data.
+
+### Findings and recommendations
+
+| Priority | Screenshot evidence | Functional / UX risk | Recommended change |
+|---|---|---|---|
+| **High — data truth** | Home shows Recovery, Sleep, and Nutrition as `0%`; sleep stages, time awake, calories, and exercise minutes also appear as zero. Elsewhere the same first-run experience says “Pending data” and “Nothing to see here. Try syncing new workouts.” | A user can read “0” as a measured poor result rather than no connected data. This is especially sensitive for health scores. | Distinguish `Loading`, `No source connected`, `Permission missing`, `Sync pending`, `Insufficient history`, and a true measured zero. Use `—` / “No data yet” instead of a score of `0%` until there is valid input; pair the empty state with Connect/Sync. |
+| **High — entitlement vs. data state** | Energy & Stress, Cardio Load, and vital cards show lock icons; some of those same areas also show “Pending data.” | The screen does not clearly tell users whether they need Pro, a connected source, permission, or time for sync. A lock can make a missing-data problem look like a paywall, or vice versa. | Separate the states and labels: e.g. “Connect a source” / “Waiting for data” versus “Pro feature.” Keep basic source and sync status visible on locked cards, and make the action clear. |
+| **High — sensitive onboarding** | “Anything else?” invites medication, condition, family-history, and allergy details for “more precise recommendations and insights.” | These are sensitive health details. The screenshot does not show how each item is used, whether it is optional, who can access it, or whether it leaves the device. | Before entry, state the purpose and whether each field is optional; link to a concise privacy explanation; disclose any AI/provider use and how to edit/delete the profile later. Keep this step skippable and avoid implying diagnosis. |
+| **High — trial clarity / timing** | Pro is shown immediately after personal/health onboarding and before a visible personalized result. `$49.99 per year` and “Start free trial” appear together, but the captured offer does not show trial length or when billing starts. | This creates a paywall before the user has seen value, and users may not understand the trial-to-paid transition from the captured screen. A close icon is present, but the free continuation path is not shown. | Show the trial duration, first charge date/amount, renewal cadence, and cancellation path beside the CTA; state what remains free. Consider offering the trial after the first useful dashboard insight instead of interrupting signup. Verify the exact terms in the native purchase sheet too. |
+| **Medium — score guidance** | Home says “Keep today’s strain in the range: 10–30%.” The screenshots do not explain what the percentage is a percentage *of*, why that range applies today, or what inputs produced it. | Even an actionable recommendation can feel arbitrary when its scale, source, freshness, and rationale are hidden. | Add an info detail with the score/target definition, units, contributing data, last update, and reason for today's recommendation. If there is not enough source data, label the range as a generic/default target rather than personalized guidance. |
+| **Medium — notifications** | The pre-prompt says “important changes in your overall health” and that preferences are in Profile; it offers Enable and Not Now. | The consent framing is good, but the types, frequency, examples, and quiet-hour controls are not visible. Asking before the user has seen a health insight may reduce opt-in. | Keep the two-choice pre-prompt, give concrete examples, explain frequency/control, and ask after the first relevant value moment. Make notification categories and quiet hours easy to change later. |
+| **Medium — number formatting** | Daily steps render as `3.316` while the surrounding labels are English. | Depending on locale, that can mean 3,316 or 3.316 steps. | Format counts using the selected locale and avoid decimal precision for integer step counts; ensure the language and number-format locale are intentionally aligned. |
+| **Medium — loading feedback** | A spinner is visible near the top of the first Home view; the splash is a static “Welcome to Sonar” screen. | A transient loading state is normal, but a long spinner or blank splash can look frozen. The screenshots cannot establish duration or recovery behavior. | Show what is loading, transition to a useful cached/empty state, and provide a retry/error state if sync or dashboard loading stalls. Do not block the rest of Home on one metric provider. |
+
+### What is working well visually
+
+- The onboarding has a clear sequence, short prompts, back/skip affordances, and large goal-selection targets. Selected goals are visually distinct.
+- Height entry makes the unit explicit, uses a thumb-friendly keypad, and gives a clear Save action. The basics screen says users may share only what they prefer.
+- The notification pre-prompt offers a clear decline path; the Pro sheet exposes Restore/Redeem and a dismiss control.
+- Home groups the product's core concepts into scannable sections and includes a persistent Home/Trends/Activity/Sonar AI navigation bar plus a prominent add button.
+- “Sync now,” “Edit Home,” and “Typical Range” are useful affordances. Keep them, but ensure they do not contradict the zero/pending/locked state of the data.
+- The dark visual system and green primary actions are consistent across the submitted screens. Contrast, screen-reader names, dynamic type, and keyboard behavior cannot be certified from screenshots alone.
+
+### Next screenshots that would complete the audit
+
+When convenient, please send screenshots of:
+
+1. **Connect devices/integrations:** provider list, permission explanation/system sheet, connected-source status, last sync, failed sync, and disconnect.
+2. **Trends and score details:** Recovery/Sleep/Strain detail, score explanation, time-range controls, compare/correlation, and a populated-data example.
+3. **Activity and a workout detail:** heart-rate zones/cardio load, workout source attribution, and the full sync flow.
+4. **Sonar AI:** a question/answer, saved-memory controls, voice entry, and the privacy/provider disclosure.
+5. **Profile/settings:** notification categories/quiet hours, health-data permissions/deletion, privacy controls, and subscription management/renewal details.
+
+Redact names, email addresses, and personal health values if you prefer. These additional pages will let me replace the current “appears to / public listing claims” caveats with a screen-by-screen interaction audit where the screenshots provide evidence.
