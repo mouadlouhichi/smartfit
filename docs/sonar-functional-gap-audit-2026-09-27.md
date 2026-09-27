@@ -186,7 +186,7 @@ A sensible “Sonar-inspired, still SmartFit” milestone is **connected recover
 
 ### What is working well visually
 
-- The onboarding has a clear sequence, short prompts, back/skip affordances, and large goal-selection targets. Selected goals are visually distinct.
+- The onboarding has a clear sequence, short prompts, visible Skip actions on the basics and goals screens, and large goal-selection targets. Selected goals are visually distinct.
 - Height entry makes the unit explicit, uses a thumb-friendly keypad, and gives a clear Save action. The basics screen says users may share only what they prefer.
 - The notification pre-prompt offers a clear decline path; the Pro sheet exposes Restore/Redeem and a dismiss control.
 - Home groups the product's core concepts into scannable sections and includes a persistent Home/Trends/Activity/Sonar AI navigation bar plus a prominent add button.
