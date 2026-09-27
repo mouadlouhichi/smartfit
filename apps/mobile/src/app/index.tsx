@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, Text, View, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowUpRight,
@@ -8,7 +9,7 @@ import {
   Clock,
   Flame,
   Footprints,
-  Plus,
+  Sparkles,
   Target,
   Timer,
   Trash2,
@@ -28,20 +29,27 @@ import {
   toISODate,
   INTENSITY_META,
   CATEGORY_FALLBACK_COLOR,
+  createTranslator,
+  resolveLocale,
 } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 import { Card, ProgressBar } from '@/components/ui';
 import { CategoryIcon } from '@/components/CategoryIcon';
-import { LogWorkoutModal } from '@/components/LogWorkoutModal';
 import { SessionDetailModal } from '@/components/SessionDetailModal';
+import { useQuickActions } from '@/components/QuickActionsProvider';
 import type { WorkoutSession } from '@smartfit/core';
 
 /* Reference home: avatar greeting, streak tile, Health-Metrics 2×2 grid,
    program chips and the featured session card — one Volt layout everywhere. */
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { state, ready, deleteSession } = useStore();
-  const [logOpen, setLogOpen] = useState(false);
+  const { openWorkout } = useQuickActions();
+  const t = useMemo(
+    () => createTranslator(resolveLocale(state.profile.locale)),
+    [state.profile.locale],
+  );
   const [detailSession, setDetailSession] = useState<WorkoutSession | null>(null);
   const [filter, setFilter] = useState('All type');
 
@@ -119,11 +127,13 @@ export default function HomeScreen() {
             </View>
           </View>
           <Pressable
-            onPress={() => setLogOpen(true)}
-            accessibilityLabel="Log workout"
-            className="bg-primary h-11 w-11 items-center justify-center rounded-full"
+            onPress={() => router.push('/coach')}
+            accessibilityRole="button"
+            accessibilityLabel={t('quickActions.coach')}
+            className="bg-secondary h-11 flex-row items-center gap-2 rounded-full px-3"
           >
-            <Plus color="#101010" size={22} strokeWidth={2.6} />
+            <Sparkles color="#f3ff47" size={17} strokeWidth={2.2} />
+            <Text className="text-foreground text-xs font-semibold">{t('nav.coach')}</Text>
           </Pressable>
         </View>
 
@@ -143,7 +153,7 @@ export default function HomeScreen() {
             <Text className="text-muted-foreground mt-0.5 text-xs">{plan.name}</Text>
           </View>
           <Pressable
-            onPress={() => setLogOpen(true)}
+            onPress={openWorkout}
             accessibilityLabel="Start workout"
             className="bg-primary h-11 w-11 items-center justify-center rounded-xl"
           >
@@ -299,7 +309,6 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <LogWorkoutModal open={logOpen} onClose={() => setLogOpen(false)} />
       <SessionDetailModal session={detailSession} onClose={() => setDetailSession(null)} />
     </SafeAreaView>
   );

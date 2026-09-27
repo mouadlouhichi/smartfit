@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ArrowRight, Moon, Sun, Zap } from 'lucide-react';
+import { ArrowRight, Moon, Plus, Sun, Zap } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/brand';
@@ -117,29 +117,43 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Desktop global CTA — a SmartJib-style pill (icon + label + sliding arrow,
- * breathing volt glow) that replaces the old per-tab header "Log workout"
- * button. One primary action, reachable from every screen. Mobile already
- * has its global CTA: the raised white bolt in the bottom navigation, so
- * this pill is lg-only and never stacks with it.
+ * Desktop global CTA — a SmartJib-style workout pill plus a raised quick-add
+ * button. The overview keeps its own workout shortcuts; other screens get a
+ * one-tap workout action. Mobile has the matching raised quick-add control in
+ * its bottom navigation, so these floating controls are desktop-only.
  */
 function GlobalLogCta() {
   const { openModal } = useModals();
+  const { t } = useI18n();
   const pathname = usePathname();
-  // The overview presents its own CTA — the glowing bolt in the weekly-goal
-  // card — and both coach surfaces own the bottom-right corner with their
-  // composer's Send button, so the floating pill yields there. Every other
-  // screen keeps the global CTA.
-  if (pathname === '/dashboard' || pathname === '/dashboard/coach') return null;
+  // Keep the coach composer clear. On the overview the global plus is the
+  // primary floating action; other screens retain the one-tap workout CTA.
+  if (pathname === '/dashboard/coach') return null;
   return (
-    <button
-      onClick={() => openModal('workout')}
-      className="zap-glow group bg-primary text-primary-foreground fixed right-8 bottom-8 z-40 hidden h-14 items-center gap-2 rounded-full px-5 text-sm font-extrabold transition-transform hover:-translate-y-0.5 active:scale-95 lg:inline-flex"
-    >
-      <Zap className="h-5 w-5" strokeWidth={2.6} fill="currentColor" aria-hidden />
-      Log workout
-      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden />
-    </button>
+    <div className="fixed right-8 bottom-8 z-40 hidden items-center gap-3 lg:flex">
+      {pathname !== '/dashboard' && (
+        <button
+          onClick={() => openModal('workout')}
+          aria-label={t('overview.quick.logWorkout')}
+          className="zap-glow group bg-primary text-primary-foreground flex h-14 items-center gap-2 rounded-full px-5 text-sm font-extrabold transition-transform hover:-translate-y-0.5 active:scale-95"
+        >
+          <Zap className="h-5 w-5" strokeWidth={2.6} fill="currentColor" aria-hidden />
+          {t('overview.quick.logWorkout')}
+          <ArrowRight
+            className="h-4 w-4 transition-transform group-hover:translate-x-1"
+            aria-hidden
+          />
+        </button>
+      )}
+      <button
+        onClick={() => openModal('quick-actions')}
+        aria-label={t('quickActions.open')}
+        title={t('quickActions.open')}
+        className="bg-card border-border text-foreground hover:bg-volt hover:text-ink flex h-14 w-14 items-center justify-center rounded-full border shadow-lg shadow-black/10 transition-all hover:-translate-y-0.5 hover:shadow-[0_6px_22px_rgba(138,210,0,0.25)] active:scale-95"
+      >
+        <Plus className="h-6 w-6" strokeWidth={2.5} aria-hidden />
+      </button>
+    </div>
   );
 }
 

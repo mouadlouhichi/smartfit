@@ -77,10 +77,15 @@ const markGroup = (
 ) => {
   const s = (box * ratio) / 24;
   const t = (box - 24 * s) / 2;
+  const shadowOffset = Math.max(0.75, box * 0.012);
+  const shadowBlur = Math.max(0.65, box * 0.014);
   return (
     `<g transform="translate(${x},${y})">` +
     `<rect width="${box}" height="${box}" rx="${box * rx}" fill="${plate}"/>` +
-    `<g transform="translate(${t},${t}) scale(${s})">${glyph(ink, stroke)}</g>` +
+    `<defs><filter id="flame-depth" x="-35%" y="-35%" width="170%" height="190%" color-interpolation-filters="sRGB">` +
+    `<feDropShadow dx="0" dy="${shadowOffset}" stdDeviation="${shadowBlur}" flood-color="#294900" flood-opacity="0.52"/>` +
+    `</filter></defs>` +
+    `<g filter="url(#flame-depth)" transform="translate(${t},${t}) scale(${s})">${glyph(ink, stroke)}</g>` +
     `</g>`
   );
 };

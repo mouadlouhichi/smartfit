@@ -1,7 +1,7 @@
 /* Only public static assets are cached. Private navigations and APIs stay network-only.
  * Firestore/local account storage has its own explicit offline policy.
  */
-const VERSION = 'smartfit-v11'; // evict all previous cached private HTML
+const VERSION = 'smartfit-v12'; // evict all previous cached private HTML
 const SHELL_CACHE = `${VERSION}-shell`;
 const ASSET_CACHE = `${VERSION}-assets`;
 const OFFLINE_URL = '/offline';
@@ -10,9 +10,9 @@ const OFFLINE_URL = '/offline';
 // cache-busted by ?v=; a bare path here would precache bytes nobody asks for).
 const PRECACHE = [
   OFFLINE_URL,
-  '/manifest.webmanifest?v=9',
-  '/icon.svg?v=9',
-  '/icons/icon-192.png?v=9',
+  '/manifest.webmanifest?v=10',
+  '/icon.svg?v=10',
+  '/icons/icon-192.png?v=10',
 ];
 
 self.addEventListener('install', (event) => {

@@ -10,7 +10,7 @@ const config = {
 
   // Brand: volt lime on near-black, matching the web app and the shared mark.
   icon: './assets/icon.png',
-  primaryColor: '#F3FF47',
+  primaryColor: '#8AD200',
 
   splash: {
     image: './assets/splash.png',
@@ -28,7 +28,7 @@ const config = {
     versionCode: 1,
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#E05E36',
+      backgroundColor: '#8AD200',
     },
   },
 

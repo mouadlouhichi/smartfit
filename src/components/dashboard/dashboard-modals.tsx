@@ -9,6 +9,7 @@ import { CategoryModal } from './modals/CategoryModal';
 import { SessionDetailModal } from './modals/SessionDetailModal';
 import { ProModal } from './modals/pro-modal';
 import { SessionRunnerModal } from './modals/session-runner-modal';
+import { QuickActionsModal } from './modals/quick-actions-modal';
 
 /**
  * Renders every global modal. Must sit inside <ModalProvider> — the shell wraps
@@ -26,6 +27,7 @@ export function DashboardModals() {
       <SessionDetailModal />
       <ProModal />
       <SessionRunnerModal />
+      <QuickActionsModal />
     </>
   );
 }
