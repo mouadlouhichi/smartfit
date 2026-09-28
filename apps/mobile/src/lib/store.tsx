@@ -7,8 +7,10 @@ import {
   type BodyLog,
   type FitnessGoal,
   type FitnessState,
+  type MealLog,
   type ScheduledWorkout,
   type UserProfile,
+  type WeeklyCheckIn,
   type WorkoutSession,
 } from '@smartfit/core';
 import { env } from './env';
@@ -24,12 +26,16 @@ function freshState(): FitnessState {
 interface StoreValue {
   state: FitnessState;
   ready: boolean;
+  loadError: boolean;
+  retryLoad: () => void;
   addSession: (s: Omit<WorkoutSession, 'id' | 'createdAt'>) => void;
   deleteSession: (id: string) => void;
   addGoal: (g: Omit<FitnessGoal, 'id' | 'createdAt'>) => void;
   deleteGoal: (id: string) => void;
   updateSchedule: (id: string, patch: Partial<ScheduledWorkout>) => void;
   addBodyLog: (b: Omit<BodyLog, 'id' | 'createdAt'>) => void;
+  addMeal: (m: Omit<MealLog, 'id' | 'createdAt'>) => void;
+  addCheckIn: (checkIn: Omit<WeeklyCheckIn, 'id' | 'createdAt'>) => void;
   updateProfile: (patch: Partial<UserProfile>) => void;
   clearData: () => void;
 }
@@ -39,24 +45,47 @@ const StoreContext = createContext<StoreValue | null>(null);
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<FitnessState>(() => emptyState());
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
-    // Persisted JSON is validated rather than cast: a partial write, an older
-    // shape or hand-edited storage must not crash the app on launch.
+    let active = true;
+    setReady(false);
+    // Never cast or silently replace data that could not be read. The app
+    // remains behind a retry screen until the existing local state is valid.
     AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => setState(parseStateJSON(raw) ?? freshState()))
-      .catch(() => setState(freshState()))
-      .finally(() => setReady(true));
-  }, []);
+      .then((raw) => {
+        if (!active) return;
+        const restored = parseStateJSON(raw);
+        if (raw !== null && restored === null) throw new Error('Invalid local state');
+        setState(restored ?? freshState());
+        setLoadError(false);
+      })
+      .catch(() => {
+        if (active) setLoadError(true);
+      })
+      .finally(() => {
+        if (active) setReady(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [loadAttempt]);
 
   useEffect(() => {
-    if (ready) AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
-  }, [state, ready]);
+    if (ready && !loadError)
+      AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
+  }, [state, ready, loadError]);
 
   const value = useMemo<StoreValue>(
     () => ({
       state,
       ready,
+      loadError,
+      retryLoad: () => {
+        setReady(false);
+        setLoadAttempt((attempt) => attempt + 1);
+      },
       addSession: (s) =>
         setState((p) => ({
           ...p,
@@ -82,10 +111,34 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           ...p,
           bodyLogs: [...p.bodyLogs, { ...b, id: uid('body'), createdAt: Date.now() }],
         })),
+      addMeal: (m) =>
+        setState((p) => ({
+          ...p,
+          meals: [...p.meals, { ...m, id: uid('meal'), createdAt: Date.now() }].sort((a, b) =>
+            a.date < b.date ? 1 : -1,
+          ),
+        })),
+      addCheckIn: (checkIn) =>
+        setState((p) => {
+          const history = p.checkIns ?? [];
+          const existing = history.find((item) => item.weekOf === checkIn.weekOf);
+          const saved: WeeklyCheckIn = {
+            ...checkIn,
+            id: existing?.id ?? uid('checkin'),
+            createdAt: existing?.createdAt ?? Date.now(),
+          };
+          const checkIns = existing
+            ? history.map((item) => (item.id === existing.id ? saved : item))
+            : [...history, saved].sort((a, b) => (a.weekOf < b.weekOf ? -1 : 1));
+          return { ...p, checkIns };
+        }),
       updateProfile: (patch) => setState((p) => ({ ...p, profile: { ...p.profile, ...patch } })),
-      clearData: () => setState(emptyState()),
+      clearData: () => {
+        setState(freshState());
+        setLoadError(false);
+      },
     }),
-    [state, ready],
+    [state, ready, loadError],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

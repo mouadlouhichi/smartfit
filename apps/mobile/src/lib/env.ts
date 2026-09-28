@@ -7,7 +7,11 @@ import { PLANS, type PlanId } from '@smartfit/core';
  *
  * `process` is referenced indirectly so tsc doesn't require @types/node.
  */
-const envObj = (typeof process !== 'undefined' && process.env) || {};
+type ExpoPublicEnv = {
+  EXPO_PUBLIC_APP_NAME?: string;
+  EXPO_PUBLIC_DEFAULT_PLAN?: string;
+};
+const envObj = ((typeof process !== 'undefined' && process.env) || {}) as ExpoPublicEnv;
 
 const VALID_PLANS = new Set<PlanId>(PLANS.map((p) => p.id));
 

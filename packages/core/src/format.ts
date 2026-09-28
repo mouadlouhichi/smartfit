@@ -379,6 +379,37 @@ export function formatDateLabel(iso: string, locale?: string): string {
   });
 }
 
+/** Compact, localized range label for a pair of inclusive ISO calendar dates. */
+export function formatDateRangeLabel(fromISO: string, toISO: string, locale?: string): string {
+  const parse = (iso: string) => {
+    const [year, month, day] = iso.split('-').map(Number);
+    return new Date(year, (month ?? 1) - 1, day ?? 1);
+  };
+  const from = parse(fromISO);
+  const to = parse(toISO);
+  const language = locale === 'fr' ? 'fr-FR' : locale === 'en' ? 'en-US' : undefined;
+  const sameYear = from.getFullYear() === to.getFullYear();
+  const sameMonth = sameYear && from.getMonth() === to.getMonth();
+  if (fromISO === toISO) {
+    return from.toLocaleDateString(language, { day: 'numeric', month: 'short' });
+  }
+  const month = (date: Date) => date.toLocaleDateString(language, { month: 'short' });
+  const day = (date: Date) => date.toLocaleDateString(language, { day: 'numeric' });
+
+  if (sameMonth) {
+    return locale === 'fr'
+      ? `${day(from)}–${day(to)} ${month(to)}`
+      : `${month(to)} ${day(from)}–${day(to)}`;
+  }
+
+  const options: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'short',
+    ...(!sameYear ? { year: 'numeric' as const } : {}),
+  };
+  return `${from.toLocaleDateString(language, options)} – ${to.toLocaleDateString(language, options)}`;
+}
+
 export function relativeDay(iso: string, now = new Date(), t?: Translator): string {
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);

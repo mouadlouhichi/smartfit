@@ -32,10 +32,9 @@ import { cn } from '@/lib/utils';
 import { GradeRing } from '@/components/volt/volt-kit';
 import { INTENSITY_META } from '@smartfit/core';
 import {
-  sessionsInRange,
+  activityPeriod,
   toISODate,
   categoryBreakdown,
-  aggregate,
   weeklySeries,
   targetsForDays,
   currentStreak,
@@ -107,16 +106,6 @@ const RANGES: { key: Range; labelKey: string; shortKey: string; days: number; pr
   },
 ];
 
-/** Sessions in the `days`-long window ending today. */
-function rangeDaysSessions(state: ReturnType<typeof useStore>['state'], days: number, offset = 0) {
-  const to = new Date();
-  to.setHours(0, 0, 0, 0);
-  to.setDate(to.getDate() - offset);
-  const from = new Date(to);
-  from.setDate(from.getDate() - (days - 1));
-  return sessionsInRange(state, toISODate(from), toISODate(to));
-}
-
 export function ProgressScreen() {
   const { t, locale } = useI18n();
   const { state } = useStore();
@@ -128,14 +117,16 @@ export function ProgressScreen() {
   // lands on a locked range — focus it, let the click/Enter open the modal.
   const rangeTabs = useTablist(RANGES.length, (i) => !!RANGES[i].pro && !pro);
 
-  const rangeAgg = useMemo(() => aggregate(rangeDaysSessions(state, days)), [state, days]);
+  const rangePeriod = useMemo(() => activityPeriod(state, days), [state, days]);
   // The equally-sized window immediately before — for honest "vs previous"
   // deltas on the stat tiles (hidden when the previous window was empty).
-  const prevAgg = useMemo(() => aggregate(rangeDaysSessions(state, days, days)), [state, days]);
+  const previousPeriod = useMemo(() => activityPeriod(state, days, days), [state, days]);
+  const rangeAgg = rangePeriod;
+  const prevAgg = previousPeriod;
 
   const breakdown = useMemo(
-    () => categoryBreakdown(state, rangeDaysSessions(state, days)),
-    [state, days],
+    () => categoryBreakdown(state, rangePeriod.sessions),
+    [state, rangePeriod.sessions],
   );
   const totalMin = breakdown.reduce((a, x) => a + x.minutes, 0);
 
@@ -147,11 +138,11 @@ export function ProgressScreen() {
       .map((k) => ({
         key: k,
         name: INTENSITY_META[k].label,
-        value: rangeDaysSessions(state, days).filter((s) => s.intensity === k).length,
+        value: rangePeriod.sessions.filter((s) => s.intensity === k).length,
         color: INTENSITY_META[k].color,
       }))
       .filter((x) => x.value > 0);
-  }, [state, days]);
+  }, [rangePeriod.sessions]);
 
   const streak = useMemo(() => currentStreak(state), [state]);
   const ringStats = useMemo(() => streakStats(state), [state]);
@@ -207,9 +198,9 @@ export function ProgressScreen() {
       ? Math.min(100, Math.round(((rangeAgg.distance ?? 0) / targets.distanceKm) * 100))
       : 0;
 
-  // The reference "Health Grade": average completion across the rings that
-  // have targets (minutes always counts; calories/distance only when set).
-  const healthScore = Math.round(
+  // Activity-goal progress: average completion across targets the user set
+  // (minutes always counts; calories/distance only when set).
+  const activityGoalProgress = Math.round(
     [
       minPct,
       ...(targets.calories > 0 ? [calPct] : []),
@@ -218,9 +209,9 @@ export function ProgressScreen() {
       (1 + (targets.calories > 0 ? 1 : 0) + (targets.distanceKm > 0 ? 1 : 0)),
   );
   const gradeCopy =
-    healthScore >= 80
+    activityGoalProgress >= 80
       ? t('progress.grade.perfect')
-      : healthScore >= 60
+      : activityGoalProgress >= 60
         ? t('progress.grade.solid')
         : t('progress.grade.building');
 
@@ -319,7 +310,7 @@ export function ProgressScreen() {
         </div>
       </div>
 
-      {/* ── Health Grade — the reference report hero ───────────────────── */}
+      {/* ── Activity-goal progress — targets-based summary ──────────────── */}
       <section
         className="card-hero p-4 min-[420px]:p-6 sm:p-8"
         aria-label={t('progress.hero.aria')}
@@ -332,10 +323,10 @@ export function ProgressScreen() {
             <p className="hero-muted mt-1 max-w-[17rem] text-sm">{gradeCopy}</p>
           </div>
           <GradeRing
-            value={healthScore}
+            value={activityGoalProgress}
             size={88}
             label={t('progress.grade')}
-            ariaLabel={t('progress.grade.aria', { value: healthScore })}
+            ariaLabel={t('progress.grade.aria', { value: activityGoalProgress })}
           />
         </div>
         <div className="mt-5 mb-5 flex flex-wrap items-center justify-between gap-3 sm:mb-6">

@@ -27,7 +27,8 @@ export type ModalKind =
   | 'category'
   | 'session-detail'
   | 'pro'
-  | 'runner';
+  | 'runner'
+  | 'quick-actions';
 
 export type ModalPayload =
   | { kind: 'workout'; session?: WorkoutSession; prefill?: Partial<WorkoutSession> }
@@ -56,6 +57,7 @@ export type ModalPayload =
   | { kind: 'category' }
   | { kind: 'session-detail'; session: WorkoutSession }
   | { kind: 'pro' }
+  | { kind: 'quick-actions' }
   | {
       kind: 'runner';
       title: string;

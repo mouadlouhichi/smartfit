@@ -1,75 +1,18 @@
 import React, { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Crown, Database, RefreshCw, UserRound, X } from 'lucide-react-native';
+import { Crown, Database, RefreshCw, UserRound } from 'lucide-react-native';
 import {
-  BODY_UNIT_META,
   PRO_PLANS,
   hasProAccess,
   isTrialing,
   latestBodyValue,
-  toISODate,
   trialDaysLeft,
   PLANS,
 } from '@smartfit/core';
 import { useStore } from '@/lib/store';
+import { useQuickActions } from '@/components/QuickActionsProvider';
 import { Button, Card, Input, Label } from '@/components/ui';
-
-function BodyModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { addBodyLog } = useStore();
-  const [unit, setUnit] = useState<'weight' | 'bodyfat' | 'waist'>('weight');
-  const [value, setValue] = useState('');
-
-  function save() {
-    if (!value) return;
-    addBodyLog({ date: toISODate(new Date()), unit, value: Number(value) });
-    setValue('');
-    onClose();
-  }
-
-  return (
-    <Modal visible={open} animationType="slide" onRequestClose={onClose}>
-      <View className="bg-background flex-1 p-5">
-        <View className="flex-row items-center justify-between py-2">
-          <Text className="text-foreground text-lg font-bold">Log measurement</Text>
-          <Pressable onPress={onClose} className="active:bg-muted rounded-full p-2">
-            <X color="#a3a3a3" size={22} />
-          </Pressable>
-        </View>
-        <ScrollView contentContainerClassName="gap-4 pt-4">
-          <View>
-            <Label>Measurement</Label>
-            <View className="flex-row flex-wrap gap-2">
-              {(['weight', 'bodyfat', 'waist'] as const).map((u) => (
-                <Pressable
-                  key={u}
-                  onPress={() => setUnit(u)}
-                  className="rounded-full border px-3 py-2"
-                  style={{
-                    borderColor: unit === u ? '#f3ff47' : '#2b2b2b',
-                    backgroundColor: unit === u ? '#f3ff4722' : 'transparent',
-                  }}
-                >
-                  <Text
-                    style={{ color: unit === u ? '#f3ff47' : '#a3a3a3' }}
-                    className="text-sm font-medium"
-                  >
-                    {BODY_UNIT_META[u].label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-          <View>
-            <Label>Value ({BODY_UNIT_META[unit].unit})</Label>
-            <Input keyboardType="numeric" value={value} onChangeText={setValue} placeholder="0.0" />
-          </View>
-          <Button label="Save" onPress={save} />
-        </ScrollView>
-      </View>
-    </Modal>
-  );
-}
 
 /**
  * Pro membership status. Checkout lives in the web app for now (native
@@ -121,7 +64,7 @@ function ProCard() {
 
 export default function ProfileScreen() {
   const { state, updateProfile, clearData } = useStore();
-  const [bodyOpen, setBodyOpen] = useState(false);
+  const { openMeasurement } = useQuickActions();
   const [name, setName] = useState(state.profile.name);
 
   const weight = latestBodyValue(state, 'weight');
@@ -167,7 +110,7 @@ export default function ProfileScreen() {
             <Text className="text-muted-foreground mt-1 text-sm">Latest weight: {weight} kg</Text>
           )}
           <View className="mt-4 gap-2">
-            <Button label="Log measurement" variant="secondary" onPress={() => setBodyOpen(true)} />
+            <Button label="Log measurement" variant="secondary" onPress={openMeasurement} />
             <Button
               label="Erase everything"
               variant="destructive"
@@ -192,8 +135,6 @@ export default function ProfileScreen() {
           </Text>
         </View>
       </ScrollView>
-
-      <BodyModal open={bodyOpen} onClose={() => setBodyOpen(false)} />
     </SafeAreaView>
   );
 }

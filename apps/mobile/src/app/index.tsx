@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ScrollView, Text, View, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ArrowUpRight,
@@ -8,10 +9,11 @@ import {
   Clock,
   Flame,
   Footprints,
-  Plus,
+  Sparkles,
   Target,
   Timer,
   Trash2,
+  Utensils,
 } from 'lucide-react-native';
 import {
   aggregate,
@@ -20,7 +22,10 @@ import {
   formatDistance,
   formatMinutes,
   goalProgress,
+  mealsOn,
+  nutritionTargets,
   sessionsInRange,
+  sumMeals,
   thisWeek,
   todaysFocus,
   getPlan,
@@ -28,24 +33,37 @@ import {
   toISODate,
   INTENSITY_META,
   CATEGORY_FALLBACK_COLOR,
+  createTranslator,
+  resolveLocale,
 } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 import { Card, ProgressBar } from '@/components/ui';
 import { CategoryIcon } from '@/components/CategoryIcon';
-import { LogWorkoutModal } from '@/components/LogWorkoutModal';
 import { SessionDetailModal } from '@/components/SessionDetailModal';
+import { useQuickActions } from '@/components/QuickActionsProvider';
 import type { WorkoutSession } from '@smartfit/core';
 
 /* Reference home: avatar greeting, streak tile, Health-Metrics 2×2 grid,
    program chips and the featured session card — one Volt layout everywhere. */
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { state, ready, deleteSession } = useStore();
-  const [logOpen, setLogOpen] = useState(false);
+  const { openWorkout, openMeal } = useQuickActions();
+  const t = useMemo(
+    () => createTranslator(resolveLocale(state.profile.locale)),
+    [state.profile.locale],
+  );
   const [detailSession, setDetailSession] = useState<WorkoutSession | null>(null);
   const [filter, setFilter] = useState('All type');
 
   const week = useMemo(() => thisWeek(state), [state]);
+  const dayMeals = useMemo(
+    () => mealsOn(state.meals, toISODate(new Date())).sort((a, b) => b.createdAt - a.createdAt),
+    [state.meals],
+  );
+  const mealTotals = useMemo(() => sumMeals(dayMeals), [dayMeals]);
+  const fuelTargets = useMemo(() => nutritionTargets(state), [state]);
   const dayBars = useMemo(() => {
     const out: number[] = [];
     for (let i = 6; i >= 0; i--) {
@@ -119,11 +137,13 @@ export default function HomeScreen() {
             </View>
           </View>
           <Pressable
-            onPress={() => setLogOpen(true)}
-            accessibilityLabel="Log workout"
-            className="bg-primary h-11 w-11 items-center justify-center rounded-full"
+            onPress={() => router.push('/coach')}
+            accessibilityRole="button"
+            accessibilityLabel={t('quickActions.coach')}
+            className="bg-secondary h-11 flex-row items-center gap-2 rounded-full px-3"
           >
-            <Plus color="#101010" size={22} strokeWidth={2.6} />
+            <Sparkles color="#f3ff47" size={17} strokeWidth={2.2} />
+            <Text className="text-foreground text-xs font-semibold">{t('nav.coach')}</Text>
           </Pressable>
         </View>
 
@@ -143,12 +163,81 @@ export default function HomeScreen() {
             <Text className="text-muted-foreground mt-0.5 text-xs">{plan.name}</Text>
           </View>
           <Pressable
-            onPress={() => setLogOpen(true)}
+            onPress={openWorkout}
             accessibilityLabel="Start workout"
             className="bg-primary h-11 w-11 items-center justify-center rounded-xl"
           >
             <ArrowUpRight color="#101010" size={22} strokeWidth={2.75} />
           </Pressable>
+        </Card>
+
+        {/* ── Fuel today ── */}
+        <Card>
+          <View className="flex-row items-center gap-3">
+            <View className="bg-primary/10 h-11 w-11 items-center justify-center rounded-2xl">
+              <Utensils color="#F3FF47" size={19} strokeWidth={2.1} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-foreground text-sm font-extrabold">{t('fuel.today')}</Text>
+              <Text className="text-muted-foreground mt-0.5 text-xs">
+                {t('meal.mobile.count', { count: dayMeals.length })} ·{' '}
+                {formatCalories(mealTotals.calories)}
+                {fuelTargets ? ` / ${formatCalories(fuelTargets.calories)}` : ''}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('action.logMeal')}
+              onPress={openMeal}
+              className="bg-primary h-10 flex-row items-center gap-1.5 rounded-full px-3"
+            >
+              <Text className="text-primary-foreground text-lg font-bold">+</Text>
+              <Text className="text-primary-foreground text-xs font-bold">
+                {t('action.logMeal')}
+              </Text>
+            </Pressable>
+          </View>
+          {fuelTargets ? (
+            <View className="mt-4">
+              <View className="mb-2 flex-row justify-between">
+                <Text className="text-muted-foreground text-xs">
+                  {t('fuel.macro.protein')}: {Math.round(mealTotals.protein)} /{' '}
+                  {fuelTargets.protein} g
+                </Text>
+                <Text className="text-muted-foreground text-xs">
+                  {t('meal.mobile.caloriesLeft', {
+                    count: Math.max(0, fuelTargets.calories - mealTotals.calories),
+                  })}
+                </Text>
+              </View>
+              <ProgressBar value={(mealTotals.calories / fuelTargets.calories) * 100} />
+            </View>
+          ) : null}
+          {dayMeals.length > 0 ? (
+            <View className="border-border mt-3 gap-2 border-t pt-3">
+              {dayMeals.slice(0, 2).map((meal) => (
+                <View key={meal.id} className="flex-row items-center justify-between gap-3">
+                  <View className="flex-1">
+                    <Text className="text-foreground text-xs font-medium" numberOfLines={1}>
+                      {meal.name}
+                    </Text>
+                    {meal.source === 'scan' || meal.source === 'manual' ? (
+                      <Text className="text-muted-foreground mt-0.5 text-[10px]">
+                        {t(
+                          meal.source === 'scan'
+                            ? 'meal.mobile.estimateBadge'
+                            : 'meal.mobile.manualBadge',
+                        )}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text className="text-muted-foreground text-xs">
+                    {formatCalories(meal.calories)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </Card>
 
         {/* ── Health metrics ── */}
@@ -299,7 +388,6 @@ export default function HomeScreen() {
         </View>
       </ScrollView>
 
-      <LogWorkoutModal open={logOpen} onClose={() => setLogOpen(false)} />
       <SessionDetailModal session={detailSession} onClose={() => setDetailSession(null)} />
     </SafeAreaView>
   );

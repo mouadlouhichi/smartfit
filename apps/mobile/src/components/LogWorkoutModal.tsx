@@ -31,7 +31,7 @@ function recentDates(count = 7): string[] {
 }
 
 export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { state, addSession } = useStore();
+  const { state, ready, addSession } = useStore();
   const [date, setDate] = useState(toISODate(new Date()));
   const [categoryId, setCategoryId] = useState('cat-strength');
   const [title, setTitle] = useState('');
@@ -53,6 +53,7 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
   const dates = recentDates();
 
   function save() {
+    if (!ready) return;
     addSession({
       date,
       categoryId,
@@ -249,7 +250,7 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
             <Text className="text-primary text-base font-bold">{calories} kcal</Text>
           </Card>
 
-          <Button label="Save workout" onPress={save} />
+          <Button label="Save workout" onPress={save} disabled={!ready} />
         </ScrollView>
       </View>
 

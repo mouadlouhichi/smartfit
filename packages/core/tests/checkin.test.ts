@@ -2,8 +2,10 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   checkInActions,
+  checkInActionMessages,
   checkInHistory,
   checkInStreak,
+  createTranslator,
   deadlineLabel,
   emptyState,
   feelingLabel,
@@ -97,11 +99,39 @@ test('the review splits goals into hit and still-open, in words', () => {
   assert.deepEqual(review.goalsMissed, ['Train 5 days (2/5)']);
 });
 
+test('a weekly review does not compare a monthly target to seven days of activity', () => {
+  const state = stateWith(['2026-09-14']);
+  state.goals = [goal({ cadence: 'monthly', target: 12, name: 'Twelve sessions this month' })];
+  const review = weeklyReview(state, SUNDAY);
+  assert.deepEqual(review.goalsHit, []);
+  assert.deepEqual(review.goalsMissed, []);
+});
+
 test('a blank week says so without scolding', () => {
   const review = weeklyReview(emptyState(), SUNDAY);
   assert.equal(review.workouts, 0);
   assert.ok(review.headline.startsWith('A blank week'));
   assert.ok(review.goalsHit.length === 0);
+});
+
+test('weekly review headlines and suggested actions localize from shared message data', () => {
+  const state = stateWith([]);
+  const review = weeklyReview(state, SUNDAY);
+  const french = createTranslator('fr');
+
+  assert.equal(review.headlineMessage.key, 'checkin.headline.blank');
+  assert.match(french(review.headlineMessage.key, review.headlineMessage.vars), /Aucune séance/);
+  const messages = checkInActionMessages(state, review);
+  assert.equal(messages[0].key, 'checkin.action.bookOne');
+  assert.match(checkInActions(state, review, french)[0], /Réservez une séance/);
+
+  const logged = stateWith(['2026-09-14']);
+  const loggedReview = weeklyReview(logged, SUNDAY);
+  assert.equal(loggedReview.headlineMessage.key, 'checkin.headline.sessions');
+  assert.match(
+    createTranslator('en')(loggedReview.headlineMessage.key, loggedReview.headlineMessage.vars),
+    /1 session logged/,
+  );
 });
 
 test('a check-in is always about the last *complete* week', () => {

@@ -1,0 +1,50 @@
+# Sonar-inspired SmartFit rollout
+
+**Status:** Phases 1–3 are implemented in this branch. This is a SmartFit roadmap inspired by the Sonar comparison audit, not a claim of Sonar API integration or feature parity.
+
+## Guardrails
+
+- Keep SmartFit's B2B2C surfaces and tenant boundaries intact; gym staff, members and direct consumers remain distinct product contexts.
+- Use the existing SmartFit store and verified capabilities. A screenshot, product listing or API catalog is not proof that a connection, recommendation, biometric lock or AI answer works.
+- Make missing data explicit. Do not present unavailable sleep, recovery, nutrition or stress inputs as measured zeroes or fabricate a health score.
+- Ask for narrowly scoped consent before any future health-source access. Do not imply write-back to Apple Health or Health Connect.
+- The Expo app currently stores fitness data in local AsyncStorage. Do not describe it as cloud-synced or as having the web app's full set of capture surfaces.
+
+## Phase 1 — Fast capture and a clear coach entry point (implemented)
+
+- Add a shared quick-actions entry point to the personal web dashboard and Expo navigation, while retaining direct workout logging.
+- Keep each menu honest to its platform: web offers workout, meal, measurement, run, goals, plan, progress and coach; Phase 1 native keeps workout, measurement, goals, plan, progress and the local coach. Phase 2 adds native meal and run capture as described below.
+- Add a mobile coach backed by the deterministic `answerCoach` engine. It reads the local fitness state, makes no AI/network claim, visibly states the on-device boundary, and shows a training/wellness—not medical—disclaimer.
+- Store body entries in canonical kg/cm while accepting the athlete's preferred display units.
+- Add native haptic feedback and retain the Volt flame mark's shadow/depth across generated app-icon assets and the web logo.
+- Keep English and French copy in parity for new shared strings.
+
+## Phase 2 — Native capture parity (implemented)
+
+- Add mobile meal capture backed by the existing on-device food table. Manual values are labeled as user-entered; description-based macros are visibly estimates, editable before save and never sent to an AI or food provider.
+- Add an opt-in native GPS run flow. Explain foreground-only location before requesting it, never request background access, automatically pause when the app leaves the foreground, and offer pause/resume plus explicit save/discard. A manual no-location run log remains available.
+- Persist meals and run sessions in the mobile app's existing AsyncStorage state. Route capture has no provider sync in this implementation; do not imply cloud or Apple Health / Health Connect sync.
+
+## Phase 3 — Cross-platform insights and weekly review (implemented)
+
+- Add mobile progress windows for the last 7, 30 and 90 days, prior-window comparisons, an 8-week active-minute chart, activity/intensity breakdowns, logged-meal totals with provenance labels, and a trend from the latest eight weigh-ins.
+- Add the shared weekly-review flow on mobile: it reviews only a completed week, summarizes actual workout/meal/body logs, records the athlete's feeling and optional note, and shows localized next-week actions/history. Web and mobile share period and review calculations.
+- Label the exact date windows, estimated calories, meal-entry sources and local weigh-in provenance. Provide empty, loading and safe retry states plus accessible chart summaries; do not substitute zeroes for unavailable source data.
+- Base insights on real SmartFit workout, goal, meal and body logs. Sleep/recovery/stress scores remain out of scope until valid source data and a defensible baseline are available; never borrow Sonar's scale or call a SmartFit estimate a provider score without explicit methodology.
+
+## Phase 4 — Optional health connections
+
+- Evaluate iOS HealthKit and Android Health Connect capabilities separately, then request only the permissions required for a selected metric.
+- Show connection state, last successful read, source provenance, duplicates/conflicts and a clear disconnect/delete path.
+- Treat provider limitations and sync as asynchronous; avoid promises of write-back, complete historical import or a fixed baseline unless verified on-device.
+- Keep health-source data separate from gym/tenant data unless an explicit, authorized product flow is designed and reviewed.
+
+## Phase 5 — Sharing, notifications and advanced coaching
+
+- Design granular, revocable sharing with a preview of exactly which fields and time range will be exposed; do not infer privacy behavior from a Share or QR control.
+- Gate notifications behind clear preferences and quiet hours, with health-sensitive content minimized on lock screens.
+- Only add server AI or health recommendations after grounding, consent, safety copy, fallback behavior and data-retention rules are tested. Keep the deterministic local coach available.
+
+## Evidence source
+
+The phase boundaries follow [`sonar-functional-gap-audit-2026-09-27.md`](./sonar-functional-gap-audit-2026-09-27.md) and the tenant/privacy constraints in [`feature-expansion-plan.md`](./feature-expansion-plan.md). Screenshot observations and vendor marketing remain qualified as such; undocumented runtime behavior is intentionally not asserted here.
