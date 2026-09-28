@@ -128,6 +128,37 @@ export function aggregate(sessions: WorkoutSession[]): Omit<WeekAggregate, 'key'
   };
 }
 
+/**
+ * A calendar-day window of logged activity. `offsetDays` moves the same-sized
+ * window back in time, so callers can compare periods without rolling their
+ * own date-boundary arithmetic. Dates are local ISO dates, inclusive.
+ */
+export interface ActivityPeriod extends Omit<WeekAggregate, 'key' | 'label'> {
+  from: string;
+  to: string;
+  days: number;
+  sessions: WorkoutSession[];
+}
+
+export function activityPeriod(
+  state: FitnessState,
+  days: number,
+  offsetDays = 0,
+  now = new Date(),
+): ActivityPeriod {
+  const span = Math.max(1, Math.round(days));
+  const offset = Math.max(0, Math.round(offsetDays));
+  const end = startOfDay(now);
+  end.setDate(end.getDate() - offset);
+  const start = new Date(end);
+  start.setDate(start.getDate() - (span - 1));
+  const from = toISODate(start);
+  const to = toISODate(end);
+  const sessions = sessionsInRange(state, from, to);
+
+  return { from, to, days: span, sessions, ...aggregate(sessions) };
+}
+
 /** Last `n` weeks of aggregates, oldest first — the chart series. */
 export function weeklySeries(state: FitnessState, n = 8, now = new Date()): WeekAggregate[] {
   const ws0 = weekStartOf(state);

@@ -322,8 +322,10 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'checkin.weekOf': 'Week of {week}',
     'checkin.session': { one: '{count} session', other: '{count} sessions' },
     'checkin.minutes': '{count} min',
-    'checkin.weight': '{delta} kg versus last week',
+    'checkin.weight': 'Change since the previous weigh-in: {delta}',
     'checkin.weightFlat': 'Weight steady',
+    'checkin.weightNoComparison': 'Not enough weigh-ins to compare',
+    'checkin.weightNotLogged': 'No weigh-in this week',
     'checkin.goalsHit': 'Targets hit: {list}',
     'checkin.goalsMissed': 'Still open: {list}',
     'checkin.stat.sessions': 'Sessions',
@@ -343,6 +345,29 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'checkin.streak': { one: '{count} week in a row', other: '{count} weeks in a row' },
     'checkin.history': 'Past check-ins',
     'checkin.none': 'No check-ins yet.',
+    'checkin.stat.meals': 'Meals logged',
+    'checkin.headline.blank':
+      'A blank week — no sessions logged. No judgement; let us pick the smallest thing that fits next week.',
+    'checkin.headline.planMet':
+      '{count} sessions in, every planned day covered. That is the week the plan was written for.',
+    'checkin.headline.nearPlan': {
+      one: '{count} of {planned} planned sessions. Mostly there — one nudge would close it.',
+      other: '{count} of {planned} planned sessions. Mostly there — one nudge would close it.',
+    },
+    'checkin.headline.sessions': {
+      one: '{count} session logged this week. Something is working; let us protect it next week.',
+      other:
+        '{count} sessions logged this week. Something is working; let us protect it next week.',
+    },
+    'checkin.action.scheduleFirst': 'Put the first session on the calendar: {names}.',
+    'checkin.action.bookOne': 'Book one session — anything — in the first three days of the week.',
+    'checkin.action.moveMissed':
+      'Move one missed session earlier in the week — you logged {workouts} of {planned}.',
+    'checkin.action.shortStart':
+      'Start the new week with a short session; five days off is where habits go quiet.',
+    'checkin.action.trimTarget': 'Trim a weekly target rather than abandoning it: {goal}.',
+    'checkin.action.holdGoal': 'Hold the line: same week again, aiming at “{name}”.',
+    'checkin.action.consistency': 'Same again next week. Consistency is the whole trick.',
 
     // ── goals: deadlines ──────────────────────────────────────────────────
     'goal.deadline': 'Deadline (optional)',
@@ -1475,11 +1500,58 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'progress.chart.volumeTitle': 'Volume by muscle · last {count} days',
     'progress.chart.volumeAria': 'Muscle volume for the last {count} days',
     'progress.chart.muscleRow': '{label}: {volume}, {sets} sets',
+    'progress.mobile.subtitle':
+      'Trends from your SmartFit logs. No provider health scores are estimated or implied.',
+    'progress.mobile.source.sessions': 'SmartFit workout logs · calories burned are estimates',
+    'progress.mobile.caloriesEstimated': 'Estimated calories',
+    'progress.mobile.compare': '{value} vs the previous period',
+    'progress.mobile.comparedWith': 'Compared with {range}',
+    'progress.mobile.emptyPeriod': 'No workouts logged in this date range.',
+    'progress.mobile.addWorkout': 'Log a workout',
+    'progress.mobile.nutrition.title': 'Logged nutrition',
+    'progress.mobile.nutrition.subtitle':
+      'Recorded meal entries only — this may not be a complete account of what you ate.',
+    'progress.mobile.nutrition.empty': 'No meals logged in this date range.',
+    'progress.mobile.nutrition.calories': 'Logged calories',
+    'progress.mobile.nutrition.protein': 'Logged protein',
+    'progress.mobile.mealSource.manual': 'User-entered',
+    'progress.mobile.mealSource.estimate': 'On-device estimate',
+    'progress.mobile.mealSource.photo': 'Photo entry',
+    'progress.mobile.mealSource.voice': 'Voice entry',
+    'progress.mobile.mealSource.voiceScan': 'Voice + estimate',
+    'progress.mobile.mealSource.unknown': 'Source not recorded',
+    'progress.mobile.addMeal': 'Log a meal',
+    'progress.mobile.body.title': 'Weight trend',
+    'progress.mobile.body.subtitle':
+      'From weigh-ins entered in SmartFit on this device; no health-provider sync.',
+    'progress.mobile.body.empty': 'Log a weigh-in to start a weight trend.',
+    'progress.mobile.body.single': 'Add another weigh-in to see a change over time.',
+    'progress.mobile.body.latest': 'Latest logged weight',
+    'progress.mobile.body.change': 'Change across the weigh-ins shown',
+    'progress.mobile.body.chartAria': 'Weight trend from logged weigh-ins',
+    'progress.mobile.addWeighIn': 'Log a weigh-in',
+    'progress.mobile.category.empty': 'No activity minutes in this date range.',
+    'progress.mobile.intensity.empty': 'No sessions in this date range.',
+    'progress.mobile.weeks.empty': 'No sessions in the last eight weeks.',
+    'progress.mobile.loading': 'Loading your SmartFit logs…',
+    'progress.mobile.loadError.title': 'Your local data could not be opened',
+    'progress.mobile.loadError.body':
+      'SmartFit has not replaced the saved data. Try loading it again before continuing.',
+    'progress.mobile.category.strength': 'Strength',
+    'progress.mobile.category.cardio': 'Cardio',
+    'progress.mobile.category.hiit': 'HIIT',
+    'progress.mobile.category.mobility': 'Mobility',
+    'progress.mobile.category.sports': 'Sports',
+    'progress.mobile.category.rest': 'Active rest',
+    'progress.mobile.category.other': 'Other',
+    'progress.mobile.intensity.low': 'Low',
+    'progress.mobile.intensity.moderate': 'Moderate',
+    'progress.mobile.intensity.high': 'High',
     'progress.sessionsLogged': {
       one: '{count} session logged all-time',
       other: '{count} sessions logged all-time',
     },
-    'progress.grade': 'Health Grade',
+    'progress.grade': 'Activity goal progress',
     'progress.grade.perfect': 'Perfect progress — keep going like this.',
     'progress.grade.solid': 'Solid work — one more session moves the needle.',
     'progress.grade.building': 'Every session counts. Let’s build momentum.',
@@ -1500,8 +1572,8 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'progress.next.distance': '{value} to close the distance ring',
     'progress.next.none': 'All three rings closed for this window — hold this pace.',
     'progress.next.rings': 'Burn and distance rings fill once you set a calories or distance goal.',
-    'progress.hero.aria': 'Health grade and goal rings',
-    'progress.grade.aria': 'Health grade: {value} of 100',
+    'progress.hero.aria': 'Activity-goal progress and target rings',
+    'progress.grade.aria': 'Activity-goal progress: {value} of 100',
 
     // ── onboarding ────────────────────────────────────────────────────────
     'onboarding.step': 'Step {current} of {total}',
@@ -2610,8 +2682,10 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'checkin.weekOf': 'Semaine du {week}',
     'checkin.session': { one: '{count} séance', other: '{count} séances' },
     'checkin.minutes': '{count} min',
-    'checkin.weight': '{delta} kg par rapport à la semaine dernière',
+    'checkin.weight': 'Évolution depuis la pesée précédente : {delta}',
     'checkin.weightFlat': 'Poids stable',
+    'checkin.weightNoComparison': 'Pas assez de pesées pour comparer',
+    'checkin.weightNotLogged': 'Aucune pesée cette semaine',
     'checkin.goalsHit': 'Objectifs atteints : {list}',
     'checkin.goalsMissed': 'Encore ouverts : {list}',
     'checkin.stat.sessions': 'Séances',
@@ -2631,6 +2705,33 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'checkin.streak': { one: '{count} semaine d’affilée', other: '{count} semaines d’affilée' },
     'checkin.history': 'Bilans passés',
     'checkin.none': 'Aucun bilan pour l’instant.',
+    'checkin.stat.meals': 'Repas enregistrés',
+    'checkin.headline.blank':
+      'Aucune séance cette semaine. Sans jugement : choisissons la plus petite action qui trouvera sa place la semaine prochaine.',
+    'checkin.headline.planMet':
+      '{count} séances réalisées, chaque séance prévue est passée. C’est la semaine que ce plan visait.',
+    'checkin.headline.nearPlan': {
+      one: '{count} séance sur {planned} prévues. Vous y êtes presque — un petit ajustement suffirait.',
+      other:
+        '{count} séances sur {planned} prévues. Vous y êtes presque — un petit ajustement suffirait.',
+    },
+    'checkin.headline.sessions': {
+      one: '{count} séance enregistrée cette semaine. Quelque chose fonctionne : protégeons cette habitude la semaine prochaine.',
+      other:
+        '{count} séances enregistrées cette semaine. Quelque chose fonctionne : protégeons cette habitude la semaine prochaine.',
+    },
+    'checkin.action.scheduleFirst': 'Placez la première séance au calendrier : {names}.',
+    'checkin.action.bookOne':
+      'Réservez une séance — peu importe laquelle — dans les trois premiers jours de la semaine.',
+    'checkin.action.moveMissed':
+      'Avancez une séance manquée : {workouts} sur {planned} séances prévues ont été enregistrées.',
+    'checkin.action.shortStart':
+      'Commencez la nouvelle semaine par une séance courte ; après cinq jours sans séance, les habitudes peuvent s’essouffler.',
+    'checkin.action.trimTarget':
+      'Ajustez un objectif hebdomadaire au lieu de l’abandonner : {goal}.',
+    'checkin.action.holdGoal': 'Gardez le cap la semaine prochaine vers « {name} ».',
+    'checkin.action.consistency':
+      'Même cap la semaine prochaine : la régularité fait la différence.',
 
     // ── goals: deadlines ──────────────────────────────────────────────────
     'goal.deadline': 'Échéance (facultatif)',
@@ -3781,11 +3882,59 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'progress.chart.volumeTitle': 'Volume par muscle · {count} derniers jours',
     'progress.chart.volumeAria': 'Volume musculaire des {count} derniers jours',
     'progress.chart.muscleRow': '{label} : {volume}, {sets} séries',
+    'progress.mobile.subtitle':
+      'Tendances calculées à partir de vos données SmartFit. Aucun score de santé fournisseur n’est estimé ni suggéré.',
+    'progress.mobile.source.sessions':
+      'Séances enregistrées dans SmartFit · calories dépensées estimées',
+    'progress.mobile.caloriesEstimated': 'Calories estimées',
+    'progress.mobile.compare': '{value} par rapport à la période précédente',
+    'progress.mobile.comparedWith': 'Comparé à {range}',
+    'progress.mobile.emptyPeriod': 'Aucune séance enregistrée sur cette période.',
+    'progress.mobile.addWorkout': 'Enregistrer une séance',
+    'progress.mobile.nutrition.title': 'Repas enregistrés',
+    'progress.mobile.nutrition.subtitle':
+      'Uniquement les repas consignés — cette liste peut ne pas refléter tout ce que vous avez mangé.',
+    'progress.mobile.nutrition.empty': 'Aucun repas enregistré sur cette période.',
+    'progress.mobile.nutrition.calories': 'Calories consignées',
+    'progress.mobile.nutrition.protein': 'Protéines consignées',
+    'progress.mobile.mealSource.manual': 'Saisie utilisateur',
+    'progress.mobile.mealSource.estimate': 'Estimation sur cet appareil',
+    'progress.mobile.mealSource.photo': 'Saisie par photo',
+    'progress.mobile.mealSource.voice': 'Saisie vocale',
+    'progress.mobile.mealSource.voiceScan': 'Voix + estimation',
+    'progress.mobile.mealSource.unknown': 'Source non précisée',
+    'progress.mobile.addMeal': 'Enregistrer un repas',
+    'progress.mobile.body.title': 'Évolution du poids',
+    'progress.mobile.body.subtitle':
+      'Pesées saisies dans SmartFit sur cet appareil ; aucune synchronisation avec un fournisseur de santé.',
+    'progress.mobile.body.empty': 'Enregistrez une pesée pour commencer à suivre votre poids.',
+    'progress.mobile.body.single': 'Ajoutez une autre pesée pour voir l’évolution dans le temps.',
+    'progress.mobile.body.latest': 'Dernier poids enregistré',
+    'progress.mobile.body.change': 'Évolution sur les pesées affichées',
+    'progress.mobile.body.chartAria': 'Évolution du poids selon les pesées enregistrées',
+    'progress.mobile.addWeighIn': 'Enregistrer une pesée',
+    'progress.mobile.category.empty': 'Aucune minute d’activité sur cette période.',
+    'progress.mobile.intensity.empty': 'Aucune séance sur cette période.',
+    'progress.mobile.weeks.empty': 'Aucune séance au cours des huit dernières semaines.',
+    'progress.mobile.loading': 'Chargement de vos données SmartFit…',
+    'progress.mobile.loadError.title': 'Impossible d’ouvrir vos données locales',
+    'progress.mobile.loadError.body':
+      'SmartFit n’a pas remplacé les données enregistrées. Réessayez de les charger avant de continuer.',
+    'progress.mobile.category.strength': 'Renforcement',
+    'progress.mobile.category.cardio': 'Cardio',
+    'progress.mobile.category.hiit': 'HIIT',
+    'progress.mobile.category.mobility': 'Mobilité',
+    'progress.mobile.category.sports': 'Sports',
+    'progress.mobile.category.rest': 'Repos actif',
+    'progress.mobile.category.other': 'Autre',
+    'progress.mobile.intensity.low': 'Faible',
+    'progress.mobile.intensity.moderate': 'Modérée',
+    'progress.mobile.intensity.high': 'Élevée',
     'progress.sessionsLogged': {
       one: '{count} séance enregistrée au total',
       other: '{count} séances enregistrées au total',
     },
-    'progress.grade': 'Note de santé',
+    'progress.grade': 'Progression des objectifs d’activité',
     'progress.grade.perfect': 'Progression parfaite — continuez comme ça.',
     'progress.grade.solid': 'Du bon travail — une séance de plus fait la différence.',
     'progress.grade.building': 'Chaque séance compte. Prenons de l’élan.',
@@ -3807,8 +3956,8 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'progress.next.none': 'Les trois anneaux sont fermés — tenez ce rythme.',
     'progress.next.rings':
       'Les anneaux de dépense et de distance se remplissent dès que vous fixez un objectif de calories ou de distance.',
-    'progress.hero.aria': 'Note de santé et anneaux d’objectifs',
-    'progress.grade.aria': 'Note de santé : {value} sur 100',
+    'progress.hero.aria': 'Progression des objectifs d’activité et anneaux de cible',
+    'progress.grade.aria': 'Progression des objectifs d’activité : {value} sur 100',
 
     // ── inscription ───────────────────────────────────────────────────────
     'onboarding.step': 'Étape {current} sur {total}',

@@ -1,6 +1,6 @@
 # Sonar-inspired SmartFit rollout
 
-**Status:** Phases 1 and 2 are implemented in this branch. This is a SmartFit roadmap inspired by the Sonar comparison audit, not a claim of Sonar API integration or feature parity.
+**Status:** Phases 1–3 are implemented in this branch. This is a SmartFit roadmap inspired by the Sonar comparison audit, not a claim of Sonar API integration or feature parity.
 
 ## Guardrails
 
@@ -25,11 +25,12 @@
 - Add an opt-in native GPS run flow. Explain foreground-only location before requesting it, never request background access, automatically pause when the app leaves the foreground, and offer pause/resume plus explicit save/discard. A manual no-location run log remains available.
 - Persist meals and run sessions in the mobile app's existing AsyncStorage state. Route capture has no provider sync in this implementation; do not imply cloud or Apple Health / Health Connect sync.
 
-## Phase 3 — Cross-platform insights and weekly review
+## Phase 3 — Cross-platform insights and weekly review (implemented)
 
-- Bring the web's useful progress, trend and weekly-review patterns to mobile, sharing domain calculations rather than reimplementing them per screen.
-- Provide clear date ranges, source labels, empty/loading/error states and accessible charts.
-- Base insights on real SmartFit workout, goal, meal and body logs. Add sleep/recovery/stress scores only after valid source data and a defensible baseline are available; never borrow Sonar's scale or call a SmartFit estimate a provider score without explicit methodology.
+- Add mobile progress windows for the last 7, 30 and 90 days, prior-window comparisons, an 8-week active-minute chart, activity/intensity breakdowns, logged-meal totals with provenance labels, and a trend from the latest eight weigh-ins.
+- Add the shared weekly-review flow on mobile: it reviews only a completed week, summarizes actual workout/meal/body logs, records the athlete's feeling and optional note, and shows localized next-week actions/history. Web and mobile share period and review calculations.
+- Label the exact date windows, estimated calories, meal-entry sources and local weigh-in provenance. Provide empty, loading and safe retry states plus accessible chart summaries; do not substitute zeroes for unavailable source data.
+- Base insights on real SmartFit workout, goal, meal and body logs. Sleep/recovery/stress scores remain out of scope until valid source data and a defensible baseline are available; never borrow Sonar's scale or call a SmartFit estimate a provider score without explicit methodology.
 
 ## Phase 4 — Optional health connections
 

@@ -221,11 +221,17 @@ test('language: the progress hero and the badge wall are French too', async ({ p
 
   // ── the first card ───────────────────────────────────────────────────────
   await page.goto('/dashboard/progress');
-  const hero = page.getByRole('region', { name: 'Note de santé et anneaux d’objectifs' });
+  const hero = page.getByRole('region', {
+    name: 'Progression des objectifs d’activité et anneaux de cible',
+  });
   await expect(hero).toBeVisible();
-  await expect(hero.getByRole('heading', { name: 'Note de santé' })).toBeVisible();
+  await expect(
+    hero.getByRole('heading', { name: 'Progression des objectifs d’activité' }),
+  ).toBeVisible();
   // The score is announced, not painted: the ring carries it as its name.
-  await expect(hero.getByRole('img', { name: /^Note de santé : \d+ sur 100$/ })).toBeVisible();
+  await expect(
+    hero.getByRole('img', { name: /^Progression des objectifs d’activité : \d+ sur 100$/ }),
+  ).toBeVisible();
   // The ring labels are exact strings — "exercice" also appears inside the
   // "what to do next" sentence, so a substring match would be ambiguous.
   await expect(hero.getByText('Exercice', { exact: true })).toBeVisible();

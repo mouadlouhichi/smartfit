@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import Svg, { Line, Rect, Text as SvgText } from 'react-native-svg';
 
 export interface BarDatum {
@@ -11,20 +11,28 @@ export function BarChart({
   data,
   color = '#f3ff47',
   height = 180,
+  accessibilityLabel,
+  accessibilityDetails,
 }: {
   data: BarDatum[];
   color?: string;
   height?: number;
+  accessibilityLabel?: string;
+  accessibilityDetails?: string[];
 }) {
   const max = Math.max(1, ...data.map((d) => d.value));
   const width = 320;
   const padBottom = 22;
   const padTop = 10;
   const chartH = height - padBottom - padTop;
-  const barW = width / data.length;
+  const barW = width / Math.max(1, data.length);
+  const describedData = data.map((item) => `${item.label}: ${item.value}`).join('; ');
+  const description = [accessibilityLabel, ...(accessibilityDetails ?? [describedData])]
+    .filter(Boolean)
+    .join('. ');
 
   return (
-    <View>
+    <View accessible accessibilityRole="image" accessibilityLabel={description}>
       <Svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`}>
         <Line
           x1={0}
@@ -40,16 +48,27 @@ export function BarChart({
           const w = barW * 0.6;
           const y = height - padBottom - h;
           return (
-            <React.Fragment key={i}>
-              <Rect
-                x={x}
-                y={y}
-                width={w}
-                height={Math.max(2, h)}
-                rx={4}
-                fill={color}
-                opacity={i === data.length - 1 ? 1 : 0.75}
-              />
+            <React.Fragment key={`${d.label}-${i}`}>
+              {d.value > 0 && (
+                <Rect
+                  x={x}
+                  y={y}
+                  width={w}
+                  height={Math.max(2, h)}
+                  rx={4}
+                  fill={color}
+                  opacity={i === data.length - 1 ? 1 : 0.75}
+                />
+              )}
+              <SvgText
+                x={i * barW + barW / 2}
+                y={d.value > 0 ? Math.max(padTop + 8, y - 4) : height - padBottom - 4}
+                fontSize={8}
+                fill="#a3a3a3"
+                textAnchor="middle"
+              >
+                {d.value}
+              </SvgText>
               <SvgText
                 x={i * barW + barW / 2}
                 y={height - 6}
@@ -62,9 +81,7 @@ export function BarChart({
             </React.Fragment>
           );
         })}
-        {padTop ? null : null}
       </Svg>
-      <Text className="text-muted-foreground mt-1 text-xs"> </Text>
     </View>
   );
 }
