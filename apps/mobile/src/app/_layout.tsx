@@ -26,6 +26,7 @@ export default function RootLayout() {
           <Tabs.Screen name="goals" options={{ title: 'Goals' }} />
           <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
           <Tabs.Screen name="coach" options={{ href: null }} />
+          <Tabs.Screen name="run" options={{ href: null }} />
         </Tabs>
       </QuickActionsProvider>
     </StoreProvider>

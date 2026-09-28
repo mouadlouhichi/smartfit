@@ -37,7 +37,16 @@ const config = {
     bundler: 'metro',
   },
 
-  plugins: ['expo-router'],
+  plugins: [
+    'expo-router',
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'SmartFit uses location only while a GPS run is active and the app is in the foreground.',
+      },
+    ],
+  ],
 };
 
 module.exports = config;

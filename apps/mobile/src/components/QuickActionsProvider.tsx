@@ -12,11 +12,13 @@ import * as Haptics from 'expo-haptics';
 import { useStore } from '@/lib/store';
 import { BodyMeasurementModal } from '@/components/BodyMeasurementModal';
 import { LogWorkoutModal } from '@/components/LogWorkoutModal';
+import { MealEntryModal } from '@/components/MealEntryModal';
 import { QuickActionSheet, type QuickAction } from '@/components/QuickActionSheet';
 
 type QuickActionsValue = {
   openQuickActions: () => void;
   openWorkout: () => void;
+  openMeal: () => void;
   openMeasurement: () => void;
 };
 
@@ -33,6 +35,7 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
   const { ready } = useStore();
   const [menuOpen, setMenuOpen] = useState(false);
   const [workoutOpen, setWorkoutOpen] = useState(false);
+  const [mealOpen, setMealOpen] = useState(false);
   const [measurementOpen, setMeasurementOpen] = useState(false);
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -53,6 +56,11 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
     void Haptics.selectionAsync().catch(() => {});
     setWorkoutOpen(true);
   }, [ready]);
+  const openMeal = useCallback(() => {
+    if (!ready) return;
+    void Haptics.selectionAsync().catch(() => {});
+    setMealOpen(true);
+  }, [ready]);
   const openMeasurement = useCallback(() => {
     if (!ready) return;
     void Haptics.selectionAsync().catch(() => {});
@@ -68,6 +76,12 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
         switch (action) {
           case 'workout':
             setWorkoutOpen(true);
+            break;
+          case 'meal':
+            setMealOpen(true);
+            break;
+          case 'run':
+            router.push('/run');
             break;
           case 'measurement':
             setMeasurementOpen(true);
@@ -92,8 +106,8 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
   );
 
   const contextValue = useMemo(
-    () => ({ openQuickActions, openWorkout, openMeasurement }),
-    [openQuickActions, openWorkout, openMeasurement],
+    () => ({ openQuickActions, openWorkout, openMeal, openMeasurement }),
+    [openQuickActions, openWorkout, openMeal, openMeasurement],
   );
 
   return (
@@ -105,6 +119,7 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
         onSelect={selectAction}
       />
       <LogWorkoutModal open={workoutOpen} onClose={() => setWorkoutOpen(false)} />
+      <MealEntryModal open={mealOpen} onClose={() => setMealOpen(false)} />
       <BodyMeasurementModal open={measurementOpen} onClose={() => setMeasurementOpen(false)} />
     </QuickActionsContext.Provider>
   );

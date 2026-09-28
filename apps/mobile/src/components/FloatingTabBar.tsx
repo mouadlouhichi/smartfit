@@ -67,7 +67,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   const activeRoute = state.routes[state.index];
 
   // Coach is a pushed, hidden route rather than a sixth navigation destination.
-  const hidden = activeRoute?.name === 'coach';
+  const hidden = activeRoute?.name === 'coach' || activeRoute?.name === 'run';
   const visibleRoutes = state.routes.filter((route) => Boolean(ICONS[route.name]));
   const visibleIndex = visibleRoutes.findIndex((route) => route.key === activeRoute?.key);
   const slotCount = visibleRoutes.length + 1;

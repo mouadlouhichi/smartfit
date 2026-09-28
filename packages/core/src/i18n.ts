@@ -272,6 +272,22 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       '“{name}” from {date} will be removed from your fuel log. This cannot be undone.',
     'meal.deleteConfirm': 'Delete meal',
     'meal.save': 'Save meal',
+    'meal.mobile.description':
+      'Log a meal on this device, or estimate macros from a typed description using SmartFit’s built-in food table.',
+    'meal.mobile.estimateNotice':
+      'Food-table results are rough estimates, not measured nutrition. Nothing is sent to an AI or food provider. Review and edit every number before saving.',
+    'meal.mobile.useFields':
+      'To keep your numbers labeled as user-entered, type calories and macros into the fields below. Use this description for foods you want SmartFit to estimate from its local table.',
+    'meal.mobile.estimateCta': 'Estimate from foods',
+    'meal.mobile.estimated': 'On-device estimate',
+    'meal.mobile.reviewNotice':
+      'These values are estimates from SmartFit’s food table. Edit them as needed; they are saved only after you tap Save meal.',
+    'meal.mobile.namePlaceholder': 'e.g. Chicken, rice and salad',
+    'meal.mobile.estimateBadge': 'Estimate',
+    'meal.mobile.manualBadge': 'Entered',
+    'meal.mobile.errorNumbers': 'Enter valid non-negative numbers; calories are required.',
+    'meal.mobile.count': { one: '{count} meal today', other: '{count} meals today' },
+    'meal.mobile.caloriesLeft': '{count} kcal left',
     'meal.error.name': 'Give the meal a name.',
     'meal.error.calories': 'Enter the calories (or use the scan).',
 
@@ -993,6 +1009,40 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'run.field.notes': 'Notes',
     'run.field.notesHint': 'How did it feel? (optional)',
     'run.field.notesPlaceholder': 'Legs felt strong…',
+    'run.mobile.intro':
+      'Record an outdoor run with foreground GPS, or log its duration and distance manually without location access.',
+    'run.mobile.back': 'Back',
+    'run.mobile.locationTitle': 'Location and privacy',
+    'run.mobile.locationDisclosure':
+      'SmartFit asks for foreground location only after you tap Start GPS run. Location is used while this screen is recording and only while the app stays open. No background permission or tracking is used. Your route is saved on this device in SmartFit. This release does not sync it to Apple Health, Google Fit, or another provider. Pause, resume, save, or discard whenever you choose.',
+    'run.mobile.startGps': 'Start GPS run',
+    'run.mobile.requesting': 'Checking location…',
+    'run.mobile.manual': 'Log a run without GPS',
+    'run.mobile.servicesOff':
+      'Location services are off. Turn them on to record a route, or log a run manually.',
+    'run.mobile.permissionDenied':
+      'Location permission was not granted. You can try again or log a run manually without a route.',
+    'run.mobile.locationUnavailable':
+      'SmartFit could not start foreground location. Try again or log the run manually.',
+    'run.mobile.backgroundPaused':
+      'Paused because SmartFit left the foreground. Location stops while the app is away; resume when you return.',
+    'run.mobile.paused': 'Paused',
+    'run.mobile.elapsed': 'Elapsed time',
+    'run.mobile.gpsActive': 'GPS route points are captured only while this run is active.',
+    'run.mobile.routeLocal':
+      'Route preview from this run’s GPS points; this is not a street map. The route is kept in this device’s SmartFit data.',
+    'run.mobile.saveNotice':
+      'Distance and splits come from the GPS trace. Calories are an estimate based on duration, effort and your latest saved body weight when available. No provider sync is included.',
+    'run.mobile.manualTitle': 'Log a run manually',
+    'run.mobile.manualNotice':
+      'Manual entry records the title, duration, distance and effort you provide. Calories are estimated; no route is recorded and no location is requested.',
+    'run.mobile.durationMin': 'Duration (minutes)',
+    'run.mobile.distanceOptional': 'Optional',
+    'run.mobile.manualError':
+      'Enter a positive duration and a positive distance, or leave distance blank.',
+    'run.mobile.manualNote': 'Logged manually without GPS.',
+    'run.mobile.noRoute':
+      'No route points yet. A route preview appears after accurate GPS fixes arrive.',
 
     // ── session runner (live logging) ─────────────────────────────────────
     'runner.liveSession': 'Live session: {title}',
@@ -1630,7 +1680,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.hero.word.progress': 'progress',
     'landing.hero.word.recover': 'recover',
     'landing.hero.body':
-      'Log each session and the plan it belongs to — two separate views that stay reconciled through every workout. Strength, cardio and HIIT, tracked privately on your device.',
+      'Log each session and the plan it belongs to — two separate views that stay reconciled through every workout. Strength, cardio and HIIT with local-first storage; no wearable is required.',
     'landing.hero.start': 'Start training free',
     'landing.hero.how': 'See how it works',
     'landing.hero.stat.styles': 'training styles to pick from',
@@ -1644,7 +1694,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.whatIs.title': 'What is SmartFit?',
     'landing.whatIs.titleLine2': 'The free workout tracker.',
     'landing.whatIs.body':
-      'SmartFit is a private fitness tracker that separates what a session is — strength, cardio, HIIT or mobility — from the recurring plan it belongs to. It supports 4 proven training strategies: Push/Pull/Legs, Upper/Lower, Full Body 3× and Cardio & Conditioning. SmartFit never pairs with a watch or ring; you log sessions manually so nothing is misattributed. Your data lives entirely on your device — there is no account and no cloud watching you.',
+      'SmartFit separates what a session is — strength, cardio, HIIT or mobility — from the recurring plan it belongs to. It supports 4 proven strategies: Push/Pull/Legs, Upper/Lower, Full Body 3× and Cardio & Conditioning. SmartFit does not pair with wearables or connect to health platforms. Log sessions manually, or explicitly enable foreground GPS for a run. Storage is local-first; authenticated modes use a private account, with gym and member surfaces kept tenant-scoped.',
     'landing.plans.eyebrow': 'Training styles',
     'landing.plans.title': 'Four proven splits.',
     'landing.plans.titleLine2': 'Pick the one that fits your week.',
@@ -1745,10 +1795,10 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.activity.styles': '4 training styles →',
     'landing.security.private.title': 'Private by default',
     'landing.security.private.body':
-      'Your workouts live in local-first storage on your device — and if your SmartFit uses cloud sync, in a private account only you can read.',
-    'landing.security.sensors.title': 'No sensors, no surveillance',
+      'SmartFit is local-first. In account mode, access follows account ownership and role- and tenant-scoped permissions for gym and member features; staff access depends on their assigned role.',
+    'landing.security.sensors.title': 'No wearable sync or health imports',
     'landing.security.sensors.body':
-      'SmartFit never pairs with a watch, ring or phone sensor. You decide what counts as a session.',
+      'SmartFit does not pair with watches or rings or import Apple Health / Health Connect data. GPS route capture is optional and only runs during a run you start; mobile location stops when the app leaves the foreground. Manual logs need no location.',
     'landing.security.ads.title': 'No advertising profiles',
     'landing.security.ads.body':
       'We never use your training data to build ad profiles or sell it to third parties. No trackers.',
@@ -1764,7 +1814,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.security.title': 'Your training,',
     'landing.security.titleLine2': 'your business.',
     'landing.security.body':
-      'Everything stays under your control — on your device or in your private account. Export and deletion controls live in Profile, and nothing is ever shared.',
+      'Storage is local-first or account-based, depending on your setup. Gym and member records follow assigned tenant roles; exports and run cards are shared only when you choose those actions. Profile includes personal data controls.',
     'landing.faq.free.q': 'Is SmartFit free?',
     'landing.faq.free.a':
       'Yes — the full training core is free forever: unlimited workout logging, plans, goals, streaks, records, achievements and data export. The Pro surface is currently a local product preview only; there is no paid subscription or charge in this release.',
@@ -1776,7 +1826,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'The current release has no paid Pro accounts. In the local preview, the planned calculations use the same on-device data model; any future paid release must document its billing and entitlement behavior before launch.',
     'landing.faq.wearable.q': 'Do I need a smartwatch or wearable?',
     'landing.faq.wearable.a':
-      'No. SmartFit never pairs with a watch, ring or phone sensor. You log sessions manually, so nothing is misattributed — you decide exactly what counts as a workout.',
+      'No wearable is required. SmartFit does not pair with watches or rings or import health-platform data. You can log sessions manually, or explicitly choose GPS route capture for a run. On mobile, location is foreground-only and stops when the app leaves the foreground.',
     'landing.faq.styles.q': 'What training styles does SmartFit support?',
     'landing.faq.styles.a':
       'Four proven strategies: Push/Pull/Legs (6-day), Upper/Lower (4-day), Full Body 3× for beginners and busy schedules, and Cardio & Conditioning. You can switch plans anytime without losing history.',
@@ -1785,7 +1835,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'Strength, cardio, HIIT, mobility and sport are built in — running, cycling, swimming, rowing, boxing, yoga and more all map to a type. You can also add custom activity types.',
     'landing.faq.privacy.q': 'Is my data private?',
     'landing.faq.privacy.a':
-      'Yes. In local mode your data stays in this browser. If you choose account mode, it is stored in your own Firebase account and protected by ownership rules. We do not build advertising profiles or sell your data.',
+      'In local mode your data stays in this browser. In account mode it is stored in Firebase under account-ownership rules; gym and member records also use assigned tenant-role permissions. We do not build advertising profiles or sell your data.',
     'landing.faq.export.q': 'Can I export my data?',
     'landing.faq.export.a':
       'Yes. From Profile you can export a complete, restorable JSON backup plus a CSV of every set for spreadsheets — free on every tier, any time.',
@@ -2508,6 +2558,23 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       '« {name} » du {date} sera retiré de votre journal alimentaire. Cette action est irréversible.',
     'meal.deleteConfirm': 'Supprimer le repas',
     'meal.save': 'Enregistrer le repas',
+    'meal.mobile.description':
+      'Enregistrez un repas sur cet appareil ou estimez ses macros à partir d’une description et de la table alimentaire SmartFit.',
+    'meal.mobile.estimateNotice':
+      'Les valeurs de la table sont des estimations, pas des mesures nutritionnelles. Rien n’est envoyé à une IA ni à un fournisseur alimentaire. Vérifiez et modifiez les chiffres avant l’enregistrement.',
+    'meal.mobile.useFields':
+      'Pour que vos chiffres restent identifiés comme saisis par vous, entrez calories et macros dans les champs ci-dessous. Utilisez cette description pour les aliments que SmartFit doit estimer avec sa table locale.',
+    'meal.mobile.estimateCta': 'Estimer depuis les aliments',
+    'meal.mobile.estimated': 'Estimation sur cet appareil',
+    'meal.mobile.reviewNotice':
+      'Ces chiffres sont des estimations de la table SmartFit. Modifiez-les si besoin ; ils ne sont enregistrés qu’après avoir touché Enregistrer le repas.',
+    'meal.mobile.namePlaceholder': 'ex. Poulet, riz et salade',
+    'meal.mobile.estimateBadge': 'Estimation',
+    'meal.mobile.manualBadge': 'Saisie',
+    'meal.mobile.errorNumbers':
+      'Saisissez des nombres valides positifs ou nuls ; les calories sont obligatoires.',
+    'meal.mobile.count': { one: '{count} repas aujourd’hui', other: '{count} repas aujourd’hui' },
+    'meal.mobile.caloriesLeft': 'Il reste {count} kcal',
     'meal.error.name': 'Donnez un nom au repas.',
     'meal.error.calories': 'Saisissez les calories (ou utilisez l’analyse).',
 
@@ -3016,6 +3083,41 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'run.field.notes': 'Notes',
     'run.field.notesHint': 'Comment c’était ? (facultatif)',
     'run.field.notesPlaceholder': 'Jambes légères…',
+    'run.mobile.intro':
+      'Enregistrez une course en extérieur avec le GPS au premier plan, ou ajoutez sa durée et sa distance manuellement sans accès à la localisation.',
+    'run.mobile.back': 'Retour',
+    'run.mobile.locationTitle': 'Localisation et confidentialité',
+    'run.mobile.locationDisclosure':
+      'SmartFit ne demande la localisation au premier plan qu’après que vous avez touché « Démarrer une course GPS ». Elle est utilisée pendant l’enregistrement et uniquement lorsque l’application reste ouverte. Aucune autorisation ni aucun suivi en arrière-plan. Votre parcours est enregistré dans SmartFit sur cet appareil. Cette version ne le synchronise pas avec Apple Health, Google Fit ni un autre fournisseur. Vous pouvez mettre en pause, reprendre, enregistrer ou abandonner.',
+    'run.mobile.startGps': 'Démarrer une course GPS',
+    'run.mobile.requesting': 'Vérification de la localisation…',
+    'run.mobile.manual': 'Enregistrer sans GPS',
+    'run.mobile.servicesOff':
+      'La localisation est désactivée. Activez-la pour enregistrer un parcours ou saisissez la course manuellement.',
+    'run.mobile.permissionDenied':
+      'L’autorisation de localisation n’a pas été accordée. Réessayez ou enregistrez la course manuellement, sans parcours.',
+    'run.mobile.locationUnavailable':
+      'SmartFit n’a pas pu démarrer la localisation au premier plan. Réessayez ou saisissez la course manuellement.',
+    'run.mobile.backgroundPaused':
+      'Pause automatique car SmartFit est passé en arrière-plan. La localisation s’arrête lorsque l’application est en retrait ; reprenez à votre retour.',
+    'run.mobile.paused': 'En pause',
+    'run.mobile.elapsed': 'Temps écoulé',
+    'run.mobile.gpsActive':
+      'Les points GPS du parcours sont enregistrés uniquement pendant cette course.',
+    'run.mobile.routeLocal':
+      'Aperçu tracé à partir des points GPS de cette course ; ce n’est pas une carte de rues. Le parcours reste dans les données SmartFit de cet appareil.',
+    'run.mobile.saveNotice':
+      'La distance et les intervalles proviennent du tracé GPS. Les calories sont estimées à partir de la durée, de l’effort et du dernier poids enregistré, s’il existe. Aucune synchronisation avec un fournisseur n’est incluse.',
+    'run.mobile.manualTitle': 'Enregistrer une course manuellement',
+    'run.mobile.manualNotice':
+      'La saisie manuelle consigne le titre, la durée, la distance et l’effort que vous indiquez. Les calories sont estimées ; aucun parcours n’est enregistré et la localisation n’est pas demandée.',
+    'run.mobile.durationMin': 'Durée (minutes)',
+    'run.mobile.distanceOptional': 'Facultative',
+    'run.mobile.manualError':
+      'Saisissez une durée positive et une distance positive, ou laissez la distance vide.',
+    'run.mobile.manualNote': 'Saisie manuelle, sans GPS.',
+    'run.mobile.noRoute':
+      'Aucun point GPS pour le moment. L’aperçu apparaît après réception de positions GPS précises.',
 
     // ── séance guidée (journal en direct) ─────────────────────────────────
     'runner.liveSession': 'Séance en direct : {title}',
@@ -3893,7 +3995,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.hero.word.progress': 'progresser',
     'landing.hero.word.recover': 'récupérer',
     'landing.hero.body':
-      'Consignez chaque séance et le plan auquel elle appartient — deux vues distinctes, toujours cohérentes, séance après séance. Force, cardio et HIIT, suivis en privé sur votre appareil.',
+      'Consignez chaque séance et le plan auquel elle appartient — deux vues distinctes, toujours cohérentes, séance après séance. Force, cardio et HIIT avec un stockage local d’abord ; aucune montre connectée requise.',
     'landing.hero.start': 'Commencer gratuitement',
     'landing.hero.how': 'Voir comment ça marche',
     'landing.hero.stat.styles': 'styles d’entraînement au choix',
@@ -3907,7 +4009,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.whatIs.title': 'SmartFit, c’est quoi ?',
     'landing.whatIs.titleLine2': 'Le suivi d’entraînement gratuit.',
     'landing.whatIs.body':
-      'SmartFit est un suivi fitness privé qui sépare ce qu’est une séance — force, cardio, HIIT ou mobilité — du plan récurrent auquel elle appartient. Il prend en charge 4 stratégies éprouvées : Push/Pull/Legs, Haut/Bas, Full Body 3× et Cardio & Conditionnement. SmartFit ne se couple à aucune montre ni bague : vous consignez vos séances à la main, donc rien n’est mal attribué. Vos données restent entièrement sur votre appareil — pas de compte, pas de cloud qui vous observe.',
+      'SmartFit sépare le type de séance — force, cardio, HIIT ou mobilité — du plan récurrent auquel elle appartient. Il prend en charge 4 stratégies éprouvées : Push/Pull/Legs, Haut/Bas, Full Body 3× et Cardio & Conditionnement. SmartFit ne se couple pas aux objets connectés et ne se connecte pas aux plateformes de santé. Saisissez vos séances manuellement ou activez explicitement le GPS au premier plan pour une course. Le stockage est local d’abord ; les modes avec compte utilisent un compte privé, et les espaces salle et adhérent restent cloisonnés par locataire.',
     'landing.plans.eyebrow': 'Styles d’entraînement',
     'landing.plans.title': 'Quatre splits éprouvés.',
     'landing.plans.titleLine2': 'Choisissez celui qui colle à votre semaine.',
@@ -4008,10 +4110,10 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.activity.styles': '4 styles d’entraînement →',
     'landing.security.private.title': 'Privé par défaut',
     'landing.security.private.body':
-      'Vos entraînements vivent d’abord en local sur votre appareil — et si votre SmartFit utilise la synchronisation, dans un compte privé que vous seul pouvez lire.',
-    'landing.security.sensors.title': 'Aucun capteur, aucune surveillance',
+      'SmartFit privilégie le stockage local. En mode compte, l’accès suit la propriété du compte ainsi que les rôles et limites de locataire pour les espaces salle et adhérent ; l’accès du personnel dépend du rôle attribué.',
+    'landing.security.sensors.title': 'Sans synchronisation de montres ni de données santé',
     'landing.security.sensors.body':
-      'SmartFit ne se couple jamais à une montre, une bague ou un capteur du téléphone. C’est vous qui décidez ce qui compte comme séance.',
+      'SmartFit ne se couple pas aux montres ni aux bagues et n’importe pas les données Apple Health / Health Connect. Le GPS est facultatif et actif uniquement pendant une course démarrée par vous ; sur mobile, la localisation s’arrête lorsque l’application passe en arrière-plan. La saisie manuelle ne demande aucune localisation.',
     'landing.security.ads.title': 'Aucun profil publicitaire',
     'landing.security.ads.body':
       'Nous n’utilisons jamais vos données d’entraînement pour créer des profils publicitaires ni les vendre à des tiers. Aucun traqueur.',
@@ -4027,7 +4129,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
     'landing.security.title': 'Votre entraînement,',
     'landing.security.titleLine2': 'votre affaire.',
     'landing.security.body':
-      'Tout reste sous votre contrôle — sur votre appareil ou dans votre compte privé. L’export et la suppression se trouvent dans le Profil, et rien n’est jamais partagé.',
+      'Le stockage est local d’abord ou lié au compte selon votre configuration. Les données salle et adhérents suivent les rôles attribués au locataire ; les exports et cartes de course ne sont partagés que si vous choisissez ces actions. Le Profil contient les contrôles de vos données personnelles.',
     'landing.faq.free.q': 'SmartFit est-il gratuit ?',
     'landing.faq.free.a':
       'Oui — tout le cœur de l’entraînement est gratuit pour toujours : séances illimitées, plans, objectifs, séries, records, succès et export de données. L’espace Pro n’est pour l’instant qu’un aperçu local ; il n’y a ni abonnement ni paiement dans cette version.',
@@ -4039,7 +4141,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'Cette version ne comporte aucun compte Pro payant. Dans l’aperçu local, les calculs prévus utilisent le même modèle de données sur l’appareil ; toute version payante future devra documenter sa facturation et ses droits avant sa sortie.',
     'landing.faq.wearable.q': 'Faut-il une montre connectée ?',
     'landing.faq.wearable.a':
-      'Non. SmartFit ne se couple jamais à une montre, une bague ou un capteur du téléphone. Vous consignez vos séances à la main : rien n’est mal attribué, c’est vous qui décidez ce qui compte comme entraînement.',
+      'Aucun objet connecté n’est nécessaire. SmartFit ne se couple pas aux montres ni aux bagues et n’importe pas les données des plateformes de santé. Vous pouvez saisir vos séances à la main ou choisir explicitement le GPS pour tracer une course. Sur mobile, la localisation reste au premier plan et s’arrête lorsque l’application passe en arrière-plan.',
     'landing.faq.styles.q': 'Quels styles d’entraînement SmartFit prend-il en charge ?',
     'landing.faq.styles.a':
       'Quatre stratégies éprouvées : Push/Pull/Legs (6 jours), Haut/Bas (4 jours), Full Body 3× pour les débutants et les emplois du temps chargés, et Cardio & Conditionnement. Vous pouvez changer de plan à tout moment sans perdre votre historique.',
@@ -4048,7 +4150,7 @@ export const MESSAGES: Record<Locale, Record<string, Message>> = {
       'La force, le cardio, le HIIT, la mobilité et le sport sont intégrés — course, vélo, natation, rameur, boxe, yoga et bien d’autres correspondent à un type. Vous pouvez aussi ajouter vos propres types d’activité.',
     'landing.faq.privacy.q': 'Mes données sont-elles privées ?',
     'landing.faq.privacy.a':
-      'Oui. En mode local, vos données restent dans ce navigateur. Si vous choisissez le mode compte, elles sont stockées dans votre propre compte Firebase et protégées par des règles de propriété. Nous ne créons pas de profils publicitaires et ne vendons pas vos données.',
+      'En mode local, vos données restent dans ce navigateur. En mode compte, elles sont stockées dans Firebase sous des règles de propriété du compte ; les données salle et adhérents utilisent aussi les rôles attribués au locataire. Nous ne créons pas de profils publicitaires et ne vendons pas vos données.',
     'landing.faq.export.q': 'Puis-je exporter mes données ?',
     'landing.faq.export.a':
       'Oui. Depuis le Profil, vous pouvez exporter une sauvegarde JSON complète et restaurable, plus un CSV de chaque série pour vos tableurs — gratuit sur toutes les offres, à tout moment.',

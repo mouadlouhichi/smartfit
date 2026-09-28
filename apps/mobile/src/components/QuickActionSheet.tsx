@@ -3,23 +3,28 @@ import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Activity,
-  LineChart,
   ClipboardPlus,
   Dumbbell,
+  Footprints,
+  LineChart,
   Sparkles,
   Target,
+  Utensils,
   X,
   type LucideIcon,
 } from 'lucide-react-native';
 import { createTranslator, resolveLocale } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 
-export type QuickAction = 'workout' | 'measurement' | 'goals' | 'plan' | 'progress' | 'coach';
+export type QuickAction =
+  'workout' | 'meal' | 'run' | 'measurement' | 'goals' | 'plan' | 'progress' | 'coach';
 
 type ActionOption = {
   id: QuickAction;
   labelKey:
     | 'quickActions.workout'
+    | 'quickActions.meal'
+    | 'quickActions.run'
     | 'quickActions.measurement'
     | 'quickActions.goals'
     | 'quickActions.plan'
@@ -30,6 +35,8 @@ type ActionOption = {
 
 const ACTIONS: ActionOption[] = [
   { id: 'workout', labelKey: 'quickActions.workout', icon: Dumbbell },
+  { id: 'meal', labelKey: 'quickActions.meal', icon: Utensils },
+  { id: 'run', labelKey: 'quickActions.run', icon: Footprints },
   { id: 'measurement', labelKey: 'quickActions.measurement', icon: ClipboardPlus },
   { id: 'goals', labelKey: 'quickActions.goals', icon: Target },
   { id: 'plan', labelKey: 'quickActions.plan', icon: Activity },

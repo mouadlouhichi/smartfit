@@ -7,6 +7,7 @@ import {
   type BodyLog,
   type FitnessGoal,
   type FitnessState,
+  type MealLog,
   type ScheduledWorkout,
   type UserProfile,
   type WorkoutSession,
@@ -30,6 +31,7 @@ interface StoreValue {
   deleteGoal: (id: string) => void;
   updateSchedule: (id: string, patch: Partial<ScheduledWorkout>) => void;
   addBodyLog: (b: Omit<BodyLog, 'id' | 'createdAt'>) => void;
+  addMeal: (m: Omit<MealLog, 'id' | 'createdAt'>) => void;
   updateProfile: (patch: Partial<UserProfile>) => void;
   clearData: () => void;
 }
@@ -81,6 +83,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setState((p) => ({
           ...p,
           bodyLogs: [...p.bodyLogs, { ...b, id: uid('body'), createdAt: Date.now() }],
+        })),
+      addMeal: (m) =>
+        setState((p) => ({
+          ...p,
+          meals: [...p.meals, { ...m, id: uid('meal'), createdAt: Date.now() }].sort((a, b) =>
+            a.date < b.date ? 1 : -1,
+          ),
         })),
       updateProfile: (patch) => setState((p) => ({ ...p, profile: { ...p.profile, ...patch } })),
       clearData: () => setState(emptyState()),

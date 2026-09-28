@@ -1,6 +1,6 @@
 # Sonar-inspired SmartFit rollout
 
-**Status:** Phase 1 is implemented in this branch. This is a SmartFit roadmap inspired by the Sonar comparison audit, not a claim of Sonar API integration or feature parity.
+**Status:** Phases 1 and 2 are implemented in this branch. This is a SmartFit roadmap inspired by the Sonar comparison audit, not a claim of Sonar API integration or feature parity.
 
 ## Guardrails
 
@@ -13,17 +13,17 @@
 ## Phase 1 — Fast capture and a clear coach entry point (implemented)
 
 - Add a shared quick-actions entry point to the personal web dashboard and Expo navigation, while retaining direct workout logging.
-- Keep each menu honest to its platform: web offers workout, meal, measurement, run, goals, plan, progress and coach; native offers the existing workout, measurement, goals, plan and progress surfaces plus the new local coach. Native meal/run capture is not included yet.
+- Keep each menu honest to its platform: web offers workout, meal, measurement, run, goals, plan, progress and coach; Phase 1 native keeps workout, measurement, goals, plan, progress and the local coach. Phase 2 adds native meal and run capture as described below.
 - Add a mobile coach backed by the deterministic `answerCoach` engine. It reads the local fitness state, makes no AI/network claim, visibly states the on-device boundary, and shows a training/wellness—not medical—disclaimer.
 - Store body entries in canonical kg/cm while accepting the athlete's preferred display units.
 - Add native haptic feedback and retain the Volt flame mark's shadow/depth across generated app-icon assets and the web logo.
 - Keep English and French copy in parity for new shared strings.
 
-## Phase 2 — Native capture parity
+## Phase 2 — Native capture parity (implemented)
 
-- Add mobile meal capture that reuses SmartFit's nutrition model and clearly distinguishes typed/user-confirmed values from estimates.
-- Add a native run flow with explicit location permission, foreground/background limitations, pause/resume and save/discard behavior. Route tracking must be opt-in and must never silently start.
-- Preserve local-first behavior and offline recovery; do not imply cloud sync until mobile authentication and sync are actually implemented.
+- Add mobile meal capture backed by the existing on-device food table. Manual values are labeled as user-entered; description-based macros are visibly estimates, editable before save and never sent to an AI or food provider.
+- Add an opt-in native GPS run flow. Explain foreground-only location before requesting it, never request background access, automatically pause when the app leaves the foreground, and offer pause/resume plus explicit save/discard. A manual no-location run log remains available.
+- Persist meals and run sessions in the mobile app's existing AsyncStorage state. Route capture has no provider sync in this implementation; do not imply cloud or Apple Health / Health Connect sync.
 
 ## Phase 3 — Cross-platform insights and weekly review
 
