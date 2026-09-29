@@ -11,7 +11,6 @@
       "distribution": "internal",
       "channel": "development",
       "credentialsSource": "remote",
-      "packageManager": "pnpm",
       "env": {
         "SMARTFIT_DEPLOYMENT": "demo",
         "EXPO_PUBLIC_DEFAULT_PLAN": "full-body"
@@ -24,7 +23,6 @@
       "channel": "preview",
       "autoIncrement": true,
       "credentialsSource": "remote",
-      "packageManager": "pnpm",
       "env": {
         "SMARTFIT_DEPLOYMENT": "demo",
         "EXPO_PUBLIC_DEFAULT_PLAN": "full-body"
@@ -36,7 +34,6 @@
       "autoIncrement": true,
       "channel": "production",
       "credentialsSource": "remote",
-      "packageManager": "pnpm",
       "env": {
         "SMARTFIT_DEPLOYMENT": "demo",
         "EXPO_PUBLIC_DEFAULT_PLAN": "full-body"
