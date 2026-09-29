@@ -101,9 +101,9 @@ jobs:
         run: eas whoami
         working-directory: apps/mobile
 
-      - name: Show EAS project
-        run: eas project:info
+      - name: Show EAS project (non-fatal)
         working-directory: apps/mobile
+        run: eas project:info || echo "::warning::eas project:info failed; continuing"
 
       - name: Trigger EAS build
         id: eas
