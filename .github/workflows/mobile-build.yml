@@ -45,9 +45,11 @@ on:
           - 'false'
 
 concurrency:
-  # One EAS build per ref at a time; cancel older queued runs to save credits.
+  # Serialize runs per ref instead of cancelling them: the requirement is that
+  # *every* push ends up on the Expo dashboard, and a cancelled run may be
+  # killed before it reaches the queue step.
   group: eas-build-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 env:
   # Non-hidden because actions/upload-artifact skips dot-directories.
