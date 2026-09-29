@@ -64,12 +64,24 @@ jobs:
           echo "EXPO_TOKEN present."
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          npm install -g pnpm@9.15.9
+
+      - name: Install dependencies
+        run: |
+          # `eas build` evaluates app.config.js locally, so config plugins
+          # (expo-router, react-native-health-connect, …) must be resolvable
+          # from apps/mobile/node_modules before the build can be queued.
+          pnpm install --frozen-lockfile
 
       - name: Setup EAS CLI
         run: npm install -g eas-cli@latest
@@ -217,7 +229,7 @@ jobs:
 
       - name: Upload EAS debug output
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: eas-debug-${{ github.run_id }}
           path: .eas-debug/
@@ -231,10 +243,10 @@ jobs:
     if: github.event.inputs.profile == 'production' && github.event.inputs.submit == 'true'
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
