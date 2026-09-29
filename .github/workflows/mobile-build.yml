@@ -96,6 +96,7 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
           packager: pnpm
+          expo-cache: true
 
       - name: Show EAS account
         env:
@@ -108,11 +109,19 @@ jobs:
         working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_ACCOUNT: mouadlouhichi
+          EXPO_PROJECT: smartfit
         run: |
           set -o pipefail
-          MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) (${GITHUB_SHA::7})"
-          echo "Build message: $MESSAGE"
-          if [ "${{ github.event.inputs.wait }}" = "true" ]; then
+          PROFILE="${{ github.event.inputs.profile || 'preview' }}"
+          PLATFORM="${{ github.event.inputs.platform || 'android' }}"
+          WAIT="${{ github.event.inputs.wait }}"
+          SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
+          MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
+          echo "Profile : $PROFILE"
+          echo "Platform: $PLATFORM"
+          echo "Message : $MESSAGE"
+          if [ "$WAIT" = "true" ]; then
             eas build \
               --profile "$PROFILE" \
               --platform "$PLATFORM" \
@@ -120,6 +129,7 @@ jobs:
               --non-interactive \
               --wait
           else
+            set -x
             eas build \
               --profile "$PROFILE" \
               --platform "$PLATFORM" \
@@ -128,15 +138,15 @@ jobs:
               --no-wait \
               --json \
               | tee "$RUNNER_TEMP/eas-build.json"
+            set +x
             node -e '
               const fs = require("fs");
               const out = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/eas-build.json", "utf8"));
               const builds = Array.isArray(out) ? out : [out];
               const account = process.env.EXPO_ACCOUNT;
               const project = process.env.EXPO_PROJECT;
-              const defProfile = process.env.PROFILE;
               const lines = builds.map(function(b){
-                const prof = b.buildProfile || defProfile;
+                var prof = b.buildProfile || "preview";
                 return "- **" + b.platform + "** `" + prof + "` — [" + b.id + "](https://expo.dev/accounts/" + account + "/projects/" + project + "/builds/" + b.id + ")";
               });
               fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
