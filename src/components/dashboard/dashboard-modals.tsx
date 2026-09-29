@@ -5,6 +5,8 @@ import { ScheduleModal } from './modals/ScheduleModal';
 import { GoalModal } from './modals/GoalModal';
 import { BodyModal } from './modals/BodyModal';
 import { MealModal } from './modals/MealModal';
+import { SleepModal } from './modals/SleepModal';
+import { VitalsModal } from './modals/VitalsModal';
 import { CategoryModal } from './modals/CategoryModal';
 import { SessionDetailModal } from './modals/SessionDetailModal';
 import { ProModal } from './modals/pro-modal';
@@ -23,6 +25,8 @@ export function DashboardModals() {
       <GoalModal />
       <BodyModal />
       <MealModal />
+      <SleepModal />
+      <VitalsModal />
       <CategoryModal />
       <SessionDetailModal />
       <ProModal />

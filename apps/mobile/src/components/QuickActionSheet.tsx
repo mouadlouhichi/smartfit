@@ -6,7 +6,9 @@ import {
   ClipboardPlus,
   Dumbbell,
   Footprints,
+  HeartPulse,
   LineChart,
+  Moon,
   Sparkles,
   Target,
   Utensils,
@@ -17,31 +19,35 @@ import { createTranslator, resolveLocale } from '@smartfit/core';
 import { useStore } from '@/lib/store';
 
 export type QuickAction =
-  'workout' | 'meal' | 'run' | 'measurement' | 'goals' | 'plan' | 'progress' | 'coach';
+  | 'workout'
+  | 'meal'
+  | 'run'
+  | 'measurement'
+  | 'sleep'
+  | 'vitals'
+  | 'goals'
+  | 'plan'
+  | 'progress'
+  | 'coach';
 
 type ActionOption = {
   id: QuickAction;
-  labelKey:
-    | 'quickActions.workout'
-    | 'quickActions.meal'
-    | 'quickActions.run'
-    | 'quickActions.measurement'
-    | 'quickActions.goals'
-    | 'quickActions.plan'
-    | 'quickActions.progress'
-    | 'quickActions.coach';
+  label: string;
   icon: LucideIcon;
+  iconColor: string;
 };
 
 const ACTIONS: ActionOption[] = [
-  { id: 'workout', labelKey: 'quickActions.workout', icon: Dumbbell },
-  { id: 'meal', labelKey: 'quickActions.meal', icon: Utensils },
-  { id: 'run', labelKey: 'quickActions.run', icon: Footprints },
-  { id: 'measurement', labelKey: 'quickActions.measurement', icon: ClipboardPlus },
-  { id: 'goals', labelKey: 'quickActions.goals', icon: Target },
-  { id: 'plan', labelKey: 'quickActions.plan', icon: Activity },
-  { id: 'progress', labelKey: 'quickActions.progress', icon: LineChart },
-  { id: 'coach', labelKey: 'quickActions.coach', icon: Sparkles },
+  { id: 'workout', label: 'Log workout', icon: Dumbbell, iconColor: '#f3ff47' },
+  { id: 'meal', label: 'Log meal', icon: Utensils, iconColor: '#f3ff47' },
+  { id: 'run', label: 'Start run', icon: Footprints, iconColor: '#f3ff47' },
+  { id: 'measurement', label: 'Weight / Measure', icon: ClipboardPlus, iconColor: '#f3ff47' },
+  { id: 'sleep', label: 'Log sleep', icon: Moon, iconColor: '#8b5cf6' },
+  { id: 'vitals', label: 'Log vitals', icon: HeartPulse, iconColor: '#f43f5e' },
+  { id: 'goals', label: 'Goals', icon: Target, iconColor: '#f3ff47' },
+  { id: 'plan', label: 'Plan', icon: Activity, iconColor: '#f3ff47' },
+  { id: 'progress', label: 'Trends', icon: LineChart, iconColor: '#f3ff47' },
+  { id: 'coach', label: 'Coach', icon: Sparkles, iconColor: '#f3ff47' },
 ];
 
 export function QuickActionSheet({
@@ -65,32 +71,60 @@ export function QuickActionSheet({
       statusBarTranslucent
       onRequestClose={onClose}
     >
-      <View className="flex-1 justify-end">
+      <View style={{ flex: 1, justifyContent: 'flex-end' }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t('action.close')}
           onPress={onClose}
-          className="absolute inset-0 bg-black/60"
+          style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)' }}
         />
         <SafeAreaView
           edges={['bottom']}
-          className="bg-card border-border rounded-t-[30px] border-t px-5 pt-3"
-          style={{ maxHeight: '82%', paddingBottom: 16 }}
+          style={{
+            backgroundColor: '#161616',
+            borderTopLeftRadius: 30,
+            borderTopRightRadius: 30,
+            padding: 20,
+            paddingTop: 12,
+            maxHeight: '82%',
+          }}
         >
-          <View className="mb-5 items-center">
-            <View className="bg-muted mb-4 h-1.5 w-10 rounded-full" />
-            <View className="w-full flex-row items-start justify-between">
-              <View className="flex-1 pr-4">
-                <Text className="text-foreground text-xl font-bold">{t('quickActions.title')}</Text>
-                <Text className="text-muted-foreground mt-1 text-sm">
-                  {t('quickActions.description')}
+          <View style={{ alignItems: 'center', marginBottom: 20 }}>
+            <View
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                height: 5,
+                width: 36,
+                borderRadius: 4,
+                marginBottom: 16,
+              }}
+            />
+            <View
+              style={{
+                width: '100%',
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+              }}
+            >
+              <View style={{ flex: 1, paddingRight: 16 }}>
+                <Text style={{ color: '#fff', fontSize: 20, fontWeight: '800' }}>
+                  Quick actions
+                </Text>
+                <Text style={{ color: '#9ca3af', marginTop: 4, fontSize: 13 }}>
+                  Log something, start a workout, or jump to a tool.
                 </Text>
               </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t('action.close')}
                 onPress={onClose}
-                className="bg-muted h-10 w-10 items-center justify-center rounded-full"
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  height: 40,
+                  width: 40,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
                 <X color="#d4d4d4" size={19} />
               </Pressable>
@@ -99,20 +133,45 @@ export function QuickActionSheet({
 
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerClassName="flex-row flex-wrap gap-3 pb-4"
+            contentContainerStyle={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              gap: 12,
+              paddingBottom: 16,
+            }}
           >
-            {ACTIONS.map(({ id, labelKey, icon: Icon }) => (
+            {ACTIONS.map(({ id, label, icon: Icon, iconColor }) => (
               <Pressable
                 key={id}
                 accessibilityRole="button"
                 onPress={() => onSelect(id)}
-                className="bg-background border-border min-h-[112px] flex-grow justify-between rounded-2xl border p-4 active:opacity-80"
-                style={{ width: '47%' }}
+                style={({ pressed }) => ({
+                  backgroundColor: pressed ? 'rgba(255,255,255,0.06)' : '#0E0E0E',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.08)',
+                  minHeight: 112,
+                  flexGrow: 1,
+                  justifyContent: 'space-between',
+                  borderRadius: 18,
+                  padding: 16,
+                  width: '47%',
+                })}
               >
-                <View className="bg-primary/10 h-10 w-10 items-center justify-center rounded-full">
-                  <Icon color="#f3ff47" size={19} strokeWidth={2.2} />
+                <View
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 14,
+                    backgroundColor: `${iconColor}20`,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Icon color={iconColor} size={20} strokeWidth={2.2} />
                 </View>
-                <Text className="text-foreground mt-4 text-sm font-semibold">{t(labelKey)}</Text>
+                <Text style={{ color: '#fff', marginTop: 16, fontSize: 13, fontWeight: '700' }}>
+                  {label}
+                </Text>
               </Pressable>
             ))}
           </ScrollView>

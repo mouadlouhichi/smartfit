@@ -1,19 +1,38 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   emptyState,
   parseStateJSON,
   uid,
   type BodyLog,
+  type ContextMemory,
   type FitnessGoal,
   type FitnessState,
   type MealLog,
   type ScheduledWorkout,
+  type SleepLog,
   type UserProfile,
+  type VitalsLog,
   type WeeklyCheckIn,
   type WorkoutSession,
 } from '@smartfit/core';
 import { env } from './env';
+import {
+  isHealthConnectAvailable,
+  requestHealthPermissions,
+  syncHealthData,
+  openHealthConnectPlayStore,
+  type SyncResult,
+  type SyncStatus,
+} from './health-connect';
 
 const STORAGE_KEY = 'smartfit.state.v1';
 
@@ -36,23 +55,43 @@ interface StoreValue {
   addBodyLog: (b: Omit<BodyLog, 'id' | 'createdAt'>) => void;
   addMeal: (m: Omit<MealLog, 'id' | 'createdAt'>) => void;
   addCheckIn: (checkIn: Omit<WeeklyCheckIn, 'id' | 'createdAt'>) => void;
+  addSleepLog: (s: Omit<SleepLog, 'id' | 'createdAt'>) => void;
+  addVitalsLog: (v: Omit<VitalsLog, 'id' | 'createdAt'>) => void;
+  addContextMemory: (m: Omit<ContextMemory, 'id' | 'createdAt'>) => void;
+  upsertSyncedHealth: (result: SyncResult) => { sleeps: number; vitals: number };
   updateProfile: (patch: Partial<UserProfile>) => void;
   clearData: () => void;
+  // Health Connect
+  hcAvailable: boolean;
+  hcStatus: SyncStatus;
+  hcMessage?: string;
+  hcLastSync?: number;
+  syncHealthConnect: () => Promise<SyncResult>;
+  requestHealthAccess: () => Promise<boolean>;
+  installHealthConnect: () => Promise<void>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
+
+function makeLogKey(log: { source?: string; externalId?: string }) {
+  return log.source && log.externalId ? `${log.source}:${log.externalId}` : null;
+}
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<FitnessState>(() => emptyState());
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [hcAvailable, setHcAvailable] = useState(false);
+  const [hcStatus, setHcStatus] = useState<SyncStatus>('idle');
+  const [hcMessage, setHcMessage] = useState<string | undefined>();
+  const [hcLastSync, setHcLastSync] = useState<number | undefined>();
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   useEffect(() => {
     let active = true;
     setReady(false);
-    // Never cast or silently replace data that could not be read. The app
-    // remains behind a retry screen until the existing local state is valid.
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
         if (!active) return;
@@ -77,6 +116,108 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
   }, [state, ready, loadError]);
 
+  useEffect(() => {
+    let alive = true;
+    isHealthConnectAvailable().then((yes) => {
+      if (alive) setHcAvailable(yes);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const upsertSyncedHealth = useCallback((result: SyncResult) => {
+    let sleeps = 0;
+    let vitals = 0;
+    setState((p) => {
+      const prevSleep = p.sleepLogs ?? [];
+      const prevVitals = p.vitalsLogs ?? [];
+      const sleepByKey = new Map<string, SleepLog>();
+      const sleepByDate = new Map<string, SleepLog>();
+      for (const s of prevSleep) {
+        const k = makeLogKey(s);
+        if (k) sleepByKey.set(k, s);
+        else if (!sleepByDate.has(s.date)) sleepByDate.set(s.date, s);
+      }
+      for (const s of result.sleepLogs) {
+        const k = makeLogKey(s);
+        if (k && sleepByKey.has(k)) continue;
+        if (!k && sleepByDate.has(s.date)) continue;
+        sleepByKey.set(k ?? `${s.date}:import`, {
+          ...s,
+          id: s.id || uid('slp'),
+        });
+        sleeps++;
+      }
+      const vitalsByKey = new Map<string, VitalsLog>();
+      const vitalsByDate = new Map<string, VitalsLog>();
+      for (const v of prevVitals) {
+        const k = makeLogKey(v);
+        if (k) vitalsByKey.set(k, v);
+        else if (!vitalsByDate.has(v.date)) vitalsByDate.set(v.date, v);
+      }
+      for (const v of result.vitalsLogs) {
+        const k = makeLogKey(v);
+        if (k && vitalsByKey.has(k)) continue;
+        const existing = !k ? vitalsByDate.get(v.date) : undefined;
+        if (existing) {
+          vitalsByKey.set(k ?? `${v.date}:merged`, {
+            ...existing,
+            id: existing.id,
+            restingHR: existing.restingHR ?? v.restingHR,
+            hrvRmssd: existing.hrvRmssd ?? v.hrvRmssd,
+            respiratoryRate: existing.respiratoryRate ?? v.respiratoryRate,
+            spo2: existing.spo2 ?? v.spo2,
+            steps: existing.steps ?? v.steps,
+            activeCalories: existing.activeCalories ?? v.activeCalories,
+          });
+          continue;
+        }
+        vitalsByKey.set(k ?? `${v.date}:import`, { ...v, id: v.id || uid('vit') });
+        vitals++;
+      }
+      return {
+        ...p,
+        sleepLogs: [...sleepByKey.values()].sort((a, b) => (a.date < b.date ? 1 : -1)),
+        vitalsLogs: [...vitalsByKey.values()].sort((a, b) => (a.date < b.date ? 1 : -1)),
+      };
+    });
+    return { sleeps, vitals };
+  }, []);
+
+  const requestHealthAccess = useCallback(async () => {
+    setHcStatus('requesting-permissions');
+    const ok = await requestHealthPermissions();
+    if (ok) setHcStatus('idle');
+    else {
+      setHcStatus('permission-denied');
+      setHcMessage('Health Connect permission was denied');
+    }
+    setHcAvailable(await isHealthConnectAvailable());
+    return ok;
+  }, []);
+
+  const installHealthConnect = useCallback(async () => {
+    await openHealthConnectPlayStore();
+  }, []);
+
+  const syncHealthConnect = useCallback(async (): Promise<SyncResult> => {
+    setHcStatus('syncing');
+    const res = await syncHealthData(14);
+    if (res.status === 'ok') {
+      const { sleeps, vitals } = upsertSyncedHealth(res);
+      setHcStatus('ok');
+      setHcMessage(
+        `Synced ${res.daysSynced} day${res.daysSynced === 1 ? '' : 's'} · ${sleeps} sleep, ${vitals} vitals`,
+      );
+      setHcLastSync(Date.now());
+    } else {
+      setHcStatus(res.status);
+      setHcMessage(res.message);
+    }
+    return res;
+  }, [upsertSyncedHealth]);
+
   const value = useMemo<StoreValue>(
     () => ({
       state,
@@ -84,7 +225,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       loadError,
       retryLoad: () => {
         setReady(false);
-        setLoadAttempt((attempt) => attempt + 1);
+        setLoadAttempt((a) => a + 1);
       },
       addSession: (s) =>
         setState((p) => ({
@@ -132,13 +273,56 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             : [...history, saved].sort((a, b) => (a.weekOf < b.weekOf ? -1 : 1));
           return { ...p, checkIns };
         }),
+      addSleepLog: (s) =>
+        setState((p) => ({
+          ...p,
+          sleepLogs: [...(p.sleepLogs ?? []), { ...s, id: uid('slp'), createdAt: Date.now() }].sort(
+            (a, b) => (a.date < b.date ? 1 : -1),
+          ),
+        })),
+      addVitalsLog: (v) =>
+        setState((p) => ({
+          ...p,
+          vitalsLogs: [
+            ...(p.vitalsLogs ?? []),
+            { ...v, id: uid('vit'), createdAt: Date.now() },
+          ].sort((a, b) => (a.date < b.date ? 1 : -1)),
+        })),
+      addContextMemory: (m) =>
+        setState((p) => ({
+          ...p,
+          contextMemory: [
+            ...(p.contextMemory ?? []),
+            { ...m, id: uid('mem'), createdAt: Date.now() },
+          ].sort((a, b) => b.createdAt - a.createdAt),
+        })),
+      upsertSyncedHealth,
       updateProfile: (patch) => setState((p) => ({ ...p, profile: { ...p.profile, ...patch } })),
       clearData: () => {
         setState(freshState());
         setLoadError(false);
       },
+      hcAvailable,
+      hcStatus,
+      hcMessage,
+      hcLastSync,
+      syncHealthConnect,
+      requestHealthAccess,
+      installHealthConnect,
     }),
-    [state, ready, loadError],
+    [
+      state,
+      ready,
+      loadError,
+      upsertSyncedHealth,
+      syncHealthConnect,
+      requestHealthAccess,
+      installHealthConnect,
+      hcAvailable,
+      hcStatus,
+      hcMessage,
+      hcLastSync,
+    ],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

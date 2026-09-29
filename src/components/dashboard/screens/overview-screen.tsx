@@ -22,8 +22,9 @@ import { EmptyState } from '../empty-state';
 import { TodaysWorkoutCard } from '../todays-workout-card';
 import { CategoryIcon } from '@/components/category-icon';
 import { ActivityRingsGraphic, ActivityRingsLegend } from '../activity-rings';
-import { ReadinessCard } from '../readiness-card';
+import { RecoveryCard } from '../recovery-card';
 import { FuelGlance } from '../fuel-glance';
+import { DailyGoalsGrid } from '../daily-goals-grid';
 import { StreakRingsCard } from '../streak-rings-card';
 import { BodySelectHero } from '../body-select-hero';
 import { Footprints, Play } from 'lucide-react';
@@ -471,8 +472,11 @@ export function OverviewScreen() {
           </div>
         </div>
 
-        {/* Readiness — the Pro shop window sits right under the rings. */}
-        <ReadinessCard />
+        {/* Recovery — tri-ring sleep/recovery/strain hero */}
+        <RecoveryCard />
+
+        {/* Daily Goals 2x2 grid: Steps / Active Cal / Sleep / Exercise mins */}
+        <DailyGoalsGrid />
 
         {/* Fuel glance — today's calories in vs out, one tap from logging. */}
         <FuelGlance />

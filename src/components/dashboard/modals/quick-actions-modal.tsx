@@ -8,6 +8,8 @@ import {
   CalendarCheck,
   ClipboardPlus,
   Dumbbell,
+  Heart,
+  Moon,
   Sparkles,
   Target,
   UtensilsCrossed,
@@ -25,41 +27,29 @@ import { useModals, usePayload } from '../modal-context';
 
 type QuickAction = {
   id: string;
-  labelKey:
-    | 'quickActions.workout'
-    | 'quickActions.meal'
-    | 'quickActions.measurement'
-    | 'quickActions.run'
-    | 'quickActions.goals'
-    | 'quickActions.plan'
-    | 'quickActions.progress'
-    | 'quickActions.coach';
+  label: string;
   icon: LucideIcon;
-  modal?: 'workout' | 'meal' | 'body';
+  modal?: 'workout' | 'meal' | 'body' | 'sleep' | 'vitals';
   href?: string;
 };
 
 const ACTIONS: QuickAction[] = [
-  { id: 'workout', labelKey: 'quickActions.workout', icon: Dumbbell, modal: 'workout' },
-  { id: 'meal', labelKey: 'quickActions.meal', icon: UtensilsCrossed, modal: 'meal' },
-  { id: 'measurement', labelKey: 'quickActions.measurement', icon: ClipboardPlus, modal: 'body' },
-  { id: 'run', labelKey: 'quickActions.run', icon: Activity, href: '/dashboard/run' },
-  { id: 'goals', labelKey: 'quickActions.goals', icon: Target, href: '/dashboard/goals' },
-  { id: 'plan', labelKey: 'quickActions.plan', icon: CalendarCheck, href: '/dashboard/plan' },
-  {
-    id: 'progress',
-    labelKey: 'quickActions.progress',
-    icon: BarChart3,
-    href: '/dashboard/progress',
-  },
-  { id: 'coach', labelKey: 'quickActions.coach', icon: Sparkles, href: '/dashboard/coach' },
+  { id: 'workout', label: 'Log workout', icon: Dumbbell, modal: 'workout' },
+  { id: 'meal', label: 'Log meal', icon: UtensilsCrossed, modal: 'meal' },
+  { id: 'measurement', label: 'Weight / Measure', icon: ClipboardPlus, modal: 'body' },
+  { id: 'sleep', label: 'Log sleep', icon: Moon, modal: 'sleep' },
+  { id: 'vitals', label: 'Log vitals', icon: Heart, modal: 'vitals' },
+  { id: 'run', label: 'Start run', icon: Activity, href: '/dashboard/run' },
+  { id: 'goals', label: 'Goals', icon: Target, href: '/dashboard/goals' },
+  { id: 'plan', label: 'Plan', icon: CalendarCheck, href: '/dashboard/plan' },
+  { id: 'progress', label: 'Trends', icon: BarChart3, href: '/dashboard/progress' },
+  { id: 'coach', label: 'Coach', icon: Sparkles, href: '/dashboard/coach' },
 ];
 
 /** A single, consistent entry point to the actions available in the web app. */
 export function QuickActionsModal() {
   const router = useRouter();
-  const { t } = useI18n();
-  const { openModal, openWith, closeModal } = useModals();
+  const { closeModal, openModal, openWith } = useModals();
   const payload = usePayload('quick-actions');
   const open = payload !== null;
 
@@ -69,32 +59,32 @@ export function QuickActionsModal() {
       router.push(action.href);
       return;
     }
-    if (action.modal === 'meal') {
-      openWith({ kind: 'meal' });
-      return;
-    }
-    if (action.modal) openModal(action.modal);
+    if (!action.modal) return;
+    if (action.modal === 'meal') return openWith({ kind: 'meal' });
+    if (action.modal === 'sleep') return openWith({ kind: 'sleep' });
+    if (action.modal === 'vitals') return openWith({ kind: 'vitals' });
+    openModal(action.modal);
   }
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && closeModal()}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>{t('quickActions.title')}</DialogTitle>
-          <DialogDescription>{t('quickActions.description')}</DialogDescription>
+          <DialogTitle>Quick actions</DialogTitle>
+          <DialogDescription>Log something, start a workout, or jump to a tool.</DialogDescription>
         </DialogHeader>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {ACTIONS.map(({ id, labelKey, icon: Icon, ...action }) => (
+          {ACTIONS.map(({ id, label, icon: Icon, ...action }) => (
             <button
               key={id}
               type="button"
-              onClick={() => choose({ id, labelKey, icon: Icon, ...action })}
+              onClick={() => choose({ id, label, icon: Icon, ...action })}
               className="bg-card border-border hover:border-volt/60 hover:bg-secondary/70 focus-visible:ring-ring group relative flex min-h-28 flex-col items-start justify-between rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md focus-visible:ring-2 focus-visible:outline-none"
             >
               <span className="bg-volt/10 text-volt group-hover:bg-volt group-hover:text-ink flex h-10 w-10 items-center justify-center rounded-xl transition-colors">
                 <Icon className="h-5 w-5" strokeWidth={2.1} />
               </span>
-              <span className="mt-4 text-sm leading-snug font-semibold">{t(labelKey)}</span>
+              <span className="mt-4 text-sm leading-snug font-semibold">{label}</span>
               {action.href && (
                 <ArrowUpRight
                   aria-hidden

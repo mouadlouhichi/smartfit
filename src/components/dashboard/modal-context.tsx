@@ -24,6 +24,8 @@ export type ModalKind =
   | 'goal'
   | 'body'
   | 'meal'
+  | 'sleep'
+  | 'vitals'
   | 'category'
   | 'session-detail'
   | 'pro'
@@ -35,6 +37,8 @@ export type ModalPayload =
   | { kind: 'schedule'; schedule?: ScheduledWorkout }
   | { kind: 'goal'; goal?: FitnessGoal }
   | { kind: 'body'; log?: BodyLog }
+  | { kind: 'sleep' }
+  | { kind: 'vitals' }
   | {
       kind: 'meal';
       meal?: MealLog;

@@ -310,8 +310,136 @@ export interface UserProfile {
    * to English. See `i18n.ts`.
    */
   locale?: string;
+  /**
+   * When true the mobile app gates the UI behind Face ID / Touch ID / Biometric
+   * prompt on resume. Always opt-in; defaults to false. Has no effect on web.
+   */
+  biometricLock?: boolean;
 }
 
+/** Where a vital reading came from (manual or synced). */
+export type VitalsSource =
+  | 'manual'
+  | 'apple-health'
+  | 'health-connect'
+  | 'oura'
+  | 'garmin'
+  | 'whoop'
+  | 'polar'
+  | 'fitbit'
+  | 'withings'
+  | 'strava';
+
+/** Sleep stage breakdown (minutes per stage). */
+export interface SleepStages {
+  /** Minutes of deep slow-wave sleep. */
+  deep: number;
+  /** Minutes of REM sleep. */
+  rem: number;
+  /** Minutes of light sleep. */
+  light: number;
+  /** Minutes awake after sleep onset. */
+  awake: number;
+}
+
+/** One night of sleep, optionally broken into stages. */
+export interface SleepLog {
+  id: string;
+  /** ISO date of the *morning* the user woke up (i.e. the day this sleep counts toward). */
+  date: string;
+  /** Total minutes in bed. */
+  durationMin: number;
+  /** Time asleep = total - awake minutes. If stages omitted, treated as all sleep. */
+  stages?: SleepStages;
+  /** Self-reported sleep quality 1–5, optional. */
+  quality?: 1 | 2 | 3 | 4 | 5;
+  /** Bedtime / wake-time as HH:mm, optional (circadian hints). */
+  bedTime?: string;
+  wakeTime?: string;
+  source: VitalsSource;
+  /** Device/source-specific ID for de-duplication. */
+  externalId?: string;
+  createdAt: number;
+}
+
+/**
+ * A single daily roll-up of vitals for one date. Values are daytime/overnight
+ * aggregates (e.g. RHR = overnight resting HR, HRV = overnight rMSSD). All
+ * values are optional so a source that only reports some fields is still valid.
+ */
+export interface VitalsLog {
+  id: string;
+  /** ISO date (local) the vitals belong to. */
+  date: string;
+  /** Resting heart rate (bpm) — typically overnight minimum. */
+  restingHR?: number;
+  /** Heart rate variability — rMSSD in milliseconds. */
+  hrvRmssd?: number;
+  /** Breaths per minute while asleep. */
+  respiratoryRate?: number;
+  /** Blood oxygen saturation (%) — average overnight. */
+  spo2?: number;
+  /** Skin/wrist temperature deviation from personal baseline (°C). */
+  skinTempDelta?: number;
+  /** Fasting or average daily blood glucose. */
+  bloodGlucoseMgDl?: number;
+  /** Steps taken that day. */
+  steps?: number;
+  /** Active energy burned (kcal) as reported by the device. */
+  activeCalories?: number;
+  /** Average daily heart rate (bpm). */
+  avgHR?: number;
+  /** Minutes in each HR zone (Z1..Z5). */
+  hrZoneMinutes?: { z1: number; z2: number; z3: number; z4: number; z5: number };
+  source: VitalsSource;
+  externalId?: string;
+  createdAt: number;
+}
+
+/**
+ * Contextual memory items the AI Coach uses to weight advice
+ * (injuries, upcoming events, travel, illness, etc.).
+ */
+export interface ContextMemory {
+  id: string;
+  note: string;
+  /** Optional category for filtering. */
+  category?: 'injury' | 'event' | 'travel' | 'illness' | 'medication' | 'other';
+  /** Epoch ms when this note becomes irrelevant, if any. */
+  expiresAt?: number;
+  createdAt: number;
+}
+
+/** Daily readiness/recovery score (0–100) plus drivers. */
+export interface DailyReadiness {
+  date: string;
+  score: number;
+  label: 'Optimal' | 'Good' | 'Moderate' | 'Low' | 'Calibrating';
+  /** Component sub-scores, each 0–100. */
+  hrvScore: number;
+  rhrScore: number;
+  sleepScore: number;
+  strainBalanceScore: number;
+  /** Human-readable reasons, top 3. */
+  factors: string[];
+  /** Recommended strain bracket for today (0–21 scale). */
+  recommendedStrainMin: number;
+  recommendedStrainMax: number;
+  /** Recommended action ("Heavy lift day", "Active recovery", "Rest", …). */
+  recommendation: string;
+}
+
+/** Daily cardiovascular strain score (0–21, WHOOP-style). */
+export interface DailyStrain {
+  date: string;
+  score: number; // 0–21
+  /** HR zone breakdown (minutes). */
+  zoneMinutes: { z1: number; z2: number; z3: number; z4: number; z5: number };
+  /** Acute:Chronic Workload Ratio (7d vs 28d). */
+  acwr: number;
+}
+
+/** Where a vital reading came from (manual or synced). */
 export interface FitnessState {
   profile: UserProfile;
   categories: Category[];
@@ -327,4 +455,10 @@ export interface FitnessState {
   /** Enrolled programs/classes */
   enrolledPrograms?: string[];
   enrolledClasses?: string[];
+  /** Sleep logs — one row per night. */
+  sleepLogs?: SleepLog[];
+  /** Vitals roll-ups — one row per day. */
+  vitalsLogs?: VitalsLog[];
+  /** Persistent coach memory / qualitative context. */
+  contextMemory?: ContextMemory[];
 }

@@ -13,6 +13,8 @@ import { useStore } from '@/lib/store';
 import { BodyMeasurementModal } from '@/components/BodyMeasurementModal';
 import { LogWorkoutModal } from '@/components/LogWorkoutModal';
 import { MealEntryModal } from '@/components/MealEntryModal';
+import { SleepModal } from '@/components/SleepModal';
+import { VitalsModal } from '@/components/VitalsModal';
 import { QuickActionSheet, type QuickAction } from '@/components/QuickActionSheet';
 
 type QuickActionsValue = {
@@ -20,6 +22,8 @@ type QuickActionsValue = {
   openWorkout: () => void;
   openMeal: () => void;
   openMeasurement: () => void;
+  openSleep: () => void;
+  openVitals: () => void;
 };
 
 const QuickActionsContext = createContext<QuickActionsValue | null>(null);
@@ -37,6 +41,8 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
   const [workoutOpen, setWorkoutOpen] = useState(false);
   const [mealOpen, setMealOpen] = useState(false);
   const [measurementOpen, setMeasurementOpen] = useState(false);
+  const [sleepOpen, setSleepOpen] = useState(false);
+  const [vitalsOpen, setVitalsOpen] = useState(false);
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -66,6 +72,16 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
     void Haptics.selectionAsync().catch(() => {});
     setMeasurementOpen(true);
   }, [ready]);
+  const openSleep = useCallback(() => {
+    if (!ready) return;
+    void Haptics.selectionAsync().catch(() => {});
+    setSleepOpen(true);
+  }, [ready]);
+  const openVitals = useCallback(() => {
+    if (!ready) return;
+    void Haptics.selectionAsync().catch(() => {});
+    setVitalsOpen(true);
+  }, [ready]);
 
   const selectAction = useCallback(
     (action: QuickAction) => {
@@ -85,6 +101,12 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
             break;
           case 'measurement':
             setMeasurementOpen(true);
+            break;
+          case 'sleep':
+            setSleepOpen(true);
+            break;
+          case 'vitals':
+            setVitalsOpen(true);
             break;
           case 'goals':
             router.push('/goals');
@@ -106,8 +128,8 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
   );
 
   const contextValue = useMemo(
-    () => ({ openQuickActions, openWorkout, openMeal, openMeasurement }),
-    [openQuickActions, openWorkout, openMeal, openMeasurement],
+    () => ({ openQuickActions, openWorkout, openMeal, openMeasurement, openSleep, openVitals }),
+    [openQuickActions, openWorkout, openMeal, openMeasurement, openSleep, openVitals],
   );
 
   return (
@@ -121,6 +143,8 @@ export function QuickActionsProvider({ children }: { children: React.ReactNode }
       <LogWorkoutModal open={workoutOpen} onClose={() => setWorkoutOpen(false)} />
       <MealEntryModal open={mealOpen} onClose={() => setMealOpen(false)} />
       <BodyMeasurementModal open={measurementOpen} onClose={() => setMeasurementOpen(false)} />
+      <SleepModal open={sleepOpen} onClose={() => setSleepOpen(false)} />
+      <VitalsModal open={vitalsOpen} onClose={() => setVitalsOpen(false)} />
     </QuickActionsContext.Provider>
   );
 }

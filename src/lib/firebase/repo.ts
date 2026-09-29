@@ -13,10 +13,13 @@ import {
   parseState,
   type BodyLog,
   type Category,
+  type ContextMemory,
   type FitnessGoal,
   type FitnessState,
   type ScheduledWorkout,
+  type SleepLog,
   type UserProfile,
+  type VitalsLog,
   type WorkoutSession,
 } from '@smartfit/core';
 import { getFirebaseServices, colPath, userDoc } from './config';
@@ -30,7 +33,10 @@ export type CollectionName =
   | 'meals'
   | 'checkIns'
   | 'categories'
-  | 'customGyms';
+  | 'customGyms'
+  | 'sleepLogs'
+  | 'vitalsLogs'
+  | 'contextMemory';
 
 export const ALL_COLLECTIONS: CollectionName[] = [
   'sessions',
@@ -41,6 +47,9 @@ export const ALL_COLLECTIONS: CollectionName[] = [
   'checkIns',
   'categories',
   'customGyms',
+  'sleepLogs',
+  'vitalsLogs',
+  'contextMemory',
 ];
 
 /** How many sessions / measurements to fetch on first load. */
@@ -139,38 +148,56 @@ export async function loadUserState(
   const readAll = <T>(name: CollectionName, run: () => Promise<T>): Promise<T> =>
     readOrFallback(`${name}`, run, [] as unknown as T, onBlocked);
   const readWindow = <T extends DescRow>(
-    name: 'sessions' | 'bodyLogs' | 'meals' | 'checkIns',
+    name: 'sessions' | 'bodyLogs' | 'meals' | 'checkIns' | 'sleepLogs' | 'vitalsLogs',
     select: (rows: unknown[]) => T[],
   ): Promise<T[]> =>
     readOrFallback(`${name}`, () => loadHistoryWindow(uid, name, select, null), [], onBlocked);
 
-  const [schedule, goals, categories, customGyms, sessions, bodyLogs, meals, checkIns] =
-    await Promise.all([
-      readAll<ScheduledWorkout[]>('schedule', () =>
-        getDocs(collection(db, colPath(uid, 'schedule'))).then((s) =>
-          s.docs.map((d) => withId<ScheduledWorkout>(d)),
-        ),
+  const [
+    schedule,
+    goals,
+    categories,
+    customGyms,
+    sessions,
+    bodyLogs,
+    meals,
+    checkIns,
+    sleepLogs,
+    vitalsLogs,
+    contextMemory,
+  ] = await Promise.all([
+    readAll<ScheduledWorkout[]>('schedule', () =>
+      getDocs(collection(db, colPath(uid, 'schedule'))).then((s) =>
+        s.docs.map((d) => withId<ScheduledWorkout>(d)),
       ),
-      readAll<FitnessGoal[]>('goals', () =>
-        getDocs(collection(db, colPath(uid, 'goals'))).then((s) =>
-          s.docs.map((d) => withId<FitnessGoal>(d)),
-        ),
+    ),
+    readAll<FitnessGoal[]>('goals', () =>
+      getDocs(collection(db, colPath(uid, 'goals'))).then((s) =>
+        s.docs.map((d) => withId<FitnessGoal>(d)),
       ),
-      readAll<Category[]>('categories', () =>
-        getDocs(collection(db, colPath(uid, 'categories'))).then((s) =>
-          s.docs.map((d) => withId<Category>(d)),
-        ),
+    ),
+    readAll<Category[]>('categories', () =>
+      getDocs(collection(db, colPath(uid, 'categories'))).then((s) =>
+        s.docs.map((d) => withId<Category>(d)),
       ),
-      readAll<any[]>('customGyms', () =>
-        getDocs(collection(db, colPath(uid, 'customGyms'))).then((s) =>
-          s.docs.map((d) => withId<any>(d)),
-        ),
+    ),
+    readAll<any[]>('customGyms', () =>
+      getDocs(collection(db, colPath(uid, 'customGyms'))).then((s) =>
+        s.docs.map((d) => withId<any>(d)),
       ),
-      readWindow('sessions', (rows) => parseState({ sessions: rows }).sessions),
-      readWindow('bodyLogs', (rows) => parseState({ bodyLogs: rows }).bodyLogs),
-      readWindow('meals', (rows) => parseState({ meals: rows }).meals),
-      readWindow('checkIns', (rows) => parseState({ checkIns: rows }).checkIns ?? []),
-    ]);
+    ),
+    readWindow('sessions', (rows) => parseState({ sessions: rows }).sessions),
+    readWindow('bodyLogs', (rows) => parseState({ bodyLogs: rows }).bodyLogs),
+    readWindow('meals', (rows) => parseState({ meals: rows }).meals),
+    readWindow('checkIns', (rows) => parseState({ checkIns: rows }).checkIns ?? []),
+    readWindow('sleepLogs', (rows) => parseState({ sleepLogs: rows }).sleepLogs ?? []),
+    readWindow('vitalsLogs', (rows) => parseState({ vitalsLogs: rows }).vitalsLogs ?? []),
+    readAll<ContextMemory[]>('contextMemory', () =>
+      getDocs(collection(db, colPath(uid, 'contextMemory'))).then((s) =>
+        s.docs.map((d) => withId<ContextMemory>(d)),
+      ),
+    ),
+  ]);
 
   // parseState guarantees a valid shape even if a document was written by an
   // older client or hand-edited in the console.
@@ -184,6 +211,9 @@ export async function loadUserState(
     meals,
     checkIns,
     customGyms,
+    sleepLogs,
+    vitalsLogs,
+    contextMemory,
   });
 }
 
@@ -229,7 +259,7 @@ export async function loadMoreBodyLogs(
  */
 async function loadHistoryWindow<T extends DescRow>(
   uid: string,
-  name: 'sessions' | 'bodyLogs' | 'meals' | 'checkIns',
+  name: 'sessions' | 'bodyLogs' | 'meals' | 'checkIns' | 'sleepLogs' | 'vitalsLogs',
   select: (rows: unknown[]) => T[],
   cursor: HistoryCursor | null,
   pageSize = cursor ? PAGE_SIZE : INITIAL_SESSION_LIMIT,
@@ -426,6 +456,11 @@ export async function replaceUserState(uid: string, state: FitnessState): Promis
   await replaceCollection(uid, 'customGyms', (state.customGyms || []) as any, {
     removeStale: false,
   });
+  await replaceCollection(uid, 'sleepLogs', state.sleepLogs ?? [], { removeStale: false });
+  await replaceCollection(uid, 'vitalsLogs', state.vitalsLogs ?? [], { removeStale: false });
+  await replaceCollection(uid, 'contextMemory', state.contextMemory ?? [], {
+    removeStale: false,
+  });
   // saveProfile also removes optional fields omitted by the backup.
   await saveProfile(uid, state.profile);
   await removeStaleCollection(uid, 'categories', state.categories);
@@ -436,6 +471,9 @@ export async function replaceUserState(uid: string, state: FitnessState): Promis
   await removeStaleCollection(uid, 'meals', state.meals);
   await removeStaleCollection(uid, 'checkIns', state.checkIns ?? []);
   await removeStaleCollection(uid, 'customGyms', (state.customGyms || []) as any);
+  await removeStaleCollection(uid, 'sleepLogs', state.sleepLogs ?? []);
+  await removeStaleCollection(uid, 'vitalsLogs', state.vitalsLogs ?? []);
+  await removeStaleCollection(uid, 'contextMemory', state.contextMemory ?? []);
 }
 
 /**

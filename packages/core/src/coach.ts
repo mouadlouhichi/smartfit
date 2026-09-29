@@ -38,10 +38,13 @@ export interface CoachAnswer {
   chips?: CoachChip[];
 }
 
-/** Suggested prompts. Every one of these is actually answered below. */
+/** Suggested prompts grounded in real user data — including biometrics. */
 export const COACH_QUICK_REPLIES = [
   'How am I doing this week?',
   'What should I train today?',
+  'How is my recovery today?',
+  'Am I recovered enough for a heavy session?',
+  'Did I sleep enough last night?',
   'How many calories did I burn?',
   'Am I on track for my goals?',
 ] as const;

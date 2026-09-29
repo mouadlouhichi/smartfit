@@ -41,6 +41,8 @@ import { Card, ProgressBar } from '@/components/ui';
 import { CategoryIcon } from '@/components/CategoryIcon';
 import { SessionDetailModal } from '@/components/SessionDetailModal';
 import { useQuickActions } from '@/components/QuickActionsProvider';
+import { RecoveryCard } from '@/components/RecoveryCard';
+import { DailyGoalsGrid } from '@/components/DailyGoalsGrid';
 import type { WorkoutSession } from '@smartfit/core';
 
 /* Reference home: avatar greeting, streak tile, Health-Metrics 2×2 grid,
@@ -170,6 +172,12 @@ export default function HomeScreen() {
             <ArrowUpRight color="#101010" size={22} strokeWidth={2.75} />
           </Pressable>
         </Card>
+
+        {/* ── Recovery (tri-ring) ── */}
+        <RecoveryCard />
+
+        {/* ── Daily Goals 2x2 ── */}
+        <DailyGoalsGrid />
 
         {/* ── Fuel today ── */}
         <Card>

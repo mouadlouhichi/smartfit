@@ -53,3 +53,5 @@ export * from './team';
 export * from './team-audit';
 
 export * from './gym-roster';
+
+export * from './vitals';

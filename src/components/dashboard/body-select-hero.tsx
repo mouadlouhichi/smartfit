@@ -119,13 +119,21 @@ export function BodySelectHero() {
             })}
           </div>
 
-          <Link
-            href="/dashboard/body"
-            className="text-volt mt-5 inline-flex items-center gap-1.5 text-sm font-bold transition-colors hover:gap-2.5"
-          >
-            {t('overview.body.openMap')}
-            <ArrowRight className="h-4 w-4" aria-hidden />
-          </Link>
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <Link
+              href="/dashboard/body"
+              className="text-volt inline-flex items-center gap-1.5 text-sm font-bold transition-colors hover:gap-2.5"
+            >
+              {t('overview.body.openMap')}
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </Link>
+            <Link
+              href="/dashboard/coach"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-white/90 transition hover:bg-white/15"
+            >
+              ✨ Ask SmartFit Coach
+            </Link>
+          </div>
         </div>
 
         {/* The map */}

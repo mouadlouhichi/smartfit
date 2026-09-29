@@ -28,6 +28,8 @@ import { ConsistencyHeatmap } from '../consistency-heatmap';
 import { AchievementWall } from '../achievement-wall';
 import { CheckInCard, CheckInHistory } from '../checkin-card';
 import { XpCard } from '../xp-card';
+import { RecoveryTrendsCard } from '../recovery-trends-card';
+import { CorrelationScatter } from '../correlation-scatter';
 import { cn } from '@/lib/utils';
 import { GradeRing } from '@/components/volt/volt-kit';
 import { INTENSITY_META } from '@smartfit/core';
@@ -408,6 +410,12 @@ export function ProgressScreen() {
           Either the weekly check-in owns the block (it embeds the XP card and
           is the more useful thing to see first), or the card stands alone. */}
       {checkIn ? <CheckInCard review={checkIn.review} xp={xp} /> : <XpCard summary={xp} />}
+
+      {/* ── Recovery & strain trends ───────────────────────────────────── */}
+      <RecoveryTrendsCard days={Math.min(90, days)} />
+
+      {/* ── Multi-metric correlation explorer ──────────────────────────── */}
+      <CorrelationScatter days={Math.min(60, days)} />
 
       {/* ── Stat tiles with deltas vs the previous window ────────────────── */}
       <div className="grid grid-cols-2 gap-3">

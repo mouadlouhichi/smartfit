@@ -48,6 +48,18 @@ const ALLOWED: Record<string, string> = {
     'accent-colour presets offered to gym owners — the chosen value is persisted to Firestore',
   'src/components/admin/workspace.tsx':
     'chart series palette for platform analytics, matched to the exported CSV colours',
+  'src/components/dashboard/correlation-scatter.tsx':
+    'Recharts scatter dot/tooltip/grid colours — serialized to SVG attributes by the chart library, not the cascade',
+  'src/components/dashboard/daily-goals-grid.tsx':
+    'inline progress-bar category accent colours (orange/red/purple/volt) matched to the Recovery ring palette',
+  'src/components/dashboard/modals/SleepModal.tsx':
+    'sliding-sheet accents and quality-emoji tile colours for the sleep logger',
+  'src/components/dashboard/modals/VitalsModal.tsx':
+    'sliding-sheet accents for the vitals logger, matching the Recovery palette',
+  'src/components/dashboard/recovery-card.tsx':
+    'tri-ring concentric progress colours (sleep purple / recovery volt / strain orange) painted as SVG stops',
+  'src/components/dashboard/recovery-trends-card.tsx':
+    'SVG sparkline/area fills for the recovery & strain trends chart',
   'src/lib/admin-demo.ts': 'demo fixtures — stored data, not presentation',
   'src/lib/tenant-demo.ts': 'demo fixtures — stored data, not presentation',
   'src/lib/gym-profile.ts': 'stored gym profile defaults',
