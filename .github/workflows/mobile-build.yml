@@ -196,11 +196,22 @@ jobs:
               md += "Last 4KB of EAS output:\n\n```\n";
               md += (clean.slice(-4000) || "(empty)") + "\n```\n";
               fs.writeFileSync(process.env.GITHUB_STEP_SUMMARY, md);
-              // Also dump to GITHUB_OUTPUT with a marker so the run overview shows it
-              fs.appendFileSync(process.env.GITHUB_OUTPUT, "debug_log=" + Buffer.from(clean.slice(-2000)).toString("base64") + "\n");
               console.log(clean);
-              // Write a sentinel file so the upload-artifact step definitely sees it
               fs.writeFileSync(process.env.OUT + ".marker", "marker\n");
+
+              // GitHub log downloads are intermittently 503ing, but the
+              // annotations API still works. Emit the EAS output as error
+              // annotations (max 10, ~6KB each) so it stays retrievable.
+              var CHUNK = 6000;
+              var parts = [];
+              for (var i2 = 0; i2 < Math.min(clean.length, CHUNK * 10); i2 += CHUNK) {
+                parts.push(clean.slice(i2, i2 + CHUNK));
+              }
+              if (!parts.length) parts = ["(empty)"];
+              parts.forEach(function(c, idx){
+                var esc = c.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+                console.log("::error title=EAS-OUT-" + idx + "-of-" + parts.length + "::" + esc);
+              });
               process.exit(parseInt(exitCode, 10) || 1);
             '
           fi
