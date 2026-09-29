@@ -158,13 +158,17 @@ test('every collection read in loadUserState goes through the safe wrapper', asy
   );
   const count = (needle: string) => body.split(needle).length - 1;
 
-  // Four small collections, each wrapped once. The profile read above this
+  // Small reference collections, each wrapped once. The profile read above this
   // block is deliberately raw: identity must fail loudly, not degrade.
-  assert.equal(count('getDocs(collection(db, colPath(uid, '), 4, 'raw collection reads');
-  assert.equal(count('readAll<'), 4, 'each one is wrapped in readAll');
+  assert.equal(count('getDocs(collection(db, colPath(uid, '), 5, 'raw collection reads');
+  assert.equal(count('readAll<'), 5, 'each one is wrapped in readAll');
 
-  // Four history windows, all through readWindow (which wraps readOrFallback).
+  // Rolling history windows, all through readWindow (which wraps readOrFallback).
   assert.equal(count('loadHistoryWindow(uid,'), 1, 'only readWindow calls it directly');
-  assert.equal(count('readWindow('), 4, 'four history windows read through it');
+  assert.equal(
+    count('readWindow('),
+    6,
+    'six history windows read through it (sessions/bodyLogs/meals/checkIns/sleepLogs/vitalsLogs)',
+  );
   assert.equal(count('readOrFallback('), 2, 'both helpers route through it');
 });

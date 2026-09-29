@@ -10,7 +10,9 @@ import { useI18n } from '@/lib/i18n-context';
 import {
   checkInActions,
   checkInStreak,
+  formatDateLabel,
   formatNumber,
+  fromKg,
   recordCheckIn,
   type WeeklyReview,
 } from '@smartfit/core';
@@ -54,7 +56,7 @@ export function CheckInCard({
   const [notes, setNotes] = useState('');
   const [done, setDone] = useState(false);
 
-  const actions = useMemo(() => checkInActions(state, review), [state, review]);
+  const actions = useMemo(() => checkInActions(state, review, t), [state, review, t]);
   const streakWeeks = useMemo(() => checkInStreak(state), [state]);
 
   function submit() {
@@ -68,10 +70,15 @@ export function CheckInCard({
   }
 
   const delta = review.weightDeltaKg;
+  const displayDelta = delta == null ? null : fromKg(delta, state.profile.weightUnit);
   const weightCopy =
-    delta == null || Math.abs(delta) < 0.1
-      ? t('checkin.weightFlat')
-      : t('checkin.weight', { delta: `${delta > 0 ? '+' : ''}${formatNumber(delta, 1)}` });
+    displayDelta == null
+      ? t(review.weighedIn ? 'checkin.weightNoComparison' : 'checkin.weightNotLogged')
+      : Math.abs(displayDelta) < 0.1
+        ? t('checkin.weightFlat')
+        : t('checkin.weight', {
+            delta: `${displayDelta > 0 ? '+' : ''}${formatNumber(displayDelta, 1)} ${state.profile.weightUnit}`,
+          });
 
   return (
     <Card className={cn(!done && 'ring-volt/30 ring-1')}>
@@ -110,26 +117,31 @@ export function CheckInCard({
             </span>
             <span className="text-muted-foreground text-xs font-bold">min</span>
           </Stat>
-          <Stat label={weightCopy} title={t('checkin.stat.weight')}>
+          <Stat label={t('checkin.stat.weight')} title={weightCopy}>
             <span className="font-display flex items-center gap-1 text-xl font-extrabold tabular-nums">
-              {delta == null || Math.abs(delta) < 0.1 ? (
+              {displayDelta == null || Math.abs(displayDelta) < 0.1 ? (
                 '—'
               ) : (
                 <>
-                  {delta < 0 ? (
+                  {displayDelta < 0 ? (
                     <TrendingDown className="text-volt-ink h-4 w-4" aria-hidden />
                   ) : (
                     <TrendingUp className="h-4 w-4" aria-hidden />
                   )}
-                  {formatNumber(Math.abs(delta), 1)}
+                  {formatNumber(Math.abs(displayDelta), 1)}
                 </>
               )}
             </span>
-            <span className="text-muted-foreground text-xs font-bold">kg</span>
+            <span className="text-muted-foreground text-xs font-bold">
+              {state.profile.weightUnit}
+            </span>
           </Stat>
+          <p className="text-muted-foreground col-span-3 px-1 text-[11px]">{weightCopy}</p>
         </div>
 
-        <p className="text-muted-foreground mt-4 text-sm">{review.headline}</p>
+        <p className="text-muted-foreground mt-4 text-sm">
+          {t(review.headlineMessage.key, review.headlineMessage.vars)}
+        </p>
 
         {(review.goalsHit.length > 0 || review.goalsMissed.length > 0) && (
           <div className="mt-3 grid gap-1">
@@ -272,7 +284,7 @@ function Stat({
 /** Past check-ins, newest first — the history behind the streak. */
 export function CheckInHistory() {
   const { state } = useStore();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const entries = [...(state.checkIns ?? [])].sort((a, b) => (a.weekOf < b.weekOf ? 1 : -1));
   if (entries.length === 0) return null;
 
@@ -287,13 +299,16 @@ export function CheckInHistory() {
               className="bg-secondary/40 flex items-center justify-between gap-3 rounded-xl px-3 py-2"
             >
               <div className="min-w-0">
-                <p className="text-xs font-bold">{entry.weekOf}</p>
+                <p className="text-xs font-bold">
+                  {t('checkin.weekOf', { week: formatDateLabel(entry.weekOf, locale) })}
+                </p>
                 <p className="text-muted-foreground truncate text-[11px]">
                   {entry.notes || t('checkin.feeling.' + String(entry.feeling))}
                 </p>
               </div>
               <span className="text-muted-foreground shrink-0 text-xs font-bold tabular-nums">
-                {t('checkin.session', { count: entry.workouts })} · {entry.minutes} min
+                {t('checkin.session', { count: entry.workouts })} ·{' '}
+                {t('checkin.minutes', { count: entry.minutes })}
               </span>
             </li>
           ))}

@@ -8,6 +8,7 @@ import {
   bodyUnitLabel,
   createTranslator,
   formatDateLabel,
+  formatDateRangeLabel,
   weekdayLabel,
   weekdayLabels,
 } from '../src/index.ts';
@@ -90,6 +91,16 @@ test('weekdayLabel indexes by day number and wraps', () => {
   assert.equal(weekdayLabel(6, 'en'), 'Saturday');
   assert.equal(weekdayLabel(7), weekdayLabel(0), 'a week later is the same weekday');
   assert.equal(weekdayLabel(-1), weekdayLabel(6), 'the day before Sunday is Saturday');
+});
+
+test('date ranges are compact, localized, and include the year when it changes', () => {
+  assert.equal(formatDateRangeLabel('2026-09-07', '2026-09-13', 'en'), 'Sep 7–13');
+  assert.equal(formatDateRangeLabel('2026-09-07', '2026-09-13', 'fr'), '7–13 sept.');
+  assert.equal(formatDateRangeLabel('2026-09-07', '2026-09-07', 'en'), 'Sep 7');
+  assert.equal(
+    formatDateRangeLabel('2025-12-29', '2026-01-04', 'en'),
+    'Dec 29, 2025 – Jan 4, 2026',
+  );
 });
 
 test('formatDateLabel uses the interface language, not the device one', () => {

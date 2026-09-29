@@ -5,14 +5,23 @@ import {
   bodyValueToDisplay,
   categoryById,
   currentStreak,
+  dailyReadiness,
+  dailyStrain,
+  detectAnomalies,
   formatDistance,
   getPlan,
   goalProgress,
   GOAL_METRIC_META,
+  latestBodyWeightKg,
+  personalBaselines,
   round,
   sessionsInRange,
+  sleepDebt,
+  sleepOn,
+  sleepScore,
   startOfWeek,
   toISODate,
+  vitalsOn,
   weekStartOf,
 } from '@smartfit/core';
 import type { FitnessState } from '@smartfit/core';
@@ -589,6 +598,65 @@ export function buildCoachContext(state: FitnessState, now = new Date()): string
     lines.push(
       `Latest weight: ${round(bodyValueToDisplay(w.value, w.unit, state.profile), 1)} ${bodyDisplayUnit('weight', state.profile)} on ${w.date}.`,
     );
+  }
+
+  // ── Recovery / vitals / sleep context (Phase 1 biometric grounding) ──
+  const today = toISODate(now);
+  try {
+    const ready = dailyReadiness(state, today, now);
+    const strain = dailyStrain(state, today);
+    lines.push(
+      `Today's recovery score: ${ready.score}/100 (${ready.label}). ` +
+        `Recommended strain range ${ready.recommendedStrainMin}–${ready.recommendedStrainMax}. ` +
+        `Recommendation: ${ready.recommendation}. Current strain today: ${strain.score}/21.`,
+    );
+    const anom = detectAnomalies(state, today);
+    if (anom.length > 0) {
+      lines.push(
+        'Notable biometric signals: ' +
+          anom
+            .slice(0, 2)
+            .map((a) => a.message)
+            .join('; ') +
+          '.',
+      );
+    }
+    const sleep = sleepOn(state, today);
+    if (sleep) {
+      const sScore = sleepScore(sleep);
+      const hrs = (sleep.durationMin / 60).toFixed(1);
+      lines.push(
+        `Last night's sleep: ${hrs} hours, sleep score ${sScore}/100` +
+          (sleep.quality ? `, self-rated ${sleep.quality}/5` : '') +
+          '.',
+      );
+      const debt = sleepDebt(state, today, 7);
+      if (debt < -60) {
+        lines.push(`7-day sleep debt: ~${Math.round(-debt / 60)} hours.`);
+      }
+    }
+    const v = vitalsOn(state, today);
+    if (v) {
+      const parts: string[] = [];
+      if (v.restingHR) parts.push(`RHR ${Math.round(v.restingHR)} bpm`);
+      if (v.hrvRmssd) parts.push(`HRV ${Math.round(v.hrvRmssd)} ms`);
+      if (v.respiratoryRate) parts.push(`resp ${v.respiratoryRate.toFixed(1)}/min`);
+      if (v.steps) parts.push(`${v.steps.toLocaleString()} steps`);
+      if (parts.length) lines.push("Today's vitals: " + parts.join(', ') + '.');
+    }
+    const mem = state.contextMemory ?? [];
+    if (mem.length > 0) {
+      lines.push(
+        'User context: ' +
+          mem
+            .slice(0, 4)
+            .map((m) => (m.category ? `[${m.category}] ${m.note}` : m.note))
+            .join('; ') +
+          '.',
+      );
+    }
+  } catch {
+    /* Recovery context is best-effort; do not break the coach on bad state */
   }
 
   return lines.join('\n');

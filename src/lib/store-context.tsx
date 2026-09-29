@@ -19,12 +19,15 @@ import {
   estimateCalories,
   latestBodyWeightKg,
   type BodyLog,
-  type MealLog,
   type Category,
+  type ContextMemory,
   type FitnessGoal,
   type FitnessState,
+  type MealLog,
   type ScheduledWorkout,
+  type SleepLog,
   type UserProfile,
+  type VitalsLog,
   type WeeklyCheckIn,
   type WorkoutSession,
 } from '@smartfit/core';
@@ -222,6 +225,13 @@ interface StoreContextValue {
    * weekly prompt must never be able to pile up duplicates in the log.
    */
   addCheckIn: (c: Omit<WeeklyCheckIn, 'id' | 'createdAt'>) => WeeklyCheckIn | null;
+  // sleep & vitals
+  addSleepLog: (s: Omit<SleepLog, 'id' | 'createdAt'>) => void;
+  deleteSleepLog: (id: string) => void;
+  addVitalsLog: (v: Omit<VitalsLog, 'id' | 'createdAt'>) => void;
+  deleteVitalsLog: (id: string) => void;
+  addContextMemory: (m: Omit<ContextMemory, 'id' | 'createdAt'>) => void;
+  deleteContextMemory: (id: string) => void;
   // categories
   addCategory: (c: Omit<Category, 'id'>) => void;
   deleteCategory: (id: string) => void;
@@ -841,6 +851,70 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           upsert('checkIns', item),
         );
         return item;
+      },
+
+      addSleepLog: (s) => {
+        const item: SleepLog = { ...s, id: uid('slp'), createdAt: Date.now() };
+        mutate(
+          (prev) => ({
+            ...prev,
+            sleepLogs: [...(prev.sleepLogs ?? []), item].sort((a, b) => (a.date < b.date ? 1 : -1)),
+          }),
+          upsert('sleepLogs', item),
+        );
+      },
+      deleteSleepLog: (id) => {
+        mutate(
+          (prev) => ({
+            ...prev,
+            sleepLogs: (prev.sleepLogs ?? []).filter((s) => s.id !== id),
+          }),
+          remove('sleepLogs', id),
+        );
+      },
+
+      addVitalsLog: (v) => {
+        const item: VitalsLog = { ...v, id: uid('vit'), createdAt: Date.now() };
+        mutate(
+          (prev) => ({
+            ...prev,
+            vitalsLogs: [...(prev.vitalsLogs ?? []), item].sort((a, b) =>
+              a.date < b.date ? 1 : -1,
+            ),
+          }),
+          upsert('vitalsLogs', item),
+        );
+      },
+      deleteVitalsLog: (id) => {
+        mutate(
+          (prev) => ({
+            ...prev,
+            vitalsLogs: (prev.vitalsLogs ?? []).filter((v) => v.id !== id),
+          }),
+          remove('vitalsLogs', id),
+        );
+      },
+
+      addContextMemory: (m) => {
+        const item: ContextMemory = { ...m, id: uid('mem'), createdAt: Date.now() };
+        mutate(
+          (prev) => ({
+            ...prev,
+            contextMemory: [...(prev.contextMemory ?? []), item].sort(
+              (a, b) => b.createdAt - a.createdAt,
+            ),
+          }),
+          upsert('contextMemory', item),
+        );
+      },
+      deleteContextMemory: (id) => {
+        mutate(
+          (prev) => ({
+            ...prev,
+            contextMemory: (prev.contextMemory ?? []).filter((m) => m.id !== id),
+          }),
+          remove('contextMemory', id),
+        );
       },
 
       addCategory: (c) => {

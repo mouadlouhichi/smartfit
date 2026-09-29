@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   emptyState,
   aggregate,
+  activityPeriod,
   currentStreak,
   estimateCalories,
   estimateExerciseCalories,
@@ -58,6 +59,28 @@ test('aggregate sums volume across sessions', () => {
   assert.equal(agg.minutes, 60);
   assert.equal(agg.calories, 420);
   assert.equal(agg.distance, 5.5);
+});
+
+test('activityPeriod returns inclusive, local date windows and a same-sized previous period', () => {
+  const state = emptyState();
+  state.sessions = [
+    mk({ date: '2026-09-13', categoryId: 'c', durationMin: 20 }),
+    mk({ date: '2026-09-14', categoryId: 'c', durationMin: 30 }),
+    mk({ date: '2026-09-20', categoryId: 'c', durationMin: 40 }),
+    mk({ date: '2026-09-21', categoryId: 'c', durationMin: 50 }),
+  ];
+  const now = new Date(2026, 8, 20, 18, 30);
+  const current = activityPeriod(state, 7, 0, now);
+  const previous = activityPeriod(state, 7, 7, now);
+
+  assert.deepEqual([current.from, current.to], ['2026-09-14', '2026-09-20']);
+  assert.deepEqual([previous.from, previous.to], ['2026-09-07', '2026-09-13']);
+  assert.equal(current.days, 7);
+  assert.equal(current.workouts, 2);
+  assert.equal(current.minutes, 70);
+  assert.equal(previous.workouts, 1);
+  assert.equal(previous.sessions[0].date, '2026-09-13');
+  assert.equal(activityPeriod(state, 0, 0, now).from, '2026-09-20');
 });
 
 test('metricValue maps each goal metric', () => {

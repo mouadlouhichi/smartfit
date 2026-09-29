@@ -29,7 +29,16 @@ import {
 } from './fitness';
 import { totalVolume } from './training';
 import { latestWeightKg } from './program';
+import { createTranslator, type Translator, type Vars } from './i18n';
 import type { FitnessState, WeeklyCheckIn } from './types';
+
+const ENGLISH = createTranslator('en');
+
+/** A localized sentence description kept separate from its computed inputs. */
+export interface CheckInMessage {
+  key: string;
+  vars?: Vars;
+}
 
 const DAY_MS = 86_400_000;
 
@@ -67,8 +76,10 @@ export interface WeeklyReview {
   hasEntries: boolean;
   /** Best-effort streak continuity signal for the copy. */
   daysSinceLast: number | null;
-  /** One sentence summarising the week, chosen from what actually happened. */
+  /** English compatibility copy; localized clients should use `headlineMessage`. */
   headline: string;
+  /** The same evidence, as a catalog key and interpolation values. */
+  headlineMessage: CheckInMessage;
 }
 
 /**
@@ -109,7 +120,7 @@ export function weeklyReview(state: FitnessState, now = new Date()): WeeklyRevie
 
   const goalsHit: string[] = [];
   const goalsMissed: string[] = [];
-  for (const goal of state.goals) {
+  for (const goal of state.goals.filter((item) => item.cadence === 'weekly')) {
     const value = metricValue(sessions, goal.metric);
     const line = `${goal.name} (${Math.round(value)}/${goal.target})`;
     if (value >= goal.target) goalsHit.push(line);
@@ -119,14 +130,15 @@ export function weeklyReview(state: FitnessState, now = new Date()): WeeklyRevie
   const daysSinceLast = daysSinceLastSession(state, now);
   const hitRate = planned > 0 ? agg.workouts / planned : null;
 
-  const headline =
+  const headlineMessage: CheckInMessage =
     agg.workouts === 0
-      ? 'A blank week — no sessions logged. No judgement; let us pick the smallest thing that fits next week.'
+      ? { key: 'checkin.headline.blank' }
       : hitRate != null && hitRate >= 1
-        ? `${agg.workouts} sessions in, every planned day covered. That is the week the plan was written for.`
+        ? { key: 'checkin.headline.planMet', vars: { count: agg.workouts } }
         : hitRate != null && hitRate >= 0.6
-          ? `${agg.workouts} of ${planned} planned sessions. Mostly there — one nudge would close it.`
-          : `${agg.workouts} session${agg.workouts === 1 ? '' : 's'} logged this week. Something is working; let us protect it next week.`;
+          ? { key: 'checkin.headline.nearPlan', vars: { count: agg.workouts, planned } }
+          : { key: 'checkin.headline.sessions', vars: { count: agg.workouts } };
+  const headline = ENGLISH(headlineMessage.key, headlineMessage.vars);
 
   return {
     weekOf: from,
@@ -147,6 +159,7 @@ export function weeklyReview(state: FitnessState, now = new Date()): WeeklyRevie
     hasEntries: agg.workouts > 0 || mealsLogged > 0 || weighedIn,
     daysSinceLast,
     headline,
+    headlineMessage,
   };
 }
 
@@ -265,46 +278,55 @@ export function recordCheckIn(
  * Returns at most two actions — a check-in that asks for five changes is a
  * check-in nobody completes twice.
  */
-export function checkInActions(state: FitnessState, review: WeeklyReview): string[] {
-  const actions: string[] = [];
-  const ws = weekStartOf(state);
+export function checkInActionMessages(state: FitnessState, review: WeeklyReview): CheckInMessage[] {
+  const actions: CheckInMessage[] = [];
 
   if (review.workouts === 0) {
     const schedule = state.schedule.filter((s) => s.active).slice(0, 2);
     if (schedule.length > 0) {
-      const names = schedule.map((s) => s.title).join(' and ');
-      actions.push(`Put the first session on the calendar: ${names}.`);
+      actions.push({
+        key: 'checkin.action.scheduleFirst',
+        vars: { names: schedule.map((s) => s.title).join(', ') },
+      });
     } else {
-      actions.push('Book one session — anything — in the first three days of the week.');
+      actions.push({ key: 'checkin.action.bookOne' });
     }
   } else if (review.planned > 0 && review.workouts < review.planned) {
-    actions.push(
-      `Move one missed session earlier in the week — you logged ${review.workouts} of ${review.planned}.`,
-    );
+    actions.push({
+      key: 'checkin.action.moveMissed',
+      vars: { workouts: review.workouts, planned: review.planned },
+    });
   }
 
   if (review.daysSinceLast != null && review.daysSinceLast >= 5) {
-    actions.push(
-      'Start the new week with a short session; five days off is where habits go quiet.',
-    );
+    actions.push({ key: 'checkin.action.shortStart' });
   }
 
   const targets = state.goals.filter((g) => g.cadence === 'weekly');
   if (targets.length > 0 && review.goalsMissed.length > 0) {
-    actions.push(`Trim a weekly target rather than abandoning it: ${review.goalsMissed[0]}.`);
+    actions.push({ key: 'checkin.action.trimTarget', vars: { goal: review.goalsMissed[0] } });
   }
 
   if (actions.length === 0) {
     const next = state.goals.find((g) => g.cadence === 'weekly');
     actions.push(
       next
-        ? `Hold the line: same week again, aiming at "${next.name}".`
-        : 'Same again next week. Consistency is the whole trick.',
+        ? { key: 'checkin.action.holdGoal', vars: { name: next.name } }
+        : { key: 'checkin.action.consistency' },
     );
   }
 
   // Nothing above can produce an empty list; two is the ceiling by design.
   return actions.slice(0, 2);
+}
+
+/** Localized copy for the suggestions, with English retained as the default. */
+export function checkInActions(
+  state: FitnessState,
+  review: WeeklyReview,
+  translate: Translator = ENGLISH,
+): string[] {
+  return checkInActionMessages(state, review).map(({ key, vars }) => translate(key, vars));
 }
 
 /** Sentiment of a feeling score, for colour choices in the UI. */

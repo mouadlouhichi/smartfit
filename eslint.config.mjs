@@ -37,9 +37,15 @@ const config = [
     },
   },
   {
-    // The Expo app has its own router/runtime conventions.
+    // The Expo app has its own router/runtime conventions, and we use
+    // dynamic require() to lazily load native-only modules so iOS/web
+    // bundles stay clean.
     files: ['apps/mobile/**/*.{ts,tsx}'],
-    rules: { '@next/next/no-html-link-for-pages': 'off' },
+    rules: {
+      '@next/next/no-html-link-for-pages': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/no-var-requires': 'off',
+    },
   },
 ];
 

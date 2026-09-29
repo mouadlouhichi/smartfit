@@ -1,22 +1,48 @@
 {
   "cli": {
     "version": ">= 12.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": false,
+    "requireCommit": false
   },
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "development",
+      "credentialsSource": "remote",
+      "env": {
+        "SMARTFIT_DEPLOYMENT": "demo",
+        "EXPO_PUBLIC_DEFAULT_PLAN": "full-body"
+      },
+      "android": { "buildType": "apk" },
+      "ios": { "buildConfiguration": "Debug", "simulator": true }
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "channel": "preview",
+      "autoIncrement": true,
+      "credentialsSource": "remote",
+      "env": {
+        "SMARTFIT_DEPLOYMENT": "demo",
+        "EXPO_PUBLIC_DEFAULT_PLAN": "full-body"
+      },
+      "android": { "buildType": "apk" },
+      "ios": { "simulator": true }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "channel": "production",
+      "credentialsSource": "remote",
+      "env": {
+        "SMARTFIT_DEPLOYMENT": "demo",
+        "EXPO_PUBLIC_DEFAULT_PLAN": "full-body"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": { "track": "internal" }
+    }
   }
 }

@@ -3,6 +3,15 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    // `expo/tsconfig.base` sets moduleResolution "node" with no explicit
+    // `module`, which rejects dynamic `import()` outright and — more subtly —
+    // ignores package `exports` maps. That made TypeScript resolve
+    // `firebase/auth` to its DOM build, which has no `getReactNativePersistence`,
+    // even though the runtime (Metro, resolving the "react-native" condition)
+    // does have it.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "customConditions": ["react-native"],
     "paths": {
       "@/*": ["./src/*"],
       "@smartfit/core": ["../../packages/core/src/index.ts"]

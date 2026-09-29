@@ -1,0 +1,310 @@
+name: Build SmartFit mobile (EAS)
+
+on:
+  # Every push queues a build, which is what puts it on the Expo dashboard:
+  # https://expo.dev/accounts/mouadlouhichi/projects/smartfit/builds
+  push:
+    branches: ['**']
+    tags: ['*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'EAS build profile'
+        required: false
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+          - production
+      platform:
+        description: 'Platform to build'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - android
+          - ios
+          - all
+      wait:
+        description: 'Wait for build to finish (false = fire-and-forget)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      submit:
+        description: 'Submit to Play Store after build (only for production)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+concurrency:
+  # Serialize runs per ref instead of cancelling them: the requirement is that
+  # *every* push ends up on the Expo dashboard, and a cancelled run may be
+  # killed before it reaches the queue step.
+  group: eas-build-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Non-hidden because actions/upload-artifact skips dot-directories.
+  DEBUG_DIR: eas-debug
+  EXPO_ACCOUNT: mouadlouhichi
+  EXPO_PROJECT: smartfit
+
+jobs:
+  build:
+    name: EAS ${{ github.event.inputs.profile || 'preview' }} / ${{ github.event.inputs.platform || 'all' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Verify EXPO_TOKEN secret is configured
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "::error::EXPO_TOKEN secret is not set. Create an access token at https://expo.dev/settings/access-tokens and add it to this repo's secrets."
+            exit 1
+          fi
+          echo "EXPO_TOKEN present."
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        # Version is taken from the root package.json "packageManager" field,
+        # so never pass an explicit version here.
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        # `eas build` evaluates app.config.js locally before it queues, so the
+        # config plugins (expo-router, react-native-health-connect, …) must be
+        # resolvable from apps/mobile before EAS will accept the build.
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Show EAS account
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          cd apps/mobile
+          eas whoami
+
+      - name: Preflight — resolve Expo config
+        # EAS shells out to exactly this command and swallows the child's
+        # stderr, reporting only "exited with non-zero code: 1". Running it up
+        # front turns an opaque failure into an actionable one.
+        run: |
+          set +e
+          DBG="$GITHUB_WORKSPACE/$DEBUG_DIR"
+          mkdir -p "$DBG"
+          cd apps/mobile
+          EXPO_NO_DOTENV=1 node "$GITHUB_WORKSPACE/node_modules/expo/bin/cli" config --json \
+            > "$DBG/expo-config.json" 2> "$DBG/expo-config.err"
+          EXIT_CODE=$?
+          set -e
+
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "::error::\`expo config --json\` failed (exit $EXIT_CODE). EAS cannot queue a build until this resolves."
+            echo "----- stderr -----"
+            cat "$DBG/expo-config.err" || true
+            echo "----- stdout -----"
+            cat "$DBG/expo-config.json" || true
+            node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" \
+              "$DBG/expo-config.err" "EXPO-CONFIG-ERR" || true
+            exit "$EXIT_CODE"
+          fi
+
+          node -e '
+            var exp = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            var projectId = exp.extra && exp.extra.eas && exp.extra.eas.projectId;
+            var problems = [];
+            if (!exp.slug) problems.push("slug is missing");
+            if (!projectId) problems.push("extra.eas.projectId is missing (run `eas init`)");
+            if (problems.length) {
+              console.error("::error::Expo config is incomplete: " + problems.join("; "));
+              process.exit(1);
+            }
+            console.log("Expo config OK — slug=" + exp.slug +
+              " owner=" + (exp.owner || "(none)") + " projectId=" + projectId);
+          ' "$DBG/expo-config.json"
+
+      - name: Trigger EAS build
+        id: eas
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          EXPO_NO_TELEMETRY: '1'
+        run: |
+          set +e
+          DBG="$GITHUB_WORKSPACE/$DEBUG_DIR"
+          mkdir -p "$DBG"
+          cd apps/mobile
+
+          PROFILE="${{ github.event.inputs.profile || 'preview' }}"
+          PLATFORM="${{ github.event.inputs.platform || 'all' }}"
+          WAIT="${{ github.event.inputs.wait }}"
+          SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
+          MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
+
+          if [ "$WAIT" = "true" ]; then
+            eas build \
+              --profile "$PROFILE" \
+              --platform "$PLATFORM" \
+              --message "$MESSAGE" \
+              --non-interactive \
+              --wait
+            exit $?
+          fi
+
+          # "all" fans out into separate invocations instead of one
+          # `--platform all` call, so a failure on one platform (for example the
+          # free plan running out of Android builds for the month) can no longer
+          # prevent the other platform from being queued.
+          if [ "$PLATFORM" = "all" ]; then
+            TARGETS="android ios"
+          else
+            TARGETS="$PLATFORM"
+          fi
+
+          FAILED_TARGETS=""
+          OUTPUT_FILES=""
+
+          for TARGET in $TARGETS; do
+            OUT="$DBG/eas-build-$TARGET.out"
+            OUTPUT_FILES="$OUTPUT_FILES $OUT"
+            EAS_EXIT=1
+
+            # Fire-and-forget per platform. GraphQL hiccups are usually
+            # transient, so retry those; retries run with EXPO_DEBUG so a
+            # persistent failure reports the real API error.
+            for ATTEMPT in 1 2 3; do
+              if [ "$ATTEMPT" -eq 1 ]; then
+                eas build \
+                  --profile "$PROFILE" \
+                  --platform "$TARGET" \
+                  --message "$MESSAGE" \
+                  --non-interactive \
+                  --no-wait \
+                  --json > "$OUT" 2>&1
+              else
+                EXPO_DEBUG=1 eas build \
+                  --profile "$PROFILE" \
+                  --platform "$TARGET" \
+                  --message "$MESSAGE" \
+                  --non-interactive \
+                  --no-wait \
+                  --json > "$OUT" 2>&1
+              fi
+              EAS_EXIT=$?
+
+              if [ "$EAS_EXIT" -eq 0 ]; then
+                echo "$TARGET: queued on attempt $ATTEMPT"
+                break
+              fi
+
+              if ! grep -q "GraphQL request failed" "$OUT"; then
+                break
+              fi
+              echo "::warning::$TARGET: transient GraphQL failure on attempt $ATTEMPT — retrying"
+              if [ "$ATTEMPT" -lt 3 ]; then
+                sleep 15
+              fi
+            done
+
+            if [ "$EAS_EXIT" -ne 0 ]; then
+              FAILED_TARGETS="$FAILED_TARGETS $TARGET"
+              # Quote limits are the one failure the operator can act on, and
+              # the CLI's wording is easy to miss in a wall of Gradle output.
+              if grep -q "used its .* builds from the Free plan" "$OUT"; then
+                echo "::warning title=EAS-QUOTA::$TARGET: the Expo account has used all of its free-plan $TARGET builds for this month. Builds resume when the quota resets."
+              else
+                echo "::warning title=EAS-BUILD-FAILED::$TARGET: eas build exited $EAS_EXIT"
+              fi
+            fi
+          done
+
+          export EAS_EXIT
+          # shellcheck disable=SC2086
+          node "$GITHUB_WORKSPACE/.github/scripts/parse-eas-builds.cjs" $OUTPUT_FILES
+          NODE_EXIT=$?
+
+          if [ -n "$FAILED_TARGETS" ]; then
+            echo "Platforms that failed to queue:$FAILED_TARGETS"
+            printf '## Platforms that failed to queue\n\n%s\n' "$FAILED_TARGETS" \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          if [ "$NODE_EXIT" -ne 0 ]; then
+            echo "----- EAS output -----"
+            for OUT in $OUTPUT_FILES; do
+              echo "### $OUT"
+              tail -n 60 "$OUT"
+            done
+            # Job logs are intermittently 503ing, so mirror the CLI output into
+            # annotations, which stay readable via the check-runs API and the
+            # run's summary UI.
+            # shellcheck disable=SC2086
+            cat $OUTPUT_FILES > "$DBG/eas-build.combined"
+            tail -c 24000 "$DBG/eas-build.combined" > "$DBG/eas-build.tail"
+            node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" \
+              "$DBG/eas-build.tail" "EAS-ERROR" || true
+          fi
+
+          # Green when at least one platform queued, so an exhausted per-platform
+          # quota doesn't mask a successful build of the other platform.
+          exit $NODE_EXIT
+      - name: Upload EAS output
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: eas-debug-${{ github.run_id }}
+          path: eas-debug/
+          if-no-files-found: ignore
+          retention-days: 3
+
+  submit:
+    name: Submit to Play Store
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.inputs.profile == 'production' && github.event.inputs.submit == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Setup EAS CLI
+        run: npm install -g eas-cli@latest
+
+      - name: Restore Play Console service account key
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          cd apps/mobile
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::PLAY_SERVICE_ACCOUNT_JSON secret is missing (contents of pc-api-key.json)."
+            exit 1
+          fi
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > pc-api-key.json
+
+      - name: Submit latest build
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          cd apps/mobile
+          eas submit --profile production --platform android --latest --non-interactive

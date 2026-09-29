@@ -24,16 +24,21 @@ export type ModalKind =
   | 'goal'
   | 'body'
   | 'meal'
+  | 'sleep'
+  | 'vitals'
   | 'category'
   | 'session-detail'
   | 'pro'
-  | 'runner';
+  | 'runner'
+  | 'quick-actions';
 
 export type ModalPayload =
   | { kind: 'workout'; session?: WorkoutSession; prefill?: Partial<WorkoutSession> }
   | { kind: 'schedule'; schedule?: ScheduledWorkout }
   | { kind: 'goal'; goal?: FitnessGoal }
   | { kind: 'body'; log?: BodyLog }
+  | { kind: 'sleep' }
+  | { kind: 'vitals' }
   | {
       kind: 'meal';
       meal?: MealLog;
@@ -56,6 +61,7 @@ export type ModalPayload =
   | { kind: 'category' }
   | { kind: 'session-detail'; session: WorkoutSession }
   | { kind: 'pro' }
+  | { kind: 'quick-actions' }
   | {
       kind: 'runner';
       title: string;

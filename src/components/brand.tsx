@@ -22,7 +22,11 @@ export function Logo({ className, size = 36 }: { className?: string; size?: numb
     >
       <svg
         viewBox="0 0 24 24"
-        style={{ width: size * 0.6, height: size * 0.6 }}
+        style={{
+          width: size * 0.6,
+          height: size * 0.6,
+          filter: 'drop-shadow(0 1.5px 1px rgba(31, 55, 0, 0.48))',
+        }}
         fill="none"
         stroke="currentColor"
         strokeWidth={FLAME_STROKE}

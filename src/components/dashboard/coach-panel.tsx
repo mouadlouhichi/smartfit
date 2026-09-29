@@ -801,6 +801,10 @@ export function CoachPanel({ className }: { className?: string }) {
           placeholder={t('coach.composer.placeholder')}
           disabled={thinking}
         />
+        <p className="text-muted-foreground mt-2 px-1 text-[10px] leading-relaxed">
+          SmartFit Coach is an athletic training companion, not a medical device. Suggestions are
+          general wellness guidance only — for persistent pain or symptoms, talk to a clinician.
+        </p>
       </div>
     </div>
   );

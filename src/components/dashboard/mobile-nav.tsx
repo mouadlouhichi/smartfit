@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useLayoutEffect, useRef, useState } from 'react';
-import { ClipboardList, CalendarCheck, Footprints, Zap, UserRound } from 'lucide-react';
+import { ClipboardList, CalendarCheck, Footprints, Plus, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useModals } from './modal-context';
 import { useI18n } from '@/lib/i18n-context';
@@ -31,7 +31,7 @@ interface Tab {
   Icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
 }
 
-// Left pair (before the bolt) and right pair (after it).
+// Left pair (before the quick-add button) and right pair (after it).
 const LEFT_TABS: Tab[] = [
   {
     id: 'dashboard',
@@ -84,13 +84,13 @@ interface PillRect {
 }
 
 /**
- * Mobile bottom navigation — Dashboard, Progress, a raised center bolt (logs a
- * workout), Run, Training and Profile. Run sits next to the bolt so the
- * dedicated run screen is one tap away on a phone.
+ * Mobile bottom navigation — Dashboard, Progress, a raised center quick-add
+ * button, Run, Training and Profile. Run stays one tap away, while the center
+ * action opens the available logging and coaching shortcuts.
  *
  * A single white "active" pill is measured from the active tab's position in
  * the bar and animated with a spring transition, so it glides horizontally
- * between tabs (the same technique as the reference app). The center bolt is
+ * between tabs (the same technique as the reference app). The center action is
  * fixed and raised and is never part of the pill path.
  */
 export function MobileNav() {
@@ -223,17 +223,14 @@ export function MobileNav() {
 
         {LEFT_TABS.map(renderTab)}
 
-        {/* Center: raised white bolt — log workout (fixed, raised, not a tab) */}
+        {/* Center: raised quick-add action, fixed between the navigation groups. */}
         <button
           type="button"
-          onClick={() => openModal('workout')}
-          aria-label={t('ui.logWorkout')}
+          onClick={() => openModal('quick-actions')}
+          aria-label={t('quickActions.open')}
           className="bg-volt relative z-20 flex h-12 w-12 shrink-0 items-center justify-center rounded-full shadow-[0_6px_20px_rgba(138,210,0,0.35),inset_0_1px_0_rgba(255,255,255,0.35)] ring-1 ring-black/20 transition-transform active:scale-90"
         >
-          <Zap
-            className="h-5 w-5 fill-[var(--primary-foreground)] text-[var(--primary-foreground)]"
-            strokeWidth={1.6}
-          />
+          <Plus className="text-ink h-5 w-5" strokeWidth={2.7} />
         </button>
 
         {RIGHT_TABS.map(renderTab)}

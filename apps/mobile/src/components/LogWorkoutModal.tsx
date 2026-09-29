@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { X } from 'lucide-react-native';
 import { Button, Card, Input, Label } from './ui';
+import { haptics } from '@/lib/haptics';
 import {
   estimateCalories,
   fromKm,
@@ -31,7 +32,7 @@ function recentDates(count = 7): string[] {
 }
 
 export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { state, addSession } = useStore();
+  const { state, ready, addSession } = useStore();
   const [date, setDate] = useState(toISODate(new Date()));
   const [categoryId, setCategoryId] = useState('cat-strength');
   const [title, setTitle] = useState('');
@@ -53,6 +54,7 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
   const dates = recentDates();
 
   function save() {
+    if (!ready) return;
     addSession({
       date,
       categoryId,
@@ -66,6 +68,7 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
     setTitle('');
     setDistance('');
     setDate(toISODate(new Date()));
+    haptics.success().catch(() => {});
     onClose();
   }
 
@@ -215,11 +218,12 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
                     </Text>
                     <Pressable
                       accessibilityLabel={`Add a set to ${ex.name}`}
-                      onPress={() =>
+                      onPress={() => {
+                        haptics.selection().catch(() => {});
                         setExercises((prev) =>
                           prev.map((x, xi) => (xi === i ? { ...x, sets: [...x.sets, {}] } : x)),
-                        )
-                      }
+                        );
+                      }}
                       className="border-border active:bg-muted h-8 w-8 items-center justify-center rounded-full border"
                     >
                       <Text className="text-foreground text-base font-bold">+</Text>
@@ -249,7 +253,7 @@ export function LogWorkoutModal({ open, onClose }: { open: boolean; onClose: () 
             <Text className="text-primary text-base font-bold">{calories} kcal</Text>
           </Card>
 
-          <Button label="Save workout" onPress={save} />
+          <Button label="Save workout" onPress={save} disabled={!ready} />
         </ScrollView>
       </View>
 

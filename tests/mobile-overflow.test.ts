@@ -238,6 +238,16 @@ test('the brand mark is the lucide flame and the generator matches', async () =>
   );
 });
 
+test('the shared app icon keeps the raised flame shadow', () => {
+  const generator = fs.readFileSync('scripts/gen-brand-assets.mjs', 'utf8');
+  const icon = fs.readFileSync('public/icon.svg', 'utf8');
+  const brand = fs.readFileSync('src/components/brand.tsx', 'utf8');
+
+  assert.match(generator, /<feDropShadow/);
+  assert.match(icon, /filter="url\(#flame-depth\)"/);
+  assert.match(brand, /drop-shadow\(/);
+});
+
 /**
  * The Pro paywall shipped a `relative` in DialogContent's className once;
  * tailwind-merge folds it into the same group as the base `fixed`, so the

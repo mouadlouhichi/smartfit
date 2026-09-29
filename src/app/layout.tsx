@@ -68,7 +68,7 @@ export const metadata: Metadata = {
   // `?v=` busts the OS/browser icon caches whenever the mark is regenerated
   // (scripts/gen-brand-assets.mjs) — home-screen icons are cached by URL and
   // otherwise survive every deploy. Keep in sync with manifest.webmanifest.
-  manifest: '/manifest.webmanifest?v=9',
+  manifest: '/manifest.webmanifest?v=10',
   appleWebApp: {
     capable: true,
     title: appName,
@@ -76,11 +76,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/favicon.ico?v=9', sizes: '32x32' },
-      { url: '/icon.svg?v=9', type: 'image/svg+xml' },
-      { url: '/icons/icon-192.png?v=9', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.ico?v=10', sizes: '32x32' },
+      { url: '/icon.svg?v=10', type: 'image/svg+xml' },
+      { url: '/icons/icon-192.png?v=10', sizes: '192x192', type: 'image/png' },
     ],
-    apple: [{ url: '/apple-touch-icon.png?v=9', sizes: '180x180', type: 'image/png' }],
+    apple: [{ url: '/apple-touch-icon.png?v=10', sizes: '180x180', type: 'image/png' }],
   },
   openGraph: {
     title: `${appName} — Train with intention`,
@@ -90,7 +90,7 @@ export const metadata: Metadata = {
     url: '/',
     images: [
       {
-        url: '/og.png?v=9',
+        url: '/og.png?v=10',
         width: 1200,
         height: 630,
         alt: `${appName} — train with intention`,
@@ -101,7 +101,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `${appName} — Train with intention`,
     description: 'Plan, log and understand your training. A calm, private fitness companion.',
-    images: ['/og.png?v=9'],
+    images: ['/og.png?v=10'],
   },
 };
 

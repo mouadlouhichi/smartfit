@@ -18,8 +18,8 @@ module.exports = {
         clay: '#6F6F6F',
         paper: '#0E0E0E',
 
-        // Semantic aliases used by components.
-        background: '#0E0E0E',
+        // Semantic aliases used by components. OLED black so cosmic wallpaper shows through.
+        background: '#000000',
         foreground: '#F5F5F2',
         card: '#1A1A1A',
         muted: '#232323',

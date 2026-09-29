@@ -15,6 +15,7 @@ import { RESTRICTION_RULES } from './meals';
 import type {
   BodyLog,
   BodyUnit,
+  ContextMemory,
   DietaryPreferences,
   Category,
   FitnessGoal,
@@ -29,7 +30,11 @@ import type {
   PlanId,
   RunSplit,
   ScheduledWorkout,
+  SleepLog,
+  SleepStages,
   UserProfile,
+  VitalsLog,
+  VitalsSource,
   Weekday,
   WeeklyCheckIn,
   WorkoutExercise,
@@ -62,6 +67,9 @@ export function emptyState(): FitnessState {
     customGyms: [],
     enrolledPrograms: [],
     enrolledClasses: [],
+    sleepLogs: [],
+    vitalsLogs: [],
+    contextMemory: [],
   };
 }
 
@@ -407,6 +415,121 @@ function parseBodyLog(v: unknown): BodyLog | null {
 const MEAL_SLOT_IDS: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 const MEAL_SOURCES: MealSource[] = ['manual', 'scan', 'photo', 'voice', 'voice+scan'];
 
+const VITALS_SOURCES: VitalsSource[] = [
+  'manual',
+  'apple-health',
+  'health-connect',
+  'oura',
+  'garmin',
+  'whoop',
+  'polar',
+  'fitbit',
+  'withings',
+  'strava',
+];
+
+function parseSleepStages(v: unknown): SleepStages | undefined {
+  if (!isObj(v)) return undefined;
+  const deep = Math.max(0, Math.round(num(v.deep, 0)));
+  const rem = Math.max(0, Math.round(num(v.rem, 0)));
+  const light = Math.max(0, Math.round(num(v.light, 0)));
+  const awake = Math.max(0, Math.round(num(v.awake, 0)));
+  if (deep + rem + light + awake === 0) return undefined;
+  return { deep, rem, light, awake };
+}
+
+function parseSleepLog(v: unknown): SleepLog | null {
+  if (!isObj(v)) return null;
+  const id = str(v.id).trim();
+  const date = isoDate(v.date, '');
+  const duration = Math.max(0, Math.round(num(v.durationMin, 0)));
+  if (!id || !date || duration <= 0) return null;
+  const rawQ = Math.round(num(v.quality, 0));
+  const quality = rawQ >= 1 && rawQ <= 5 ? (rawQ as 1 | 2 | 3 | 4 | 5) : undefined;
+  const bedTime = str(v.bedTime);
+  const wakeTime = str(v.wakeTime);
+  return {
+    id,
+    date,
+    durationMin: duration,
+    stages: parseSleepStages(v.stages),
+    quality,
+    bedTime: /^\d{2}:\d{2}$/.test(bedTime) ? bedTime : undefined,
+    wakeTime: /^\d{2}:\d{2}$/.test(wakeTime) ? wakeTime : undefined,
+    source: oneOf(v.source, VITALS_SOURCES, 'manual'),
+    externalId: str(v.externalId) || undefined,
+    createdAt: num(v.createdAt, Date.now()),
+  };
+}
+
+function parseHRZones(v: unknown): VitalsLog['hrZoneMinutes'] {
+  if (!isObj(v)) return undefined;
+  const zm = {
+    z1: Math.max(0, Math.round(num(v.z1, 0))),
+    z2: Math.max(0, Math.round(num(v.z2, 0))),
+    z3: Math.max(0, Math.round(num(v.z3, 0))),
+    z4: Math.max(0, Math.round(num(v.z4, 0))),
+    z5: Math.max(0, Math.round(num(v.z5, 0))),
+  };
+  if (zm.z1 + zm.z2 + zm.z3 + zm.z4 + zm.z5 === 0) return undefined;
+  return zm;
+}
+
+function parseVitalsLog(v: unknown): VitalsLog | null {
+  if (!isObj(v)) return null;
+  const id = str(v.id).trim();
+  const date = isoDate(v.date, '');
+  if (!id || !date) return null;
+  const pickNum = (key: string, min: number, max: number) => {
+    const n = optNum((v as Record<string, unknown>)[key]);
+    if (n === undefined) return undefined;
+    if (n < min || n > max) return undefined;
+    return n;
+  };
+  return {
+    id,
+    date,
+    restingHR: pickNum('restingHR', 20, 220),
+    hrvRmssd: pickNum('hrvRmssd', 1, 300),
+    respiratoryRate: pickNum('respiratoryRate', 4, 60),
+    spo2: pickNum('spo2', 70, 100),
+    skinTempDelta: optNum((v as Record<string, unknown>).skinTempDelta),
+    bloodGlucoseMgDl: pickNum('bloodGlucoseMgDl', 30, 600),
+    steps: pickNum('steps', 0, 100_000),
+    activeCalories: pickNum('activeCalories', 0, 20_000),
+    avgHR: pickNum('avgHR', 20, 250),
+    hrZoneMinutes: parseHRZones((v as Record<string, unknown>).hrZoneMinutes),
+    source: oneOf(v.source, VITALS_SOURCES, 'manual'),
+    externalId: str(v.externalId) || undefined,
+    createdAt: num(v.createdAt, Date.now()),
+  };
+}
+
+const CONTEXT_CATEGORIES: readonly Exclude<ContextMemory['category'], undefined>[] = [
+  'injury',
+  'event',
+  'travel',
+  'illness',
+  'medication',
+  'other',
+] as const;
+
+function parseContextMemory(v: unknown): ContextMemory | null {
+  if (!isObj(v)) return null;
+  const id = str(v.id).trim();
+  const note = str(v.note).trim();
+  if (!id || !note) return null;
+  const cat = oneOf((v as Record<string, unknown>).category, CONTEXT_CATEGORIES, 'other' as const);
+  const exp = optNum((v as Record<string, unknown>).expiresAt);
+  return {
+    id,
+    note: note.slice(0, 400),
+    category: cat as ContextMemory['category'],
+    expiresAt: exp && exp > Date.now() ? exp : undefined,
+    createdAt: num(v.createdAt, Date.now()),
+  };
+}
+
 function parseMeal(v: unknown): MealLog | null {
   if (!isObj(v)) return null;
   const id = str(v.id).trim();
@@ -541,6 +664,16 @@ export function parseState(raw: unknown): FitnessState {
     ? (raw.enrolledClasses.filter((x: unknown) => typeof x === 'string') as string[])
     : [];
 
+  const sleepLogs = collect(raw.sleepLogs, parseSleepLog).sort((a, b) =>
+    a.date < b.date ? 1 : -1,
+  );
+  const vitalsLogs = collect(raw.vitalsLogs, parseVitalsLog).sort((a, b) =>
+    a.date < b.date ? 1 : -1,
+  );
+  const contextMemory = collect(raw.contextMemory, parseContextMemory).sort(
+    (a, b) => b.createdAt - a.createdAt,
+  );
+
   return {
     profile: parseProfile(raw.profile),
     categories: [...byId.values()],
@@ -553,6 +686,9 @@ export function parseState(raw: unknown): FitnessState {
     customGyms,
     enrolledPrograms,
     enrolledClasses,
+    sleepLogs,
+    vitalsLogs,
+    contextMemory,
   };
 }
 
@@ -573,6 +709,8 @@ export function isEmptyState(state: FitnessState): boolean {
     state.schedule.length === 0 &&
     state.goals.length === 0 &&
     state.bodyLogs.length === 0 &&
-    state.meals.length === 0
+    state.meals.length === 0 &&
+    (state.sleepLogs?.length ?? 0) === 0 &&
+    (state.vitalsLogs?.length ?? 0) === 0
   );
 }
