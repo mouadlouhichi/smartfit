@@ -4,7 +4,7 @@
     "appVersionSource": "remote",
     "promptToConfigurePushNotifications": false,
     "requireCommit": false,
-    "packageManager": "pnpm"
+    "packageManager": "npm"
   },
   "build": {
     "development": {

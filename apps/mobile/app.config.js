@@ -1,6 +1,7 @@
 /** @type {import('expo/config').ExpoConfig} */
 const config = {
   name: 'SmartFit',
+  owner: 'mouadlouhichi',
   slug: 'smartfit',
   version: '1.0.0',
   scheme: 'smartfit',
