@@ -144,6 +144,9 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_NO_TELEMETRY: '1'
+          # Surface the real GraphQL error body instead of the CLI's generic
+          # "GraphQL request failed." message.
+          EXPO_DEBUG: '1'
         run: |
           set +e
           DBG="$GITHUB_WORKSPACE/$DEBUG_DIR"
@@ -167,15 +170,32 @@ jobs:
             exit $?
           fi
 
-          # Fire-and-forget: queue the build and return immediately.
-          eas build \
-            --profile "$PROFILE" \
-            --platform "$PLATFORM" \
-            --message "$MESSAGE" \
-            --non-interactive \
-            --no-wait \
-            --json > "$OUT" 2>&1
-          EAS_EXIT=$?
+          # Fire-and-forget: queue the build and return immediately. GraphQL
+          # hiccups ("GraphQL request failed.") are usually transient, so retry
+          # a couple of times before giving up.
+          EAS_EXIT=1
+          for ATTEMPT in 1 2 3; do
+            eas build \
+              --profile "$PROFILE" \
+              --platform "$PLATFORM" \
+              --message "$MESSAGE" \
+              --non-interactive \
+              --no-wait \
+              --json > "$OUT" 2>&1
+            EAS_EXIT=$?
+            if [ "$EAS_EXIT" -eq 0 ]; then
+              echo "eas build queued on attempt $ATTEMPT"
+              break
+            fi
+            echo "::warning::eas build attempt $ATTEMPT failed with exit $EAS_EXIT"
+            if ! grep -q "GraphQL request failed" "$OUT"; then
+              echo "not a transient GraphQL failure — not retrying"
+              break
+            fi
+            if [ "$ATTEMPT" -lt 3 ]; then
+              sleep 15
+            fi
+          done
           echo "eas build exit: $EAS_EXIT"
           cat "$OUT"
 
