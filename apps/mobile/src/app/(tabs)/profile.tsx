@@ -7,6 +7,7 @@ import {
   Database,
   Fingerprint,
   HeartPulse,
+  LogOut,
   RefreshCw,
   Shield,
   UserRound,
@@ -20,8 +21,46 @@ import {
   PLANS,
 } from '@smartfit/core';
 import { useStore } from '@/lib/store';
+import { useAuth } from '@/lib/firebase/auth-context';
 import { useQuickActions } from '@/components/QuickActionsProvider';
 import { Button, Card, Input, Label } from '@/components/ui';
+
+/**
+ * Only rendered in cloud mode. Mirrors the account block on the web profile:
+ * which account is signed in, and the one way out of it. Local-mode installs
+ * have no account and therefore nothing to sign out of.
+ */
+function AccountCard() {
+  const { mode, user, signOut, loading } = useAuth();
+  if (mode !== 'cloud' || !user) return null;
+
+  return (
+    <Card>
+      <View className="mb-2 flex-row items-center gap-2">
+        <Shield color="#8AD200" size={18} />
+        <Text className="text-foreground font-semibold">Account</Text>
+      </View>
+      <Text className="text-muted-foreground text-sm">{user.email ?? user.displayName}</Text>
+      <Text className="text-muted-foreground mt-1 text-xs">
+        Signed in — your training syncs with this account on the web app.
+      </Text>
+      <View className="mt-4">
+        <Button
+          label={loading ? 'Signing out…' : 'Sign out'}
+          variant="secondary"
+          icon={<LogOut color="#f3ff47" size={16} />}
+          disabled={loading}
+          onPress={() => {
+            Alert.alert('Sign out', 'Sign out of SmartFit on this device?', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Sign out', style: 'destructive', onPress: () => void signOut() },
+            ]);
+          }}
+        />
+      </View>
+    </Card>
+  );
+}
 
 function HealthConnectCard() {
   const {
@@ -178,6 +217,8 @@ export default function ProfileScreen() {
             </Text>
           </View>
         </Card>
+
+        <AccountCard />
 
         <ProCard />
 

@@ -55,3 +55,4 @@ export * from './team-audit';
 export * from './gym-roster';
 
 export * from './vitals';
+export * from './auth-errors';

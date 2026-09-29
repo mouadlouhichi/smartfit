@@ -40,8 +40,16 @@ export function Button({
   variant = 'primary',
   loading,
   className,
+  icon,
   ...rest
-}: PressableProps & { label: string; variant?: Variant; loading?: boolean; className?: string }) {
+}: PressableProps & {
+  label: string;
+  variant?: Variant;
+  loading?: boolean;
+  className?: string;
+  /** Rendered before the label (mirrors the web button's leading glyph). */
+  icon?: React.ReactNode;
+}) {
   const styles: Record<Variant, string> = {
     primary: 'bg-primary',
     secondary: 'bg-muted',
@@ -69,7 +77,10 @@ export function Button({
       {loading ? (
         <ActivityIndicator color={variant === 'primary' ? '#101010' : '#f3ff47'} />
       ) : (
-        <Text className={cn('text-sm font-semibold', textColor[variant])}>{label}</Text>
+        <View className="flex-row items-center gap-2">
+          {icon}
+          <Text className={cn('text-sm font-semibold', textColor[variant])}>{label}</Text>
+        </View>
       )}
     </Pressable>
   );
