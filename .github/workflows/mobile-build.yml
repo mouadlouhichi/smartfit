@@ -101,18 +101,27 @@ jobs:
           eas whoami
 
       - name: Diagnose expo config
-        # Diagnostics only — mirrors `expo config --json` (which EAS shells out
-        # to internally) so config errors stay readable.
+        # Diagnostics only. EAS shells out to the local `expo config --json`
+        # and swallows the child's stderr, so reproduce the exact invocations
+        # (including EXPO_NO_DOTENV=1) and surface their output.
         continue-on-error: true
         run: |
           set +e
-          mkdir -p "$GITHUB_WORKSPACE/$DEBUG_DIR"
+          DBG="$GITHUB_WORKSPACE/$DEBUG_DIR"
+          mkdir -p "$DBG"
           cd apps/mobile
-          node "$GITHUB_WORKSPACE/node_modules/expo/bin/cli" config --json \
-            > "$GITHUB_WORKSPACE/$DEBUG_DIR/expo-config.out" 2>&1
-          echo "expo config --json exit: $?"
-          echo "--- output ---"
-          cat "$GITHUB_WORKSPACE/$DEBUG_DIR/expo-config.out"
+          EXPO_BIN="$GITHUB_WORKSPACE/node_modules/expo/bin/cli"
+
+          for VARIANT in "" "--type public" "--type introspect"; do
+            NAME="$(echo "plain $VARIANT" | tr -d ' -' )"
+            OUT="$DBG/expo-config-$NAME.out"
+            # shellcheck disable=SC2086
+            EXPO_NO_DOTENV=1 node "$EXPO_BIN" config --json $VARIANT > "$OUT" 2>&1
+            echo "### expo config --json $VARIANT -> exit $?" >> "$DBG/expo-config-summary.txt"
+            node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" \
+              "$OUT" "EXPO-CONFIG-$NAME" 12000 || true
+          done
+          cat "$DBG/expo-config-summary.txt" || true
 
       - name: Trigger EAS build
         id: eas
