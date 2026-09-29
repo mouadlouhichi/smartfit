@@ -144,9 +144,6 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_NO_TELEMETRY: '1'
-          # Surface the real GraphQL error body instead of the CLI's generic
-          # "GraphQL request failed." message.
-          EXPO_DEBUG: '1'
         run: |
           set +e
           DBG="$GITHUB_WORKSPACE/$DEBUG_DIR"
@@ -172,16 +169,28 @@ jobs:
 
           # Fire-and-forget: queue the build and return immediately. GraphQL
           # hiccups ("GraphQL request failed.") are usually transient, so retry
-          # a couple of times before giving up.
+          # a couple of times before giving up. Retries run with EXPO_DEBUG so a
+          # persistent failure reports the real API error instead of the CLI's
+          # generic message.
           EAS_EXIT=1
           for ATTEMPT in 1 2 3; do
-            eas build \
-              --profile "$PROFILE" \
-              --platform "$PLATFORM" \
-              --message "$MESSAGE" \
-              --non-interactive \
-              --no-wait \
-              --json > "$OUT" 2>&1
+            if [ "$ATTEMPT" -eq 1 ]; then
+              eas build \
+                --profile "$PROFILE" \
+                --platform "$PLATFORM" \
+                --message "$MESSAGE" \
+                --non-interactive \
+                --no-wait \
+                --json > "$OUT" 2>&1
+            else
+              EXPO_DEBUG=1 eas build \
+                --profile "$PROFILE" \
+                --platform "$PLATFORM" \
+                --message "$MESSAGE" \
+                --non-interactive \
+                --no-wait \
+                --json > "$OUT" 2>&1
+            fi
             EAS_EXIT=$?
             if [ "$EAS_EXIT" -eq 0 ]; then
               echo "eas build queued on attempt $ATTEMPT"
@@ -197,7 +206,6 @@ jobs:
             fi
           done
           echo "eas build exit: $EAS_EXIT"
-          cat "$OUT"
 
           export EAS_EXIT OUT
           node -e '
@@ -232,10 +240,17 @@ jobs:
 
             var md = "## EAS build\n\n- `eas build` exit code: `" + exitCode + "`\n\n";
             if (links.length) {
-              md += "### Builds queued\n\n" + links.join("\n") + "\n\n";
+              var buildUrl = "https://expo.dev/accounts/" + acct + "/projects/" + proj +
+                "/builds/" + builds[0].id;
+              md += "### Build queued\n\n" + links.join("\n") + "\n\n";
               md += "All builds: https://expo.dev/accounts/" + acct + "/projects/" + proj + "/builds\n";
               fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
               fs.appendFileSync(process.env.GITHUB_OUTPUT, "build_id=" + builds[0].id + "\n");
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, "build_url=" + buildUrl + "\n");
+              console.log("BUILD QUEUED: " + buildUrl);
+              // A notice (not an error) so the link is visible in the run UI
+              // without making a successful run look failed.
+              console.log("::notice title=EAS-BUILD-QUEUED::" + buildUrl);
               process.exit(0);
             }
 
@@ -246,9 +261,16 @@ jobs:
           '
           NODE_EXIT=$?
 
-          # Job logs are intermittently 503ing, so mirror the raw CLI output into
-          # annotations, which stay readable via the check-runs API / UI.
-          node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" "$OUT" "EAS-OUT" || true
+          if [ "$NODE_EXIT" -ne 0 ]; then
+            echo "----- last 60 lines of EAS output -----"
+            tail -n 60 "$OUT"
+            # Job logs are intermittently 503ing, so mirror the tail of the CLI
+            # output into annotations, which stay readable via the check-runs
+            # API and the run's summary UI.
+            tail -c 24000 "$OUT" > "$DBG/eas-build.tail"
+            node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" \
+              "$DBG/eas-build.tail" "EAS-ERROR" || true
+          fi
           exit $NODE_EXIT
 
       - name: Upload EAS output
