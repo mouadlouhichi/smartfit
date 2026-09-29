@@ -87,7 +87,7 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_NO_TELEMETRY: '1'
-          DEBUG: 'eas-shared:errors,eas:build'
+          EAS_NO_VCS: '1'
         run: |
           set -x
           cd apps/mobile
@@ -109,8 +109,8 @@ jobs:
               --non-interactive \
               --wait
           else
-            # Capture both stdout+stderr; do NOT fail on pipe so the file + output
-            # is always visible even if eas exits non-zero.
+            # Capture both stdout+stderr so we can surface the exact error in
+            # the job summary (GitHub's log download is intermittently 503ing).
             set +e
             eas build \
               --profile "$PROFILE" \
@@ -118,49 +118,71 @@ jobs:
               --message "$MESSAGE" \
               --non-interactive \
               --no-wait \
-              --json > "$RUNNER_TEMP/eas-build.json" 2> "$RUNNER_TEMP/eas-build.err"
+              --json > "$RUNNER_TEMP/eas-build.out" 2>&1
             EAS_EXIT=$?
             set -e
-            echo "---- eas build exit code: $EAS_EXIT ----"
-            echo "---- eas build stderr ----"
-            cat "$RUNNER_TEMP/eas-build.err" || true
-            echo "---- eas build stdout ----"
-            cat "$RUNNER_TEMP/eas-build.json" || true
-            echo
 
             EXPO_ACCOUNT="mouadlouhichi"
             EXPO_PROJECT="smartfit"
-            export EXPO_ACCOUNT EXPO_PROJECT
+            export EXPO_ACCOUNT EXPO_PROJECT EAS_EXIT
             node -e '
               var fs = require("fs");
               var acct = process.env.EXPO_ACCOUNT;
               var proj = process.env.EXPO_PROJECT;
+              var exitCode = process.env.EAS_EXIT || "?";
               var raw = "";
-              try { raw = fs.readFileSync(process.env.RUNNER_TEMP + "/eas-build.json", "utf8"); }
-              catch(e) { console.error("no stdout file"); raw = "[]"; }
+              try { raw = fs.readFileSync(process.env.RUNNER_TEMP + "/eas-build.out", "utf8"); } catch(e){ raw = ""; }
+
+              // Strip any ANSI / control chars so the summary renders cleanly.
+              var clean = raw.replace(/\x1B\[[0-9;]*[A-Za-z]/g, "").replace(/\r/g, "");
+
+              // Try to locate the JSON payload (the CLI can emit log lines
+              // before the JSON when DEBUG is on or there are warnings).
               var builds = [];
-              try {
-                var parsed = JSON.parse(raw);
-                builds = Array.isArray(parsed) ? parsed : [parsed];
-              } catch(e) {
-                console.error("stdout was not valid JSON: " + e.message);
-                builds = [];
+              var lastArr = clean.lastIndexOf("[");
+              var lastObj = clean.lastIndexOf("{");
+              var parseStart = Math.max(lastArr, lastObj);
+              if (parseStart >= 0) {
+                var candidate = clean.slice(parseStart);
+                try {
+                  var parsed = JSON.parse(candidate);
+                  builds = Array.isArray(parsed) ? parsed : [parsed];
+                } catch(e){
+                  // try shorter slices
+                  for (var i = parseStart + 1; i < clean.length; i++) {
+                    var ch = clean[i];
+                    if (ch === "[" || ch === "{") {
+                      try {
+                        var p = JSON.parse(clean.slice(i));
+                        builds = Array.isArray(p) ? p : [p];
+                        break;
+                      } catch(ee){}
+                    }
+                  }
+                }
               }
               var lines = builds.filter(function(b){ return b && b.id; }).map(function(b){
                 var prof = b.buildProfile || b.profile || "preview";
                 var plat = b.platform || "?";
                 return "- **" + plat + "** `" + prof + "` — [" + b.id + "](https://expo.dev/accounts/" + acct + "/projects/" + proj + "/builds/" + b.id + ")";
               });
+
+              var md = "## EAS build\n\n- Exit code: `" + exitCode + "`\n\n";
               if (lines.length) {
-                fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-                  "## EAS builds queued\n\n" + lines.join("\n") +
-                  "\n\nAll builds: https://expo.dev/accounts/" + acct + "/projects/" + proj + "/builds\n");
+                md += "### ✅ Builds queued\n\n" + lines.join("\n") + "\n\n";
+                md += "All builds: https://expo.dev/accounts/" + acct + "/projects/" + proj + "/builds\n";
+                fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
                 fs.appendFileSync(process.env.GITHUB_OUTPUT, "build_id=" + builds[0].id + "\n");
-                console.log("Builds queued:" + lines.join("\n"));
+                console.log("Builds queued:");
+                lines.forEach(function(l){ console.log(l); });
                 process.exit(0);
               }
-              console.log("No build id returned (EAS failed)");
-              process.exit(process.env.EAS_EXIT ? parseInt(process.env.EAS_EXIT, 10) : 1);
+              md += "### ❌ No build id returned\n\n";
+              md += "Last 4KB of EAS output:\n\n```\n";
+              md += (clean.slice(-4000) || "(empty)") + "\n```\n";
+              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+              console.log(clean);
+              process.exit(parseInt(exitCode, 10) || 1);
             '
           fi
 
