@@ -79,13 +79,7 @@ jobs:
           node-version: 22
 
       - name: Setup EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          expo-version: latest
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-          packager: npm
-          expo-cache: true
+        run: npm install -g eas-cli@latest
 
       - name: Show EAS account
         env:
@@ -180,11 +174,7 @@ jobs:
           node-version: 22
 
       - name: Setup EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-          packager: npm
+        run: npm install -g eas-cli@latest
 
       - name: Restore Play Console service account key
         env:
