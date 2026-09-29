@@ -21,7 +21,7 @@ on:
       platform:
         description: 'Platform to build'
         required: false
-        default: 'android'
+        default: 'all'
         type: choice
         options:
           - android
@@ -59,7 +59,7 @@ env:
 
 jobs:
   build:
-    name: EAS ${{ github.event.inputs.profile || 'preview' }} / ${{ github.event.inputs.platform || 'android' }}
+    name: EAS ${{ github.event.inputs.profile || 'preview' }} / ${{ github.event.inputs.platform || 'all' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -153,7 +153,7 @@ jobs:
           cd apps/mobile
 
           PROFILE="${{ github.event.inputs.profile || 'preview' }}"
-          PLATFORM="${{ github.event.inputs.platform || 'android' }}"
+          PLATFORM="${{ github.event.inputs.platform || 'all' }}"
           WAIT="${{ github.event.inputs.wait }}"
           SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
           MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
@@ -210,57 +210,7 @@ jobs:
           echo "eas build exit: $EAS_EXIT"
 
           export EAS_EXIT OUT
-          node -e '
-            var fs = require("fs");
-            var acct = process.env.EXPO_ACCOUNT;
-            var proj = process.env.EXPO_PROJECT;
-            var exitCode = process.env.EAS_EXIT || "?";
-
-            var raw = "";
-            try { raw = fs.readFileSync(process.env.OUT, "utf8"); } catch (e) { raw = ""; }
-            var clean = raw.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "").replace(/\r/g, "");
-
-            // The CLI may print log lines before the JSON payload, so widen the
-            // search until a slice parses into build objects with ids.
-            var builds = [];
-            for (var start = 0; start < clean.length && !builds.length; start++) {
-              var ch = clean[start];
-              if (ch !== "[" && ch !== "{") continue;
-              try {
-                var parsed = JSON.parse(clean.slice(start));
-                var list = Array.isArray(parsed) ? parsed : [parsed];
-                if (list.some(function (b) { return b && b.id; })) builds = list;
-              } catch (e) { /* keep scanning */ }
-            }
-
-            var links = builds.filter(function (b) { return b && b.id; }).map(function (b) {
-              var profile = b.buildProfile || b.profile || "preview";
-              var platform = b.platform || "?";
-              return "- **" + platform + "** `" + profile + "` — [" + b.id +
-                "](https://expo.dev/accounts/" + acct + "/projects/" + proj + "/builds/" + b.id + ")";
-            });
-
-            var md = "## EAS build\n\n- `eas build` exit code: `" + exitCode + "`\n\n";
-            if (links.length) {
-              var buildUrl = "https://expo.dev/accounts/" + acct + "/projects/" + proj +
-                "/builds/" + builds[0].id;
-              md += "### Build queued\n\n" + links.join("\n") + "\n\n";
-              md += "All builds: https://expo.dev/accounts/" + acct + "/projects/" + proj + "/builds\n";
-              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
-              fs.appendFileSync(process.env.GITHUB_OUTPUT, "build_id=" + builds[0].id + "\n");
-              fs.appendFileSync(process.env.GITHUB_OUTPUT, "build_url=" + buildUrl + "\n");
-              console.log("BUILD QUEUED: " + buildUrl);
-              // A notice (not an error) so the link is visible in the run UI
-              // without making a successful run look failed.
-              console.log("::notice title=EAS-BUILD-QUEUED::" + buildUrl);
-              process.exit(0);
-            }
-
-            md += "### No build id returned\n\n```\n" +
-              (clean.slice(-4000) || "(no output)") + "\n```\n";
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
-            process.exit(exitCode === "0" ? 1 : parseInt(exitCode, 10) || 1);
-          '
+          node "$GITHUB_WORKSPACE/.github/scripts/parse-eas-builds.cjs" "$OUT"
           NODE_EXIT=$?
 
           if [ "$NODE_EXIT" -ne 0 ]; then
