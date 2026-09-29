@@ -99,6 +99,19 @@ const config = {
         faceIDPermission: 'Allow SmartFit to use Face ID to lock your training data.',
       },
     ],
+    // Health Connect (androidx.health.connect:connect-client) declares
+    // minSdkVersion 26, so the app has to match it or the Android manifest
+    // merger fails the release build. Bumping minSdk also means Play Store
+    // installs are limited to Android 8.0+, which Health Connect requires
+    // anyway.
+    [
+      'expo-build-properties',
+      {
+        android: {
+          minSdkVersion: 26,
+        },
+      },
+    ],
   ],
 };
 
