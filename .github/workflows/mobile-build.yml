@@ -100,8 +100,13 @@ jobs:
           MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
           DBG="$GITHUB_WORKSPACE/.eas-debug"
           mkdir -p "$DBG"
+          echo "pre-flight marker $(date)" > "$DBG/preflight.txt"
+          echo "env pre-check:"
+          env | grep -iE "expo|eas|github|runner" | head -20
           echo "DBG=$DBG; listing before:"
           ls -la "$DBG"
+          echo "cwd=$(pwd); workspace contents:"
+          ls -la "$GITHUB_WORKSPACE"
           node --version
           which eas
           eas --version
@@ -190,8 +195,12 @@ jobs:
               md += "### ❌ No build id returned\n\n";
               md += "Last 4KB of EAS output:\n\n```\n";
               md += (clean.slice(-4000) || "(empty)") + "\n```\n";
-              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+              fs.writeFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+              // Also dump to GITHUB_OUTPUT with a marker so the run overview shows it
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, "debug_log=" + Buffer.from(clean.slice(-2000)).toString("base64") + "\n");
               console.log(clean);
+              // Write a sentinel file so the upload-artifact step definitely sees it
+              fs.writeFileSync(process.env.OUT + ".marker", "marker\n");
               process.exit(parseInt(exitCode, 10) || 1);
             '
           fi
