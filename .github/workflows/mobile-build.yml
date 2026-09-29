@@ -96,6 +96,7 @@ jobs:
           WAIT="${{ github.event.inputs.wait }}"
           SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
           MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
+          mkdir -p "$GITHUB_WORKSPACE/.eas-debug"
           node --version
           which eas
           eas --version
@@ -109,8 +110,10 @@ jobs:
               --non-interactive \
               --wait
           else
-            # Capture both stdout+stderr so we can surface the exact error in
-            # the job summary (GitHub's log download is intermittently 503ing).
+            # Capture both stdout+stderr to a workspace file we can upload as
+            # an artifact — this lets us read it even when GitHub's log
+            # download service is 503ing.
+            OUT="$GITHUB_WORKSPACE/.eas-debug/eas-build.out"
             set +e
             eas build \
               --profile "$PROFILE" \
@@ -118,20 +121,21 @@ jobs:
               --message "$MESSAGE" \
               --non-interactive \
               --no-wait \
-              --json > "$RUNNER_TEMP/eas-build.out" 2>&1
+              --json > "$OUT" 2>&1
             EAS_EXIT=$?
             set -e
+            echo "eas-exit=$EAS_EXIT" > "$GITHUB_WORKSPACE/.eas-debug/exit.txt"
 
             EXPO_ACCOUNT="mouadlouhichi"
             EXPO_PROJECT="smartfit"
-            export EXPO_ACCOUNT EXPO_PROJECT EAS_EXIT
+            export EXPO_ACCOUNT EXPO_PROJECT EAS_EXIT OUT
             node -e '
               var fs = require("fs");
               var acct = process.env.EXPO_ACCOUNT;
               var proj = process.env.EXPO_PROJECT;
               var exitCode = process.env.EAS_EXIT || "?";
               var raw = "";
-              try { raw = fs.readFileSync(process.env.RUNNER_TEMP + "/eas-build.out", "utf8"); } catch(e){ raw = ""; }
+              try { raw = fs.readFileSync(process.env.OUT, "utf8"); } catch(e){ raw = ""; }
 
               // Strip any ANSI / control chars so the summary renders cleanly.
               var clean = raw.replace(/\x1B\[[0-9;]*[A-Za-z]/g, "").replace(/\r/g, "");
@@ -185,6 +189,15 @@ jobs:
               process.exit(parseInt(exitCode, 10) || 1);
             '
           fi
+
+      - name: Upload EAS debug output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eas-debug-${{ github.run_id }}
+          path: .eas-debug/
+          if-no-files-found: ignore
+          retention-days: 3
 
   submit:
     name: Submit to Play Store
