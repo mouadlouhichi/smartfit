@@ -86,19 +86,19 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
           packager: npm
           expo-cache: true
-          working-directory: apps/mobile
 
       - name: Show EAS account
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           echo "EXPO_TOKEN length: ${#EXPO_TOKEN}"
+          echo "cwd: $(pwd)"
+          cd apps/mobile
           eas whoami
-        working-directory: apps/mobile
+          eas project:info || echo "(info failed)"
 
       - name: Trigger EAS build
         id: eas
-        working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_ACCOUNT: mouadlouhichi
@@ -108,11 +108,14 @@ jobs:
           PROFILE="${{ github.event.inputs.profile || 'preview' }}"
           PLATFORM="${{ github.event.inputs.platform || 'android' }}"
           WAIT="${{ github.event.inputs.wait }}"
+          cd apps/mobile
           SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
-          MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
+          MESSAGE="$(cd "$GITHUB_WORKSPACE" && git log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
           echo "Profile : $PROFILE"
           echo "Platform: $PLATFORM"
           echo "Message : $MESSAGE"
+          echo "cwd     : $(pwd)"
+          ls -la eas.json app.config.js
           if [ "$WAIT" = "true" ]; then
             eas build \
               --profile "$PROFILE" \
@@ -122,8 +125,6 @@ jobs:
               --wait
           else
             set -x
-            # Capture both stdout and stderr, but don't fail on pipe errors
-            # until we've dumped any response body the CLI printed.
             eas build \
               --profile "$PROFILE" \
               --platform "$PLATFORM" \
@@ -158,6 +159,9 @@ jobs:
 
       - name: Link to dashboard
         if: always()
+        env:
+          EXPO_ACCOUNT: mouadlouhichi
+          EXPO_PROJECT: smartfit
         run: |
           echo "Builds: https://expo.dev/accounts/${EXPO_ACCOUNT}/projects/${EXPO_PROJECT}/builds"
 
@@ -181,13 +185,12 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
           packager: npm
-          working-directory: apps/mobile
 
       - name: Restore Play Console service account key
-        working-directory: apps/mobile
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
+          cd apps/mobile
           if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
             echo "::error::PLAY_SERVICE_ACCOUNT_JSON secret is missing (contents of pc-api-key.json)."
             exit 1
@@ -195,7 +198,8 @@ jobs:
           printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > pc-api-key.json
 
       - name: Submit latest build
-        working-directory: apps/mobile
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas submit --profile production --platform android --latest --non-interactive
+        run: |
+          cd apps/mobile
+          eas submit --profile production --platform android --latest --non-interactive
