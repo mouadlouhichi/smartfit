@@ -51,7 +51,7 @@ env:
 
 jobs:
   build:
-    name: EAS ${{ env.PROFILE }} / ${{ env.PLATFORM }}
+    name: EAS ${{ github.event.inputs.profile || 'preview' }} / ${{ github.event.inputs.platform || 'android' }}
     runs-on: ubuntu-latest
     if: >-
       github.event_name != 'push' ||
@@ -134,12 +134,16 @@ jobs:
               const fs = require("fs");
               const out = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/eas-build.json", "utf8"));
               const builds = Array.isArray(out) ? out : [out];
-              const lines = builds.map(b =>
-                `- **${b.platform}** \`${b.buildProfile ?? process.env.PROFILE}\` — [${b.id}](https://expo.dev/accounts/${process.env.EXPO_ACCOUNT}/projects/${process.env.EXPO_PROJECT}/builds/${b.id})`
-              );
+              const account = process.env.EXPO_ACCOUNT;
+              const project = process.env.EXPO_PROJECT;
+              const defProfile = process.env.PROFILE;
+              const lines = builds.map(function(b){
+                const prof = b.buildProfile || defProfile;
+                return "- **" + b.platform + "** `" + prof + "` — [" + b.id + "](https://expo.dev/accounts/" + account + "/projects/" + project + "/builds/" + b.id + ")";
+              });
               fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-                `## EAS builds queued\n\n${lines.join("\n")}\n\nAll builds: https://expo.dev/accounts/${process.env.EXPO_ACCOUNT}/projects/${process.env.EXPO_PROJECT}/builds\n`);
-              fs.appendFileSync(process.env.GITHUB_OUTPUT, `build_id=${builds[0]?.id ?? ""}\n`);
+                "## EAS builds queued\n\n" + lines.join("\n") + "\n\nAll builds: https://expo.dev/accounts/" + account + "/projects/" + project + "/builds\n");
+              fs.appendFileSync(process.env.GITHUB_OUTPUT, "build_id=" + ((builds[0] && builds[0].id) || "") + "\n");
             '
           fi
 
