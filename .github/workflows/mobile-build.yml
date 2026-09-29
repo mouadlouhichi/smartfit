@@ -112,7 +112,7 @@ jobs:
           EXPO_ACCOUNT: mouadlouhichi
           EXPO_PROJECT: smartfit
         run: |
-          set -o pipefail
+          set -euo pipefail
           PROFILE="${{ github.event.inputs.profile || 'preview' }}"
           PLATFORM="${{ github.event.inputs.platform || 'android' }}"
           WAIT="${{ github.event.inputs.wait }}"
@@ -130,15 +130,24 @@ jobs:
               --wait
           else
             set -x
+            # Capture both stdout and stderr, but don't fail on pipe errors
+            # until we've dumped any response body the CLI printed.
             eas build \
               --profile "$PROFILE" \
               --platform "$PLATFORM" \
               --message "$MESSAGE" \
               --non-interactive \
               --no-wait \
-              --json \
-              | tee "$RUNNER_TEMP/eas-build.json"
+              --json > "$RUNNER_TEMP/eas-build.json" 2> "$RUNNER_TEMP/eas-build.err"
+            EAS_EXIT=$?
             set +x
+            echo "---- eas build stderr ----"
+            cat "$RUNNER_TEMP/eas-build.err"
+            echo "---- eas build stdout ----"
+            head -c 4000 "$RUNNER_TEMP/eas-build.json"
+            echo
+            echo "---- exit code: $EAS_EXIT ----"
+            if [ "$EAS_EXIT" != "0" ]; then exit "$EAS_EXIT"; fi
             node -e '
               const fs = require("fs");
               const out = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/eas-build.json", "utf8"));
