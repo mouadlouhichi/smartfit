@@ -102,26 +102,46 @@ jobs:
 
       - name: Diagnose expo config
         # Diagnostics only. EAS shells out to the local `expo config --json`
-        # and swallows the child's stderr, so reproduce the exact invocations
-        # (including EXPO_NO_DOTENV=1) and surface their output.
+        # and swallows the child's stderr, so reproduce the same invocations
+        # (EXPO_NO_DOTENV=1 included) and surface exit codes + output.
         continue-on-error: true
         run: |
           set +e
           DBG="$GITHUB_WORKSPACE/$DEBUG_DIR"
           mkdir -p "$DBG"
-          cd apps/mobile
           EXPO_BIN="$GITHUB_WORKSPACE/node_modules/expo/bin/cli"
+          REPORT="$DBG/diagnose.txt"
+          : > "$REPORT"
 
-          for VARIANT in "" "--type public" "--type introspect"; do
-            NAME="$(echo "plain $VARIANT" | tr -d ' -' )"
-            OUT="$DBG/expo-config-$NAME.out"
-            # shellcheck disable=SC2086
-            EXPO_NO_DOTENV=1 node "$EXPO_BIN" config --json $VARIANT > "$OUT" 2>&1
-            echo "### expo config --json $VARIANT -> exit $?" >> "$DBG/expo-config-summary.txt"
-            node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" \
-              "$OUT" "EXPO-CONFIG-$NAME" 12000 || true
-          done
-          cat "$DBG/expo-config-summary.txt" || true
+          run_case() {
+            local name="$1"; shift
+            local dir="$1"; shift
+            {
+              echo "=================================================="
+              echo "## $name"
+              echo "cwd=$dir"
+              echo "cmd: $*"
+            } >> "$REPORT"
+            ( cd "$dir" && EXPO_NO_DOTENV=1 node "$EXPO_BIN" "$@" >> "$REPORT" 2>&1 )
+            echo "exit=$?" >> "$REPORT"
+          }
+
+          {
+            echo "node: $(node --version)"
+            echo "expo bin: $EXPO_BIN"
+            ls -la "$GITHUB_WORKSPACE/node_modules/expo/bin" 2>&1
+            echo "resolved expo version: $(node -p "require('$GITHUB_WORKSPACE/node_modules/expo/package.json').version" 2>&1)"
+            echo "resolved @expo/cli version: $(node -p "require('$GITHUB_WORKSPACE/node_modules/@expo/cli/package.json').version" 2>&1)"
+            free -m 2>&1 | head -3
+          } >> "$REPORT" 2>&1
+
+          run_case "version (from apps/mobile)" "$GITHUB_WORKSPACE/apps/mobile" --version
+          run_case "config --json (from apps/mobile)" "$GITHUB_WORKSPACE/apps/mobile" config --json
+          run_case "config --json (from repo root)" "$GITHUB_WORKSPACE" config --json
+          run_case "config (human readable)" "$GITHUB_WORKSPACE/apps/mobile" config
+
+          node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" \
+            "$REPORT" "EXPO-DIAG" 60000 || true
 
       - name: Trigger EAS build
         id: eas
