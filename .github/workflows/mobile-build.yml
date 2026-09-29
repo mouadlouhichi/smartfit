@@ -73,21 +73,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        # Let pnpm/action-setup read `packageManager` from package.json so it
-        # matches corepack exactly (avoids "Multiple versions of pnpm specified").
-        uses: pnpm/action-setup@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        # Resolves expo/EAS CLIs from the workspace so `eas` runs locally before
-        # handing off to the EAS build cloud. The cloud build does its own install.
-        run: pnpm install --frozen-lockfile
 
       - name: Setup EAS CLI
         uses: expo/expo-github-action@v8
@@ -95,13 +84,16 @@ jobs:
           expo-version: latest
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-          packager: pnpm
+          packager: npm
           expo-cache: true
+          working-directory: apps/mobile
 
       - name: Show EAS account
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-        run: eas whoami
+        run: |
+          echo "EXPO_TOKEN length: ${#EXPO_TOKEN}"
+          eas whoami
         working-directory: apps/mobile
 
       - name: Trigger EAS build
@@ -178,24 +170,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
 
       - name: Setup EAS CLI
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-          packager: pnpm
+          packager: npm
+          working-directory: apps/mobile
 
       - name: Restore Play Console service account key
         working-directory: apps/mobile
