@@ -203,7 +203,7 @@ jobs:
 
           # Job logs are intermittently 503ing, so mirror the raw output into
           # annotations (readable via `gh api .../check-runs/<id>/annotations`).
-          node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.js" "$OUT" "EAS-OUT" || true
+          node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" "$OUT" "EAS-OUT" || true
           exit $NODE_EXIT
 
       - name: Upload EAS debug output
