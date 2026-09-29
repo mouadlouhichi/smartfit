@@ -88,7 +88,11 @@ const config = {
           'SmartFit syncs steps, heart rate, sleep and workouts from Health Connect to compute your daily recovery score.',
       },
     ],
-    'expo-haptics',
+    // NOTE: expo-haptics is a runtime module, not a config plugin — it ships
+    // no app.plugin.js. Listing it here makes @expo/config-plugins fall back
+    // to its `main` entry (src/Haptics.ts), which Node >= 22.18 refuses to
+    // type-strip from inside node_modules (ERR_UNSUPPORTED_NODE_MODULES_TYPE_
+    // STRIPPING), breaking `expo config` and therefore `eas build`.
     [
       'expo-local-authentication',
       {

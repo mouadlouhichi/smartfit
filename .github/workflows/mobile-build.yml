@@ -1,7 +1,7 @@
 name: Build SmartFit mobile (EAS)
 
 on:
-  # Every push queues a build, which is what puts it on the Expo dashboard at
+  # Every push queues a build, which is what puts it on the Expo dashboard:
   # https://expo.dev/accounts/mouadlouhichi/projects/smartfit/builds
   push:
     branches: ['**']
@@ -11,38 +11,38 @@ on:
   workflow_dispatch:
     inputs:
       profile:
-        description: "EAS build profile"
+        description: 'EAS build profile'
         required: false
-        default: "preview"
+        default: 'preview'
         type: choice
         options:
           - preview
           - production
       platform:
-        description: "Platform to build"
+        description: 'Platform to build'
         required: false
-        default: "android"
+        default: 'android'
         type: choice
         options:
           - android
           - ios
           - all
       wait:
-        description: "Wait for build to finish (false = fire-and-forget)"
+        description: 'Wait for build to finish (false = fire-and-forget)'
         required: false
-        default: "false"
+        default: 'false'
         type: choice
         options:
-          - "true"
-          - "false"
+          - 'true'
+          - 'false'
       submit:
-        description: "Submit to Play Store after build (only for production)"
+        description: 'Submit to Play Store after build (only for production)'
         required: false
-        default: "false"
+        default: 'false'
         type: choice
         options:
-          - "true"
-          - "false"
+          - 'true'
+          - 'false'
 
 concurrency:
   # One EAS build per ref at a time; cancel older queued runs to save credits.
@@ -50,7 +50,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Non-hidden so actions/upload-artifact picks it up (it skips dot-dirs).
+  # Non-hidden because actions/upload-artifact skips dot-directories.
   DEBUG_DIR: eas-debug
   EXPO_ACCOUNT: mouadlouhichi
   EXPO_PROJECT: smartfit
@@ -85,7 +85,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        # `eas build` evaluates app.config.js locally before queueing, so
+        # `eas build` evaluates app.config.js locally before it queues, so the
         # config plugins (expo-router, react-native-health-connect, …) must be
         # resolvable from apps/mobile before EAS will accept the build.
         run: pnpm install --frozen-lockfile
@@ -100,48 +100,44 @@ jobs:
           cd apps/mobile
           eas whoami
 
-      - name: Diagnose expo config
-        # Diagnostics only. EAS shells out to the local `expo config --json`
-        # and swallows the child's stderr, so reproduce the same invocations
-        # (EXPO_NO_DOTENV=1 included) and surface exit codes + output.
-        continue-on-error: true
+      - name: Preflight — resolve Expo config
+        # EAS shells out to exactly this command and swallows the child's
+        # stderr, reporting only "exited with non-zero code: 1". Running it up
+        # front turns an opaque failure into an actionable one.
         run: |
           set +e
           DBG="$GITHUB_WORKSPACE/$DEBUG_DIR"
           mkdir -p "$DBG"
-          EXPO_BIN="$GITHUB_WORKSPACE/node_modules/expo/bin/cli"
-          REPORT="$DBG/diagnose.txt"
-          : > "$REPORT"
+          cd apps/mobile
+          EXPO_NO_DOTENV=1 node "$GITHUB_WORKSPACE/node_modules/expo/bin/cli" config --json \
+            > "$DBG/expo-config.json" 2> "$DBG/expo-config.err"
+          EXIT_CODE=$?
+          set -e
 
-          run_case() {
-            local name="$1"; shift
-            local dir="$1"; shift
-            {
-              echo "=================================================="
-              echo "## $name"
-              echo "cwd=$dir"
-              echo "cmd: $*"
-            } >> "$REPORT"
-            ( cd "$dir" && EXPO_NO_DOTENV=1 node "$EXPO_BIN" "$@" >> "$REPORT" 2>&1 )
-            echo "exit=$?" >> "$REPORT"
-          }
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "::error::\`expo config --json\` failed (exit $EXIT_CODE). EAS cannot queue a build until this resolves."
+            echo "----- stderr -----"
+            cat "$DBG/expo-config.err" || true
+            echo "----- stdout -----"
+            cat "$DBG/expo-config.json" || true
+            node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" \
+              "$DBG/expo-config.err" "EXPO-CONFIG-ERR" || true
+            exit "$EXIT_CODE"
+          fi
 
-          {
-            echo "node: $(node --version)"
-            echo "expo bin: $EXPO_BIN"
-            ls -la "$GITHUB_WORKSPACE/node_modules/expo/bin" 2>&1
-            echo "resolved expo version: $(node -p "require('$GITHUB_WORKSPACE/node_modules/expo/package.json').version" 2>&1)"
-            echo "resolved @expo/cli version: $(node -p "require('$GITHUB_WORKSPACE/node_modules/@expo/cli/package.json').version" 2>&1)"
-            free -m 2>&1 | head -3
-          } >> "$REPORT" 2>&1
-
-          run_case "version (from apps/mobile)" "$GITHUB_WORKSPACE/apps/mobile" --version
-          run_case "config --json (from apps/mobile)" "$GITHUB_WORKSPACE/apps/mobile" config --json
-          run_case "config --json (from repo root)" "$GITHUB_WORKSPACE" config --json
-          run_case "config (human readable)" "$GITHUB_WORKSPACE/apps/mobile" config
-
-          node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" \
-            "$REPORT" "EXPO-DIAG" 60000 || true
+          node -e '
+            var exp = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+            var projectId = exp.extra && exp.extra.eas && exp.extra.eas.projectId;
+            var problems = [];
+            if (!exp.slug) problems.push("slug is missing");
+            if (!projectId) problems.push("extra.eas.projectId is missing (run `eas init`)");
+            if (problems.length) {
+              console.error("::error::Expo config is incomplete: " + problems.join("; "));
+              process.exit(1);
+            }
+            console.log("Expo config OK — slug=" + exp.slug +
+              " owner=" + (exp.owner || "(none)") + " projectId=" + projectId);
+          ' "$DBG/expo-config.json"
 
       - name: Trigger EAS build
         id: eas
@@ -171,7 +167,7 @@ jobs:
             exit $?
           fi
 
-          # Fire-and-forget: queue the build and exit immediately.
+          # Fire-and-forget: queue the build and return immediately.
           eas build \
             --profile "$PROFILE" \
             --platform "$PLATFORM" \
@@ -194,8 +190,8 @@ jobs:
             try { raw = fs.readFileSync(process.env.OUT, "utf8"); } catch (e) { raw = ""; }
             var clean = raw.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "").replace(/\r/g, "");
 
-            // The CLI may print log lines before the JSON payload, so widen
-            // the search until something parses as a build array.
+            // The CLI may print log lines before the JSON payload, so widen the
+            // search until a slice parses into build objects with ids.
             var builds = [];
             for (var start = 0; start < clean.length && !builds.length; start++) {
               var ch = clean[start];
@@ -230,19 +226,18 @@ jobs:
           '
           NODE_EXIT=$?
 
-          # Job logs are intermittently 503ing, so mirror the raw output into
-          # annotations (readable via `gh api .../check-runs/<id>/annotations`).
+          # Job logs are intermittently 503ing, so mirror the raw CLI output into
+          # annotations, which stay readable via the check-runs API / UI.
           node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" "$OUT" "EAS-OUT" || true
           exit $NODE_EXIT
 
-      - name: Upload EAS debug output
-        if: always()
+      - name: Upload EAS output
+        if: failure()
         uses: actions/upload-artifact@v5
         with:
           name: eas-debug-${{ github.run_id }}
           path: eas-debug/
           if-no-files-found: ignore
-          include-hidden-files: true
           retention-days: 3
 
   submit:

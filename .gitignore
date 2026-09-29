@@ -61,3 +61,6 @@ packages/*/.turbo/
 
 # Local emulator diagnostics (may include synthetic auth/request metadata)
 *-debug.log
+
+# CI debug output (see .github/workflows/mobile-build.yml)
+eas-debug/

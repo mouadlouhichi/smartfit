@@ -42,9 +42,6 @@ if (parts.length === 0) {
 }
 
 parts.forEach((chunk, idx) => {
-  const escaped = chunk
-    .replace(/%/g, '%25')
-    .replace(/\r/g, '%0D')
-    .replace(/\n/g, '%0A');
+  const escaped = chunk.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
   console.log(`::error title=${prefix}-${idx + 1}-of-${parts.length}::${escaped}`);
 });
