@@ -11,7 +11,10 @@
  *    has to end up in $GITHUB_STEP_SUMMARY and in annotations, because GitHub's
  *    job-log download endpoint intermittently returns 503s.
  *
- * Usage: node parse-eas-builds.js <eas-output-file>
+ * Usage: node parse-eas-builds.js <eas-output-file> [more-files...]
+ *
+ * Each platform is built by its own `eas build` invocation, so multiple output
+ * files are concatenated and all payloads are merged.
  *
  * Exit code: 0 when at least one build id was found, otherwise 1.
  */
@@ -19,16 +22,19 @@
 
 const fs = require('fs');
 
-const outFile = process.argv[2];
+const outFiles = process.argv.slice(2);
 const acct = process.env.EXPO_ACCOUNT || 'mouadlouhichi';
 const proj = process.env.EXPO_PROJECT || 'smartfit';
 const exitCode = process.env.EAS_EXIT || '?';
 
 let raw = '';
-try {
-  raw = fs.readFileSync(outFile, 'utf8');
-} catch (e) {
-  raw = '';
+for (const file of outFiles) {
+  try {
+    const contents = fs.readFileSync(file, 'utf8');
+    if (contents.trim()) raw += contents + '\n';
+  } catch (e) {
+    /* missing output file — the platform never ran */
+  }
 }
 
 // Drop ANSI colour codes and carriage returns so the rendered output is clean.

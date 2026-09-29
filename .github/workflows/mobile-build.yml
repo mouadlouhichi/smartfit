@@ -157,7 +157,6 @@ jobs:
           WAIT="${{ github.event.inputs.wait }}"
           SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
           MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
-          OUT="$DBG/eas-build.out"
 
           if [ "$WAIT" = "true" ]; then
             eas build \
@@ -169,62 +168,103 @@ jobs:
             exit $?
           fi
 
-          # Fire-and-forget: queue the build and return immediately. GraphQL
-          # hiccups ("GraphQL request failed.") are usually transient, so retry
-          # a couple of times before giving up. Retries run with EXPO_DEBUG so a
-          # persistent failure reports the real API error instead of the CLI's
-          # generic message.
-          EAS_EXIT=1
-          for ATTEMPT in 1 2 3; do
-            if [ "$ATTEMPT" -eq 1 ]; then
-              eas build \
-                --profile "$PROFILE" \
-                --platform "$PLATFORM" \
-                --message "$MESSAGE" \
-                --non-interactive \
-                --no-wait \
-                --json > "$OUT" 2>&1
-            else
-              EXPO_DEBUG=1 eas build \
-                --profile "$PROFILE" \
-                --platform "$PLATFORM" \
-                --message "$MESSAGE" \
-                --non-interactive \
-                --no-wait \
-                --json > "$OUT" 2>&1
-            fi
-            EAS_EXIT=$?
-            if [ "$EAS_EXIT" -eq 0 ]; then
-              echo "eas build queued on attempt $ATTEMPT"
-              break
-            fi
-            echo "::warning::eas build attempt $ATTEMPT failed with exit $EAS_EXIT"
-            if ! grep -q "GraphQL request failed" "$OUT"; then
-              echo "not a transient GraphQL failure — not retrying"
-              break
-            fi
-            if [ "$ATTEMPT" -lt 3 ]; then
-              sleep 15
+          # "all" fans out into separate invocations instead of one
+          # `--platform all` call, so a failure on one platform (for example the
+          # free plan running out of Android builds for the month) can no longer
+          # prevent the other platform from being queued.
+          if [ "$PLATFORM" = "all" ]; then
+            TARGETS="android ios"
+          else
+            TARGETS="$PLATFORM"
+          fi
+
+          FAILED_TARGETS=""
+          OUTPUT_FILES=""
+
+          for TARGET in $TARGETS; do
+            OUT="$DBG/eas-build-$TARGET.out"
+            OUTPUT_FILES="$OUTPUT_FILES $OUT"
+            EAS_EXIT=1
+
+            # Fire-and-forget per platform. GraphQL hiccups are usually
+            # transient, so retry those; retries run with EXPO_DEBUG so a
+            # persistent failure reports the real API error.
+            for ATTEMPT in 1 2 3; do
+              if [ "$ATTEMPT" -eq 1 ]; then
+                eas build \
+                  --profile "$PROFILE" \
+                  --platform "$TARGET" \
+                  --message "$MESSAGE" \
+                  --non-interactive \
+                  --no-wait \
+                  --json > "$OUT" 2>&1
+              else
+                EXPO_DEBUG=1 eas build \
+                  --profile "$PROFILE" \
+                  --platform "$TARGET" \
+                  --message "$MESSAGE" \
+                  --non-interactive \
+                  --no-wait \
+                  --json > "$OUT" 2>&1
+              fi
+              EAS_EXIT=$?
+
+              if [ "$EAS_EXIT" -eq 0 ]; then
+                echo "$TARGET: queued on attempt $ATTEMPT"
+                break
+              fi
+
+              if ! grep -q "GraphQL request failed" "$OUT"; then
+                break
+              fi
+              echo "::warning::$TARGET: transient GraphQL failure on attempt $ATTEMPT — retrying"
+              if [ "$ATTEMPT" -lt 3 ]; then
+                sleep 15
+              fi
+            done
+
+            if [ "$EAS_EXIT" -ne 0 ]; then
+              FAILED_TARGETS="$FAILED_TARGETS $TARGET"
+              # Quote limits are the one failure the operator can act on, and
+              # the CLI's wording is easy to miss in a wall of Gradle output.
+              if grep -q "used its .* builds from the Free plan" "$OUT"; then
+                echo "::warning title=EAS-QUOTA::$TARGET: the Expo account has used all of its free-plan $TARGET builds for this month. Builds resume when the quota resets."
+              else
+                echo "::warning title=EAS-BUILD-FAILED::$TARGET: eas build exited $EAS_EXIT"
+              fi
             fi
           done
-          echo "eas build exit: $EAS_EXIT"
 
-          export EAS_EXIT OUT
-          node "$GITHUB_WORKSPACE/.github/scripts/parse-eas-builds.cjs" "$OUT"
+          export EAS_EXIT
+          # shellcheck disable=SC2086
+          node "$GITHUB_WORKSPACE/.github/scripts/parse-eas-builds.cjs" $OUTPUT_FILES
           NODE_EXIT=$?
 
+          if [ -n "$FAILED_TARGETS" ]; then
+            echo "Platforms that failed to queue:$FAILED_TARGETS"
+            printf '## Platforms that failed to queue\n\n%s\n' "$FAILED_TARGETS" \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+
           if [ "$NODE_EXIT" -ne 0 ]; then
-            echo "----- last 60 lines of EAS output -----"
-            tail -n 60 "$OUT"
-            # Job logs are intermittently 503ing, so mirror the tail of the CLI
-            # output into annotations, which stay readable via the check-runs
-            # API and the run's summary UI.
-            tail -c 24000 "$OUT" > "$DBG/eas-build.tail"
+            echo "----- EAS output -----"
+            for OUT in $OUTPUT_FILES; do
+              echo "### $OUT"
+              tail -n 60 "$OUT"
+            done
+            # Job logs are intermittently 503ing, so mirror the CLI output into
+            # annotations, which stay readable via the check-runs API and the
+            # run's summary UI.
+            # shellcheck disable=SC2086
+            cat $OUTPUT_FILES > "$DBG/eas-build.combined"
+            tail -c 24000 "$DBG/eas-build.combined" > "$DBG/eas-build.tail"
             node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.cjs" \
               "$DBG/eas-build.tail" "EAS-ERROR" || true
           fi
-          exit $NODE_EXIT
 
+          # Green when at least one platform queued, so an exhausted per-platform
+          # quota doesn't mask a successful build of the other platform.
+          exit $NODE_EXIT
       - name: Upload EAS output
         if: failure()
         uses: actions/upload-artifact@v5
