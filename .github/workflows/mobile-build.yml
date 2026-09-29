@@ -87,7 +87,6 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_NO_TELEMETRY: '1'
-          EAS_NO_VCS: '1'
         run: |
           set -x
           echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"

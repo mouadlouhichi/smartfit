@@ -3,8 +3,7 @@
     "version": ">= 12.0.0",
     "appVersionSource": "remote",
     "promptToConfigurePushNotifications": false,
-    "requireCommit": false,
-    "packageManager": "npm"
+    "requireCommit": false
   },
   "build": {
     "development": {
@@ -12,11 +11,12 @@
       "distribution": "internal",
       "channel": "development",
       "credentialsSource": "remote",
+      "packageManager": "pnpm",
       "env": {
         "SMARTFIT_DEPLOYMENT": "demo",
         "EXPO_PUBLIC_DEFAULT_PLAN": "full-body"
       },
-      "android": { "buildType": "development-client" },
+      "android": { "buildType": "apk" },
       "ios": { "buildConfiguration": "Debug", "simulator": true }
     },
     "preview": {
@@ -24,6 +24,7 @@
       "channel": "preview",
       "autoIncrement": true,
       "credentialsSource": "remote",
+      "packageManager": "pnpm",
       "env": {
         "SMARTFIT_DEPLOYMENT": "demo",
         "EXPO_PUBLIC_DEFAULT_PLAN": "full-body"
@@ -35,6 +36,7 @@
       "autoIncrement": true,
       "channel": "production",
       "credentialsSource": "remote",
+      "packageManager": "pnpm",
       "env": {
         "SMARTFIT_DEPLOYMENT": "demo",
         "EXPO_PUBLIC_DEFAULT_PLAN": "full-body"
