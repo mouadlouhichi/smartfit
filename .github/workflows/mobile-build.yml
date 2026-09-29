@@ -95,6 +95,21 @@ jobs:
           cd apps/mobile
           eas whoami
 
+      - name: Diagnose expo config
+        # EAS shells out to `expo config --json`; surface its real output so
+        # config errors are readable (job logs are intermittently unavailable).
+        continue-on-error: true
+        run: |
+          set +e
+          DBG="$GITHUB_WORKSPACE/.eas-debug"
+          mkdir -p "$DBG"
+          cd apps/mobile
+          node "$GITHUB_WORKSPACE/node_modules/expo/bin/cli" config --json \
+            > "$DBG/expo-config.out" 2>&1
+          echo "expo config exit: $?"
+          node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.js" \
+            "$DBG/expo-config.out" "EXPO-CONFIG" 30000 || true
+
       - name: Trigger EAS build
         id: eas
         env:
@@ -102,8 +117,6 @@ jobs:
           EXPO_NO_TELEMETRY: '1'
         run: |
           set -x
-          echo "GITHUB_WORKSPACE=$GITHUB_WORKSPACE"
-          echo "RUNNER_TEMP=$RUNNER_TEMP"
           cd apps/mobile
           PROFILE="${{ github.event.inputs.profile || 'preview' }}"
           PLATFORM="${{ github.event.inputs.platform || 'android' }}"
@@ -112,17 +125,8 @@ jobs:
           MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
           DBG="$GITHUB_WORKSPACE/.eas-debug"
           mkdir -p "$DBG"
-          echo "pre-flight marker $(date)" > "$DBG/preflight.txt"
-          echo "env pre-check:"
-          env | grep -iE "expo|eas|github|runner" | head -20
-          echo "DBG=$DBG; listing before:"
-          ls -la "$DBG"
-          echo "cwd=$(pwd); workspace contents:"
-          ls -la "$GITHUB_WORKSPACE"
           node --version
-          which eas
           eas --version
-          eas whoami
           ls -la eas.json app.config.js
           if [ "$WAIT" = "true" ]; then
             eas build \
@@ -210,22 +214,12 @@ jobs:
               fs.writeFileSync(process.env.GITHUB_STEP_SUMMARY, md);
               console.log(clean);
               fs.writeFileSync(process.env.OUT + ".marker", "marker\n");
-
-              // GitHub log downloads are intermittently 503ing, but the
-              // annotations API still works. Emit the EAS output as error
-              // annotations (max 10, ~6KB each) so it stays retrievable.
-              var CHUNK = 6000;
-              var parts = [];
-              for (var i2 = 0; i2 < Math.min(clean.length, CHUNK * 10); i2 += CHUNK) {
-                parts.push(clean.slice(i2, i2 + CHUNK));
-              }
-              if (!parts.length) parts = ["(empty)"];
-              parts.forEach(function(c, idx){
-                var esc = c.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
-                console.log("::error title=EAS-OUT-" + idx + "-of-" + parts.length + "::" + esc);
-              });
               process.exit(parseInt(exitCode, 10) || 1);
             '
+            # GitHub log downloads are intermittently 503ing, but the
+            # annotations API still works, so mirror the output there too.
+            node "$GITHUB_WORKSPACE/.github/scripts/emit-annotations.js" \
+              "$DBG/eas-build.out" "EAS-OUT" || true
           fi
 
       - name: Upload EAS debug output
