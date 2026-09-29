@@ -60,6 +60,16 @@ interface StoreValue {
   addContextMemory: (m: Omit<ContextMemory, 'id' | 'createdAt'>) => void;
   upsertSyncedHealth: (result: SyncResult) => { sleeps: number; vitals: number };
   updateProfile: (patch: Partial<UserProfile>) => void;
+  /**
+   * Commits the onboarding wizard in one shot: profile patch, the optional
+   * first goal, and the optional starter week derived from a chosen gym.
+   * Sets `profile.onboardingDone`, which is what releases the OnboardingGate.
+   */
+  completeOnboarding: (
+    patch: Partial<UserProfile>,
+    firstGoal?: FitnessGoal,
+    starterSchedule?: Omit<ScheduledWorkout, 'id' | 'createdAt'>[],
+  ) => void;
   clearData: () => void;
   // Health Connect
   hcAvailable: boolean;
@@ -298,6 +308,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         })),
       upsertSyncedHealth,
       updateProfile: (patch) => setState((p) => ({ ...p, profile: { ...p.profile, ...patch } })),
+      completeOnboarding: (patch, firstGoal, starterSchedule = []) =>
+        setState((p) => {
+          const now = Date.now();
+          const starterItems: ScheduledWorkout[] = starterSchedule.map((item, index) => ({
+            ...item,
+            id: uid('sch'),
+            createdAt: now + index,
+          }));
+          return {
+            ...p,
+            profile: { ...p.profile, ...patch, onboardingDone: true },
+            // Guard against a duplicate when the wizard is finished twice (a
+            // double-tap on "Enter SmartFit", or a reload racing the write).
+            ...(firstGoal && !p.goals.some((goal) => goal.id === firstGoal.id)
+              ? { goals: [...p.goals, firstGoal] }
+              : {}),
+            // A starter week is only seeded into an empty schedule — never on
+            // top of a plan the user already has.
+            ...(starterItems.length > 0 && p.schedule.length === 0
+              ? { schedule: starterItems }
+              : {}),
+          };
+        }),
       clearData: () => {
         setState(freshState());
         setLoadError(false);

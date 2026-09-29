@@ -131,7 +131,7 @@ if (links.length) {
   fs.appendFileSync(
     process.env.GITHUB_OUTPUT,
     `build_ids=${links.map((l) => l.id).join(',')}\n` +
-      `build_urls=${links.map((l) => l.url).join(',')}\n`
+      `build_urls=${links.map((l) => l.url).join(',')}\n`,
   );
 
   links.forEach((l) => {
@@ -148,7 +148,7 @@ fs.appendFileSync(
   `## EAS build failed\n\n- \`eas build\` exit code: \`${exitCode}\`\n\n` +
     '```\n' +
     tail +
-    '\n```\n'
+    '\n```\n',
 );
 console.log(clean);
 process.exit(exitCode === '0' ? 1 : parseInt(exitCode, 10) || 1);

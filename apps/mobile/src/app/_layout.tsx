@@ -1,14 +1,19 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Tabs } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StoreProvider } from '@/lib/store';
-import { FloatingTabBar } from '@/components/FloatingTabBar';
-import { QuickActionsProvider } from '@/components/QuickActionsProvider';
-import { StoreStatusGate } from '@/components/StoreStatusGate';
-import { BiometricGate } from '@/components/BiometricGate';
 import { CosmicBackground } from '@/components/CosmicBackground';
+import { OnboardingGate } from '@/components/OnboardingGate';
 import '../global.css';
 
+/**
+ * Application root.
+ *
+ * Provides the store (and the OLED ground) for *every* route, then hands off to
+ * a plain stack. The tab bar lives one level down in `(tabs)/_layout.tsx` so the
+ * pre-app screens — onboarding, and the welcome/entry screen — can render
+ * full-bleed without navigation chrome.
+ */
 export default function RootLayout() {
   return (
     <StoreProvider>
@@ -16,28 +21,22 @@ export default function RootLayout() {
       <CosmicBackground />
       {/* The Volt system is dark-first: light content on the near-black ground. */}
       <StatusBar style="light" />
-      <BiometricGate>
-        <QuickActionsProvider>
-          <StoreStatusGate>
-            <Tabs
-              screenOptions={{
-                headerShown: false,
-                // Hide the native tab bar chrome; our FloatingTabBar is the only nav.
-                tabBarStyle: { display: 'none' },
-              }}
-              tabBar={(props) => <FloatingTabBar {...props} />}
-            >
-              <Tabs.Screen name="index" options={{ title: 'Home' }} />
-              <Tabs.Screen name="plan" options={{ title: 'Plan' }} />
-              <Tabs.Screen name="progress" options={{ title: 'Progress' }} />
-              <Tabs.Screen name="goals" options={{ title: 'Goals' }} />
-              <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
-              <Tabs.Screen name="coach" options={{ href: null }} />
-              <Tabs.Screen name="run" options={{ href: null }} />
-            </Tabs>
-          </StoreStatusGate>
-        </QuickActionsProvider>
-      </BiometricGate>
+      <OnboardingGate>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen
+            name="onboarding"
+            // Onboarding is a required step: no swipe-to-dismiss back into an
+            // unconfigured app.
+            options={{ gestureEnabled: false, animation: 'fade' }}
+          />
+        </Stack>
+      </OnboardingGate>
     </StoreProvider>
   );
 }
