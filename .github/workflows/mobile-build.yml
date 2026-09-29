@@ -1,74 +1,67 @@
-name: EAS Build
-
-# Matches the smartjib working pattern: every commit queues a build on EAS
-# (fire-and-forget with --no-wait so the build appears on the dashboard
-# instantly, then runs server-side). Builds show up at:
-#   https://expo.dev/accounts/mouadlouhichi/projects/smartfit/builds
-#
-# Escape hatch: put [skip eas] or [skip ci] in the commit message.
+name: Build SmartFit mobile (EAS)
 
 on:
+  # On every push — exactly what you asked for: every commit queues a build.
   push:
-    branches:
-      - '**'
+    branches: ['**']
+    tags: ['*']
   pull_request:
     branches: [main]
   workflow_dispatch:
     inputs:
       profile:
-        description: Build profile
-        required: true
-        default: preview
+        description: "EAS build profile"
+        required: false
+        default: "preview"
         type: choice
-        options: [development, preview, production]
+        options:
+          - preview
+          - production
       platform:
-        description: Target platform
-        required: true
-        default: android
+        description: "Platform to build"
+        required: false
+        default: "android"
         type: choice
-        options: [android, ios, all]
+        options:
+          - android
+          - ios
+          - all
       wait:
-        description: Wait for the build to finish (uses CI minutes)
+        description: "Wait for build to finish (false = fire-and-forget)"
         required: false
-        default: false
-        type: boolean
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
       submit:
-        description: Submit to Play Store after a production build
+        description: "Submit to Play Store after build (only for production)"
         required: false
-        default: false
-        type: boolean
+        default: "false"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 concurrency:
-  # Cancel queued superseded builds when you push in rapid succession.
+  # One EAS build per ref at a time; cancel older queued runs to save credits.
   group: eas-build-${{ github.ref }}
   cancel-in-progress: true
-
-env:
-  PROFILE: ${{ github.event.inputs.profile || 'preview' }}
-  PLATFORM: ${{ github.event.inputs.platform || 'android' }}
-  EXPO_ACCOUNT: mouadlouhichi
-  EXPO_PROJECT: smartfit
 
 jobs:
   build:
     name: EAS ${{ github.event.inputs.profile || 'preview' }} / ${{ github.event.inputs.platform || 'android' }}
     runs-on: ubuntu-latest
-    if: >-
-      github.event_name != 'push' ||
-      (
-        !contains(github.event.head_commit.message, '[skip eas]') &&
-        !contains(github.event.head_commit.message, '[skip ci]')
-      )
+    permissions:
+      contents: read
     steps:
       - name: Verify EXPO_TOKEN secret is configured
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          if [ -z "$EXPO_TOKEN" ]; then
-            echo "::error::EXPO_TOKEN repository secret is missing."
-            echo "::error::Add it with: gh secret set EXPO_TOKEN --body '<token>'"
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "::error::EXPO_TOKEN secret is not set. Create a personal/robot access token at https://expo.dev/settings/access-tokens and add it to GitHub secrets."
             exit 1
           fi
+          echo "EXPO_TOKEN present."
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -86,29 +79,27 @@ jobs:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           echo "EXPO_TOKEN length: ${#EXPO_TOKEN}"
-          echo "cwd: $(pwd)"
           cd apps/mobile
           eas whoami
-          eas project:info || echo "(info failed)"
 
       - name: Trigger EAS build
         id: eas
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_ACCOUNT: mouadlouhichi
-          EXPO_PROJECT: smartfit
+          EXPO_NO_TELEMETRY: '1'
+          DEBUG: 'eas-shared:errors,eas:build'
         run: |
-          set -euo pipefail
+          set -x
+          cd apps/mobile
           PROFILE="${{ github.event.inputs.profile || 'preview' }}"
           PLATFORM="${{ github.event.inputs.platform || 'android' }}"
           WAIT="${{ github.event.inputs.wait }}"
-          cd apps/mobile
           SHORT_SHA="$(echo "$GITHUB_SHA" | cut -c1-7)"
-          MESSAGE="$(cd "$GITHUB_WORKSPACE" && git log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
-          echo "Profile : $PROFILE"
-          echo "Platform: $PLATFORM"
-          echo "Message : $MESSAGE"
-          echo "cwd     : $(pwd)"
+          MESSAGE="$(git -C "$GITHUB_WORKSPACE" log -1 --pretty=%s | cut -c1-140) ($SHORT_SHA)"
+          node --version
+          which eas
+          eas --version
+          eas whoami
           ls -la eas.json app.config.js
           if [ "$WAIT" = "true" ]; then
             eas build \
@@ -118,7 +109,9 @@ jobs:
               --non-interactive \
               --wait
           else
-            set -x
+            # Capture both stdout+stderr; do NOT fail on pipe so the file + output
+            # is always visible even if eas exits non-zero.
+            set +e
             eas build \
               --profile "$PROFILE" \
               --platform "$PLATFORM" \
@@ -127,37 +120,49 @@ jobs:
               --no-wait \
               --json > "$RUNNER_TEMP/eas-build.json" 2> "$RUNNER_TEMP/eas-build.err"
             EAS_EXIT=$?
-            set +x
+            set -e
+            echo "---- eas build exit code: $EAS_EXIT ----"
             echo "---- eas build stderr ----"
-            cat "$RUNNER_TEMP/eas-build.err"
+            cat "$RUNNER_TEMP/eas-build.err" || true
             echo "---- eas build stdout ----"
-            head -c 4000 "$RUNNER_TEMP/eas-build.json"
+            cat "$RUNNER_TEMP/eas-build.json" || true
             echo
-            echo "---- exit code: $EAS_EXIT ----"
-            if [ "$EAS_EXIT" != "0" ]; then exit "$EAS_EXIT"; fi
+
+            EXPO_ACCOUNT="mouadlouhichi"
+            EXPO_PROJECT="smartfit"
+            export EXPO_ACCOUNT EXPO_PROJECT
             node -e '
-              const fs = require("fs");
-              const out = JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP + "/eas-build.json", "utf8"));
-              const builds = Array.isArray(out) ? out : [out];
-              const account = process.env.EXPO_ACCOUNT;
-              const project = process.env.EXPO_PROJECT;
-              const lines = builds.map(function(b){
-                var prof = b.buildProfile || "preview";
-                return "- **" + b.platform + "** `" + prof + "` — [" + b.id + "](https://expo.dev/accounts/" + account + "/projects/" + project + "/builds/" + b.id + ")";
+              var fs = require("fs");
+              var acct = process.env.EXPO_ACCOUNT;
+              var proj = process.env.EXPO_PROJECT;
+              var raw = "";
+              try { raw = fs.readFileSync(process.env.RUNNER_TEMP + "/eas-build.json", "utf8"); }
+              catch(e) { console.error("no stdout file"); raw = "[]"; }
+              var builds = [];
+              try {
+                var parsed = JSON.parse(raw);
+                builds = Array.isArray(parsed) ? parsed : [parsed];
+              } catch(e) {
+                console.error("stdout was not valid JSON: " + e.message);
+                builds = [];
+              }
+              var lines = builds.filter(function(b){ return b && b.id; }).map(function(b){
+                var prof = b.buildProfile || b.profile || "preview";
+                var plat = b.platform || "?";
+                return "- **" + plat + "** `" + prof + "` — [" + b.id + "](https://expo.dev/accounts/" + acct + "/projects/" + proj + "/builds/" + b.id + ")";
               });
-              fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-                "## EAS builds queued\n\n" + lines.join("\n") + "\n\nAll builds: https://expo.dev/accounts/" + account + "/projects/" + project + "/builds\n");
-              fs.appendFileSync(process.env.GITHUB_OUTPUT, "build_id=" + ((builds[0] && builds[0].id) || "") + "\n");
+              if (lines.length) {
+                fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+                  "## EAS builds queued\n\n" + lines.join("\n") +
+                  "\n\nAll builds: https://expo.dev/accounts/" + acct + "/projects/" + proj + "/builds\n");
+                fs.appendFileSync(process.env.GITHUB_OUTPUT, "build_id=" + builds[0].id + "\n");
+                console.log("Builds queued:" + lines.join("\n"));
+                process.exit(0);
+              }
+              console.log("No build id returned (EAS failed)");
+              process.exit(process.env.EAS_EXIT ? parseInt(process.env.EAS_EXIT, 10) : 1);
             '
           fi
-
-      - name: Link to dashboard
-        if: always()
-        env:
-          EXPO_ACCOUNT: mouadlouhichi
-          EXPO_PROJECT: smartfit
-        run: |
-          echo "Builds: https://expo.dev/accounts/${EXPO_ACCOUNT}/projects/${EXPO_PROJECT}/builds"
 
   submit:
     name: Submit to Play Store
